@@ -91,3 +91,53 @@ html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav .p-pill{min-width:17px;height:17px;padding:0 4px;font-size:9.5px}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav .p-brain-pill{width:17px;height:17px}
 }
+
+/* ================= The development team's switcher (0162): see the portal as each rung sees it ================= */
+/* The DEV switcher is a floating pill (6 Nov 2026): fixed on the page, dragged anywhere and remembered (dev-widget.js), opening a small
+   panel above or below it. The sidebar is left free for its own widgets. */
+.dv-float { position: fixed; z-index: 900; left: calc(var(--p-sidebar-w, 256px) + 18px); bottom: 18px; }
+@media (max-width: 980px) { .dv-float { left: 16px; } }
+@media print { .dv-float { display: none; } }
+.dv-sw { position: relative; color: #fff; }
+.dv-sw > summary { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; cursor: grab; list-style: none; user-select: none; touch-action: none;
+  background: #141B34; border: 1px solid rgba(255,255,255,.2); box-shadow: 0 10px 28px -8px rgba(8,14,44,.55); font: 600 12.5px Inter, sans-serif; }
+.dv-sw > summary:active { cursor: grabbing; }
+.dv-sw > summary:focus-visible { outline: 3px solid #FF9800; outline-offset: 2px; }
+.dv-sw > summary::-webkit-details-marker { display: none; }
+.dv-sw > summary b { padding: 1px 6px; border-radius: 6px; background: #FF9800; color: #2B1A00; font: 800 10.5px Inter, sans-serif; letter-spacing: .06em; }
+.dv-sw > summary em { font-style: normal; font-weight: 800; }
+.dv-sw[open] > summary { border-color: #FF9800; }
+.dv-sw .dv-body { position: absolute; bottom: calc(100% + 10px); left: 0; width: 268px; padding: 12px; border-radius: 16px; background: #141B34; border: 1px solid rgba(255,255,255,.18); box-shadow: 0 18px 44px -10px rgba(8,14,44,.6); }
+.dv-float.dv-down .dv-body { bottom: auto; top: calc(100% + 10px); }
+.dv-float.dv-right .dv-body { left: auto; right: 0; }
+.dv-body { display: grid; gap: 8px; }
+.dv-levels { display: grid; gap: 6px; }
+.dv-l { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: 0; border-radius: 10px; background: rgba(255,255,255,.1); color: #fff; font: 700 12.5px Inter, sans-serif; text-align: left; cursor: pointer; }
+.dv-l::before { content: ""; width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--rk, #00E5FF); box-shadow: 0 0 6px var(--rk, #00E5FF); }
+.dv-l[data-r="chair"] { --rk: #FF3D6E; } .dv-l[data-r="kagawad"] { --rk: #B66CFF; } .dv-l[data-r="staff"] { --rk: #00E5FF; }
+.dv-l:hover { background: rgba(255,255,255,.18); }
+.dv-l.p-on { background: #fff; color: #141B34; }
+.dv-back, .dv-setup button { width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: #FF9800; color: #2B1A00; font: 800 12.5px Inter, sans-serif; cursor: pointer; }
+.dv-setup { display: grid; gap: 6px; }
+.dv-setup label { display: grid; gap: 4px; font: 600 11.5px Inter, sans-serif; opacity: .9; }
+.dv-setup select { width: 100%; padding: 6px 8px; border-radius: 8px; border: 0; background: #fff; color: #141B34; font: 600 12.5px Inter, sans-serif; }
+.dv-setup select option { color: #141B34; }
+.dv-msg { margin: 0; font: 600 12px/1.4 Inter, sans-serif; color: #FFD9A0; }
+.dv-band { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 16px; border-radius: 14px; background: repeating-linear-gradient(135deg, #FF9800 0 14px, #FFA726 14px 28px); color: #2B1A00; font: 600 13px Inter, sans-serif; box-shadow: 0 8px 20px -10px rgba(255,152,0,.7); }
+.dv-band b { font: 800 14px Inter, sans-serif; } .dv-band form { margin: 0 0 0 auto; }
+.dv-band button { padding: 6px 14px; border: 0; border-radius: 10px; background: #2B1A00; color: #fff; font: 800 12.5px Inter, sans-serif; cursor: pointer; }
+.p-badge.dv-test { background: repeating-linear-gradient(135deg, #FFE0B2 0 6px, #FFF3E0 6px 12px); color: #8A4B00; font-weight: 800; letter-spacing: .04em; }
+/* The top of the sidebar (4 Nov 2026): the barangay seal alone for a super admin; a committee's logo beside it for a Kagawad or staff member */
+.p-sidebar .p-brand.p-brand-seal{display:flex;align-items:center;justify-content:center;gap:14px;padding:2px 0 4px}
+.p-sidebar .p-brand.p-brand-seal .p-brand-img{width:112px;height:112px;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.28))}
+.p-sidebar .p-brand.p-brand-pair .p-brand-img,.p-sidebar .p-brand.p-brand-pair .p-brand-com{width:84px;height:84px;flex:none}
+.p-sidebar .p-brand .p-brand-com{object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.28))}
+.p-brand-sym{display:grid;place-items:center;border-radius:50%;background:var(--cc);color:var(--ci);box-shadow:0 0 0 3px rgba(255,255,255,.88),0 8px 18px -6px rgba(0,0,0,.45)}
+.p-brand-sym svg{width:48%;height:48%}
+.p-brand-sep{width:1px;height:56px;flex:none;background:rgba(255,255,255,.3)}
+@media (max-width:980px){
+  .p-sidebar .p-brand.p-brand-seal{gap:8px;padding:0}
+  .p-sidebar .p-brand.p-brand-seal .p-brand-img,.p-sidebar .p-brand.p-brand-pair .p-brand-com{width:44px;height:44px}
+  .p-brand-sep{height:30px}
+  .p-brand-sym{box-shadow:0 0 0 2px rgba(255,255,255,.88)}
+}

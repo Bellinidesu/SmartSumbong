@@ -176,11 +176,11 @@ class _RoleCardState extends State<_RoleCard> {
                       child: Column(children: [
                         Text(widget.label,
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 16, color: widget.foreground)),
+                            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 16, color: widget.foreground)),
                         const SizedBox(height: 3),
                         Text(widget.sub,
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 11.5, height: 1.3, color: widget.foreground.withValues(alpha: .88))),
+                            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 11.5, height: 1.3, color: widget.foreground.withValues(alpha: .88))),
                       ]),
                     ),
                   ]),

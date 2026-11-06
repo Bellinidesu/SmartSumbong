@@ -165,7 +165,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             s.changePasswordDoneTitle,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter Tight',
               fontWeight: FontWeight.w800,
               fontSize: 26,
               height: 1.1,
@@ -177,7 +177,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             s.changePasswordDoneBody,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
               fontSize: 16,
               height: 20 / 16,
@@ -301,10 +301,10 @@ class _Field extends StatelessWidget {
               obscureText: obscure,
               onChanged: (_) => onChanged(),
               onSubmitted: onSubmitted == null ? null : (_) => onSubmitted!(),
-              style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: obscure ? 1.5 : 0, color: d.ink),
+              style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: obscure ? 1.5 : 0, color: d.ink),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 0, color: d.muted, fontStyle: FontStyle.normal),
+                hintStyle: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 0, color: d.muted, fontStyle: FontStyle.normal),
                 isDense: true,
                 filled: false,
                 contentPadding: const EdgeInsets.symmetric(vertical: 2),
@@ -322,7 +322,7 @@ class _Field extends StatelessWidget {
             ),
         ]),
         const SizedBox(height: 2),
-        Text(note, style: TextStyle(fontFamily: 'Urbanist', fontSize: 11.5, color: bad ? red : d.muted)),
+        Text(note, style: TextStyle(fontFamily: 'Inter', fontSize: 11.5, color: bad ? red : d.muted)),
       ]),
     );
   }

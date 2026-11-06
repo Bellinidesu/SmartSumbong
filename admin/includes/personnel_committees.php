@@ -67,10 +67,10 @@ function tc_list_pills(?array $row): string
     return '<div class="tc-pills">' . $o . '</div>';
 }
 
-/** Tanods | Committee staff, for the people who see both. */
+/** Tanods | Committee staff, for the people who see both (staff too since 0164, view only). */
 function personnel_tabs(string $on): string
 {
-    if (!(is_super() || is_captain() || is_committee())) return '';
+    if (!(is_super() || is_captain() || is_scoped())) return '';
     $tabs = ['' => t('Tanods', 'Mga Tanod'), 'staff' => is_committee() ? t('My staff', 'Aking mga kawani') : t('Committee staff', 'Mga kawani ng komite')];
     if (is_committee()) { $tabs['retire'] = t('Retirement requests', 'Mga hiling magretiro'); }
     $o = '<nav class="st-tabs tc-tabs" aria-label="' . e(t('Personnel', 'Mga Tanod')) . '">';
@@ -93,7 +93,7 @@ function render_tc_strip(Supabase $db, array $tc, array $accounts): void
       <div class="p-card p-card-pad tc-strip" id="tc-waiting">
         <p class="p-eyebrow"><?= e(t('Tanods proposed for a committee', 'Mga tanod na iminungkahi para sa komite')) ?> · <?= count($waiting) ?></p>
         <?php foreach ($waiting as [$tid, $c]): ?>
-          <form method="post" class="tc-row">
+          <form method="post" class="tc-row"<?= press_save('people-list') ?>>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id" value="<?= e($tid) ?>">
             <input type="hidden" name="action" value="tc_decide"><input type="hidden" name="committee" value="<?= e($c['key']) ?>"><input type="hidden" name="to_list" value="1">
             <b><?= e(formal_name((string) ($names[$tid] ?? ''))) ?></b><?= tc_pill($c) ?>
@@ -115,7 +115,7 @@ function render_tc_strip(Supabase $db, array $tc, array $accounts): void
         <?php if (!$pick): ?>
           <p class="p-hint"><?= e(t('Every active tanod is already in your committee or waiting for approval.', 'Nasa komite mo na o naghihintay ng pag-apruba ang bawat aktibong tanod.')) ?></p>
         <?php else: ?>
-        <form method="post" class="tc-row">
+        <form method="post" class="tc-row"<?= press_save('people-list') ?>>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="tc_propose">
           <input type="hidden" name="committee" value="<?= e($myCom) ?>"><input type="hidden" name="to_list" value="1">
           <label class="p-sr" for="tc-who"><?= e(t('Tanod', 'Tanod')) ?></label>
@@ -192,14 +192,14 @@ function render_retire_page(Supabase $db): void
     <?= personnel_tabs('retire') ?>
     <?php if ($flash): ?><div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e((string) $flash['text']) ?></div><?php endif; ?>
     <?php if ($error): ?><div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div><?php endif; ?>
-    <p class="p-hint tc-lede"><?= e(t('Your committee\'s tanods who asked to retire. You can endorse a request to the super admins; they decide.', 'Ang mga tanod ng iyong komite na humiling magretiro. Maaari mong i-endorso ang hiling sa mga super admin; sila ang magpapasya.')) ?></p>
+    <p class="p-hint tc-lede"><?= e(t('Your committee\'s tanods and staff who asked to retire. You can endorse a request to the super admins; they decide.', 'Ang mga tanod at kawani ng iyong komite na humiling magretiro. Maaari mong i-endorso ang hiling sa mga super admin; sila ang magpapasya.')) ?></p>
     <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t" id="rt-k">
-      <thead><tr><th scope="col">Tanod</th><th scope="col"><?= e(t('Asked', 'Humiling')) ?></th><th scope="col"><?= e(t('Status', 'Katayuan')) ?></th><th scope="col" class="p-right"><?= e(t('Your endorsement', 'Iyong pag-endorso')) ?></th></tr></thead>
+      <thead><tr><th scope="col"><?= e(t('Who', 'Sino')) ?></th><th scope="col"><?= e(t('Asked', 'Humiling')) ?></th><th scope="col"><?= e(t('Status', 'Katayuan')) ?></th><th scope="col" class="p-right"><?= e(t('Your endorsement', 'Iyong pag-endorso')) ?></th></tr></thead>
       <tbody>
-      <?php if (!$rows): ?><tr><td colspan="4" class="p-empty"><?= e(t('None of your committee\'s tanods has asked to retire.', 'Walang tanod ng iyong komite ang humiling magretiro.')) ?></td></tr><?php endif; ?>
+      <?php if (!$rows): ?><tr><td colspan="4" class="p-empty"><?= e(t('Nobody in your committee has asked to retire.', 'Walang sinuman sa iyong komite ang humiling magretiro.')) ?></td></tr><?php endif; ?>
       <?php foreach ($rows as $r): ?>
         <tr>
-          <td><b><?= e(formal_name((string) $r['full_name'])) ?></b></td>
+          <td><b><?= e(formal_name((string) $r['full_name'])) ?></b> <span class="p-badge p-b-grey"><?= e(($r['role'] ?? 'tanod') === 'staff' ? t('Staff', 'Kawani') : t('Tanod', 'Tanod')) ?></span></td>
           <td class="p-num"><?= e(long_datetime((string) $r['requested_at'])) ?></td>
           <td><?= retirement_status_pill((string) $r['status']) ?></td>
           <td class="p-right">

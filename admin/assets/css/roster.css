@@ -155,12 +155,12 @@
 .pd-fig > div { display: grid; gap: 4px; align-content: start; padding: 16px 22px; min-width: 0; }
 .pd-fig > div + div { border-left: 1px solid var(--p-line); }
 .pd-fig span { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
-.pd-fig b { font: 800 34px/1 Urbanist, sans-serif; letter-spacing: -.025em; }
+.pd-fig b { font: 800 34px/1 Inter Tight, sans-serif; letter-spacing: -.025em; }
 .pd-fig small { font-size: 12.5px; color: var(--p-muted); }
 @media (max-width: 900px) { .pd-fig { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pd-fig > div:nth-child(3) { border-left: 0; } .pd-fig > div:nth-child(n+3) { border-top: 1px solid var(--p-line); } }
 .pd-now { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pd-head { background: radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--id-acc, #FF9800) 16%, transparent), transparent 55%), var(--p-surface); }
-.pd-head .p-acc-head h2 { font: 800 30px/1.1 Urbanist, sans-serif; letter-spacing: -.02em; }
+.pd-head .p-acc-head h2 { font: 800 30px/1.1 Inter Tight, sans-serif; letter-spacing: -.02em; }
 .pd-tc .tc-line { padding: 0; gap: 0; border: 0; margin: 0 0 14px; }
 :root:root .p-body .pd-tc .pd-tcb { margin: 0; border-radius: 14px 14px 0 0; }
 .pd-tc .tc-line > form { padding: 12px; border: 1px solid var(--p-line); border-top: 0; background: var(--p-surface-2); }
@@ -169,7 +169,7 @@
 .pd-tc .tc-line > .tc-busy { padding: 10px 12px; }
 .pd-recent { overflow: hidden; border-radius: 16px; }
 :root:root .p-body .pd-recent .pd-band { margin: 0; border-radius: 0; }
-:root:root .p-body .pd-recent thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; border-radius: 0; }
+:root:root .p-body .pd-recent thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Inter, sans-serif; letter-spacing: .02em; border-radius: 0; }
 .pd-selfie .p-id-shot--square img { max-height: 280px; width: auto; max-width: 100%; border-radius: 14px; }
 
 .pd-tc .tc-line { display: block; }

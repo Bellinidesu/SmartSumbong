@@ -32,7 +32,7 @@ a { color: inherit; }
 /* Avatars (a resident's or tanod's own picture, else initials) */
 .p-avatar { display: inline-grid; place-items: center; flex: none; border-radius: 50%; font-weight: 800; background: #FFD08A; color: #5A3700; }
 .p-av-sm { width: 30px; height: 30px; font-size: 12px; }
-.p-av-lg { width: 84px; height: 84px; font-size: 28px; background: var(--p-blue-50); color: var(--p-link); }
+.p-av-lg { width: 84px; height: 84px; font-family: Inter Tight, system-ui, sans-serif; font-size: 28px; background: var(--p-blue-50); color: var(--p-link); }
 img.p-av-sm, img.p-av-lg { object-fit: cover; background: var(--p-surface-2); }
 .p-badges { display: flex; flex-wrap: wrap; gap: 6px; }
 .p-band .p-badge-n--quiet { background: rgba(255,255,255,.4); color: #2B1A00; }
@@ -317,10 +317,10 @@ a.p-btn-pdf2 { text-decoration: none; }
   background: repeating-radial-gradient(circle at 88% 85%, transparent 0 22px, rgba(255,255,255,.6) 23px 24px); }
 .ss-pf-id { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; padding: 0 24px 20px; margin-top: -52px; position: relative; }
 .ss-pf-av { width: 104px; height: 104px; border-radius: 50%; object-fit: cover; flex: none; border: 4px solid var(--p-surface); background: var(--p-surface); }
-.ss-pf-ini { display: grid; place-items: center; background: var(--p-blue-50); color: var(--p-blue); font-size: 34px; font-weight: 800; }
+.ss-pf-ini { font-family: Inter Tight, system-ui, sans-serif; display: grid; place-items: center; background: var(--p-blue-50); color: var(--p-blue); font-size: 34px; font-weight: 800; }
 :root[data-theme="dark"] .ss-pf-ini { color: #8DB2FF; }
 .ss-pf-who { flex: 1; min-width: 200px; display: grid; gap: 8px; padding-top: 64px; }
-.ss-pf-who h2 { margin: 0; font-size: 24px; font-weight: 800; line-height: 1.15; }
+.ss-pf-who h2 { margin: 0; font-family: Inter Tight, system-ui, sans-serif; font-size: 24px; font-weight: 800; line-height: 1.15; }
 .ss-pf-who .p-badges { display: flex; gap: 6px; flex-wrap: wrap; }
 .ss-pf-act { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding-top: 68px; }
 .ss-pf-act .p-btn { cursor: pointer; }
@@ -333,7 +333,7 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ss-pf-row:first-child { border-top: 0; }
 .ss-pf-l { color: var(--p-muted); font-weight: 600; }
 .ss-pf-v { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.ss-pf-v small { display: block; margin-top: 2px; color: var(--p-muted); font-weight: 500; font-size: 13px; font-family: Urbanist, system-ui, sans-serif; }
+.ss-pf-v small { display: block; margin-top: 2px; color: var(--p-muted); font-weight: 500; font-size: 13px; font-family: Inter, system-ui, sans-serif; }
 .ss-pf-change { font-weight: 700; color: var(--p-link); text-decoration: none; padding: 6px 10px; margin: -6px -10px; border-radius: 8px; }
 .ss-pf-change:hover { background: var(--p-blue-50); }
 .ss-pf-form { margin-top: 18px; }
@@ -648,7 +648,7 @@ td.tc-cell { min-width: 260px; max-width: 300px; }
 /* 0150: a committee admin's sidebar names the committee, in its colour */
 .p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
 .p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }
-.p-side-com span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-side-com span { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }   /* the committee's whole title, on two lines when it needs them */
 html[data-side="min"] .p-side-com, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com { justify-content: center; padding: 8px; }
 html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com span { display: none; }
 /* 0150: colours on the Committees tab */
@@ -720,7 +720,7 @@ html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:
 .st-uptime .p-eyebrow { margin: 0; }
 .st-uptime-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .st-uptime-tile { border: 1px solid var(--p-line); background: var(--p-surface-2); border-radius: 12px; padding: 14px 16px; display: grid; gap: 2px; }
-.st-uptime-tile b { font-size: 26px; font-weight: 800; line-height: 1.1; color: var(--p-green); }
+.st-uptime-tile b { font-family: Inter Tight, system-ui, sans-serif; font-size: 26px; font-weight: 800; line-height: 1.1; color: var(--p-green); }
 .st-uptime-tile span { font-size: 13px; color: var(--p-muted); }
 .st-uptime-tile.st-down b { color: var(--p-red); }
 .st-uptime .st-note { margin: 0; }
@@ -792,7 +792,7 @@ td.tc-cell .cm-pill::before, td.tc-cell .cm-pill > i { margin-top: .42em; flex: 
 .ib-row { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-template-areas: "av top" "av line"; column-gap: 12px; row-gap: 2px; align-items: center; padding: 12px 14px 12px 20px; border-radius: 14px; text-decoration: none; color: var(--p-ink-2); transition: background .15s; }
 .ib-row:hover, .ib-row:focus-visible { background: var(--p-surface-2); }
 .ib-row.ib-sel { background: color-mix(in srgb, var(--p-orange) 11%, transparent); }
-.ib-av { grid-area: av; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; font: 800 13px Urbanist, sans-serif; background: var(--p-blue-50); color: var(--p-link); }
+.ib-av { grid-area: av; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; font: 800 13px Inter, sans-serif; background: var(--p-blue-50); color: var(--p-link); }
 .ib-av.is-sys { background: color-mix(in srgb, var(--p-violet, #8B6BFF) 16%, transparent); color: var(--p-violet, #8B6BFF); }
 .ib-top { grid-area: top; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-width: 0; }
 .ib-name { font-weight: 600; color: var(--p-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -864,3 +864,16 @@ textarea.p-input-plain { height: auto; min-height: 180px; padding: 10px 12px; li
 td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* the statuses are one column of pills, left-aligned, whatever their number, so no row has them half inline and half stacked */
 .ss-ohead:has(#accounts-tbody) td:nth-last-child(2) .p-badges { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 4px; }
+/* Rose, 2 Nov 2026: what waits on a super admin, the committees and the live feed live in the Dashboard's engine window */
+.ss-win .dc-needs, .ss-win .dc-coms { margin: 0; }
+.ss-win .dw-com .p-card-head, .ss-win .dw-feed .p-card-head { display: flex; align-items: center; padding: 0 0 8px; }
+.ss-win .dw-com h2, .ss-win .dw-feed h2 { margin: 0; font-size: 16px; }
+.ss-win .dw-feed .dh-feedl { grid-auto-rows: auto; }
+.ss-win .dc-needs .ss-tile > span:first-child { min-height: 0; }
+.ss-win .ss-panel-in { grid-template-columns: minmax(0, 1fr); }
+.ss-win .dw-com .ss-table { width: 100%; table-layout: fixed; }
+.ss-win .dw-com .ss-table th:first-child, .ss-win .dw-com .ss-table td:first-child { width: auto; }
+.ss-win .dw-com .ss-table th.n, .ss-win .dw-com .ss-table td.n { width: 76px; }
+.ss-win .dw-com .dh-bar { max-width: 100%; }
+.ss-win .ss-two > *, .ss-win .ss-stack, .ss-win .ss-stack > * { min-width: 0; }
+.ss-win .ss-table.ss-nowrap { display: block; overflow-x: auto; }   /* its rows stay on one line and scroll inside the card */

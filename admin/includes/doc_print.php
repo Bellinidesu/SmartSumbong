@@ -24,8 +24,7 @@ function doc_head(string $title, bool $desk = false): void
 <title><?= e($title) ?> — <?= e(barangay()['name']) ?></title>
 <link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 <?= theme_head(false) ?>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <style>
   @page { size: Letter; margin: 0.6in 0.75in; }
   :root { --ink: #111; --line: #222; --muted: #555; }
@@ -69,7 +68,7 @@ function doc_head(string $title, bool $desk = false): void
       mask: url("assets/img/texture-contours.webp") 0 0 / 560px 560px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 30%, transparent 60%);
       -webkit-mask-composite: source-in; mask-composite: intersect; }
     .doc-toolbar { position: sticky; top: 12px; margin: 12px auto 0; max-width: min(1180px, calc(100% - 24px)); border-radius: 18px; padding: 12px 16px; gap: 10px 12px;
-      background: linear-gradient(135deg, #00308F, #00236A); box-shadow: 0 10px 30px rgba(0,30,90,.28); font: 600 14px Urbanist, "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #00308F, #00236A); box-shadow: 0 10px 30px rgba(0,30,90,.28); font: 600 14px Inter, "Segoe UI", Arial, sans-serif;
       overflow: hidden; isolation: isolate; }
     .doc-toolbar::before { content: ""; position: absolute; inset: 0; z-index: -1; background: #fff; opacity: .13;
       -webkit-mask: url("assets/img/texture-contours.webp") 0 0 / 420px 420px repeat; mask: url("assets/img/texture-contours.webp") 0 0 / 420px 420px repeat; }
@@ -77,13 +76,13 @@ function doc_head(string $title, bool $desk = false): void
     .doc-toolbar > a:hover { background: rgba(255,255,255,.2); }
     .doc-toolbar label { gap: 8px; color: rgba(255,255,255,.85); }
     .doc-toolbar input[type=text], .doc-toolbar input[type=month], .doc-toolbar input[type=date] {
-      height: 34px; padding: 0 12px; border-radius: 99px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.95); color: #141B34; font: 600 13.5px Urbanist, Arial, sans-serif; }
+      height: 34px; padding: 0 12px; border-radius: 99px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.95); color: #141B34; font: 600 13.5px Inter, Arial, sans-serif; }
     .doc-toolbar input:focus-visible { outline: 2px solid #FF9800; outline-offset: 1px; }
     /* Reason checkboxes as chips. */
     .doc-toolbar label:has(> input[type=checkbox]) { height: 32px; padding: 0 12px 0 10px; border-radius: 99px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); cursor: pointer; transition: background .15s; }
     .doc-toolbar label:has(> input[type=checkbox]:checked) { background: #fff; color: #00308F; border-color: #fff; }
     .doc-toolbar input[type=checkbox] { accent-color: #FF9800; width: 15px; height: 15px; margin: 0; }
-    .doc-toolbar button { height: 38px; padding: 0 20px; border-radius: 99px; background: #FF9800; box-shadow: 0 4px 12px rgba(255,152,0,.35); font: 800 14px Urbanist, Arial, sans-serif; }
+    .doc-toolbar button { height: 38px; padding: 0 20px; border-radius: 99px; background: #FF9800; box-shadow: 0 4px 12px rgba(255,152,0,.35); font: 800 14px Inter, Arial, sans-serif; }
     .doc-toolbar button:hover { background: #F08A00; }
     .doc-page { margin: 28px auto 48px; border-radius: 4px; box-shadow: var(--d-shadow); }
   }

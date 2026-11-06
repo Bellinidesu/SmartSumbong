@@ -150,7 +150,7 @@ class DBarTab extends StatelessWidget {
                   // Tab labels stay one size, so five fit evenly at any phone text size.
                   textScaler: TextScaler.noScaling,
                   style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter',
                       fontSize: 13.5,
                       height: 1.2,
                       fontWeight: active ? FontWeight.w800 : FontWeight.w500,

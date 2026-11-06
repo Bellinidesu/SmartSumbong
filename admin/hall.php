@@ -39,8 +39,9 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
 <style>
   :root { --bg: #0B1630; --panel: #13224A; --line: #22356A; --ink: #F3F6FF; --muted: #A9B6DC; --cc: <?= $e($col) ?>; color-scheme: dark; }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 400 18px/1.35 Urbanist, system-ui, sans-serif; display: grid; grid-template-rows: auto 1fr auto; padding: clamp(16px, 3vw, 40px); gap: clamp(16px, 2.4vw, 32px); }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 400 18px/1.35 Inter, system-ui, sans-serif; display: grid; grid-template-rows: auto 1fr auto; padding: clamp(16px, 3vw, 40px); gap: clamp(16px, 2.4vw, 32px); }
   header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  header b, .band b, .tile b { font-family: Inter Tight, system-ui, sans-serif; }
   header b { font-size: clamp(22px, 2.6vw, 40px); letter-spacing: .01em; }
   header span { color: var(--muted); font-size: clamp(16px, 1.6vw, 24px); font-variant-numeric: tabular-nums; }
   .band { display: flex; align-items: center; gap: 18px; padding: clamp(14px, 2vw, 26px) clamp(16px, 2.4vw, 32px); border-radius: 22px; background: var(--cc); color: #fff; }
@@ -61,7 +62,7 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
   li b { font-variant-numeric: tabular-nums; }
   footer { color: var(--muted); font-size: clamp(13px, 1.1vw, 17px); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .gone { place-self: center; text-align: center; max-width: 34rem; }
-  .gone b { display: block; font-size: 28px; margin-bottom: 8px; }
+  .gone b { display: block; font-family: Inter Tight, system-ui, sans-serif; font-size: 28px; margin-bottom: 8px; }
 </style>
 </head>
 <body>

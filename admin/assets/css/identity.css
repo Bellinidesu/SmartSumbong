@@ -30,7 +30,7 @@
   transition: transform .18s ease, box-shadow .18s ease;
 }
 .id-on :is(.p-kpi, .dh-kpi .ss-tile):hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(20,27,52,.06), 0 16px 32px -14px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 60%, transparent); }
-.id-on :is(.p-kpi .p-value, .dh-kpi .ss-tile b) { font-family: Urbanist, system-ui, sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -.025em; line-height: 1; }
+.id-on :is(.p-kpi .p-value, .dh-kpi .ss-tile b) { font-family: Inter Tight, system-ui, sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -.025em; line-height: 1; }
 .id-on :is(.p-kpi .p-label, .dh-kpi .ss-tile > span) { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
 .id-on .dh-kpi .ss-tile { --tile-acc: #FF9800; }
 .id-on .dh-kpi .ss-tile.hot { --tile-acc: var(--p-red); }
@@ -144,7 +144,7 @@
   transform: translateX(100%); visibility: hidden; transition: transform .3s cubic-bezier(.2,.8,.2,1), visibility 0s .3s; }
 .ss-win.is-open { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.2,.8,.2,1); }
 .ss-win-head { display: flex; align-items: center; gap: 14px; padding: 18px 20px; color: #fff; background: linear-gradient(135deg, #141B34 0%, #0A2A6E 100%); }
-.ss-win-ttl b { display: block; font: 800 19px Urbanist, sans-serif; letter-spacing: -.01em; }
+.ss-win-ttl b { display: block; font: 800 19px Inter Tight, sans-serif; letter-spacing: -.01em; }
 .ss-win-ttl small { display: block; margin-top: 3px; font-size: 12.5px; opacity: .8; }
 .ss-win-x { margin-left: auto; flex: none; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
 .ss-win-x:hover { background: rgba(255,255,255,.22); }
@@ -153,14 +153,14 @@
 .ss-win .ss-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .ss-win .ss-two { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .ss-win .ss-stack { display: grid; gap: 14px; }
-.ss-win-about h3 { margin: 4px 0 8px; font: 800 17px Urbanist, sans-serif; }
+.ss-win-about h3 { margin: 4px 0 8px; font: 800 17px Inter Tight, sans-serif; }
 .ss-win-about .dq-notes ul { margin: 0 0 12px; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
 @media (prefers-reduced-motion: reduce) { .ss-win, .ss-win-scrim, .ss-brain-btn { transition: none; } }
 
 /* ---- the committees: a name that titles a row is never a pill; a colour bar, the name, who leads it, the load ---- */
 .dc-name { display: flex; align-items: center; gap: 12px; color: var(--p-ink); text-decoration: none; }
 .dc-name > i { flex: none; width: 4px; align-self: stretch; min-height: 32px; border-radius: 2px; background: var(--cc, var(--id-acc)); }
-.dc-name b { display: block; font: 700 14.5px/1.25 Urbanist, sans-serif; }
+.dc-name b { display: block; font: 700 14.5px/1.25 Inter, sans-serif; }
 .dc-name small { display: block; margin-top: 1px; font-size: 12px; color: var(--p-muted); }
 .dc-name small.dc-warn { color: var(--p-red); font-weight: 700; }
 .dh-ctab .dh-bar { margin: 8px 0 0 16px; }
@@ -224,7 +224,7 @@
 .page-summary .ss-sumkpis .p-kpi { display: grid; grid-template-rows: auto auto 1fr; gap: 6px; min-height: 148px; }
 :root:root .p-body.page-summary .ss-sumkpis > .p-kpi::before { height: 3px; }
 .page-summary .ss-sumkpis .p-value { display: flex; align-items: baseline; gap: 8px; }
-.rs-of { font: 700 15px Urbanist, sans-serif; letter-spacing: 0; color: var(--p-muted); }
+.rs-of { font: 700 15px Inter, sans-serif; letter-spacing: 0; color: var(--p-muted); }
 .rs-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; align-self: end; }
 .rs-chg { font: 700 12.5px Inter, sans-serif; white-space: nowrap; color: var(--p-muted); }
 .rs-chg.rs-good { color: var(--p-green); } .rs-chg.rs-bad { color: var(--p-red); }
@@ -264,7 +264,7 @@
 .rs-tn-row b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rs-tn-bar { height: 8px; border-radius: 99px; background: var(--p-line); overflow: hidden; }
 .rs-tn-bar i { display: block; height: 100%; border-radius: 99px; background: #FF9800; }
-.rs-tn-n { font: 800 14px Urbanist, sans-serif; white-space: nowrap; }
+.rs-tn-n { font: 800 14px Inter, sans-serif; white-space: nowrap; }
 .rs-tn-n small { font: 600 11.5px Inter, sans-serif; color: var(--p-muted); }
 .rs-tn-n.rs-low { color: var(--p-red); }
 @media (max-width: 1100px) { .rs-tn-row { grid-template-columns: 1fr auto auto; } .rs-tn-bar, .rs-tn-n:nth-of-type(n+4) { display: none; } }
@@ -275,7 +275,7 @@
 .rs-w-card .p-eyebrow { margin: 0; }
 .rs-w-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.45; }
 .rs-w-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--p-line); }
-.rs-w-row b { font: 800 16px Urbanist, sans-serif; color: var(--p-red); }
+.rs-w-row b { font: 800 16px Inter, sans-serif; color: var(--p-red); }
 .ss-win .rs-tn { padding: 18px; }
 .ss-win .rs-tn-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 10px; padding: 10px 0; }
 .ss-win .rs-tn-row b, .ss-win .rs-tn-bar { grid-column: 1 / -1; }
@@ -285,29 +285,22 @@
 .page-summary .ss-jump a { justify-content: center; white-space: nowrap; }
 @media (max-width: 760px) { :root:root .p-body.page-summary .ss-jump { display: flex; flex-wrap: wrap; } .page-summary .ss-jump a { flex: 1 1 auto; } }
 
-/* ---- Report Summary: the title row is the orange band, the column header under it is the blue (the Figma pair) ---- */
-.page-summary .p-table-card > .p-card-head {
-  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 22px !important; margin: 0;
-  background: linear-gradient(105deg, #FFB43A 0%, #FF9800 45%, #F58200 100%); color: #2B1A00; border-radius: 16px 16px 0 0;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
-}
-.page-summary .p-table-card > .p-card-head h2 { color: #2B1A00; font-size: 16px; font-weight: 800; margin: 0; }
-.page-summary .p-table-card > .p-card-head .p-hint { color: rgba(43,26,0,.75); font-weight: 700; }
-.page-summary .p-table-card thead.p-blue th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; }
-.page-summary .p-table-card thead.p-blue th a { color: #fff; }
+/* ---- Report Summary: a list's title row sits on its card and the column head under it is quiet (6 Nov: the orange band and the blue head are gone; the period band above is the page's one orange) ---- */
+.page-summary .p-table-card > .p-card-head { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 22px !important; margin: 0; border-radius: 16px 16px 0 0; }
 
 /* ---- the Case Timeline: a picker on the left, one case's story on the right, on a rail ---- */
 .rs-tl-split { display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); }
 .rs-tl-pick { border-right: 1px solid var(--p-line); min-width: 0; }
-.rs-tl-pick tbody tr.p-sel > td { background: color-mix(in srgb, #FF9800 12%, transparent); }
-.rs-tl-pick tbody tr.p-sel > td:first-child { box-shadow: inset 4px 0 0 #FF9800; }
+.rs-tl-pick { --rs-sel: var(--p-blue); } :root[data-theme="dark"] .rs-tl-pick { --rs-sel: #356CF9; }
+.rs-tl-pick tbody tr.p-sel > td { background: color-mix(in srgb, var(--rs-sel) 9%, transparent); }
+.rs-tl-pick tbody tr.p-sel > td:first-child { box-shadow: inset 4px 0 0 var(--rs-sel); }
 .rs-tl-pick td { padding-top: 10px; padding-bottom: 10px; }
 .rs-tl-st { display: block; margin-top: 4px; }
 .rs-tl-n { display: inline-grid; place-items: center; min-width: 26px; height: 24px; padding: 0 8px; border-radius: 99px; background: var(--p-grey-bg); font: 800 12.5px Inter, sans-serif; }
 .rs-tl-view { padding: 18px 26px 26px; min-width: 0; }
 .rs-tl-head { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--p-line); }
 .rs-tl-head > div { display: grid; gap: 2px; }
-.rs-tl-head b { font: 800 17px Urbanist, sans-serif; }
+.rs-tl-head b { font: 800 17px Inter Tight, sans-serif; }
 .rs-tl-id { font-size: 13px; }
 .rs-tl2 { list-style: none; margin: 0; padding: 0 0 0 8px; position: relative; display: grid; }
 .rs-tl2::before { content: ""; position: absolute; left: 14px; top: 8px; bottom: 8px; width: 2px; background: var(--p-line); }
@@ -334,12 +327,12 @@
 :root:root .p-body .cr-fig > a.p-card + a.p-card { border-left: 1px solid var(--p-line); }
 :root:root .p-body .cr-fig > a.p-card:hover { background: color-mix(in srgb, var(--id-acc) 5%, transparent); transform: none; }
 .cr-fig .ss-tile > span { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
-.cr-fig .ss-tile b { font: 800 40px/1 Urbanist, sans-serif; letter-spacing: -.025em; }
+.cr-fig .ss-tile b { font: 800 40px/1 Inter Tight, sans-serif; letter-spacing: -.025em; }
 .cr-fig .ss-tile.hot b { color: var(--p-red); }
 .cr-fig .ss-tile small { font-size: 12.5px; line-height: 1.35; color: var(--p-muted); }
 @media (max-width: 1100px) { .cr-fig { grid-template-columns: repeat(2, minmax(0, 1fr)); } :root:root .p-body .cr-fig > a.p-card:nth-child(3) { border-left: 0; } :root:root .p-body .cr-fig > a.p-card:nth-child(n+3) { border-top: 1px solid var(--p-line); } }
 /* the column header under the orange band is the Figma blue */
-:root:root .p-body.page-cases .ss-cases-t thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; }
+:root:root .p-body.page-cases .ss-cases-t thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Inter, sans-serif; letter-spacing: .02em; }
 :root:root .p-body.page-cases .ss-cases-t thead th :is(a, .p-th-sort, .p-th-sort:hover) { color: #fff; }
 /* overdue in red, escalated in violet */
 .page-cases tr.cr-od > td:first-child { box-shadow: inset 4px 0 0 var(--p-red); }
@@ -350,24 +343,24 @@
 /* ================= Case Reports, stacked: the figures, then the orange band, the committee strip and the blue-headed table as ONE object ================= */
 .page-cases .ss-cr-band { border-radius: 16px 16px 0 0; margin-bottom: 0; }
 /* the committee strip wraps (never scrolls, never cuts a name); hairlines are the gaps between cells */
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chips {
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips {
   display: flex; flex-wrap: wrap; gap: 1px; margin: 0; padding: 0; overflow: visible;
   background: var(--p-line); border: 1px solid var(--p-line); border-top: 0; border-bottom: 0; border-radius: 0;
 }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip {
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip {
   flex: 1 1 210px; display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 60px; padding: 9px 18px;
   border: 0; border-radius: 0; background: var(--p-surface); box-shadow: none; text-decoration: none; color: var(--p-ink);
 }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 6%, var(--p-surface)); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 11%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > i { width: 4px; height: 32px; border-radius: 2px; background: var(--cc, var(--p-ink)); }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:first-child { --cc: var(--p-ink); }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n { display: grid; gap: 1px; min-width: 0; font: 700 13.5px/1.25 Urbanist, sans-serif; white-space: normal; overflow-wrap: anywhere; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n em { font: 600 11.5px Inter, sans-serif; font-style: normal; color: var(--p-muted); }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n em.cm-od { color: var(--p-red); font-weight: 700; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > b { min-width: 0; height: auto; padding: 0; border-radius: 0; background: none; font: 800 22px Urbanist, sans-serif; letter-spacing: -.02em; color: var(--p-ink); }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; margin-top: 0; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chips ~ .fw-bulk { margin: 10px 0; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 6%, var(--p-surface)); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 11%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i { width: 4px; height: 32px; border-radius: 2px; background: var(--cc, var(--p-ink)); }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:first-child { --cc: var(--p-ink); }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { display: grid; gap: 1px; min-width: 0; font: 700 13.5px/1.25 Inter, sans-serif; white-space: normal; overflow-wrap: anywhere; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em { font: 600 11.5px Inter, sans-serif; font-style: normal; color: var(--p-muted); }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od { color: var(--p-red); font-weight: 700; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > b { min-width: 0; height: auto; padding: 0; border-radius: 0; background: none; font: 800 22px Inter Tight, sans-serif; letter-spacing: -.02em; color: var(--p-ink); }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; margin-top: 0; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips ~ .fw-bulk { margin: 10px 0; }
 /* a case's tag and place stay on one line (the whole text on hover) so every row is one height */
 .page-cases .ss-cases-t td .cm-fwd, .page-cases .ss-cases-t td .p-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 /* the join of the orange band and the blue header is square on both pages: nothing of the band shows behind a corner */
@@ -376,28 +369,28 @@
 
 /* ================= Case Reports: band, strip and table are one seamless object, and the strip wears the committees' colours ================= */
 :root:root .p-body.page-cases .ss-cr-band { box-shadow: inset 0 1px 0 rgba(255,255,255,.4); border-radius: 16px 16px 0 0; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chips { border: 0; background: var(--p-line); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; border-top: 0; box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 45%, transparent); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; min-height: 66px; padding: 10px 18px 10px 14px; position: relative; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > i.cm-sym {
-  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font: 800 13px/1 Urbanist, sans-serif; letter-spacing: .02em; font-style: normal;
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips { border: 0; background: var(--p-line); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; border-top: 0; box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 45%, transparent); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; min-height: 66px; padding: 10px 18px 10px 14px; position: relative; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font: 800 13px/1 Inter, sans-serif; letter-spacing: .02em; font-style: normal;
   color: color-mix(in srgb, var(--cc, var(--p-ink)) 70%, var(--p-ink)); background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, var(--p-surface));
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--cc, var(--p-ink)) 45%, transparent);
 }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > i.cm-sym-all { --cc: var(--p-ink); font-size: 11px; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > i.cm-sym-none { box-shadow: none; border: 1.5px dashed var(--p-red); background: color-mix(in srgb, var(--p-red) 8%, var(--p-surface)); color: var(--p-red); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 7%, var(--p-surface)); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 13%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.p-on > i.cm-sym { background: var(--cc, var(--p-ink)); color: #fff; box-shadow: none; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.p-on > i.cm-sym-all { color: var(--p-surface); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym-all { --cc: var(--p-ink); font-size: 11px; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym-none { box-shadow: none; border: 1.5px dashed var(--p-red); background: color-mix(in srgb, var(--p-red) 8%, var(--p-surface)); color: var(--p-red); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 7%, var(--p-surface)); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 13%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.p-on > i.cm-sym { background: var(--cc, var(--p-ink)); color: #fff; box-shadow: none; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.p-on > i.cm-sym-all { color: var(--p-surface); }
 :root[data-theme="dark"] .p-body.page-cases .cm-chip > i.cm-sym { color: color-mix(in srgb, var(--cc, #fff) 55%, #fff); }
 
 /* ================= the committee strip: each cell is a banner, built the way the app's and Spatial Distribution's banners are =================
    a radial wash of the complaint type's colour (light at the top left, the colour, a darker corner), the Damascus contour lines over it,
    a glass tile with the SD symbol, and the symbol again, large and faint, at the right (the app's DHero). */
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chips { gap: 0; background: none; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip { --g1: var(--cc, #356CF9); --g2: var(--g1); --g3: var(--g1); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip {
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips { gap: 0; background: none; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip { --g1: var(--cc, #356CF9); --g2: var(--g1); --g3: var(--g1); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip {
   --ct: #fff; position: relative; overflow: hidden; isolation: isolate; color: var(--ct); min-height: 76px; padding: 10px 18px 10px 14px; border: 0; border-radius: 0;
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.52) 0%, rgba(255,255,255,0) 56%),
@@ -406,102 +399,102 @@
   box-shadow: inset 1px 0 0 rgba(255,255,255,.28), inset 0 1px 0 rgba(255,255,255,.28);
   filter: saturate(1.12); transition: filter .18s ease, transform .18s ease;
 }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip::before {   /* the Damascus contour lines, as on the SD banner */
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip::before {   /* the Damascus contour lines, as on the SD banner */
   content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: #fff; opacity: .24; transform: none; animation: none;
   -webkit-mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat;
 }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > * { position: relative; z-index: 1; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > .cm-bg { position: absolute; z-index: 0; right: -10px; bottom: -22px; width: 92px; height: 92px; color: #fff; opacity: .17; pointer-events: none; stroke-width: 1.6; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:hover { filter: saturate(1.3) brightness(1.06); transform: translateY(-1px); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.p-on { background:
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > * { position: relative; z-index: 1; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > .cm-bg { position: absolute; z-index: 0; right: -10px; bottom: -22px; width: 92px; height: 92px; color: #fff; opacity: .17; pointer-events: none; stroke-width: 1.6; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:hover { filter: saturate(1.3) brightness(1.06); transform: translateY(-1px); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.p-on { background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.52) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.36) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg, var(--g1) 0%, var(--g1) 18%, var(--g2) 50%, var(--g3) 82%, var(--g3) 100%);
   box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 5px rgba(0,0,0,.22), 0 12px 24px -12px var(--g1); filter: saturate(1.25); transform: translateY(-1px); z-index: 2; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(.95) brightness(.98); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chips:has(.p-on) .cm-chip:not(.p-on):hover { filter: saturate(1.3) brightness(1.06); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(.95) brightness(.98); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips:has(.p-on) .cm-chip:not(.p-on):hover { filter: saturate(1.3) brightness(1.06); }
 /* the glass tile with the symbol, as on the quick-view header */
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > i.cm-sym {
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; min-width: 42px; height: 42px; padding: 0 9px; border-radius: 12px; font: 800 13px/1 Urbanist, sans-serif; font-style: normal;
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; min-width: 42px; height: 42px; padding: 0 9px; border-radius: 12px; font: 800 13px/1 Inter, sans-serif; font-style: normal;
   color: var(--ct); background: color-mix(in srgb, var(--ct) 20%, transparent); box-shadow: none; border: 0;
 }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-ic { width: 24px; height: 24px; flex: none; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-sym-sd .cm-ic:nth-of-type(n+2) { width: 19px; height: 19px; opacity: .92; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-more { font: 800 11px Inter, sans-serif; opacity: .9; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > i.cm-sym-all { font-size: 0; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > i.cm-sym-none { background: color-mix(in srgb, var(--ct) 20%, transparent); border: 0; color: var(--ct); }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-ic { width: 24px; height: 24px; flex: none; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-sym-sd .cm-ic:nth-of-type(n+2) { width: 19px; height: 19px; opacity: .92; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-more { font: 800 11px Inter, sans-serif; opacity: .9; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym-all { font-size: 0; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym-none { background: color-mix(in srgb, var(--ct) 20%, transparent); border: 0; color: var(--ct); }
 /* the name, the overdue as a dark glass pill (the app's chip), the count */
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n { color: var(--ct); font: 800 15px/1.2 Urbanist, sans-serif; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n em { color: var(--ct); opacity: .86; font: 600 12px Inter, sans-serif; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n em.cm-od { opacity: 1; display: inline-block; justify-self: start; padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.38); color: #fff; font: 700 11px Inter, sans-serif; letter-spacing: .02em; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > b { color: var(--ct); font: 800 28px Urbanist, sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,.22); }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:first-child { --cc: #2D5BFF; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.cm-chip-none { --cc: #FF2D4B; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.cm-chip-flag { --cc: #FF9800; --ct: #2B1A00; }
-@media (prefers-reduced-motion: reduce) { :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip { transition: none; } }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { color: var(--ct); font: 800 15px/1.2 Inter, sans-serif; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em { color: var(--ct); opacity: .86; font: 600 12px Inter, sans-serif; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od { opacity: 1; display: inline-block; justify-self: start; padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.38); color: #fff; font: 700 11px Inter, sans-serif; letter-spacing: .02em; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > b { color: var(--ct); font: 800 28px Inter Tight, sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,.22); }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:first-child { --cc: #2D5BFF; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.cm-chip-none { --cc: #FF2D4B; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.cm-chip-flag { --cc: #FF9800; --ct: #2B1A00; }
+@media (prefers-reduced-motion: reduce) { :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip { transition: none; } }
 
 /* ---- tuned from the first preview ---- */
 /* the symbols are white on the glass tile, whatever the colour behind (the lettering colour only picks the name's) */
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-sym .cm-ic { color: #fff; filter: drop-shadow(0 1px 3px rgba(0,0,0,.35)); }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.cm-chip-flag .cm-sym .cm-ic { color: var(--ct); filter: none; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-sym .cm-ic { color: #fff; filter: drop-shadow(0 1px 3px rgba(0,0,0,.35)); }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.cm-chip-flag .cm-sym .cm-ic { color: var(--ct); filter: none; }
 /* the contour lines are felt, not read: the SD banner's strength on a tall banner, lighter on a short button */
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip::before { opacity: .15; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip::before { opacity: .15; }
 /* a blend is a wash of one colour into the next, never a grey midpoint: it is mixed in a vivid space and darkened a touch for the lettering */
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip {
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip {
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.42) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.42) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%);
 }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.p-on { background:
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.p-on { background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.42) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.42) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%); }
 /* the lettering sits on a soft dark halo so it reads on any colour, the way the SD pill does */
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n { text-shadow: 0 1px 8px rgba(0,0,0,.45), 0 0 2px rgba(0,0,0,.25); }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.cm-chip-flag .cm-n { text-shadow: none; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { text-shadow: 0 1px 8px rgba(0,0,0,.45), 0 0 2px rgba(0,0,0,.25); }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.cm-chip-flag .cm-n { text-shadow: none; }
 
 /* ---- Ace: vibrant again; no small icon tile (the banner is the symbol); no contour lines; the large faint symbol stays ---- */
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip::before { content: none; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > i.cm-sym { display: none; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 10px 18px; filter: saturate(1.5) brightness(1.04);
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip::before { content: none; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym { display: none; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 10px 18px; filter: saturate(1.5) brightness(1.04);
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.3) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.p-on { filter: saturate(1.7) brightness(1.08);
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.p-on { filter: saturate(1.7) brightness(1.08);
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.3) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:hover { filter: saturate(1.8) brightness(1.1); }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(1.35) brightness(1); }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > .cm-bg { right: -4px; bottom: -26px; width: 104px; height: 104px; opacity: .22; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:hover { filter: saturate(1.8) brightness(1.1); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(1.35) brightness(1); }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > .cm-bg { right: -4px; bottom: -26px; width: 104px; height: 104px; opacity: .22; }
 
 /* ---- the overdue note belongs to its banner: the banner's own lettering colour as a soft ring and a dot, never a black patch ---- */
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n em.cm-od {
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od {
   display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 3px 11px 3px 9px; border-radius: 99px; opacity: 1;
   background: color-mix(in srgb, var(--ct) 16%, transparent); color: var(--ct); text-shadow: none;
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ct) 55%, transparent); font: 800 11.5px Inter, sans-serif; letter-spacing: .02em;
 }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n em.cm-od::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ct); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct) 60%, transparent); animation: cmPulse 2.2s ease-out infinite; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ct); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct) 60%, transparent); animation: cmPulse 2.2s ease-out infinite; }
 @keyframes cmPulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
 
 /* ---- the faint symbol is alive: it leans in and brightens on hover, and squeezes on press ---- */
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > .cm-bg { transform-origin: 62% 62%; transition: transform .45s cubic-bezier(.2,1.4,.35,1), opacity .3s ease; will-change: transform; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:hover > .cm-bg, :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:focus-visible > .cm-bg { transform: translate(-6px, -5px) scale(1.14) rotate(-7deg); opacity: .36; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:active > .cm-bg { transform: translate(2px, 3px) scale(.9) rotate(5deg); opacity: .5; transition-duration: .12s; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:active { transform: translateY(0) scale(.992); transition-duration: .1s; }
-@media (prefers-reduced-motion: reduce) { :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > .cm-bg, :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n em.cm-od::before { transition: none; animation: none; } :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:hover > .cm-bg, :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:active > .cm-bg { transform: none; } }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > .cm-bg { transform-origin: 62% 62%; transition: transform .45s cubic-bezier(.2,1.4,.35,1), opacity .3s ease; will-change: transform; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:hover > .cm-bg, :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:focus-visible > .cm-bg { transform: translate(-6px, -5px) scale(1.14) rotate(-7deg); opacity: .36; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:active > .cm-bg { transform: translate(2px, 3px) scale(.9) rotate(5deg); opacity: .5; transition-duration: .12s; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:active { transform: translateY(0) scale(.992); transition-duration: .1s; }
+@media (prefers-reduced-motion: reduce) { :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > .cm-bg, :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od::before { transition: none; animation: none; } :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:hover > .cm-bg, :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:active > .cm-bg { transform: none; } }
 
 /* hover and press keep the banner's own wash (an older tint rule had turned the whole banner white) */
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:hover, :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:active, :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:focus-visible {
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:hover, :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:active, :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:focus-visible {
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.58) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.3) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%);
 }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:focus-visible { outline: 3px solid #fff; outline-offset: -6px; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:focus-visible { outline: 3px solid #fff; outline-offset: -6px; }
 
 /* ================= Notifications: the committee banners, joined to the band and the list; the work waiting on you across the top; the engine's reading in its window ================= */
 .page-notifications .p-band { border-radius: 16px 16px 0 0; margin-bottom: 0; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
@@ -521,18 +514,18 @@
 :root:root .p-body.page-notifications .nf-chips .cm-chip > b { font-size: 24px; }
 
 /* ================= the committee strip, slim and seamless: as tall as Report Summary's tab strip, nothing outside its cells ================= */
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip { min-height: 54px; padding: 6px 16px; gap: 10px; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > i.cm-sym { display: none; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font: 800 14px/1.2 Urbanist, sans-serif; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n em:not(.cm-od) { display: none; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip .cm-n em.cm-od { padding: 1px 8px 1px 7px; font-size: 11px; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > b { font-size: 22px; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip > .cm-bg { width: 72px; height: 72px; right: -2px; bottom: -22px; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip { min-height: 54px; padding: 6px 16px; gap: 10px; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym { display: none; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font: 800 14px/1.2 Inter, sans-serif; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em:not(.cm-od) { display: none; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od { padding: 1px 8px 1px 7px; font-size: 11px; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > b { font-size: 22px; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > .cm-bg { width: 72px; height: 72px; right: -2px; bottom: -22px; }
 :root:root .p-body.page-notifications .nf-chips .cm-chip { min-height: 54px; padding: 6px 14px; }
 :root:root .p-body.page-notifications .nf-chips .cm-chip > b { font-size: 20px; }
 /* the chosen banner is ringed inside its own cell: no lift, no glow, no overhang, so the strip stays one flat object */
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip.p-on { box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 4px rgba(0,0,0,.16); transform: none; z-index: 1; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:hover, :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services) .cm-chip:active { transform: none; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.p-on { box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 4px rgba(0,0,0,.16); transform: none; z-index: 1; }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:hover, :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:active { transform: none; }
 /* the list under the strip is square-topped and attached to it */
 :root:root .p-body.page-notifications .nf-chips ~ .p-notif-card { border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 0; }
 :root:root .p-body.page-cases .cm-chip { flex: 1 1 150px; }
@@ -542,7 +535,7 @@
 :root:root .p-body:is(.page-residents, .page-personnel) .cm-chip { flex: 1 1 150px; }
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-pband { border-radius: 16px 16px 0 0; margin-bottom: 0; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people { border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 0; }
-:root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; }
+:root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Inter, sans-serif; letter-spacing: .02em; }
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead th :is(a, label) { color: #fff; }
 /* Squares: cards wide enough that eight residents are not seven and a lone one; the strip closes off when there is no table card under it */
 :root:root .p-body .ss-people.ss-sq tbody { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
@@ -551,3 +544,588 @@
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead :is(th, th:first-child, th:last-child) { border-radius: 0; }
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead { box-shadow: none; }
 :root:root .p-body:is(.page-residents, .page-personnel) .cm-chips { margin-top: 0; border-top: 0; }
+.cn-was { margin-top: 3px; padding: 2px 8px; display: inline-block; border-radius: 8px; background: color-mix(in srgb, var(--p-orange, #FF9800) 12%, transparent); color: var(--p-orange-d, #8A4B00); font: 700 12px Inter, sans-serif; }
+/* The brain button's module (4 Nov 2026): the person's SMART module in the engine's window */
+.ss-win .mb-sec { display: grid; gap: 10px; }
+.ss-win .mb-sec .p-eyebrow { margin: 0; }
+.ss-win .mb-h { margin: 4px 0 0; font: 700 12.5px Inter, sans-serif; color: var(--p-muted); }
+.ss-win .mb-sec .ss-tiles { margin: 0; }
+.ss-win .mb-sec .ss-tile > span:first-child { min-height: 0; }
+.ss-win .mb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ss-win .mb-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--p-line); border-radius: 10px; }
+.ss-win .mb-list li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p-muted); font-size: 13px; }
+.ss-win .mb-list em { font-style: normal; font: 700 12px Inter, sans-serif; color: var(--p-muted); }
+.ss-win .mb-r { padding: 2px 9px; border-radius: 99px; }
+.ss-win .mb-r-high { background: color-mix(in srgb, #E53935 14%, transparent); color: #C62828; }
+.ss-win .mb-r-medium { background: color-mix(in srgb, #F59E0B 18%, transparent); color: #A15C00; }
+.ss-win .mb-line { margin: 0; font-size: 13.5px; }
+.ss-win .mb-home { justify-self: start; }
+:root[data-theme="dark"] .ss-win .mb-r-high { color: #FF7B7B; } :root[data-theme="dark"] .ss-win .mb-r-medium { color: #FFC266; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ss-win .mb-r-high { color: #FF7B7B; } :root:not([data-theme="light"]) .ss-win .mb-r-medium { color: #FFC266; } }
+
+/* ---- 6 Nov 2026: the Dashboard's flair: the greeting's event chip, the empty donuts, a Live pill that glows, the engine button and its bar in motion ---- */
+.dh-event { display: inline-block; padding: 1px 10px; border-radius: 99px; font-weight: 700; font-size: 12.5px; line-height: 20px; color: #8A4B00; background: linear-gradient(135deg, #FFE9BF, #FFD08A); box-shadow: 0 0 0 1px rgba(255,152,0,.35), 0 4px 12px -6px rgba(255,152,0,.8); }
+:root[data-theme="dark"] .dh-event { color: #FFD9A0; background: linear-gradient(135deg, rgba(255,152,0,.26), rgba(255,152,0,.14)); box-shadow: 0 0 0 1px rgba(255,170,60,.45), 0 0 16px -4px rgba(255,152,0,.55); }
+
+/* the donuts with nothing in them: a dotted ring that turns slowly, the 0 inside it, and the words below it, not across it */
+.p-donut-card.is-empty { grid-template-rows: auto 1fr 1fr; align-content: stretch; justify-items: center; }   /* the title stays at the top like the filled card's; the ring and its words sit centred in the space below */
+.p-donut-card.is-empty .p-donut { align-self: end; margin: 0 auto 10px; }
+.p-donut-card.is-empty .p-empty-state { align-self: start; text-align: center; }
+.p-donut-card.is-empty .p-row-between { justify-self: stretch; }
+.p-donut-card.is-empty .p-legend, .p-donut-card.is-empty > .p-hint { display: none; }
+.p-donut-card.is-empty .p-empty-state { position: static; padding: 0; gap: 3px; }
+.p-donut-card.is-empty .p-empty-state b { font: 700 14.5px Inter Tight, Inter, sans-serif; }
+.p-donut svg.is-empty .trk { stroke-dasharray: 1.15 2.25; stroke-linecap: round; transform-origin: 21px 21px; animation: ssRingTurn 70s linear infinite; }
+.p-donut svg.is-empty { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--p-muted) 18%, transparent)); }
+@keyframes ssRingTurn { to { transform: rotate(360deg); } }
+
+/* Live: vibrant, with a glow of its own; the dot's pulse is left as it is */
+.p-live:not(.p-down):not(.p-cnt) { background: linear-gradient(135deg, #E3FAEA, #C7F3D5); color: #0B7A33;
+  box-shadow: 0 0 0 1px rgba(52,199,89,.38), 0 6px 18px -6px rgba(52,199,89,.8), inset 0 1px 0 rgba(255,255,255,.75); }
+.p-live:not(.p-down):not(.p-cnt) i { filter: drop-shadow(0 0 4px #34C759); }
+:root[data-theme="dark"] .p-live:not(.p-down):not(.p-cnt) { background: linear-gradient(135deg, rgba(52,199,89,.26), rgba(52,199,89,.12)); color: #6BF59A; text-shadow: 0 0 10px rgba(107,245,154,.55);
+  box-shadow: 0 0 0 1px rgba(107,245,154,.42), 0 0 22px -3px rgba(52,199,89,.6), inset 0 0 12px rgba(52,199,89,.14); }
+:root[data-theme="dark"] .p-live:not(.p-down):not(.p-cnt) i { filter: drop-shadow(0 0 6px #5CF58E); }
+
+/* the engine button: a rainbow frame that travels, a brain that beats; in the dark the brain glows the logo's lime */
+@property --ss-ang { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+.ss-brain-btn { background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, conic-gradient(from var(--ss-ang), #356CF9, #FF9800, #EDFA04, #34C759, #356CF9) border-box; animation: ssRing 6s linear infinite, ssGlowCycle 6s linear infinite; }
+@keyframes ssRing { to { --ss-ang: 360deg; } }
+@keyframes ssGlowCycle { 0%, 100% { box-shadow: 0 6px 20px -6px rgba(53,108,249,.75); } 25% { box-shadow: 0 6px 20px -6px rgba(255,152,0,.75); } 50% { box-shadow: 0 6px 20px -6px rgba(237,250,4,.7); } 75% { box-shadow: 0 6px 20px -6px rgba(52,199,89,.75); } }
+.ss-brain-btn .ss-brain-ico { transform-origin: 50% 55%; animation: ssBeat 2.6s ease-in-out infinite; }
+.ss-brain-btn .ss-brain-ico path:nth-child(3) { stroke-dasharray: 2.4 2.6; animation: ssFlow 1.4s linear infinite; }
+@keyframes ssBeat { 0%, 100% { transform: scale(1); } 14% { transform: scale(1.1); } 28% { transform: scale(1); } 42% { transform: scale(1.06); } 56% { transform: scale(1); } }
+@keyframes ssFlow { to { stroke-dashoffset: -5; } }
+:root[data-theme="dark"] .ss-brain-btn .ss-brain-ico { color: #EDFA04; animation: ssBeat 2.6s ease-in-out infinite, ssLime 2.6s ease-in-out infinite; }
+@keyframes ssLime { 0%, 100% { filter: drop-shadow(0 0 2px rgba(237,250,4,.55)) drop-shadow(0 0 6px rgba(237,250,4,.3)); } 50% { filter: drop-shadow(0 0 4px rgba(237,250,4,.95)) drop-shadow(0 0 12px rgba(237,250,4,.6)); } }
+
+/* the engine's bar: it slides in on a long ease, its parts rise one after another, and it leaves faster than it came */
+.ss-win { border-radius: 22px 0 0 22px; overflow: hidden; transform: translateX(104%); transition: transform .26s cubic-bezier(.5, 0, .9, .45), visibility 0s .26s; }
+.ss-win.is-open { transform: none; transition: transform .5s cubic-bezier(.16, 1, .3, 1); }
+.ss-win-scrim { transition: opacity .26s ease, visibility 0s .26s; }
+.ss-win-scrim.is-open { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); transition: opacity .35s ease; }
+.ss-win.is-open .ss-win-head .ss-engine { animation: ssPop .7s .12s cubic-bezier(.2, 1.5, .4, 1) both; }
+.ss-win.is-open .ss-win-ttl { animation: ssRise .5s .2s cubic-bezier(.2, .8, .2, 1) both; }
+.ss-win.is-open .ss-win-x { animation: ssPop .5s .3s cubic-bezier(.2, 1.5, .4, 1) both; }
+.ss-win.is-open .ss-panel-in > * { animation: ssRise .55s cubic-bezier(.2, .8, .2, 1) both; }
+.ss-win.is-open .ss-panel-in > :nth-child(1) { animation-delay: .22s; } .ss-win.is-open .ss-panel-in > :nth-child(2) { animation-delay: .29s; }
+.ss-win.is-open .ss-panel-in > :nth-child(3) { animation-delay: .36s; } .ss-win.is-open .ss-panel-in > :nth-child(4) { animation-delay: .43s; }
+.ss-win.is-open .ss-panel-in > :nth-child(5) { animation-delay: .5s; }  .ss-win.is-open .ss-panel-in > :nth-child(n+6) { animation-delay: .56s; }
+@keyframes ssRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes ssPop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+/* the header's logo glows, in the light theme and the dark one */
+.ss-win-head { position: relative; overflow: hidden; }
+.ss-win-head::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 30%, rgba(237,250,4,.09) 50%, transparent 70%); transform: translateX(-100%); animation: ssSheen 5.5s ease-in-out infinite; }
+@keyframes ssSheen { 0%, 55% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+.ss-win-head .ss-engine img { animation: ssLogoGlow 3.4s ease-in-out infinite; }
+:root[data-theme="dark"] .ss-win-head .ss-engine img { animation-name: ssLogoGlowDark; }
+@keyframes ssLogoGlow { 0%, 100% { filter: drop-shadow(0 0 3px rgba(237,250,4,.45)) drop-shadow(0 0 8px rgba(53,108,249,.5)); } 50% { filter: drop-shadow(0 0 6px rgba(237,250,4,.85)) drop-shadow(0 0 16px rgba(53,108,249,.75)); } }
+@keyframes ssLogoGlowDark { 0%, 100% { filter: drop-shadow(0 0 4px rgba(237,250,4,.6)) drop-shadow(0 0 12px rgba(237,250,4,.28)); } 50% { filter: drop-shadow(0 0 8px rgba(237,250,4,1)) drop-shadow(0 0 22px rgba(237,250,4,.55)); } }
+@media (prefers-reduced-motion: reduce) {
+  .ss-brain-btn, .ss-brain-btn .ss-brain-ico, .ss-brain-btn .ss-brain-ico path, .ss-win-head::after, .ss-win-head .ss-engine img, .p-donut svg.is-empty .trk { animation: none !important; }
+  .ss-win.is-open :is(.ss-engine, .ss-win-ttl, .ss-win-x, .ss-panel-in > *) { animation: none; }
+}
+
+
+/* ---- 6 Nov 2026, Report Summary: Ace's pass ---- */
+/* Report Summary | Barangay Overall: the scope is words after a hairline, with its colour as a small bar */
+.page-summary .rs-scope { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 0 16px; padding: 0 0 0 16px; border-left: 2px solid var(--p-line-2); font: 600 17px Inter Tight, Inter, sans-serif; color: var(--p-muted); letter-spacing: -.005em; vertical-align: middle; }
+.page-summary .rs-scope i { width: 4px; height: 18px; border-radius: 2px; background: var(--cc, var(--p-muted)); flex: none; }
+
+/* the period band is the page's one orange: every control in it is one height, one radius, the two stylised downloads included */
+:root:root .page-summary .p-period-band { align-items: center; gap: 10px 12px; }
+:root:root .page-summary .p-period-band :is(.p-pill-select, .p-chip, form .p-btn-primary, .p-btn-xls, .p-btn-pdf2) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .page-summary .p-period-band .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .page-summary .p-period-band .p-chip { display: inline-flex; align-items: center; padding: 0 13px; font-size: 13.5px; }
+:root:root .page-summary .p-period-band form .p-btn-primary { padding: 0 20px; font-size: 14px; }
+:root:root .page-summary .p-period-band :is(.p-btn-xls, .p-btn-pdf2) { padding: 0 20px 0 14px; gap: 10px; font-size: 14px; line-height: 1; }
+.page-summary .p-period-band :is(.xls-ico, .pdf-ico) { width: 20px; height: 23px; }
+.page-summary .p-period-band .rs-dl { gap: 10px; }
+.page-summary .p-period-band .p-chips-q { gap: 8px; }
+
+/* the sections' tabs: the chosen one is a blue pill that slides to the next, and a tab answers the pointer before it is clicked */
+.page-summary .ss-jump { --rs-sel: var(--p-blue); }
+:root[data-theme="dark"] .page-summary .ss-jump { --rs-sel: #356CF9; }
+.ss-jump-ind { position: absolute; left: 0; top: 0; z-index: 0; width: 0; height: 0; border-radius: 10px; pointer-events: none; background: var(--rs-sel);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--rs-sel) 70%, transparent);
+  transition: transform .4s cubic-bezier(.2, .9, .25, 1.04), width .4s cubic-bezier(.2, .9, .25, 1), height .4s ease; }
+:root:root .p-body.page-summary .ss-jump a { position: relative; z-index: 1; transition: color .25s ease, background-color .22s ease; }
+:root:root .p-body.page-summary .ss-jump a b { transition: background-color .25s ease, color .25s ease; }
+:root:root .p-body.page-summary .ss-jump a:not(.on):hover { background: color-mix(in srgb, var(--rs-sel) 10%, transparent); color: var(--p-ink); }
+:root:root .p-body.page-summary .ss-jump a:not(.on):hover b { background: color-mix(in srgb, var(--rs-sel) 18%, transparent); color: var(--rs-sel); }
+:root:root .p-body.page-summary .ss-jump a.on { background: var(--rs-sel); color: #fff; box-shadow: none; }
+:root:root .p-body.page-summary .ss-jump a.on b { background: rgba(255,255,255,.24); color: #fff; }
+:root:root .p-body.page-summary .ss-jump.has-ind a.on { background: transparent; }
+@media (prefers-reduced-motion: reduce) { .ss-jump-ind, .page-summary .ss-jump a { transition: none !important; } }
+
+/* Watching is Live: the same glowing pill */
+:root:root :is(.p-live, .p-watching):not(.p-down):not(.p-cnt) { background: linear-gradient(135deg, #E3FAEA, #C7F3D5); color: #0B7A33; cursor: help;
+  box-shadow: 0 0 0 1px rgba(52,199,89,.38), 0 6px 18px -6px rgba(52,199,89,.8), inset 0 1px 0 rgba(255,255,255,.75); }
+.p-watching { height: 30px; padding: 0 12px; gap: 8px; font-size: 13px; font-weight: 700; }
+.p-watching i { width: 8px; height: 8px; filter: drop-shadow(0 0 4px #34C759); }
+:root[data-theme="dark"] .p-watching:not(.p-down) { background: linear-gradient(135deg, rgba(52,199,89,.26), rgba(52,199,89,.12)); color: #6BF59A; text-shadow: 0 0 10px rgba(107,245,154,.55);
+  box-shadow: 0 0 0 1px rgba(107,245,154,.42), 0 0 22px -3px rgba(52,199,89,.6), inset 0 0 12px rgba(52,199,89,.14); }
+:root[data-theme="dark"] .p-watching i { filter: drop-shadow(0 0 6px #5CF58E); }
+
+/* the lists: no orange band, no blue head. A title row on the card, a quiet column head under it */
+.page-summary .p-table-card > .p-card-head { background: transparent; box-shadow: none; border-bottom: 1px solid var(--p-line); }
+.page-summary .p-table-card > .p-card-head h2 { color: var(--p-ink); font: 800 17px Inter Tight, Inter, sans-serif; letter-spacing: -.01em; }
+.page-summary .p-table-card > .p-card-head .p-hint { color: var(--p-muted); font-weight: 700; font-size: 13px; }
+.page-summary .p-table-card thead.p-blue th, :root[data-theme="dark"] .page-summary .p-table-card thead.p-blue th { background: var(--p-surface-2); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line);
+  font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.page-summary .p-table-card thead.p-blue th a { color: inherit; }
+
+/* the calendar in the light theme: one soft band for the days between, solid ends, room around the words under it */
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in::before { background: rgba(255,152,0,.13); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in.l1::before { background: rgba(255,152,0,.24); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in.l2::before { background: rgba(255,152,0,.4); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in.l3::before { background: linear-gradient(145deg, #FFC06B, #F78A12); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in.l3 b { color: #fff; }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.a::before, :root:not([data-theme="dark"]) .sdp-rng .sdp-d.z::before { background: linear-gradient(145deg, #FFB347, #F27A00); box-shadow: 0 3px 8px -2px rgba(242,122,0,.6); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.a b, :root:not([data-theme="dark"]) .sdp-rng .sdp-d.z b { color: #fff; }
+.sdp-rng .sdp-dg { gap: 4px 0; }
+.sdp-rng .sdp-yr { margin-bottom: 12px; } .sdp-rng .sdp-wk { margin-bottom: 6px; }
+.sdp-rng .sdp-key { margin-top: 12px; }
+.sdp-rng .sdp-foot.rng { flex-wrap: wrap; gap: 10px 8px; margin-top: 12px; padding-top: 12px; }
+.sdp-rng .sdp-rt { flex: 1 0 100%; font-size: 13px; }
+.sdp-rng .sdp-foot.rng :is(.sdp-clr, .sdp-go) { flex: 1; }
+.sdp-rng .sdp-pre { margin-top: 10px; }
+
+/* ================= 6 Nov 2026, Case Reports: one orange header, a chooser built like Report Summary's tabs (still in the committees' colours), a white column head ================= */
+@property --ig1 { syntax: "<color>"; inherits: true; initial-value: #356CF9; }
+@property --ig2 { syntax: "<color>"; inherits: true; initial-value: #356CF9; }
+@property --ig3 { syntax: "<color>"; inherits: true; initial-value: #356CF9; }
+@property --ict { syntax: "<color>"; inherits: true; initial-value: #ffffff; }
+
+/* the header: its own rounded bar, every control in it one height and one radius, as the Report Summary period bar */
+:root:root .p-body.page-cases .ss-cr-band { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-cases .ss-cr-band :is(.p-search, .p-pill-select, .p-chip-band) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-cases .ss-cr-band .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .p-body.page-cases .ss-cr-band .p-search { padding: 0 14px; }
+:root:root .p-body.page-cases .ss-cr-band .p-chip-band { display: inline-flex; align-items: center; padding: 0 14px; font-size: 13.5px; }
+
+/* the chooser: the Report Summary tab bar, one line of tabs (a name, a count, a small overdue pill); the chosen tab is a pill in the committee's own
+   colours, with the contour lines over it, that slides to the next one and changes colour on the way */
+:root:root:root .p-body .cm-chips.cm-choose { position: relative; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; margin: 0 0 14px; width: 100%; box-sizing: border-box;
+  background: var(--p-surface); border: 1px solid var(--p-line); border-radius: 14px; box-shadow: var(--p-shadow); overflow: visible; }
+:root:not([data-theme="dark"]) .p-body .cm-chips.cm-choose { border-color: transparent; box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); }
+.cm-ind { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 0; border-radius: 10px; pointer-events: none; overflow: hidden; isolation: isolate;
+  background:
+    radial-gradient(120% 220% at 6% -40%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 56%),
+    radial-gradient(110% 200% at 104% 150%, rgba(0,0,0,.3) 0%, rgba(0,0,0,0) 62%),
+    linear-gradient(105deg, var(--ig1) 0%, var(--ig1) 18%, var(--ig2) 50%, var(--ig3) 82%, var(--ig3) 100%);
+  box-shadow: 0 6px 16px -6px var(--ig1), inset 0 1px 0 rgba(255,255,255,.3);
+  transition: transform .4s cubic-bezier(.2, .9, .25, 1.04), width .4s cubic-bezier(.2, .9, .25, 1), height .4s ease, --ig1 .4s ease, --ig2 .4s ease, --ig3 .4s ease; }
+.cm-ind::after { content: ""; position: absolute; inset: 0; background: #fff; opacity: .22;
+  -webkit-mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip { position: relative; z-index: 1; overflow: visible; isolation: auto; flex: 1 1 0; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 34px; min-height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; box-shadow: none; filter: none; transform: none; white-space: nowrap;
+  color: var(--p-muted); font: 700 13px Inter, sans-serif; text-decoration: none; text-shadow: none; transition: background-color .22s ease, color .3s ease; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip > i.cm-sym, :root:root:root .p-body .cm-chips.cm-choose .cm-chip > .cm-bg { display: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip::before { content: ""; position: static; inset: auto; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--p-ink)); opacity: 1; mask: none; -webkit-mask: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc, var(--p-ink)) 20%, transparent); transition: background-color .3s ease, box-shadow .3s ease; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 9%, transparent); color: var(--p-ink); filter: none; transform: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip.p-on { background: transparent; color: var(--ct, #fff); box-shadow: none; filter: none; transform: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip.p-on::before { background: var(--ct, #fff); box-shadow: 0 0 0 3px rgba(255,255,255,.28); }
+:root:root:root .p-body .cm-chips.cm-choose:not(.has-ind) .cm-chip.p-on { background: linear-gradient(105deg, var(--g1, #356CF9), var(--g3, #356CF9)); }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip .cm-n { display: contents; color: inherit; text-shadow: none; font: inherit; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip > b { order: 1; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 99px; background: var(--p-grey-bg); color: var(--p-muted);
+  font: 700 11px Inter, sans-serif; letter-spacing: 0; transition: background-color .3s ease, color .3s ease; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip:hover > b { background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, transparent); color: var(--p-ink); }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip.p-on > b { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip .cm-n em:not(.cm-od) { display: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip .cm-n em.cm-od { order: 2; display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-red) 12%, transparent); color: var(--p-red);
+  font: 700 11px Inter, sans-serif; letter-spacing: .01em; opacity: 1; border: 0; box-shadow: none; text-shadow: none; transition: background-color .3s ease, color .3s ease; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip .cm-n em.cm-od::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: none; animation: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip.p-on .cm-n em.cm-od { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
+:root:root:root .p-body .cm-choose ~ .p-table-card { border-radius: 16px; }
+@media (prefers-reduced-motion: reduce) { .cm-ind, :root:root:root .p-body .cm-chips.cm-choose .cm-chip { transition: none !important; } }
+
+/* the column head is white: the orange header above is the only header (Case Reports and Report Summary alike) */
+:root:root .p-body.page-cases .ss-cases-t thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+:root:root .p-body.page-cases .ss-cases-t thead th :is(a, .p-th-sort, .p-th-sort:hover) { color: inherit; }
+:root:root .p-body.page-cases .ss-cases-t thead th .p-th-sort:hover { color: var(--p-ink); }
+.page-summary .p-table-card thead.p-blue th, :root[data-theme="dark"] .page-summary .p-table-card thead.p-blue th { background: var(--p-surface); }
+
+/* ================= 6 Nov 2026, Notifications: the same header bar and chooser as Case Reports, folded rows that open to a tidy panel, a divider before Right now ================= */
+:root:root .p-body.page-notifications .nf-main > .p-band { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-notifications .nf-main > .p-band :is(.p-search, .p-pill-select, .p-btn, .p-seg-mini) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-notifications .nf-main > .p-band .p-seg-mini a { height: 34px; display: inline-flex; align-items: center; border-radius: 9px; }
+:root:root .p-body.page-notifications .nf-main > .p-band .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .p-body.page-notifications .nf-main > .p-band .p-search { padding: 0 14px; }
+:root:root .p-body.page-notifications .nf-main > .p-band .p-btn { display: inline-flex; align-items: center; padding: 0 16px; font-size: 13.5px; }
+:root:root .p-body.page-notifications .nf-main > .p-band + .nf-chips { margin: 0 0 14px; }
+:root:root:root .p-body.page-notifications .nf-chips ~ .p-notif-card { border-radius: 16px; margin-top: 0; }
+
+/* a folded row's chevron is a small round button; the panel it opens is one tidy inset: rows of one height, columns that line up, room to breathe */
+.page-notifications .nf-chev { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--p-surface-2); color: var(--p-ink-2); font-size: 12px; line-height: 1;
+  transition: transform .3s cubic-bezier(.2, .9, .3, 1.2), background-color .2s ease; }
+.page-notifications .nf-group > summary:hover .nf-chev { background: var(--p-line); }
+.page-notifications .nf-group[open] .nf-chev { background: color-mix(in srgb, var(--p-ink) 10%, var(--p-surface)); }
+:root:root .p-body.page-notifications .nf-group .nf-body { margin: 0 18px 16px; padding: 6px; display: grid; gap: 8px; border: 1px solid var(--p-line); border-radius: 14px;
+  background: color-mix(in srgb, var(--p-ink) 3%, var(--p-surface)); animation: nfOpen .3s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes nfOpen { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+:root:root .p-body.page-notifications .nf-group .nf-items { gap: 4px; }
+:root:root .p-body.page-notifications .nf-group .nf-items li { display: grid; grid-template-columns: 18px 148px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; min-height: 48px; padding: 6px 8px 6px 12px;
+  border-radius: 10px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); font-size: 14px; }
+:root:root .p-body.page-notifications .nf-group .nf-items.nf-case-items li { grid-template-columns: 18px minmax(0, 1fr) auto 36px; }
+.page-notifications .nf-items .nf-dotc { display: grid; place-items: center; }
+.page-notifications .nf-items .nf-wait-t { min-width: 0; color: var(--p-ink-2); }
+.page-notifications .nf-items .p-when { margin: 0; white-space: nowrap; color: var(--p-muted); font-size: 13px; }
+.page-notifications .nf-case-items .nf-sev { margin: 0; justify-self: center; }
+.page-notifications .nf-case-items .p-n-x { margin: 0; justify-self: end; }
+:root:root .p-body.page-notifications .nf-items .p-btn { margin: 0; height: 32px; min-height: 32px; display: inline-flex; align-items: center; padding: 0 14px; font-size: 13px; }
+:root:root .p-body.page-notifications .nf-group .nf-case-act, :root:root .p-body.page-notifications .nf-group .nf-body > .nf-readall { padding: 10px 6px 4px; border-top: 1px solid var(--p-line); margin: 0; }
+:root:root .p-body.page-notifications .nf-group .nf-case-act { gap: 10px; }
+@media (prefers-reduced-motion: reduce) { :root:root .p-body.page-notifications .nf-group .nf-body { animation: none; } .page-notifications .nf-chev { transition: none; } }
+
+/* a clear divider between the unread list and Right now: a hairline down the gutter, and Right now headed like a section */
+.nf-grid:not(.nf-grid--solo) { column-gap: 40px; }
+.nf-grid:not(.nf-grid--solo) .nf-rail { position: relative; }
+.nf-grid:not(.nf-grid--solo) .nf-rail::before { content: ""; position: absolute; left: -21px; top: 0; bottom: 0; width: 1px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent 0, var(--p-line-2) 40px, var(--p-line-2) calc(100% - 40px), transparent 100%); }
+.nf-rail .ss-lab { display: flex; align-items: center; gap: 10px; margin: 2px 0 0; color: var(--p-ink-2); font: 800 12px Inter, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.nf-rail .ss-lab::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--p-orange); box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-orange) 22%, transparent); }
+.nf-rail .ss-lab::after { content: ""; flex: 1; height: 1px; background: var(--p-line-2); }
+@media (max-width: 1900px) {
+  .nf-grid:not(.nf-grid--solo) { row-gap: 28px; }
+  .nf-grid:not(.nf-grid--solo) .nf-rail::before { left: 0; right: 0; top: auto; bottom: -15px; width: auto; height: 1px; background: linear-gradient(to right, transparent 0, var(--p-line-2) 40px, var(--p-line-2) calc(100% - 40px), transparent 100%); }
+}
+.page-notifications .nf-chev { font-size: 16px; }
+:root:root .p-body.page-notifications .nf-group .nf-body > .nf-readall, :root:root .p-body.page-notifications .nf-group .nf-case-act { justify-self: stretch; }
+
+/* ================= 6 Nov 2026, Residents: the shared chooser, a one-height header, no blue, squares that hold, the alerts in the engine ================= */
+:root:root .p-body.page-residents .ss-pband { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-residents .ss-pband :is(.p-search, .ss-viewsw, .p-pill-select) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-residents .ss-pband .p-search { padding: 0 14px; }
+:root:root .p-body.page-residents .ss-pband .ss-viewsw { padding: 3px; gap: 2px; }
+:root:root .p-body.page-residents .ss-pband .ss-viewsw button { height: 34px; border-radius: 9px; padding: 0 14px; }
+/* the squares view must not turn the chooser into a bottom-rounded strip */
+:root:root:root:root .p-body .cm-chips.cm-choose:has(~ .ss-people.ss-sq) { border-radius: 14px; overflow: visible; margin-bottom: 14px; }
+
+/* the column head is white, as on Case Reports */
+:root:root .p-body.page-residents .ss-people thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+:root:root .p-body.page-residents .ss-people thead th :is(a, .p-th-sort) { color: inherit; }
+
+/* squares: every card the same height, the name and the contact centred, the statuses wrap whole (a pill is never squeezed), the button at the foot */
+:root:root .p-body.page-residents .ss-people.ss-sq tbody { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: stretch; }
+:root:root .p-body.page-residents .ss-people.ss-sq tbody tr { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px 16px; text-align: center; min-height: 0; }
+:root:root .p-body.page-residents .ss-people.ss-sq tbody td { width: 100%; max-width: 100%; text-align: center; min-width: 0; }
+:root:root .p-body.page-residents .ss-people.ss-sq tbody td.ss-cbc { width: auto; }
+:root:root .p-body.page-residents .ss-people.ss-sq .p-person { justify-content: center; }
+:root:root .p-body.page-residents .ss-people.ss-sq .p-person > span:last-child { white-space: normal; overflow-wrap: anywhere; }
+:root:root .p-body.page-residents .ss-people.ss-sq td.pe-contact { display: grid; gap: 2px; justify-items: center; }
+:root:root .p-body.page-residents .ss-people.ss-sq td.pe-contact .pe-mail { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root:root .p-body.page-residents .ss-people.ss-sq .p-badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+:root:root .p-body.page-residents .ss-people.ss-sq .p-badge { white-space: nowrap; flex: none; }
+:root:root .p-body.page-residents .ss-people.ss-sq tbody td.p-right { margin-top: auto; padding-top: 6px; }
+
+/* the red banner: its button, its close, and where it went */
+.rs-banner { display: flex; align-items: center; gap: 12px; }
+.rs-banner[hidden] { display: none; }
+.rs-banner > span { flex: 1; min-width: 0; }
+.rs-banner .p-btn { flex: none; }
+.rs-banner-x { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; background: transparent; color: inherit; cursor: pointer; opacity: .75; transition: background-color .18s, opacity .18s; }
+.rs-banner-x:hover { background: color-mix(in srgb, currentColor 14%, transparent); opacity: 1; }
+.ss-brain-btn.is-nudged { animation: ssRing 6s linear infinite, ssGlowCycle 6s linear infinite, ssNudge .9s cubic-bezier(.3, 1.6, .5, 1) 1; }
+@keyframes ssNudge { 0% { transform: scale(1); } 30% { transform: scale(1.28) rotate(-8deg); } 60% { transform: scale(.94) rotate(4deg); } 100% { transform: scale(1); } }
+
+/* the engine's rows for Residents: a number, what it is, a button that filters the list */
+.ss-win .rs-als { display: grid; gap: 8px; margin-top: 4px; }
+.ss-win .rs-al { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px 10px 10px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface); }
+.ss-win .rs-al-n { display: grid; place-items: center; height: 40px; border-radius: 12px; font: 800 20px Inter Tight, sans-serif; letter-spacing: -.02em; background: var(--p-surface-2); color: var(--p-ink); }
+.ss-win .rs-al-high:not(.is-zero) .rs-al-n { background: color-mix(in srgb, var(--p-red) 14%, transparent); color: var(--p-red); }
+.ss-win .rs-al-warn:not(.is-zero) .rs-al-n { background: color-mix(in srgb, var(--p-orange) 18%, transparent); color: #A15C00; }
+:root[data-theme="dark"] .ss-win .rs-al-warn:not(.is-zero) .rs-al-n { color: #FFC266; }
+.ss-win .rs-al-t { display: grid; gap: 2px; min-width: 0; }
+.ss-win .rs-al-t strong { font: 700 14px Inter, sans-serif; }
+.ss-win .rs-al-t span { color: var(--p-muted); font-size: 12.5px; line-height: 1.35; }
+.ss-win .rs-al.is-zero { opacity: .62; }
+.ss-win .rs-al .p-btn { height: 32px; display: inline-flex; align-items: center; padding: 0 14px; font-size: 13px; }
+:root:root:root .p-body .pe-res.ss-sq #accounts-tbody td:nth-last-child(2) .p-badges { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+
+/* ================= 6 Nov 2026, Personnel (the tanod side): the one-height header, a white column head, squares that hold; the committee strip waits ================= */
+:root:root .p-body.page-personnel .ss-pband :is(.p-search, .ss-viewsw, .p-pill-select) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-personnel .ss-pband .p-search { padding: 0 14px; }
+:root:root .p-body.page-personnel .ss-pband .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .p-body.page-personnel .ss-pband .ss-viewsw { padding: 3px; gap: 2px; }
+:root:root .p-body.page-personnel .ss-pband .ss-viewsw button { height: 34px; border-radius: 9px; padding: 0 14px; }
+:root:root .p-body.page-personnel .ss-people.ss-tanods thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+:root:root .p-body.page-personnel .ss-people.ss-tanods thead th :is(a, .p-th-sort) { color: inherit; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody { align-items: stretch; gap: 14px; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody tr { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px 16px; text-align: center; min-height: 0; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody td { width: 100%; max-width: 100%; text-align: center; min-width: 0; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody td.ss-cbc { width: auto; }
+:root:root .p-body.page-personnel .ss-people.ss-sq .p-person { justify-content: center; }
+:root:root .p-body.page-personnel .ss-people.ss-sq td.pe-contact { display: grid; gap: 2px; justify-items: center; }
+:root:root .p-body.page-personnel .ss-people.ss-sq td.pe-contact .pe-mail { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root:root .p-body.page-personnel .ss-people.ss-sq .p-badge { white-space: nowrap; flex: none; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody td.p-right { margin-top: auto; padding-top: 6px; }
+:root:root:root .p-body .ss-tanods.ss-sq #accounts-tbody td:nth-last-child(2) .p-badges { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+
+/* ================= 6 Nov 2026, Profile: the role colour fills its ring everywhere; a proper editor menu; the picture editor; our colour picker ================= */
+/* the role ring is solid, with no gap of white between the face and the colour (staff, Kagawad, Chairman, tanod; the sidebar card, the lists, the profile) */
+:root .ss-av[data-r] { box-shadow: 0 0 0 3px var(--ring, #64748B); }
+:root .ss-av[data-r="tanod"] { --ring: var(--rk-tanod, #0E8F8A); }
+:root .ss-av.ss-live[data-r] { box-shadow: 0 0 0 3px var(--ring, #64748B), 0 0 0 5px var(--p-surface, #1C2127), 0 0 0 7px #1F8A45; }
+:root .ss-tanods .p-avatar { box-shadow: 0 0 0 3px var(--rk-tanod, #0E8F8A); }
+:root .p-side-user .p-avatar[data-r] { outline: 0; box-shadow: 0 0 0 3px var(--ring, #64748B), 0 0 0 7px color-mix(in srgb, var(--ring, #64748B) 24%, transparent); }
+:root .ss-pf-av { border: 0; }
+:root .ss-pf-av[data-r] { outline: 0; box-shadow: 0 0 0 6px var(--ring, #64748B), 0 0 0 13px color-mix(in srgb, var(--ring, #64748B) 16%, transparent), 0 10px 22px color-mix(in srgb, var(--ring, #64748B) 30%, transparent); }
+
+/* Profile: a taller banner, the buttons one height */
+.ss-pf-banner { height: 150px; }
+:root:root .p-body .ss-pf-act .p-btn { height: 42px; padding: 0 18px; border-radius: 12px; }
+.ss-pf-act { padding-top: 78px; }
+.ss-pf-who { padding-top: 76px; }
+.ss-pf-row { padding: 18px 24px; }
+
+/* Edit Profile: a menu of sections on the left that follows you, a card for each section, one bar for Cancel and Save that stays in view */
+.pf-edit { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 18px; }
+.pf-menu { position: sticky; top: 16px; display: grid; gap: 4px; padding: 8px; border-radius: 16px; background: var(--p-surface); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm); }
+.pf-menu a { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 12px; border-radius: 11px; color: var(--p-ink-2); text-decoration: none; transition: background-color .2s ease, color .2s ease; }
+.pf-menu a svg { width: 34px; height: 34px; padding: 8px; box-sizing: border-box; border-radius: 10px; background: var(--p-surface-2); color: var(--p-muted); transition: background-color .2s ease, color .2s ease; }
+.pf-menu a b { display: block; font: 700 14px Inter, sans-serif; }
+.pf-menu a small { display: block; margin-top: 1px; color: var(--p-muted); font: 500 12px Inter, sans-serif; }
+.pf-menu a:hover { background: var(--p-surface-2); color: var(--p-ink); }
+.pf-menu a.on { background: color-mix(in srgb, var(--p-orange) 13%, transparent); color: var(--p-ink); }
+.pf-menu a.on svg { background: var(--p-orange); color: #2B1A00; }
+.pf-sections { display: grid; gap: 16px; min-width: 0; }
+.pf-sec { scroll-margin-top: 18px; display: grid; gap: 14px; }
+.pf-h { margin: 0; font: 800 18px Inter Tight, Inter, sans-serif; letter-spacing: -.01em; }
+.pf-sec .ss-pf-2, .pf-sec .ss-pf-3 { gap: 16px; }
+.pf-sec .p-field { display: grid; gap: 6px; align-content: start; }
+.pf-sec .p-field > span { font: 600 13px Inter, sans-serif; color: var(--p-ink-2); }
+.pf-sec .p-hint { margin: 0; }
+.pf-sec .pf-banner { margin: 0; gap: 14px; }
+.pf-sec .pf-banner > legend { display: none; }
+.pf-photo { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 16px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface-2); }
+.pf-photo .pf-photo-av { width: 64px; height: 64px; margin: 6px; }
+.pf-photo-t { display: grid; gap: 2px; min-width: 0; }
+.pf-photo-t b { font: 700 14px Inter, sans-serif; } .pf-photo-t small { color: var(--p-muted); font: 500 12.5px Inter, sans-serif; }
+.pf-photo-act, .pf-pic { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pf-edit .p-btn { height: 40px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 12px; cursor: pointer; }
+.pf-edit label.p-btn { background: var(--p-surface); border: 1px solid var(--p-line-2); color: var(--p-ink); }
+.pf-edit label.p-btn:hover { border-color: var(--p-orange); }
+.pf-fn { color: var(--p-muted); font-size: 13px; }
+.pf-presets { gap: 8px; }
+.pf-presets .ib-person { height: 38px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; transition: border-color .2s, box-shadow .2s; }
+.pf-bar { position: sticky; bottom: 14px; z-index: 6; display: flex; justify-content: flex-end; gap: 10px; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--p-surface) 88%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3); border: 1px solid var(--p-line); box-shadow: 0 14px 34px -14px rgba(10,20,60,.45); }
+.pf-bar .p-btn { height: 42px; padding: 0 22px; }
+@media (max-width: 1100px) { .pf-edit { grid-template-columns: 1fr; } .pf-menu { position: static; grid-auto-flow: column; grid-auto-columns: minmax(180px, 1fr); overflow-x: auto; } .pf-photo { grid-template-columns: auto 1fr; } .pf-photo-act { grid-column: 1 / -1; } }
+
+/* the colour box: the pill is the colour itself, filled to the edge; its list is a square of shade, a hue bar, a hex box and the portal's own colours */
+.sdp-btn.sdp-colour { width: 100%; max-width: 220px; height: 42px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--c, #00308F); color: var(--ci, #fff); font: 700 14px Inter Tight, Inter, sans-serif; letter-spacing: .04em;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.14), 0 4px 12px -6px var(--c, #00308F); transition: transform .2s cubic-bezier(.2,1.4,.4,1), box-shadow .2s; }
+.sdp-btn.sdp-colour svg { color: var(--ci, #fff); }
+.sdp-btn.sdp-colour:hover { transform: translateY(-1px); box-shadow: inset 0 0 0 1px rgba(0,0,0,.14), 0 8px 18px -8px var(--c, #00308F); }
+.sdp-btn.sdp-colour.open { box-shadow: inset 0 0 0 1px rgba(0,0,0,.14), 0 0 0 4px color-mix(in srgb, var(--c, #00308F) 28%, transparent); }
+.sdp-clr { width: 272px; padding: 14px; display: grid; gap: 12px; }
+.sdp-sv { position: relative; height: 150px; border-radius: 12px; cursor: crosshair; touch-action: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.1); }
+.sdp-svk, .sdp-hk { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.35); pointer-events: none; }
+.sdp-hue { position: relative; height: 14px; border-radius: 99px; cursor: pointer; touch-action: none; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+.sdp-hk { top: 50%; }
+.sdp-hexrow { display: flex; align-items: center; gap: 10px; }
+.sdp-prev { flex: none; width: 36px; height: 36px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.14); }
+.sdp-hex { flex: 1; min-width: 0; height: 36px; padding: 0 12px; border: 1px solid var(--p-line-2); border-radius: 10px; background: var(--p-surface); color: var(--p-ink); font: 700 14px Inter Tight, Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; outline: 0; }
+.sdp-hex:focus { border-color: var(--p-orange); box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-orange) 22%, transparent); }
+.sdp-eye { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--p-line-2); border-radius: 10px; background: var(--p-surface); color: var(--p-ink-2); cursor: pointer; }
+.sdp-eye svg { width: 18px; height: 18px; } .sdp-eye:hover { background: var(--p-surface-2); }
+.sdp-sw { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.sdp-swc { aspect-ratio: 1; border: 0; border-radius: 50%; background: var(--c); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.16); transition: transform .18s cubic-bezier(.2,1.6,.4,1); }
+.sdp-swc:hover { transform: scale(1.18); }
+
+/* the picture editor: the picture under a frame, dragged into place and zoomed; outside the frame it is dimmed */
+.cr-scrim { position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, #0A1440 56%, transparent); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: 0; transition: opacity .2s ease; }
+.cr-scrim.in { opacity: 1; }
+.cr-open { overflow: hidden; }
+.cr-modal { width: min(820px, 100%); display: grid; gap: 14px; padding: 18px; border-radius: 20px; background: var(--p-surface); color: var(--p-ink); border: 1px solid var(--p-line); box-shadow: 0 30px 80px rgba(8,14,44,.5);
+  transform: translateY(10px) scale(.97); transition: transform .28s cubic-bezier(.2, 1.1, .3, 1); }
+.cr-scrim.in .cr-modal { transform: none; }
+.cr-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cr-head h3 { margin: 0; font: 800 19px Inter Tight, Inter, sans-serif; }
+.cr-x { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: var(--p-surface-2); color: var(--p-ink-2); cursor: pointer; }
+.cr-x:hover { background: var(--p-line); }
+.cr-stage { position: relative; height: min(420px, 56vh); overflow: hidden; border-radius: 14px; background: #0F1426; cursor: grab; touch-action: none; user-select: none; }
+.cr-stage.is-drag { cursor: grabbing; }
+.cr-img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 50% 50%; pointer-events: none; will-change: transform; }
+.cr-frame { position: absolute; border: 2px solid #fff; border-radius: 6px; box-shadow: 0 0 0 9999px rgba(8,12,30,.62); pointer-events: none; }
+.cr-frame.is-round { border-radius: 50%; }
+.cr-frame::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(to right, transparent 33.2%, rgba(255,255,255,.35) 33.3%, transparent 33.5%, transparent 66.5%, rgba(255,255,255,.35) 66.7%, transparent 66.8%), linear-gradient(to bottom, transparent 33.2%, rgba(255,255,255,.35) 33.3%, transparent 33.5%, transparent 66.5%, rgba(255,255,255,.35) 66.7%, transparent 66.8%); opacity: 0; transition: opacity .2s; }
+.cr-stage.is-drag .cr-frame::after { opacity: 1; }
+.cr-err { position: absolute; left: 16px; right: 16px; bottom: 14px; margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--p-red-bg); color: var(--p-red); font-weight: 700; font-size: 13.5px; }
+.cr-zoom { display: grid; grid-template-columns: auto auto 1fr auto; gap: 12px; align-items: center; }
+.cr-zoom span { color: var(--p-muted); font: 700 12.5px Inter, sans-serif; }
+.cr-z { width: 34px; height: 34px; border: 0; border-radius: 10px; background: var(--p-surface-2); color: var(--p-ink); font: 700 18px/1 Inter, sans-serif; cursor: pointer; }
+.cr-z:hover { background: var(--p-line); }
+.cr-range { width: 100%; accent-color: var(--p-orange); }
+.cr-hint { margin: 0; color: var(--p-muted); font-size: 13px; }
+.cr-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.cr-actions .p-btn { height: 42px; padding: 0 20px; border-radius: 12px; }
+@media (prefers-reduced-motion: reduce) { .cr-scrim, .cr-modal { transition: none; } }
+
+/* ================= 6 Nov 2026, Administrative Services (the easy tabs): Roles with the shared chooser, retirement for tanods and staff, the steps of an escalation ================= */
+:root:root .p-body.page-administrative-services .ss-pband { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-administrative-services .ss-pband :is(.p-search, .p-pill-select, .jp-add) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-administrative-services .ss-pband .p-search { padding: 0 14px; }
+:root:root .p-body.page-administrative-services .ss-pband .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .p-body.page-administrative-services .ss-pband .jp-add { display: inline-flex; align-items: center; padding: 0 20px; font-size: 14px; }
+:root:root .p-body.page-administrative-services .ss-subband .ss-subnote { font-size: 13.5px; }
+
+/* how a case goes up: four steps side by side, each in its role colour, with an arrow between them */
+.es-flow { list-style: none; margin: 18px 0 18px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.es-step { position: relative; display: grid; }
+.es-num { position: absolute; top: -13px; left: 18px; z-index: 2; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; font: 800 14px Inter Tight, Inter, sans-serif; color: #fff;
+  background: color-mix(in srgb, var(--lc) 82%, #000); box-shadow: 0 0 0 4px var(--p-bg, #fff); }
+:root[data-theme="dark"] .es-step[style*="rk-chair"] .es-num { color: #14181D; }
+.es-box { display: grid; gap: 10px; align-content: start; height: 100%; padding: 26px 20px 18px; border-top: 4px solid var(--lc); }
+.es-box h3 { margin: 0; display: grid; gap: 2px; font: 800 17px Inter Tight, Inter, sans-serif; }
+.es-box h3 small { font: 600 12.5px Inter, sans-serif; color: var(--p-muted); }
+.es-box p { margin: 0; color: var(--p-ink-2); font: 500 13.5px/1.55 Inter, sans-serif; }
+.es-box > .p-badge, .es-box > .ss-holder { justify-self: start; }
+.es-step:not(:last-child)::after { content: ""; position: absolute; right: -14px; top: 50%; width: 10px; height: 10px; border-top: 3px solid var(--p-line-2); border-right: 3px solid var(--p-line-2); transform: translateY(-50%) rotate(45deg); }
+@media (max-width: 1500px) { .es-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } .es-step:nth-child(2n)::after { display: none; } }
+@media (max-width: 760px) { .es-flow { grid-template-columns: 1fr; } .es-step::after { display: none; } }
+.es-map { overflow: hidden; margin-bottom: 18px; }
+.es-maph { display: grid; gap: 4px; padding: 18px 22px 12px; }
+.es-maph h3 { margin: 0; font: 800 17px Inter Tight, Inter, sans-serif; }
+.es-maph p { margin: 0; color: var(--p-muted); font: 500 13.5px Inter, sans-serif; }
+.es-white .ss-ohead thead th, :root[data-theme="dark"] .es-white .ss-ohead thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+
+/* the women responders header is a curved bar like the others */
+:root:root .p-body.page-administrative-services .wr-banner.cm-chips { margin: 0 0 14px; border-radius: 16px; overflow: hidden; }
+:root:root .p-body.page-administrative-services .wr-banner .cm-chip { border-radius: 16px; }
+:root:root .p-body.page-administrative-services .wr-banner + .ss-adm { border-radius: 16px; overflow: hidden; }
+:root:root:root:root .p-body.page-administrative-services .cm-chips.cm-choose.ad-roles { margin: 0 0 14px; border-radius: 14px; }
+:root:root:root:root .p-body.page-administrative-services .cm-chips.cm-choose.ad-roles .cm-chip { flex: 1 1 0; }
+:root:root:root:root .p-body.page-administrative-services .ss-pband { margin-bottom: 14px; border-radius: 16px; }
+:root:root .p-body .es-white .ss-ohead thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+:root:root[data-theme="dark"] .p-body .es-white .ss-ohead thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); }
+/* the women responders banner stays one block with its list, with the curve on top and on the bottom of the block */
+:root:root:root .p-body.page-administrative-services .wr-banner.cm-chips { margin: 0; border-radius: 16px 16px 0 0; overflow: hidden; }
+:root:root:root .p-body.page-administrative-services .wr-banner .cm-chip { border-radius: 16px 16px 0 0; }
+:root:root:root .p-body.page-administrative-services .wr-banner + .ss-adm { margin-top: 0; margin-bottom: 18px; border-radius: 0 0 16px 16px; overflow: hidden; }
+
+/* ================= 6 Nov 2026, Personnel again: the same chooser as Residents, the header a rounded bar of its own, duty tiles that are vibrant, not pastel ================= */
+:root:root .p-body.page-personnel .ss-pband { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-personnel .ss-pband h2 { font-size: 18px; }
+:root:root .p-body.page-personnel .ss-pband .p-badge-n { white-space: nowrap; }
+:root:root .p-body.page-personnel .ss-pband .p-badge-n--quiet { height: 24px; min-width: 24px; display: inline-grid; place-items: center; }
+:root:root:root:root .p-body.page-personnel .cm-chips.cm-choose { margin: 0 0 14px; border-radius: 14px; overflow: visible; }
+:root:root:root:root .p-body.page-personnel .cm-chips.cm-choose .cm-chip { flex: 1 1 0; }
+/* the duty tiles: full colour from corner to corner, a small gloss only, a strong glow */
+.p-attendance .p-att-on_duty { --c: #00C853; } .p-attendance .p-att-lunch { --c: #FF8A00; } .p-attendance .p-att-break { --c: #FFC400; } .p-attendance .p-att-offline { --c: #FF1744; }
+:root:root .p-body.id-on nav.p-attendance a.p-kpi.p-card {
+  background: radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 46%), linear-gradient(145deg, color-mix(in srgb, var(--c) 94%, #fff) 0%, var(--c) 42%, color-mix(in srgb, var(--c) 78%, #000) 100%);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--c) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
+}
+:root:root .p-body.id-on nav.p-attendance a.p-kpi.p-card:hover { box-shadow: 0 18px 38px color-mix(in srgb, var(--c) 68%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
+:root[data-theme="dark"] .p-body.id-on nav.p-attendance a.p-kpi.p-card { box-shadow: 0 0 28px -4px color-mix(in srgb, var(--c) 60%, transparent), inset 0 1px 0 rgba(255,255,255,.25); }
+
+/* ================= 6 Nov 2026, Profile the Facebook way: a big cover, a big face over it, the name beside; the editor is a picture card and a cover card, each with its own buttons ================= */
+.ss-pf-head { border-radius: 18px; }
+.ss-pf-banner { height: 230px; }
+.ss-pf-id { margin-top: -80px; padding: 0 32px 22px; gap: 24px; }
+:root:root .ss-pf-av { width: 160px; height: 160px; }
+:root:root .ss-pf-ini { font-size: 54px; }
+.ss-pf-who { padding-top: 92px; gap: 10px; }
+.ss-pf-who h2 { font-size: 32px; letter-spacing: -.02em; }
+.ss-pf-act { padding-top: 96px; }
+:root:root .p-body .ss-pf-act .p-btn { height: 44px; padding: 0 22px; font-size: 14.5px; }
+@media (max-width: 760px) { .ss-pf-banner { height: 150px; } .ss-pf-id { margin-top: -60px; padding: 0 18px 18px; } :root:root .ss-pf-av { width: 120px; height: 120px; } .ss-pf-who { padding-top: 70px; } .ss-pf-act { padding-top: 0; } }
+
+.pf-fbh { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pf-fba { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pf-fbav { display: grid; place-items: center; padding: 22px 0 10px; }
+.pf-fbav .pf-photo-av, :root:root .pf-fbav .ss-pf-av { width: 190px; height: 190px; margin: 0; }
+.pf-fbn { text-align: center; }
+.pf-fbrm { justify-self: center; }
+.pf-cover { height: 190px; border-radius: 14px; overflow: hidden; background-color: #222; }
+.pf-colrow { display: flex; align-items: center; gap: 12px; }
+.pf-colrow > span:first-child { font: 600 13px Inter, sans-serif; color: var(--p-ink-2); }
+.pf-col { display: block; }
+.pf-edit .pf-col .sdp-btn.sdp-colour { width: 150px; height: 38px; padding: 0 12px; border-radius: 10px; font-size: 13px; }
+.pf-sec { gap: 16px; }
+:root[data-theme="dark"] .pf-cover { background-color: #0F1426; }
+
+/* ================= 6 Nov 2026: Profile edited in popups, the Facebook way; solid vibrant status and warnings; the women responders block really joined ================= */
+/* the women responders banner and its list: the pane puts 16px between its children, so the banner pulls back by 16px */
+:root:root:root:root .p-body.page-administrative-services .wr-banner.cm-chips { margin-bottom: -16px; }
+
+/* the face is a button: a camera appears over it on hover or focus */
+.pf-avbtn { position: relative; flex: none; display: block; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; line-height: 0; }
+.pf-avov { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; color: #fff; background: rgba(10,16,40,.55); opacity: 0; transition: opacity .2s ease; }
+.pf-avbtn:hover .pf-avov, .pf-avbtn:focus-visible .pf-avov { opacity: 1; }
+.pf-avbtn:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 6px; }
+/* the cover has an Edit button at its bottom right, shown on hover (always on a touch screen) */
+.ss-pf-head { position: relative; }
+.pf-cvbtn { position: absolute; right: 20px; top: 174px; z-index: 3; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 0; border-radius: 12px; cursor: pointer;
+  background: rgba(255,255,255,.94); color: #141B34; font: 700 14px Inter, sans-serif; box-shadow: 0 6px 18px rgba(8,14,44,.35); opacity: 0; transform: translateY(6px); transition: opacity .2s ease, transform .2s ease; }
+.ss-pf-head:hover .pf-cvbtn, .pf-cvbtn:focus-visible { opacity: 1; transform: none; }
+@media (hover: none) { .pf-cvbtn { opacity: 1; transform: none; } }
+@media (max-width: 760px) { .pf-cvbtn { top: 100px; right: 12px; } .pf-cvbtn span { display: none; } .pf-cvbtn { width: 40px; padding: 0; justify-content: center; } }
+
+/* the popups */
+.pf-modal { width: min(520px, 94vw); max-height: 92vh; overflow-y: auto; text-align: left; display: grid; gap: 16px; }
+.pf-modal--wide { width: min(680px, 94vw); }
+.pf-modal h3 { margin: 0; font: 800 20px Inter Tight, Inter, sans-serif; }
+.pf-modal .ss-pf-2, .pf-modal .ss-pf-3 { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.pf-modal .p-field { display: grid; gap: 6px; align-content: start; }
+.pf-modal .p-field > span { font: 600 13px Inter, sans-serif; color: var(--p-ink-2); }
+.pf-mav { display: grid; place-items: center; padding: 10px 0 4px; }
+.pf-mav .ss-pf-av, :root:root .pf-mav .ss-pf-av { width: 170px; height: 170px; margin: 0; }
+.pf-mn { text-align: center; margin: 0; }
+.pf-macts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: center; }
+.pf-modal .pf-cover { height: 130px; border-radius: 12px; }
+.pf-modal .pf-banner { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; }
+.pf-modal .p-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.pf-modal .p-btn { height: 42px; display: inline-flex; align-items: center; padding: 0 18px; border-radius: 12px; cursor: pointer; }
+
+/* status that is vibrant, not pastel: Live, Watching and Reconnecting are solid colour with white lettering and a glow */
+:root:root :is(.p-live, .p-watching):not(.p-down):not(.p-cnt) { background: linear-gradient(135deg, #067A2D, #0A8D37); color: #fff; text-shadow: none; cursor: help;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.18), 0 8px 20px -6px rgba(6,138,52,.85), inset 0 1px 0 rgba(255,255,255,.3); }
+:root:root :is(.p-live, .p-watching):not(.p-down):not(.p-cnt) i { background: #7CFFA8; filter: drop-shadow(0 0 5px #7CFFA8); }
+:root:root :is(.p-live, .p-watching).p-down { background: linear-gradient(135deg, #C4172A, #DB2A3B); color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.18), 0 8px 20px -6px rgba(219,42,59,.85), inset 0 1px 0 rgba(255,255,255,.28); }
+:root:root :is(.p-live, .p-watching).p-down i { background: #fff; animation: none; }
+:root[data-theme="dark"] :is(.p-live, .p-watching):not(.p-cnt) { text-shadow: none; }
+/* the big banners (the red two-hour warning, the yellow storm line's cousins) are solid too */
+:root:root .p-flash { color: #fff; border-left: 0; box-shadow: 0 10px 24px -12px rgba(8,14,44,.5), inset 0 1px 0 rgba(255,255,255,.22); }
+:root:root .p-flash--error { background: linear-gradient(100deg, #BE1527, #DC2C3D); }
+:root:root .p-flash--ok { background: linear-gradient(100deg, #066F29, #0A8A36); }
+:root:root .p-flash--warn { background: linear-gradient(100deg, #F29100, #FFAE00); color: #2B1A00; }
+:root:root .p-flash--info { background: linear-gradient(100deg, #1B47C7, #2F66F2); }
+:root:root .p-flash .p-btn { border-color: transparent; }
+:root:root .p-flash a { color: inherit; }
+:root:root .rs-banner-x { color: #fff; opacity: .9; }
+.pf-modal .pf-mn, .pf-modal .p-hint { margin: 0; }
+:root:root .p-flash a.p-btn, :root:root .p-flash .p-btn-ghost { color: #141B34; background: #fff; }
+:root:root .p-flash--warn a.p-btn, :root:root .p-flash--warn .p-btn-ghost { color: #141B34; }
+
+/* ================= 6 Nov 2026: no pastel anywhere, light or dark. Every status pill is a solid colour with its own lettering; rank chips, the storm line and event chips too ================= */
+:root:root:root:root:root:root:root .p-badge { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; border: 0; text-shadow: none;
+  --pb: #566285; --pt: #fff; background: var(--pb); color: var(--pt); box-shadow: 0 4px 12px -5px var(--pb), inset 0 1px 0 rgba(255,255,255,.22); }
+:root:root:root:root:root:root:root .p-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--pt); opacity: .92; box-shadow: none; }
+:root:root:root:root:root:root:root .p-badge.p-b-done { --pb: #087F31; }
+:root:root:root:root:root:root:root .p-badge.p-b-progress { --pb: #2457E6; }
+:root:root:root:root:root:root:root .p-badge.p-b-pending { --pb: #FFB300; --pt: #2B1A00; }
+:root:root:root:root:root:root:root .p-badge.p-b-denied { --pb: #C4172A; }
+:root:root:root:root:root:root:root .p-badge.p-b-violet { --pb: #6A3FD1; }
+:root:root:root:root:root:root:root .p-badge.p-b-grey { --pb: #566285; }
+:root:root:root:root:root:root:root .p-badge.p-b-sensitive { --pb: #B31B7E; }
+:root:root:root:root:root:root:root .p-badge.p-b-sensitive::before { display: none; }
+:root[data-theme="dark"] .p-badge { box-shadow: 0 0 14px -3px var(--pb), inset 0 1px 0 rgba(255,255,255,.2); }
+/* the count beside a title on the orange band is a solid navy chip */
+:root:root .p-band .p-badge-n--quiet { background: #141B34; color: #fff; box-shadow: 0 3px 10px -4px rgba(10,20,60,.6); }
+/* rank chips: the rung's colour, solid */
+:root:root .rank { color: #04202A; background: var(--rc); border: 0; box-shadow: 0 4px 12px -5px var(--rc); }
+:root:root .rank i { background: #04202A; box-shadow: none; opacity: .85; }
+:root:root .rank.kagawad, :root:root .rank.chair { color: #fff; } :root:root .rank.kagawad i, :root:root .rank.chair i { background: #fff; }
+:root:root .rank.chair { background: #D5102F; }
+:root[data-theme="dark"] .rank { color: #04202A; box-shadow: 0 0 14px -3px var(--rc); }
+:root[data-theme="dark"] .rank.kagawad { color: #1B1340; } :root[data-theme="dark"] .rank.kagawad i { background: #1B1340; }
+:root[data-theme="dark"] .rank.chair { background: var(--rk-chair); color: #14181D; } :root[data-theme="dark"] .rank.chair i { background: #14181D; }
+/* the storm line, the holiday chip */
+:root:root .ss-storm { background: linear-gradient(100deg, #FFA000, #FFC21A); border: 0; color: #2B1A00; box-shadow: 0 10px 24px -12px rgba(255,160,0,.8), inset 0 1px 0 rgba(255,255,255,.35); }
+:root:root[data-theme="dark"] .ss-storm { background: linear-gradient(100deg, #E58A00, #FFB300); color: #2B1A00; }
+:root:root .dh-event { background: linear-gradient(135deg, #FF9800, #FFB300); color: #2B1A00; box-shadow: 0 6px 16px -6px rgba(255,152,0,.9), inset 0 1px 0 rgba(255,255,255,.35); }

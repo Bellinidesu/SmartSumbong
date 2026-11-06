@@ -213,7 +213,7 @@ class _RetirementScreenState extends State<RetirementScreen> {
             Text(
               s.retirementIntroTitle,
               style: TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
                 color: c.navy,
@@ -265,7 +265,7 @@ class _InfoCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontFamily: 'Urbanist',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                     color: c.navy,
@@ -360,7 +360,7 @@ class _ConfirmPasswordDialogState extends State<_ConfirmPasswordDialog> {
             padding: const EdgeInsets.only(left: 12, bottom: 6),
             child: Text(s.retirementPasswordLabel,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                   color: c.bg,

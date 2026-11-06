@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/shared_cache.php';
 
 /**
  * cURL options every database request shares (speed, 7 Oct 2026).
@@ -38,6 +39,10 @@ function supabase_curl_opts(): array
         CURLOPT_HTTP_VERSION  => CURL_HTTP_VERSION_2TLS,
         CURLOPT_TCP_KEEPALIVE => 1,
         CURLOPT_ENCODING      => '',
+        // A batch's calls wait to ride the one open HTTP/2 connection instead of each opening a new one (7 Nov 2026). Without it,
+        // calls that start together found no connection ready and opened their own: two more round trips to Mumbai for each.
+        // Measured from Manila on the live database: a 16-call batch went from 222-700 ms (typically ~440) to 168-443 (~300).
+        CURLOPT_PIPEWAIT      => 1,
     ];
 }
 
@@ -62,10 +67,57 @@ function supabase_trace(?string $what = null, ?float $since = null): array
             });
         }
     }
-    if ($on && $what !== null) {
-        $log[] = sprintf('%5d ms  %s', (int) round((microtime(true) - $since) * 1000), $what);
+    if ($what !== null && $since !== null) {
+        $ms = (microtime(true) - $since) * 1000;
+        server_timing_db($ms, $what);
+        if ($on) $log[] = sprintf('%5d ms  %s', (int) round($ms), $what);
     }
     return $log;
+}
+
+/**
+ * Speed work (perf step 1, 7 Nov 2026): every wait on Supabase is added up for the Server-Timing header, so the browser's
+ * network panel shows, for each page and each in-place press, how long the server took, how much of that was spent waiting
+ * on the database, and how many times it waited. A batch of parallel reads is one wait holding several calls.
+ * Returns [waits, calls, ms].
+ */
+function server_timing_db(?float $ms = null, string $what = ''): array
+{
+    static $t = [0, 0, 0.0];
+    if ($ms !== null) {
+        $t[0]++;
+        $t[1] += preg_match('/^batch of (\d+)/', $what, $m) ? (int) $m[1] : 1;
+        $t[2] += $ms;
+    }
+    return $t;
+}
+
+/**
+ * New connections to Supabase opened while answering this request, and the longest handshake among them (7 Nov 2026). A call that
+ * rides an open connection opens none; one that has to open its own pays the TCP and TLS handshakes to Mumbai first (two or three
+ * round trips). Read from each call's own cURL figures. Returns [new connections, longest handshake in ms].
+ */
+function server_timing_conn(?CurlHandle $ch = null): array
+{
+    static $t = [0, 0.0];
+    if ($ch !== null) {
+        $n = (int) curl_getinfo($ch, CURLINFO_NUM_CONNECTS);
+        if ($n > 0) {
+            $t[0] += $n;
+            $t[1] = max($t[1], (float) curl_getinfo($ch, CURLINFO_APPCONNECT_TIME_T) / 1000);
+        }
+    }
+    return $t;
+}
+
+/** The Server-Timing header's value: app = the whole of the server's work so far, db = the waits on Supabase, conn = new connections. */
+function server_timing_value(): string
+{
+    [$waits, $calls, $ms] = server_timing_db();
+    [$conns, $hand] = server_timing_conn();
+    $start = (float) ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true));
+    $app = (microtime(true) - $start) * 1000;
+    return sprintf('app;dur=%.1f, db;dur=%.1f;desc="%d waits, %d calls", conn;dur=%.1f;desc="%d new connections (longest handshake)"', $app, $ms, $waits, $calls, $hand, $conns);
 }
 
 class SupabaseError extends RuntimeException
@@ -79,6 +131,29 @@ class SupabaseError extends RuntimeException
 final class Supabase
 {
     public function __construct(private readonly ?string $accessToken = null) {}
+
+    /**
+     * The request's read memo (speed work, 7 Nov 2026). Everything read in this request is kept until the request ends or until
+     * anything is written, and the same read asked for again (the same table or function, the same filters, the same session) is
+     * answered from it without a wait. So a page can read, in its first batch, what its parts read later (the brain button's module,
+     * the Right now strip, the pins), and the parts' own calls find it there; and two parts that read the same thing pay once.
+     * Any write (insert, update, delete, upsert, an Edge Function, or a function call not answered here) empties it, so a read
+     * after a save always goes to the database. Only answers that came back are kept, never an error.
+     *
+     * @var array<string, mixed>
+     */
+    private static array $seen = [];
+
+    private function seenKey(string $mode, string $table, array $query): string
+    {
+        return hash('sha256', ($this->accessToken ?? '') . "\0" . $mode . "\0" . $table . "\0" . json_encode($query, JSON_UNESCAPED_UNICODE));
+    }
+
+    /** Empty the memo (a write happened, or a page wants fresh reads). */
+    public static function forgetReads(): void
+    {
+        self::$seen = [];
+    }
 
     /** @param array<string,string> $extraHeaders */
     private function request(
@@ -110,9 +185,11 @@ final class Supabase
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body, JSON_UNESCAPED_UNICODE));
         }
 
+        if ($method !== 'GET') { self::$seen = []; }   // a write, or a function that may write: nothing read before it is reused
         $tq     = microtime(true);
         $raw    = curl_exec($ch);
         supabase_trace($method . ' ' . strtok($path, '?'), $tq);
+        server_timing_conn($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err    = curl_error($ch);
         // curl_close() is a deliberate no-op since PHP 8.0 (deprecated in
@@ -235,8 +312,12 @@ final class Supabase
      */
     public function select(string $table, array $query = []): array
     {
+        $k = $this->seenKey('', $table, $query);
+        if (array_key_exists($k, self::$seen)) return (array) self::$seen[$k];
         $qs = $query ? '?' . http_build_query($query) : '';
-        return $this->request('GET', "/rest/v1/{$table}{$qs}");
+        $rows = $this->request('GET', "/rest/v1/{$table}{$qs}");
+        self::$seen[$k] = $rows;
+        return $rows;
     }
 
     /**
@@ -250,40 +331,60 @@ final class Supabase
      * value is then the SupabaseError instead. A table named 'rpc/fn'
      * calls that function, its query array being the arguments.
      *
-     * @param array<string, array{0:string, 1:array<string,mixed>, 2?:bool}> $selects
+     * Speed work (perf, 7 Nov 2026): a fourth element sets one entry's mode, so rows and counts share one wait:
+     *   'count'  the value is that entry's exact row count, as $count does for the whole batch;
+     *   'total'  the value is the rows, and "<key>:total" holds the exact count of every row the filters match (PostgREST sends
+     *            it with the rows, in Content-Range), so a page of a list and the total behind its pager come in one request.
+     *
+     * @param array<string, array{0:string, 1:array<string,mixed>, 2?:bool, 3?:string}> $selects
      * @return array<string, mixed>
      */
-    public function selectMany(array $selects, bool $count = false, int $concurrency = 8): array
+    public function selectMany(array $selects, bool $count = false, int $concurrency = 16): array
     {
         $headers = [
             'apikey: ' . supabase_key(),
             'Accept: application/json',
             'Authorization: Bearer ' . ($this->accessToken ?? supabase_key()),
         ];
-        if ($count) {
-            $headers[] = 'Prefer: count=exact';
-            $headers[] = 'Range: 0-0';
+        $mode = array_map(fn($s) => $count ? 'count' : (string) ($s[3] ?? ''), $selects);
+        // what this request has already read is answered from the memo; the rest goes in the batch
+        $keyOf = [];
+        $out = [];
+        foreach ($selects as $key => $s) {
+            $q = $s[1];
+            if ($mode[$key] === 'count') { $q['select'] = $count ? 'id' : (($q['select'] ?? '') !== '' ? $q['select'] : 'id'); }
+            $keyOf[$key] = $this->seenKey($mode[$key], $s[0], $q);
+            if (array_key_exists($keyOf[$key], self::$seen)) {
+                $hit = self::$seen[$keyOf[$key]];
+                if ($mode[$key] === 'total') { [$out[$key], $out[$key . ':total']] = $hit; } else { $out[$key] = $hit; }
+            }
         }
         $mh = curl_multi_init();
         curl_multi_setopt($mh, CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
-        $queue = $selects;
+        $queue = array_diff_key($selects, $out);
         $optional = array_map(fn($s) => !empty($s[2]), $selects);
         $running = [];   // (int) handle id => [key, handle]
-        $out = [];
+        $asked = count($queue);
+        if ($asked === 0) { return $this->inOrder($selects, $out); }
+        $names = implode(', ', array_map(fn($x) => strtok($x[0], '?'), $queue));
 
-        $start = function () use (&$queue, &$running, $mh, $headers, $count): void {
+        $start = function () use (&$queue, &$running, $mh, $headers, $mode, $count): void {
             $key = array_key_first($queue);
             [$table, $query] = $queue[$key];
             unset($queue[$key]);
             $isRpc = str_starts_with($table, 'rpc/');
-            if ($count) { $query['select'] = 'id'; }
+            $m = $mode[$key];
+            $h = $headers;
+            // a whole batch of counts counts ids, as it always has; one counted entry keeps its own select (an inner join narrows it)
+            if ($m === 'count') { $query['select'] = $count ? 'id' : (($query['select'] ?? '') !== '' ? $query['select'] : 'id'); $h[] = 'Prefer: count=exact'; $h[] = 'Range: 0-0'; }
+            elseif ($m === 'total') { $h[] = 'Prefer: count=exact'; }
             $qs = ($query && !$isRpc) ? '?' . http_build_query($query) : '';
             $ch = curl_init(supabase_url() . "/rest/v1/{$table}{$qs}");
             curl_setopt_array($ch, supabase_curl_opts());
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HEADER         => $count,
-                CURLOPT_HTTPHEADER     => $isRpc ? [...$headers, 'Content-Type: application/json'] : $headers,
+                CURLOPT_HEADER         => $m !== '',
+                CURLOPT_HTTPHEADER     => $isRpc ? [...$h, 'Content-Type: application/json'] : $h,
                 CURLOPT_TIMEOUT        => 20,
                 CURLOPT_CONNECTTIMEOUT => 8,
             ]);
@@ -308,20 +409,30 @@ final class Supabase
                 $err = curl_error($ch);
                 curl_multi_remove_handle($mh, $ch);
                 try {
+                    server_timing_conn($ch);
                     if ($raw === null || $raw === '' && $status === 0) {
                         throw new SupabaseError('Could not reach the database: ' . $err);
                     }
-                    if ($count) {
-                        $out[$key] = preg_match('#Content-Range:\s*[\d*-]+/(\d+)#i', (string) $raw, $m)
-                            ? (int) $m[1] : 0;
+                    $raw = (string) $raw;
+                    $head = '';
+                    if ($mode[$key] !== '') {
+                        // the response's headers come first; the last block is the one that answers (a 100 Continue may precede it)
+                        $hs = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+                        $head = substr($raw, 0, $hs); $raw = substr($raw, $hs);
+                    }
+                    $total = preg_match('#Content-Range:\s*[\d*-]+/(\d+)#i', $head, $mm) ? (int) $mm[1] : 0;
+                    if ($mode[$key] === 'count') {
+                        $out[$key] = $total;   // a count that fails reads 0, as it always has
                     } else {
-                        $data = json_decode((string) $raw, true);
+                        $data = json_decode($raw, true);
                         if ($status >= 400) {
                             throw new SupabaseError((string) ($data['message'] ?? "Request failed ({$status})"), $status);
                         }
                         // A function may return a bare scalar; a table never does.
                         $out[$key] = (is_array($data) || str_starts_with($selects[$key][0], 'rpc/')) ? $data : [];
+                        if ($mode[$key] === 'total') { $out[$key . ':total'] = $total; }
                     }
+                    self::$seen[$keyOf[$key]] = $mode[$key] === 'total' ? [$out[$key], $out[$key . ':total']] : $out[$key];
                 } catch (SupabaseError $ex) {
                     if (!$optional[$key]) { throw $ex; }
                     $out[$key] = $ex;
@@ -329,14 +440,25 @@ final class Supabase
                 if ($queue) { $start(); }
             }
         } while ($running);
-        supabase_trace('batch of ' . count($selects) . ': ' . implode(', ', array_map(fn($x) => strtok($x[0], '?'), $selects)), $tq);
-        return $out;
+        supabase_trace('batch of ' . $asked . ': ' . $names, $tq);
+        return $this->inOrder($selects, $out);
+    }
+
+    /** The batch's answers in the order it was asked (a ":total" right after its rows), as callers that loop over them expect. */
+    private function inOrder(array $selects, array $out): array
+    {
+        $o = [];
+        foreach (array_keys($selects) as $k) {
+            if (array_key_exists($k, $out)) $o[$k] = $out[$k];
+            if (array_key_exists($k . ':total', $out)) $o[$k . ':total'] = $out[$k . ':total'];
+        }
+        return $o;
     }
 
     /** Row count without transferring the rows. */
     public function count(string $table, array $query = []): int
     {
-        $query['select'] = 'id';
+        $query['select'] = $query['select'] ?? 'id';   // a caller may keep its own (an inner join on concerns)
         $qs = '?' . http_build_query($query);
 
         $ch = curl_init(supabase_url() . "/rest/v1/{$table}{$qs}");
@@ -356,6 +478,7 @@ final class Supabase
         $tq  = microtime(true);
         $raw = curl_exec($ch);
         supabase_trace('count ' . $table, $tq);
+        server_timing_conn($ch);
         // curl_close() removed -- see the comment in request() above.
 
         // Content-Range comes back as "0-0/57"; the total is after the slash.
@@ -405,8 +528,18 @@ final class Supabase
      * today. Callers that only care about success/failure can keep
      * ignoring the return value exactly as before.
      */
+    /** Calls an Edge Function as this session (0162: level-switch). */
+    public function invoke(string $fn, array $body = []): array|string|int|float|bool|null
+    {
+        return $this->request('POST', '/functions/v1/' . rawurlencode($fn), $body);
+    }
+
     public function rpc(string $fn, array $args = []): array|string|int|float|bool|null
     {
+        // a function this request already called in a batch of reads is answered from the memo; any other call may write, so it
+        // goes to the database and empties the memo (request() above)
+        $k = $this->seenKey('', 'rpc/' . $fn, $args);
+        if (array_key_exists($k, self::$seen)) return self::$seen[$k];
         return $this->request('POST', "/rest/v1/rpc/{$fn}", $args);
     }
 }
