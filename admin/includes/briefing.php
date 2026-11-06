@@ -30,45 +30,61 @@ function day_label(?string $iso): string
     }
 }
 
+/** The briefing's clock: one moment for the whole request, so the reads a page asks for early are the very ones asked here. */
+function briefing_now(): DateTimeImmutable
+{
+    static $now = null;
+    return $now ??= new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
+}
+
+/**
+ * What the briefing reads first: the engine's lanes and the day's numbers, as selectMany entries. A page puts them in its own
+ * first batch (speed work, 7 Nov 2026) and render_briefing() then finds them in the request's read memo (supabase.php).
+ */
+function briefing_reads(): array
+{
+    $now   = briefing_now();
+    $today = $now->setTime(0, 0);
+    $iso   = fn(DateTimeImmutable $d): string => $d->format('Y-m-d\TH:i:sP');
+    $open  = 'in.(pending_review,validated,assigned,in_progress,offline_investigation)';
+    return [
+        'summary' => ['rpc/smart_summary', [], true],
+        'risk'    => ['rpc/smart_deadline_risk', [], true],
+        'spikes'  => ['rpc/smart_spikes', [], true],
+        'recur'   => ['rpc/smart_patterns', ['p_days' => null], true],
+        'stuck'   => ['rpc/smart_stuck_cases', [], true],
+        'storm'   => ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true],
+        'open'      => ['reports', ['deleted_at' => 'is.null', 'status' => $open], true, 'count'],
+        'overdue'   => ['reports', ['deleted_at' => 'is.null', 'status' => $open, 'due_at' => 'lt.' . $iso($now)], true, 'count'],
+        'due_today' => ['reports', ['deleted_at' => 'is.null', 'status' => $open, 'and' => '(due_at.gte.' . $iso($today) . ',due_at.lt.' . $iso($today->modify('+1 day')) . ')'], true, 'count'],
+        'due_tmrw'  => ['reports', ['deleted_at' => 'is.null', 'status' => $open, 'and' => '(due_at.gte.' . $iso($today->modify('+1 day')) . ',due_at.lt.' . $iso($today->modify('+2 day')) . ')'], true, 'count'],
+        'in_night'  => ['reports', ['deleted_at' => 'is.null', 'created_at' => 'gte.' . $iso($today->modify('-6 hours'))], true, 'count'],
+        'in_today'  => ['reports', ['deleted_at' => 'is.null', 'created_at' => 'gte.' . $iso($today)], true, 'count'],
+        'in_since'  => ['reports', ['deleted_at' => 'is.null', 'created_at' => 'gte.' . $iso($today->setTime(6, 0))], true, 'count'],
+        'out_today' => ['reports', ['deleted_at' => 'is.null', 'resolved_at' => 'gte.' . $iso($today)], true, 'count'],
+        'out_since' => ['reports', ['deleted_at' => 'is.null', 'resolved_at' => 'gte.' . $iso($today->setTime(6, 0))], true, 'count'],
+    ];
+}
+
 /** $part: 'bar' (the sky bar and its alarm card, on Workspace), 'strip' (what is being watched, on Notifications) or 'all'. */
 function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
 {
     $tz    = new DateTimeZone('Asia/Manila');
-    $now   = new DateTimeImmutable('now', $tz);
+    $now   = briefing_now();
     $today = $now->setTime(0, 0);
     $iso   = fn(DateTimeImmutable $d): string => $d->format('Y-m-d\TH:i:sP');
     $open  = 'in.(pending_review,validated,assigned,in_progress,offline_investigation)';
     $here  = briefing_period($now);
 
-    // ---- what the engine sees
+    // ---- what the engine sees, and the day's numbers: one wait for both, or none when the page read them already
     $got = [];
+    $cnt = ['open', 'overdue', 'due_today', 'due_tmrw', 'in_night', 'in_today', 'in_since', 'out_today', 'out_since'];
     try {
-        $got = $db->selectMany([
-            'summary' => ['rpc/smart_summary', [], true],
-            'risk'    => ['rpc/smart_deadline_risk', [], true],
-            'spikes'  => ['rpc/smart_spikes', [], true],
-            'recur'   => ['rpc/smart_patterns', ['p_days' => null], true],
-            'stuck'   => ['rpc/smart_stuck_cases', [], true],
-            'storm'   => ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true],
-        ]);
-    } catch (SupabaseError) { /* the lanes stay empty */ }
+        $got = $db->selectMany(briefing_reads());
+    } catch (SupabaseError) { /* the lanes stay empty and the numbers show as zero */ }
     $list = fn(string $k): array => (isset($got[$k]) && !($got[$k] instanceof SupabaseError) && is_array($got[$k])) ? $got[$k] : [];
-
     $counts = [];
-    try {
-        $c = $db->selectMany([
-            'open'      => ['reports', ['deleted_at' => 'is.null', 'status' => $open], true],
-            'overdue'   => ['reports', ['deleted_at' => 'is.null', 'status' => $open, 'due_at' => 'lt.' . $iso($now)], true],
-            'due_today' => ['reports', ['deleted_at' => 'is.null', 'status' => $open, 'and' => '(due_at.gte.' . $iso($today) . ',due_at.lt.' . $iso($today->modify('+1 day')) . ')'], true],
-            'due_tmrw'  => ['reports', ['deleted_at' => 'is.null', 'status' => $open, 'and' => '(due_at.gte.' . $iso($today->modify('+1 day')) . ',due_at.lt.' . $iso($today->modify('+2 day')) . ')'], true],
-            'in_night'  => ['reports', ['deleted_at' => 'is.null', 'created_at' => 'gte.' . $iso($today->modify('-6 hours'))], true],
-            'in_today'  => ['reports', ['deleted_at' => 'is.null', 'created_at' => 'gte.' . $iso($today)], true],
-            'in_since'  => ['reports', ['deleted_at' => 'is.null', 'created_at' => 'gte.' . $iso($today->setTime(6, 0))], true],
-            'out_today' => ['reports', ['deleted_at' => 'is.null', 'resolved_at' => 'gte.' . $iso($today)], true],
-            'out_since' => ['reports', ['deleted_at' => 'is.null', 'resolved_at' => 'gte.' . $iso($today->setTime(6, 0))], true],
-        ], true);
-        foreach ($c as $k => $v) { $counts[$k] = is_int($v) ? $v : 0; }
-    } catch (SupabaseError) { /* the numbers show as zero */ }
+    foreach ($cnt as $k) { $counts[$k] = is_int($got[$k] ?? null) ? $got[$k] : 0; }
     $n = fn(string $k): int => (int) ($counts[$k] ?? 0);
 
     $sum      = is_array($got['summary'] ?? null) && !($got['summary'] instanceof SupabaseError) ? $got['summary'] : [];
@@ -82,7 +98,7 @@ function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
     // 0156: a committee's version of the engine's notes: its kinds of complaint, and the cases it can see
     if (is_scoped()) {
         try {
-            $myCats = array_column((array) $db->select('committee_categories', ['select' => 'category', 'committee' => 'eq.' . (current_admin()['committee'] ?? '-')]), 'category');
+            $myCats = committee_categories_all()[(string) (current_admin()['committee'] ?? '-')] ?? [];
             $spikes = array_values(array_filter($spikes, fn ($r) => in_array($r['category'] ?? '', $myCats, true)));
             $recur  = array_values(array_filter($recur, fn ($r) => in_array($r['category'] ?? '', $myCats, true)));
             $ids = array_values(array_unique(array_filter(array_merge(array_column($risk, 'report_id'), array_column($stuck, 'report_id')))));

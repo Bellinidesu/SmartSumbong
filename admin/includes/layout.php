@@ -11,6 +11,7 @@ function nav_items(): array
 {
     $items = [
         ['dashboard.php',  t('Dashboard', 'Dashboard'),                       'i-dash'],
+        ['home.php',       t('Home', 'Tahanan'),                              'i-home'],   // a Kagawad's and staff member's own (4 Nov 2026)
         ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
         ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
@@ -60,6 +61,115 @@ function pager(int $total, int $page, string $param = 'page', ?int $per = null, 
     $o .= $page < $pages ? '<a href="' . e($href($page + 1)) . '" rel="next">' . e(t('Next', 'Susunod')) . ' &rsaquo;</a>' : '<span class="off">' . e(t('Next', 'Susunod')) . ' &rsaquo;</span>';
     $from1 = ($page - 1) * $per + 1; $to1 = min($total, $page * $per);
     return $o . '<span class="of">' . $from1 . '&ndash;' . $to1 . ' ' . e(t('of', 'sa')) . ' ' . $total . '</span></nav>';
+}
+
+/**
+ * The greeting at the top of Dashboard and Home (Ace, 6 Nov 2026): by the hour in Manila, with a few ways to say it so the page is not
+ * the same every day, and the Philippine holidays and observances say their own. The same day and hour always give the same words,
+ * so a refresh does not change them.
+ *   greeting_flair($now, 'Ace')  ->  ['headline' => 'Rise and shine, Ace', 'event' => "All Saints' Day" | null]
+ */
+function greeting_flair(DateTimeImmutable $now, string $first = ''): array
+{
+    $y = (int) $now->format('Y'); $md = $now->format('m-d'); $hr = (int) $now->format('G'); $doy = (int) $now->format('z');
+    $nth = function (int $month, int $weekday, int $n) use ($y): string {   // the nth weekday of a month, as m-d
+        $d = new DateTimeImmutable(sprintf('%d-%02d-01', $y, $month));
+        $off = ($weekday - (int) $d->format('w') + 7) % 7;
+        return $d->modify('+' . ($off + 7 * ($n - 1)) . ' days')->format('m-d');
+    };
+    $lastMon = (new DateTimeImmutable("last monday of august $y"))->format('m-d');
+    // Easter (Meeus), for Holy Week
+    $a = $y % 19; $b = intdiv($y, 100); $c = $y % 100; $d = intdiv($b, 4); $e = $b % 4; $f = intdiv($b + 8, 25); $g = intdiv($b - $f + 1, 3);
+    $h = (19 * $a + $b - $d - $g + 15) % 30; $i = intdiv($c, 4); $k = $c % 4; $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7; $m = intdiv($a + 11 * $h + 22 * $l, 451);
+    $easter = new DateTimeImmutable(sprintf('%d-%02d-%02d', $y, intdiv($h + $l - 7 * $m + 114, 31), (($h + $l - 7 * $m + 114) % 31) + 1));
+    $holy = [$easter->modify('-3 days')->format('m-d') => 'maundy', $easter->modify('-2 days')->format('m-d') => 'good', $easter->modify('-1 day')->format('m-d') => 'black', $easter->format('m-d') => 'easter'];
+
+    $ev = null;   // [greeting, chip]
+    $day = [
+        '01-01' => [t('Happy New Year', 'Manigong Bagong Taon'), t("New Year's Day", 'Bagong Taon')],
+        '02-14' => [t("Happy Hearts Day", 'Maligayang Araw ng mga Puso'), t("Valentine's Day", 'Araw ng mga Puso')],
+        '02-25' => [t('Remembering EDSA', 'Alalahanin ang EDSA'), t('EDSA People Power Anniversary', 'Anibersaryo ng EDSA People Power')],
+        '04-09' => [t('Honouring our heroes', 'Pagpupugay sa ating mga bayani'), t('Day of Valor', 'Araw ng Kagitingan')],
+        '05-01' => [t('Happy Labor Day', 'Maligayang Araw ng Paggawa'), t('Labor Day', 'Araw ng Paggawa')],
+        '06-12' => [t('Happy Independence Day', 'Maligayang Araw ng Kalayaan'), t('Independence Day', 'Araw ng Kalayaan')],
+        '08-21' => [t('Remembering Ninoy', 'Alalahanin si Ninoy'), t('Ninoy Aquino Day', 'Araw ni Ninoy Aquino')],
+        '09-01' => [t('The ber months begin', 'Simula na ng ber months'), t('The ber months', 'Ber months')],
+        '10-31' => [t('Happy Halloween', 'Maligayang Halloween'), t('Halloween', 'Undas na')],
+        '11-01' => [t('Remembering our loved ones', 'Alaala ng ating mga mahal sa buhay'), t("All Saints' Day", 'Araw ng mga Santo')],
+        '11-02' => [t('Remembering our loved ones', 'Alaala ng ating mga yumao'), t("All Souls' Day", 'Araw ng mga Kaluluwa')],
+        '11-30' => [t('Happy Bonifacio Day', 'Maligayang Araw ni Bonifacio'), t('Bonifacio Day', 'Araw ni Bonifacio')],
+        '12-08' => [t('Happy Feast Day', 'Maligayang Kapistahan'), t('Feast of the Immaculate Conception', 'Kapistahan ng Immaculada Concepcion')],
+        '12-24' => [t('Merry Christmas Eve', 'Maligayang Noche Buena'), t('Christmas Eve', 'Bisperas ng Pasko')],
+        '12-25' => [t('Merry Christmas', 'Maligayang Pasko'), t('Christmas Day', 'Araw ng Pasko')],
+        '12-30' => [t('Remembering Rizal', 'Alalahanin si Rizal'), t('Rizal Day', 'Araw ni Rizal')],
+        '12-31' => [t("Happy New Year's Eve", 'Maligayang Bisperas ng Bagong Taon'), t("New Year's Eve", 'Bisperas ng Bagong Taon')],
+        $nth(5, 0, 2) => [t("Happy Mother's Day", 'Maligayang Araw ng mga Ina'), t("Mother's Day", 'Araw ng mga Ina')],
+        $nth(6, 0, 3) => [t("Happy Father's Day", 'Maligayang Araw ng mga Ama'), t("Father's Day", 'Araw ng mga Ama')],
+        $lastMon      => [t('Happy National Heroes Day', 'Maligayang Araw ng mga Bayani'), t('National Heroes Day', 'Araw ng mga Pambansang Bayani')],
+    ];
+    if (isset($holy[$md])) {
+        $ev = match ($holy[$md]) {
+            'maundy' => [t('A blessed Maundy Thursday', 'Mapagpalang Huwebes Santo'), t('Maundy Thursday', 'Huwebes Santo')],
+            'good'   => [t('A blessed Good Friday', 'Mapagpalang Biyernes Santo'), t('Good Friday', 'Biyernes Santo')],
+            'black'  => [t('A quiet Black Saturday', 'Mapayapang Sabado de Gloria'), t('Black Saturday', 'Sabado de Gloria')],
+            default  => [t('Happy Easter', 'Maligayang Pasko ng Pagkabuhay'), t('Easter Sunday', 'Pasko ng Pagkabuhay')],
+        };
+    } elseif (isset($day[$md])) {
+        $ev = $day[$md];
+    } elseif ($md >= '12-16' && $md <= '12-23') {
+        $ev = [t('Simbang Gabi season', 'Simbang Gabi na'), t('Dawn Masses', 'Simbang Gabi')];
+    }
+
+    if ($ev !== null) { $head = $ev[0]; $chip = $ev[1]; }
+    else {
+        $pick = [
+            [[0, 4],   [t('Burning the midnight oil', 'Gising pa rin'), t('Still up', 'Puyat na naman'), t('The barangay never sleeps', 'Hindi natutulog ang barangay')]],
+            [[5, 8],   [t('Rise and shine', 'Gising na, bagong araw'), t('Good morning', 'Magandang umaga'), t('Early start', 'Maagang simula')]],
+            [[9, 11],  [t('Good morning', 'Magandang umaga'), t('Morning', 'Magandang umaga'), t('Good morning', 'Magandang umaga')]],
+            [[12, 13], [t('Good noon', 'Magandang tanghali'), t('Good noon', 'Magandang tanghali'), t('Lunch hour already', 'Tanghalian na')]],
+            [[14, 17], [t('Good afternoon', 'Magandang hapon'), t('Keeping steady', 'Tuloy lang'), t('Good afternoon', 'Magandang hapon')]],
+            [[18, 20], [t('Good evening', 'Magandang gabi'), t('Winding down', 'Malapit nang magpahinga'), t('Good evening', 'Magandang gabi')]],
+            [[21, 23], [t('Working late', 'Gabi na, narito pa rin'), t('Good evening', 'Magandang gabi'), t('Night shift', 'Panggabing duty')]],
+        ];
+        $head = $pick[0][1][0];
+        foreach ($pick as $p) { if ($hr >= $p[0][0] && $hr <= $p[0][1]) { $head = $p[1][($doy + $p[0][0]) % count($p[1])]; break; } }
+        $chip = null;
+    }
+    return ['headline' => $head . ($first !== '' ? ', ' . $first : ''), 'event' => $chip];
+}
+
+/**
+ * Where a save goes back to: the view the person was on (its filters, its tab, its page), not the page's bare address. Read from
+ * htmx's HX-Current-URL (a save sent in place) or the browser's Referer (a plain form), and used only when it is the same page on
+ * this same host; anything else gets $fallback, as before. (Found 7 Nov 2026: marking a notification read on a filtered view, or
+ * deciding a proposed tanod on a filtered roster, sent the person back to the unfiltered list.)
+ */
+function view_after_post(string $fallback): string
+{
+    $script = basename((string) strtok($fallback, '?'));
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    foreach ([(string) ($_SERVER['HTTP_HX_CURRENT_URL'] ?? ''), (string) ($_SERVER['HTTP_REFERER'] ?? '')] as $u) {
+        if ($u === '' || strlen($u) > 2000) continue;
+        $p = parse_url($u);
+        if (!is_array($p) || empty($p['path']) || empty($p['host'])) continue;
+        $h = strtolower($p['host'] . (isset($p['port']) ? ':' . $p['port'] : ''));
+        if ($host === '' || $h !== $host || basename($p['path']) !== $script) continue;
+        return $script . (isset($p['query']) && $p['query'] !== '' ? '?' . $p['query'] : '');
+    }
+    return $fallback;
+}
+
+/**
+ * The press flow, step 4 (7 Nov 2026): a save that updates its region in place. The form posts in the background exactly as it
+ * always has; the server's usual answer (its redirect back to the list) is followed, and only the region swaps. A save in flight
+ * cannot be sent again (hx-sync drop) and its button is disabled until the answer comes; the page's message comes as a toast.
+ * Without JavaScript the form posts and the page reloads, as before.
+ *   <form method="post"<?= press_save('nf-list') ?>>
+ */
+function press_save(string $region): string
+{
+    $r = preg_replace('/[^a-z0-9_-]/i', '', $region);
+    return ' hx-boost="true" hx-target="#' . $r . '" hx-select="#' . $r . '" hx-swap="outerHTML" hx-push-url="false" hx-sync="this:drop" hx-disabled-elt="find button[type=submit]" data-press-save="1"';
 }
 
 /** The engine's brain as a small icon, for places a square button or tile needs one (the map's dock, a SMART notification). */
@@ -179,6 +289,71 @@ function side_colour_style(): string
     return "<style>:root{{$light}}@media (prefers-color-scheme: dark){:root:not([data-theme=\"light\"]){{$dark}}}:root[data-theme=\"dark\"]{{$dark}}</style>\n";
 }
 
+/** One Spatial Distribution symbol (assets/js/sd-icons.js) as inline SVG markup, for the places drawn without the script. */
+function sd_icon_paths(string $name): string
+{
+    static $js = null;
+    $js ??= (string) @file_get_contents(dirname(__DIR__) . '/assets/js/sd-icons.js');
+    foreach ([$name, 'other'] as $n) {
+        if (preg_match('/^\s*"' . preg_quote($n, '/') . '":\s*("(?:[^"\\\\]|\\\\.)*")/m', $js, $m)) return (string) json_decode($m[1]);
+    }
+    return '';
+}
+
+/**
+ * The symbol of the first kind of complaint a committee sees (its banner's first symbol), kept in the session for two minutes so
+ * the sidebar does not read the committee's kinds on every page.
+ */
+function committee_first_symbol(string $ck): string
+{
+    session_start_once();
+    $memo = $_SESSION['com_sym'] ?? null;
+    if (is_array($memo) && ($memo['key'] ?? null) === $ck && ($memo['at'] ?? 0) > time() - 120) return (string) $memo['ic'];
+    $ic = 'other';
+    try {
+        $mine = committee_categories_all()[$ck] ?? [];
+        foreach (categories_all() as $catKey => $cat) {
+            if (in_array($catKey, $mine, true) && !empty($cat['active'])) { $ic = sd_icon_for_category((string) $catKey, (array) $cat); break; }
+        }
+    } catch (Throwable) {}
+    $_SESSION['com_sym'] = ['key' => $ck, 'ic' => $ic, 'at' => time()];
+    return $ic;
+}
+
+/** The SD symbol a complaint type wears: forwarding.php's sd_icon_for, here for the pages that do not load forwarding.php. */
+function sd_icon_for_category(string $catKey, array $cat = []): string
+{
+    if (function_exists('sd_icon_for')) return sd_icon_for($catKey, $cat);
+    $iconOf = ['street_obstruction' => 'obstruction', 'public_safety_infrastructure' => 'infra', 'environmental_waste_hazard' => 'waste', 'animal_welfare' => 'animal',
+               'traffic_violation' => 'traffic', 'barangay_service' => 'service', 'peace_order_nuisance' => 'noise', 'other' => 'other'];
+    return $iconOf[(string) ($cat['icon'] ?? $catKey)] ?? ($iconOf[$catKey] ?? 'other');
+}
+
+/** A committee's logo (0164): the picture the super admin uploaded, or until there is one, the committee's first symbol in its colour. */
+function committee_logo_html(string $ck, string $class): string
+{
+    $c = committees_all()[$ck] ?? null;
+    $alt = e(sprintf(t('%s logo', 'Logo ng %s'), (string) ($c['short_en'] ?? $ck)));
+    $url = (string) ($c['logo_url'] ?? '');
+    if ($url !== '') return '<img class="' . e($class) . '" src="' . e(cld_thumb($url, 192)) . '" alt="' . $alt . '">';
+    $hex = committee_colour($ck);
+    return '<span class="' . e($class) . ' p-brand-sym" style="--cc:' . e($hex) . ';--ci:' . e(ink_on($hex)) . '" role="img" aria-label="' . $alt . '">'
+         . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . sd_icon_paths(committee_first_symbol($ck)) . '</svg></span>';
+}
+
+/**
+ * The top of the sidebar (Ace, 4 Nov 2026): a super admin sees the barangay's seal alone, a Kagawad or staff member their
+ * committee's logo beside it. The SmartSumbong wordmark stays on the sign-in pages.
+ */
+function side_brand(): string
+{
+    $ck = is_scoped() ? (string) (current_admin()['committee'] ?? '') : '';
+    $pair = $ck !== '' && isset(committees_all()[$ck]);
+    return '<a class="p-brand p-brand-seal' . ($pair ? ' p-brand-pair' : '') . '" href="' . e(page_allowed('dashboard.php') ? 'dashboard.php' : landing_page()) . '">'
+         . ($pair ? committee_logo_html($ck, 'p-brand-com') . '<i class="p-brand-sep" aria-hidden="true"></i>' : '')
+         . brgy_seal_img('p-brand-img') . '</a>';
+}
+
 /** Black or white text on a colour, whichever reads. */
 /** Lettering for large bold text on a vivid colour (3:1 is enough at that size); the average of several colours for a blend. */
 function ink_on_bold(array $hexes): string
@@ -228,12 +403,21 @@ function dev_switcher(): string
     $me = current_admin();
     if (!is_array($origin) && empty($me['is_dev'])) return '';
     $levels = [];
-    try { $levels = (array) (new Supabase((string) (is_array($origin) ? $origin['access_token'] : access_token())))->rpc('dev_levels'); } catch (Throwable) {}
+    // the test accounts change rarely: kept in the session for a minute, so the pill costs no wait on most pages (speed work, 7 Nov 2026)
+    $tok = (string) (is_array($origin) ? $origin['access_token'] : access_token());
+    $lc = $_SESSION['ss_dev_levels'] ?? null;
+    if (is_array($lc) && ($lc['k'] ?? '') === hash('sha256', $tok) && ($lc['at'] ?? 0) > time() - 60) {
+        $levels = (array) $lc['v'];
+    } else {
+        try { $levels = (array) (new Supabase($tok))->rpc('dev_levels'); $_SESSION['ss_dev_levels'] = ['k' => hash('sha256', $tok), 'at' => time(), 'v' => $levels]; } catch (Throwable) {}
+    }
     $now = (string) ($_SESSION['dev_view'] ?? '');
     $name = ['super' => t('Super admin', 'Pangunahing admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Councilor (Kagawad)', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')];
     $from = basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
     $hidden = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '"><input type="hidden" name="from" value="' . e($from) . '">';
-    $o = '<details class="dv-sw"' . ($now !== '' ? ' open' : '') . '><summary><b>DEV</b><span>' . e(t('See as', 'Tingnan bilang')) . '</span><em>' . e($now !== '' ? ($name[$now] ?? $now) : t('Myself', 'Ako')) . '</em></summary><div class="dv-body">';
+    // A floating pill, not a sidebar block (6 Nov 2026): it sits on the page, drags anywhere, remembers where (dev-widget.js), and the
+    // sidebar keeps its room for its own widgets. It opens only when asked, or to show what the last action said.
+    $o = '<details class="dv-sw"' . (!empty($_SESSION['dev_flash']) ? ' open' : '') . '><summary><b>DEV</b><span>' . e(t('See as', 'Tingnan bilang')) . '</span><em>' . e($now !== '' ? ($name[$now] ?? $now) : t('Myself', 'Ako')) . '</em></summary><div class="dv-body">';
     if (!empty($_SESSION['dev_flash'])) { $o .= '<p class="dv-msg" role="status">' . e((string) $_SESSION['dev_flash']) . '</p>'; unset($_SESSION['dev_flash']); }
     if ($levels) {
         $o .= '<form method="post" action="view-as.php" class="dv-levels">' . $hidden . '<input type="hidden" name="action" value="switch">';
@@ -253,7 +437,7 @@ function dev_switcher(): string
             . '<label><span>' . e(t('Kagawad and staff of', 'Kagawad at kawani ng')) . '</span><select name="committee">' . $sel . '</select></label>'
             . '<button type="submit">' . e($levels ? t('Move them', 'Ilipat sila') : t('Make my test accounts', 'Gawin ang aking mga test account')) . '</button></form>';
     }
-    return $o . '</div></details>';
+    return '<div class="dv-float" id="dv-float">' . $o . '</div></details></div><script src="assets/js/dev-widget.js?v=' . e(asset_version('../js/dev-widget.js')) . '" defer></script>';
 }
 
 /** While a developer looks through a test account: a band across the top that says so, with the way back. */
@@ -324,6 +508,15 @@ window.ssAccessToken = function (initial) {
       : Promise.resolve(token);
   };
 };
+// One live connection per page (7 Nov 2026). Every createClient opened its own websocket to Supabase: presence.js one, the page's
+// live list another, so each tab held two and a few tabs ran into the plan's connection limit (a live connection was refused on
+// Notifications). Every part of the page now shares this one client; its channels ride the one socket. The token renews as above.
+window.ssSupabase = function (url, key, initial) {
+  if (window.__ssSb) return window.__ssSb;
+  if (!window.supabase || !window.supabase.createClient) return null;
+  window.__ssSb = window.supabase.createClient(url, key, { accessToken: window.ssAccessToken(initial) });
+  return window.__ssSb;
+};
 </script>
 <title><?= e($title) ?> — Smart Sumbong | <?= e(barangay()['name']) ?></title>
 <meta name="description" content="Smart Sumbong: <?= e(brgy_line()) ?> complaint management portal for barangay staff.">
@@ -334,8 +527,8 @@ window.ssAccessToken = function (initial) {
 <?php // Speed (pass 4): open the database connection and fetch the two
       // main font files while the page is still being read. ?>
 <link rel="preconnect" href="<?= e(supabase_url()) ?>" crossorigin>
-<link rel="preload" href="assets/vendor/fonts/urbanist-regular.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/vendor/fonts/urbanist-bold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/vendor/fonts/inter-regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/vendor/fonts/inter-tight-bold.woff2" as="font" type="font/woff2" crossorigin>
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/p.css?v=<?= e(asset_version('p.css')) ?>" rel="stylesheet">
 <link href="assets/css/p-portal.css?v=<?= e(asset_version('p-portal.css')) ?>" rel="stylesheet">
@@ -346,7 +539,7 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <link href="assets/css/shell.css?v=<?= e(asset_version('shell.css')) ?>" rel="stylesheet">
 <link href="assets/css/aesthetic.css?v=<?= e(asset_version('aesthetic.css')) ?>" rel="stylesheet">
-<?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php'], true)) : // Case Reports, the Dashboard and Report Summary (overview.css) ?>
+<?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php', 'home.php'], true)) : // Case Reports, the Dashboard, Report Summary and Home (overview.css) ?>
 <link href="assets/css/overview.css?v=<?= e(asset_version('overview.css')) ?>" rel="stylesheet">
 <?php endif; ?>
 <?php if (in_array($active, ['administrative-services.php', 'control-room.php', 'settings.php'], true)) : // the super admin consoles (console.css) ?>
@@ -362,6 +555,18 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/identity.css?v=<?= e(asset_version('identity.css')) ?>" rel="stylesheet">
 <?php endif; ?>
 <?= side_colour_style() ?><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
+<?php // The press flow (7 Nov 2026): htmx swaps only what a press changes. No eval, no scripts from swapped HTML, no page HTML in
+      // localStorage (Back fetches the page fresh), same-origin only; assets/js/press.js is the portal's layer over it. ?>
+<meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"refreshOnHistoryMiss":true,"selfRequestsOnly":true,"includeIndicatorStyles":false,"scrollIntoViewOnBoost":false,"defaultSettleDelay":0,"getCacheBusterParam":false}'>
+<link href="assets/css/press.css?v=<?= e(asset_version('press.css')) ?>" rel="stylesheet">
+<script src="assets/vendor/htmx/htmx.min.js?v=2.0.11" defer></script>
+<script src="assets/js/press.js?v=<?= e(asset_version('../js/press.js')) ?>" defer></script>
+<?php // Speed work, step 4 (7 Nov 2026): a page link held under the pointer (or pressed) is fetched a moment early, so the next page
+      // is often already here when the click lands (Speculation Rules, prefetch only, never prerender: no page runs before it is
+      // opened). Browsers without it ignore this. Left out, because opening them is not only reading: an Inbox message (opening it
+      // marks it read), downloads, sign-out, new-tab links, the DEV pill, and links inside the press flow's regions (htmx fetches
+      // those itself). A link can opt out with data-no-prefetch. ?>
+<script type="speculationrules">{"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-boost=\"true\"], a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
@@ -370,12 +575,11 @@ window.ssAccessToken = function (initial) {
     <button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"
             data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
             aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
-    <div class="p-side-top"><a class="p-brand" href="<?= e(page_allowed('dashboard.php') ? 'dashboard.php' : landing_page()) ?>"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a></div>
+    <div class="p-side-top"><?= side_brand() ?></div>
     <?php $sideC = side_colour(); if ($sideC['label'] !== null): ?>
       <?php // 0150: a committee admin's sidebar names the committee, in its colour ?>
       <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><?= e($sideC['label']) ?></span></div>
     <?php endif; ?>
-    <?= dev_switcher() ?>
     <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>
       <?php foreach (nav_items() as [$href, $label, $icon]): ?>
@@ -423,15 +627,27 @@ window.ssAccessToken = function (initial) {
  * for a minute so no page pays for it twice; Settings clears it the moment storm mode is switched. Null when it is off,
  * has ended, or the read failed: a missing banner must never stop a page.
  */
+/** The storm banner's read and whether it is due (every minute), for the request's boot batch (boot.php) and storm_state(). */
+function storm_read_entry(): array
+{
+    return ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true];
+}
+
+function storm_cold(): bool
+{
+    session_start_once();
+    $c = $_SESSION['ss_storm'] ?? null;
+    return !(is_array($c) && ($c['at'] ?? 0) > time() - 60);
+}
+
 function storm_state(): ?array
 {
     static $memo = false;
     if ($memo !== false) return $memo;
-    $c = $_SESSION['ss_storm'] ?? null;
-    if (is_array($c) && ($c['at'] ?? 0) > time() - 60) { return $memo = $c['row']; }
+    if (!storm_cold()) { return $memo = $_SESSION['ss_storm']['row']; }
     $row = null;
     try {
-        $r = db()->select('smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'])[0] ?? null;
+        $r = db()->select('smart_rules', storm_read_entry()[1])[0] ?? null;
         if ($r && !empty($r['storm_mode']) && !empty($r['storm_until']) && strtotime((string) $r['storm_until']) > time()) { $row = $r; }
     } catch (Throwable) { /* no banner this minute */ }
     $_SESSION['ss_storm'] = ['at' => time(), 'row' => $row];
@@ -558,7 +774,27 @@ function nav_counts(): array
     // All four in one batch (speed, 7 Oct 2026): they used to be four calls
     // one after another, the open-complaint count on every single page.
     try {
-        $memo = db()->selectMany([
+        $memo = db()->selectMany(nav_counts_entries(), true);
+        $memo = array_map(fn($v) => is_int($v) ? $v : 0, $memo);
+    } catch (Throwable) {
+        $memo = [];
+    }
+    $_SESSION['nav_counts'] = ['at' => time(), 'n' => $memo];
+    return $memo;
+}
+
+/** True when the sidebar's counts are due to be read again (every minute). */
+function nav_counts_cold(): bool
+{
+    session_start_once();
+    $cached = $_SESSION['nav_counts'] ?? null;
+    return !(is_array($cached) && ($cached['at'] ?? 0) > time() - 60);
+}
+
+/** The sidebar's counts, as one batch of counted entries (nav_counts(), and the request's boot batch, boot.php). */
+function nav_counts_entries(): array
+{
+    return [
             'cases.php'               => ['reports', ['deleted_at' => 'is.null', 'status' => 'eq.pending_review'], true],
             // the engine's recurring, spike and quiet-case notes are the Notifications page's "Right now" cards, not unread items
             'notifications.php'       => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
@@ -568,13 +804,7 @@ function nav_counts(): array
             'administrative-services.php' => ['retirement_requests', ['status' => 'eq.pending'], true],
             'spatial.php'             => ['reports', ['deleted_at' => 'is.null',
                                            'status' => 'in.(pending_review,validated,assigned,in_progress,offline_investigation)'], true],
-        ], true);
-        $memo = array_map(fn($v) => is_int($v) ? $v : 0, $memo);
-    } catch (Throwable) {
-        $memo = [];
-    }
-    $_SESSION['nav_counts'] = ['at' => time(), 'n' => $memo];
-    return $memo;
+    ];
 }
 
 function layout_foot(): void
@@ -582,6 +812,7 @@ function layout_foot(): void
     ?>
   </main>
 </div>
+<?= dev_switcher() ?>
 <?php if ($me = current_admin()): ?>
 <script>
 // 0087: who is online and which case each admin has open (presence.js).
@@ -625,11 +856,29 @@ window.SS_PRESENCE = <?= json_encode([
 <div class="p-toast" id="p-toast" role="status"></div>
 <script src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
 <script>
-// Every dropdown and month box on the pills and report bands is the portal's own glass picker; the real controls stay underneath, so forms, auto-submit and the keyboard behave as before.
+// Every dropdown and month box in the portal is the portal's own glass picker (Ace, 6 Nov 2026: the category dropdown and the calendar are the standard).
+// The real controls stay underneath, so forms, auto-submit, required and the keyboard behave as before. A dropdown of categories or of committees
+// shows each one's own colour dot, read from the system's own lists, so a category added in Settings arrives with its colour.
 (function () {
   if (!window.sdPickers) return;
-  document.querySelectorAll('.p-pill-select select, .p-band select, .ss-ps select').forEach(function (s) { if (!s.dataset.native) sdPickers.select(s); });
-  document.querySelectorAll('.p-pill-select input[type="month"], .p-band input[type="month"]').forEach(function (i) { if (!i.dataset.native) sdPickers.month(i); });
+  var COLOURS = { cat: <?= json_encode(category_colours()) ?>, com: <?= json_encode((function () { $o = []; foreach (array_keys(committees_all()) as $k) { $o[(string) $k] = committee_colour((string) $k); } return $o; })()) ?> };
+  function dotsFor(s) {
+    var vals = Array.prototype.map.call(s.options, function (o) { return o.value; }).filter(Boolean); if (!vals.length) return null;
+    var best = null, top = 0;
+    Object.keys(COLOURS).forEach(function (k) { var n = vals.filter(function (v) { return COLOURS[k][v]; }).length; if (n > top) { top = n; best = COLOURS[k]; } });
+    return best && top * 2 >= vals.length ? function (v) { return best[v] || null; } : null;
+  }
+  // run for the page now, and by the press flow (press.js) for any piece of the page that is swapped in later
+  window.ssPickersInit = function (root) {
+    root.querySelectorAll('select').forEach(function (s) {
+      if (s.dataset.native || s.dataset.sdp || s.multiple || s.size > 1 || s.closest('.dv-sw')) return;   // the DEV pill keeps its own plain select
+      var pill = !!s.closest('.p-pill-select, .p-band, .ss-ps');
+      sdPickers.select(s, { dot: dotsFor(s), field: !pill });
+    });
+    root.querySelectorAll('.p-pill-select input[type="month"], .p-band input[type="month"]').forEach(function (i) { if (!i.dataset.native) sdPickers.month(i); });
+    root.querySelectorAll('input[type="color"]').forEach(function (i) { if (!i.dataset.native) sdPickers.colour(i); });
+  };
+  window.ssPickersInit(document);
 })();
 </script>
 <?= prefs_script() ?>
@@ -676,40 +925,9 @@ window.SS_PRESENCE = <?= json_encode([
 })();
 </script>
 <?php endif; ?>
-<script>
-// One submit per form. A double-click on Accept or Dispatch (or holding
-// the A shortcut on case.php) sent two POSTs: the first did the work and
-// the second came back with the database's "already reviewed"-style
-// error, so the admin landed on a red flash for an action that actually
-// succeeded. Buttons are disabled on the next tick, not inside this
-// handler, because a disabled submitter is dropped from the form data
-// and the server would never see which action was clicked.
-(function () {
-  document.addEventListener('submit', function (ev) {
-    var form = ev.target;
-    if (ev.defaultPrevented || String(form.method).toLowerCase() !== 'post') return;
-    if (form.dataset.submitting) { ev.preventDefault(); return; }
-    form.dataset.submitting = '1';
-    setTimeout(function () {
-      form.querySelectorAll('button[type="submit"], button:not([type])').forEach(function (b) {
-        if (!b.disabled) { b.disabled = true; b.dataset.guarded = '1'; }
-      });
-    }, 0);
-  });
-  // Coming back with the browser's Back button can restore the page
-  // exactly as it was left, disabled buttons included.
-  window.addEventListener('pageshow', function (ev) {
-    if (!ev.persisted) return;
-    document.querySelectorAll('form[data-submitting]').forEach(function (form) {
-      delete form.dataset.submitting;
-      form.querySelectorAll('button[data-guarded]').forEach(function (b) {
-        b.disabled = false;
-        delete b.dataset.guarded;
-      });
-    });
-  });
-})();
-</script>
+<?php // One submit per form is kept by the press flow (assets/js/press.js, step 2, 7 Nov 2026). It replaced the older guard here, which
+      // marked a form as sent before later scripts ran: when one of them stopped the send (a cancelled confirm, the bot check fetching
+      // its token) the form stayed marked and its buttons disabled, and the bot check's own resend was refused. ?>
 <?= turnstile_tags() ?>
 </body>
 </html>
@@ -845,19 +1063,24 @@ function status_class(string $s): string
  * The complaint categories (0146: a table a super admin edits in Settings > Complaint types), read once per request:
  * key => [en, fil, colour, icon, active]. The list below is only the fallback when the table cannot be read.
  */
+/** The complaint types' read, for the request's boot batch (boot.php) and for categories_all() alike. */
+function categories_read_entry(): array
+{
+    return ['complaint_categories', ['select' => 'key,label_en,label_fil,colour,icon,active,sort', 'order' => 'sort.asc,key.asc'], true];
+}
+
 function categories_all(): array
 {
     static $memo = null;
     if ($memo !== null) return $memo;
     $memo = [];
-    try {
-        if (access_token() !== null) {
-            foreach ((array) db()->select('complaint_categories', ['select' => 'key,label_en,label_fil,colour,icon,active,sort', 'order' => 'sort.asc,key.asc']) as $c) {
-                $memo[(string) $c['key']] = ['en' => (string) $c['label_en'], 'fil' => (string) $c['label_fil'], 'colour' => (string) $c['colour'],
-                                             'icon' => (string) $c['icon'], 'active' => !empty($c['active'])];
-            }
-        }
-    } catch (Throwable) {}
+    // from the shared cache most of the time (shared_cache.php); Settings drops the copy when a type is saved
+    $rows = access_token() === null ? [] : shared_cache('complaint_categories',
+        static fn (): array => (array) db()->select('complaint_categories', categories_read_entry()[1]), true);
+    foreach ($rows as $c) {
+        $memo[(string) $c['key']] = ['en' => (string) $c['label_en'], 'fil' => (string) $c['label_fil'], 'colour' => (string) $c['colour'],
+                                     'icon' => (string) $c['icon'], 'active' => !empty($c['active'])];
+    }
     if (!$memo) {
         foreach ([
             'street_obstruction'           => ['Street Obstruction', 'Sagabal sa Kalsada', '#F93535'],
@@ -1149,16 +1372,28 @@ function admin_colour(string $id): string
  * Every administrator's rung (staff, kagawad, chair), id => rung, for the ring round a face. One small read,
  * kept in the session for five minutes so it costs nothing on most pages; a failure only means no rings.
  */
+/** The avatar rings' read and whether it is due (every five minutes), for the request's boot batch (boot.php) and admin_ranks(). */
+function ranks_read_entry(): array
+{
+    return ['users', ['select' => 'id,official_role', 'role' => 'eq.admin'], true];
+}
+
+function ranks_cold(): bool
+{
+    session_start_once();
+    $c = $_SESSION['ss_ranks'] ?? null;
+    return !(is_array($c) && time() - (int) ($c['t'] ?? 0) < 300);
+}
+
 function admin_ranks(): array
 {
     static $map = null;
     if ($map !== null) { return $map; }
     session_start_once();
-    $c = $_SESSION['ss_ranks'] ?? null;
-    if (is_array($c) && time() - (int) ($c['t'] ?? 0) < 300) { return $map = (array) $c['m']; }
+    if (!ranks_cold()) { return $map = (array) $_SESSION['ss_ranks']['m']; }
     $map = [];
     try {
-        foreach (db()->select('users', ['select' => 'id,official_role', 'role' => 'eq.admin']) as $u) { $map[(string) $u['id']] = rank_of($u['official_role'] ?? null); }
+        foreach (db()->select('users', ranks_read_entry()[1]) as $u) { $map[(string) $u['id']] = rank_of($u['official_role'] ?? null); }
         $_SESSION['ss_ranks'] = ['t' => time(), 'm' => $map];
     } catch (Throwable $e) { /* no rings this time */ }
     return $map;

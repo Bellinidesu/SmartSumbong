@@ -159,7 +159,7 @@
   if (live && window.supabase) (function () {
     var cfg = {}; try { cfg = JSON.parse(live.dataset.cfg || '{}'); } catch (e) {}
     var T = cfg.t || {};
-    var sb = window.supabase.createClient(cfg.url, cfg.key, { accessToken: window.ssAccessToken(cfg.token) });
+    var sb = window.ssSupabase(cfg.url, cfg.key, cfg.token);
     var go = q('#ed-live-go'), box = q('.ed-live-box', live), codeEl = q('#ed-live-code'), cnt = q('#ed-live-count'), st = q('#ed-live-state'), end = q('#ed-live-end'), err = q('#ed-live-err');
     var sess = null, ch = null, ready = false, tick = null, poll = null, beat = null, deb = null;
     var val = function (f, n) { var e = f && q('[name="' + n + '"]', f); return e ? e.value : ''; };

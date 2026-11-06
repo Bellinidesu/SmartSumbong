@@ -131,9 +131,9 @@
           (S.picking === m.mode
             ? '<form class="cc-form" data-start="' + esc(m.mode) + '"><label for="cc-why">' + esc(tr('Why turn it on?', 'Bakit ito io-on?')) + '</label>' +
               '<textarea id="cc-why" name="reason" required minlength="3" maxlength="300" rows="2" placeholder="' + esc(tr('For example: heavy rain, water rising on three streets', 'Halimbawa: malakas ang ulan, tumataas ang tubig sa tatlong kalye')) + '"></textarea>' +
-              '<div class="cc-row"><button class="p-btn p-btn-sm" type="submit">' + esc(tr('Turn on', 'I-on')) + ' ' + esc(nm(m)) + '</button><button type="button" class="p-btn p-btn-ghost p-btn-sm" data-cancel="1">' + esc(tr('Cancel', 'Kanselahin')) + '</button></div></form>'
+              '<div class="cc-row"><button class="p-btn p-btn-primary p-btn-sm" type="submit">' + esc(tr('Turn on', 'I-on')) + ' ' + esc(nm(m)) + '</button><button type="button" class="p-btn p-btn-ghost p-btn-sm" data-cancel="1">' + esc(tr('Cancel', 'Kanselahin')) + '</button></div></form>'
             : '<div class="cc-row"><button type="button" class="p-btn p-btn-ghost p-btn-sm" data-look="' + esc(m.mode) + '">' + esc(tr('Look first', 'Tingnan muna')) + '</button>' +
-              '<button type="button" class="p-btn p-btn-sm" data-pick="' + esc(m.mode) + '">' + esc(tr('Turn on…', 'I-on…')) + '</button></div>') +
+              '<button type="button" class="p-btn p-btn-primary p-btn-sm" data-pick="' + esc(m.mode) + '">' + esc(tr('Turn on…', 'I-on…')) + '</button></div>') +
           '</div></li>';
       }).join('') + '</ul>';
   }
@@ -211,7 +211,7 @@
     else h += cellList(b);
     h += '<p class="cc-foot">' + esc(tr('What residents reported, where and when. SMART does not predict where water, fire or damage will go.', 'Ang iniulat ng mga residente, saan at kailan. Hindi hinuhulaan ng SMART kung saan pupunta ang tubig, apoy o pinsala.')) + '</p>';
     if (!b.live && !(b.active)) {
-      h += '<div class="cc-cta"><button type="button" class="p-btn p-btn-sm" data-pick="' + esc(b.mode) + '" data-back="1">' + esc(tr('Turn on', 'I-on ang')) + ' ' + esc(nm(b)) + '</button></div>';
+      h += '<div class="cc-cta"><button type="button" class="p-btn p-btn-primary p-btn-sm" data-pick="' + esc(b.mode) + '" data-back="1">' + esc(tr('Turn on', 'I-on ang')) + ' ' + esc(nm(b)) + '</button></div>';
     }
     return h;
   }
@@ -244,7 +244,7 @@
     return (h ? '<div class="cc-last"><p class="p-eyebrow">' + esc(tr('Last handover', 'Huling handover')) + '</p><p>' + esc(h.note) + '</p><small>' + esc(day(h.at)) + (h.by ? ' · ' + esc(h.by) : '') + '</small></div>' : '') +
       '<form class="cc-form" data-hand="1"><label for="cc-hand">' + esc(tr('Hand over to the next shift', 'I-handover sa susunod na shift')) + '</label>' +
       '<textarea id="cc-hand" name="note" required minlength="5" maxlength="1000" rows="3" placeholder="' + esc(tr('What the next shift needs to know: what is done, what is waiting, who is where', 'Ang dapat malaman ng susunod na shift: ano ang tapos, ano ang naghihintay, sino ang nasaan')) + '"></textarea>' +
-      '<div class="cc-row"><button class="p-btn p-btn-sm" type="submit">' + esc(tr('Save handover', 'I-save ang handover')) + '</button></div>' +
+      '<div class="cc-row"><button class="p-btn p-btn-primary p-btn-sm" type="submit">' + esc(tr('Save handover', 'I-save ang handover')) + '</button></div>' +
       '<p class="cc-note">' + esc(tr('The counts and the checklist are kept with the note, and the other administrators are told.', 'Kasama ng note ang mga bilang at ang checklist, at nasasabihan ang ibang administrator.')) + '</p></form>' +
       '<form class="cc-form cc-end" data-end="1"><label for="cc-endn">' + esc(tr('Turn the mode off', 'I-off ang mode')) + '</label>' +
       '<textarea id="cc-endn" name="note" required minlength="5" maxlength="1000" rows="2" placeholder="' + esc(tr('A closing note for the record', 'Pangwakas na note para sa tala')) + '"></textarea>' +

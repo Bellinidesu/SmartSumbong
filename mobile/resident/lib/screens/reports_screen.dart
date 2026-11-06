@@ -907,7 +907,7 @@ class _QueuedCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(50),
               ),
               textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
               ),
@@ -934,7 +934,7 @@ class _QueuedCard extends StatelessWidget {
               Text(
                 s.outboxWaitingTitle,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
                   color: accent,
@@ -946,7 +946,7 @@ class _QueuedCard extends StatelessWidget {
           Text(
             item.subject,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 16,
               height: 1.2,
@@ -957,7 +957,7 @@ class _QueuedCard extends StatelessWidget {
           Text(
             refused ? s.outboxRefused(item.error!) : s.outboxWaitingBody,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
               fontSize: 12,
               height: 1.3,
@@ -1044,7 +1044,7 @@ class _FilterChips extends StatelessWidget {
                     ),
                     child: Text(
                       n == null ? s.reportFilterLabel(f.name) : '${s.reportFilterLabel(f.name)} · $n',
-                      style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 12.5, color: on ? Colors.white : d.ink2),
+                      style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 12.5, color: on ? Colors.white : d.ink2),
                     ),
                   ),
                 ),
@@ -1455,7 +1455,7 @@ class _CardMenu extends StatelessWidget {
                 Text(
                   rows[i].label,
                   style: TextStyle(
-                    fontFamily: 'Urbanist',
+                    fontFamily: 'Inter',
                     fontWeight: rows[i].bold ? FontWeight.w700 : FontWeight.w500,
                     fontSize: 12,
                     color: _ink,
@@ -1562,7 +1562,7 @@ class _ActionDialog extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter Tight',
                 fontWeight: FontWeight.w700,
                 fontSize: 24,
                 height: 21 / 24,
@@ -1575,7 +1575,7 @@ class _ActionDialog extends StatelessWidget {
                 body!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   fontSize: 16,
                   height: 15 / 16,
@@ -1624,7 +1624,7 @@ class _DialogPill extends StatelessWidget {
     );
     const size = Size(106, 40);
     const text = TextStyle(
-      fontFamily: 'Urbanist',
+      fontFamily: 'Inter',
       fontWeight: FontWeight.w700,
       fontSize: 16,
     );
@@ -1895,7 +1895,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
     final inset = MediaQuery.of(context).viewInsets.bottom;
     final navy = context.colors.navy;
     final label = TextStyle(
-      fontFamily: 'Urbanist',
+      fontFamily: 'Inter',
       fontWeight: FontWeight.w700,
       fontSize: 14,
       height: 21.84 / 14,
@@ -1955,7 +1955,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                     s.reportsReopenHeader(r.trackingId,
                         s.reportStatusLabel(r.status.wire), r.subject),
                     style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter Tight',
                       fontWeight: FontWeight.w800,
                       fontSize: 28,
                       height: 30 / 28,
@@ -1980,7 +1980,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                         ],
                       ]),
                       style: TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w500,
                         fontSize: 12,
                         height: 15 / 12,
@@ -1998,7 +1998,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
               boldLead(s.reportsReopenNote),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
                 fontSize: 12,
                 height: 15 / 12,
@@ -2051,7 +2051,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
               decoration: InputDecoration(
                 hintText: s.reportsConcernHint,
                 hintStyle: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w400,
                   fontSize: 12,
                   fontStyle: FontStyle.normal,
@@ -2071,7 +2071,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                   borderSide: BorderSide(color: navy, width: 2),
                 ),
                 counterStyle: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w300,
                   fontSize: 10,
                   color: navy,
@@ -2107,7 +2107,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                   child: Text(
                     s.reportsAckReopen,
                     style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w400,
                       fontSize: 12,
                       height: 18.72 / 12,
@@ -2181,7 +2181,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50)),
                       textStyle: const TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),
@@ -2300,7 +2300,7 @@ class _ReopenPhotoTile extends StatelessWidget {
                   children: [
                     Text(context.s.reportsAttachMedia,
                         style: TextStyle(
-                          fontFamily: 'Urbanist',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                           height: 14 / 12,
@@ -2308,7 +2308,7 @@ class _ReopenPhotoTile extends StatelessWidget {
                         )),
                     Text(context.s.reportsMaxPhotoSize,
                         style: TextStyle(
-                          fontFamily: 'Urbanist',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w400,
                           fontSize: 10,
                           height: 1,
@@ -2552,7 +2552,7 @@ class _AppealSheetState extends State<_AppealSheet> {
     final inset = MediaQuery.of(context).viewInsets.bottom;
     final navy = context.colors.navy;
     final label = TextStyle(
-      fontFamily: 'Urbanist',
+      fontFamily: 'Inter',
       fontWeight: FontWeight.w700,
       fontSize: 14,
       height: 21.84 / 14,
@@ -2612,7 +2612,7 @@ class _AppealSheetState extends State<_AppealSheet> {
                     s.reportsAppealHeader(r.trackingId,
                         s.reportStatusLabel(r.status.wire), r.subject),
                     style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter Tight',
                       fontWeight: FontWeight.w800,
                       fontSize: 28,
                       height: 30 / 28,
@@ -2637,7 +2637,7 @@ class _AppealSheetState extends State<_AppealSheet> {
                         ],
                       ]),
                       style: TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w500,
                         fontSize: 12,
                         height: 15 / 12,
@@ -2655,7 +2655,7 @@ class _AppealSheetState extends State<_AppealSheet> {
               boldLead(s.reportsAppealNote),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
                 fontSize: 12,
                 height: 15 / 12,
@@ -2708,7 +2708,7 @@ class _AppealSheetState extends State<_AppealSheet> {
               decoration: InputDecoration(
                 hintText: s.reportsConcernHint,
                 hintStyle: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w400,
                   fontSize: 12,
                   fontStyle: FontStyle.normal,
@@ -2728,7 +2728,7 @@ class _AppealSheetState extends State<_AppealSheet> {
                   borderSide: BorderSide(color: navy, width: 2),
                 ),
                 counterStyle: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w300,
                   fontSize: 10,
                   color: navy,
@@ -2764,7 +2764,7 @@ class _AppealSheetState extends State<_AppealSheet> {
                   child: Text(
                     s.reportsAckAppeal,
                     style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w400,
                       fontSize: 12,
                       height: 18.72 / 12,
@@ -2838,7 +2838,7 @@ class _AppealSheetState extends State<_AppealSheet> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50)),
                       textStyle: const TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),
@@ -2942,7 +2942,7 @@ class _RequestSentPage extends StatelessWidget {
                     : s.reportsReopenSentTitle(head),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter Tight',
                   fontWeight: FontWeight.w800,
                   fontSize: 30,
                   height: 1.0,
@@ -2954,7 +2954,7 @@ class _RequestSentPage extends StatelessWidget {
                 s.reportsRequestSentBody,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   fontSize: 16,
                   height: 20 / 16,

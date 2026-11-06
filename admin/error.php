@@ -23,7 +23,7 @@ $copy = [
   :root { --ink: #141B34; --muted: #6E7489; --bg: #F4F6FB; --card: #fff; --line: #E3E6EE; --blue: #00308F; --orange: #FF9800; }
   @media (prefers-color-scheme: dark) { :root { --ink: #F3F3F3; --muted: #A8A8A8; --bg: #14181D; --card: #1C2127; --line: #34383E; } }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); color: var(--ink); font: 15px/1.5 Urbanist, system-ui, sans-serif; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif; }
   main { width: 100%; max-width: 440px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 36px 32px; text-align: center; display: grid; gap: 14px; justify-items: center; }
   img { width: 72px; height: 72px; }
   .code { font: 800 13px Inter, system-ui, sans-serif; letter-spacing: .1em; color: var(--orange); }

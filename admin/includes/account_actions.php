@@ -185,6 +185,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $_SESSION['flash'] = ['text' => $flash, 'level' => $level];
     $toView = (string) ($_POST['to_view'] ?? '');
-    header('Location: ' . $self . (preg_match('/^[a-z]+$/', $toView) ? '?view=' . $toView : ($target !== '' && empty($_POST['to_list']) ? '?id=' . urlencode($target) : '')));
+    header('Location: ' . (preg_match('/^[a-z]+$/', $toView) ? $self . '?view=' . $toView : ($target !== '' && empty($_POST['to_list']) ? $self . '?id=' . urlencode($target) : view_after_post($self))));
     exit;
 }

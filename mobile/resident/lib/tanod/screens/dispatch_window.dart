@@ -120,7 +120,7 @@ mixin _Directions<T extends StatefulWidget> on State<T> {
     final s = context.ts;
     final navy = context.colors.navy;
     final small = TextStyle(
-      fontFamily: 'Urbanist',
+      fontFamily: 'Inter',
       fontSize: 12.5,
       color: navy,
     );
@@ -1096,7 +1096,7 @@ class _DispatchWindowState extends State<DispatchWindow>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(color: DColors.red, borderRadius: BorderRadius.circular(99)),
-            child: Text(context.ts.ticketOverdue, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 12, color: Colors.white)),
+            child: Text(context.ts.ticketOverdue, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12, color: Colors.white)),
           ),
       ]),
       const SizedBox(height: 6),
@@ -1140,7 +1140,7 @@ class _DispatchWindowState extends State<DispatchWindow>
     final arrivedLink = TextButton(
       onPressed: _stepping ? null : () => _setStep('arrived'),
       child: Text(context.tr('Already there? Mark I’ve arrived', 'Nandito ka na? Markahan ang Nandito na ako'),
-          style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
+          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
     );
     if (i == 0 && !kResolveBeforeArrival) {
       main = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -1173,7 +1173,7 @@ class _DispatchWindowState extends State<DispatchWindow>
         TextButton(
           onPressed: _stepping ? null : () => _setStep('arrived'),
           child: Text(context.tr('Already there? Mark I’ve arrived', 'Nandito ka na? Markahan ang Nandito na ako'),
-              style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
+              style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
         ),
       ]);
     } else {
@@ -1193,7 +1193,7 @@ class _DispatchWindowState extends State<DispatchWindow>
           child: TextButton.icon(
             onPressed: _requestEscalation,
             icon: const Icon(Icons.north_east_rounded, size: 17),
-            label: Text(s.escButton, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 14)),
+            label: Text(s.escButton, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 14)),
             style: TextButton.styleFrom(foregroundColor: d.dark ? const Color(0xFFFF8A8A) : DColors.red),
           ),
         ),
@@ -1255,7 +1255,7 @@ class _DispatchWindowState extends State<DispatchWindow>
                     child: Text(
                       s.windowCase,
                       style: TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w800,
                         fontSize: 15,
                         color: c.navy,
@@ -1405,7 +1405,7 @@ class _DispatchWindowState extends State<DispatchWindow>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
-                style: TextStyle(fontFamily: 'Urbanist', fontSize: 14, color: c.navy)),
+                style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: c.navy)),
             const SizedBox(height: 3),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -1417,7 +1417,7 @@ class _DispatchWindowState extends State<DispatchWindow>
                   child: Text(
                     w.error == null ? s.outboxWaiting : s.outboxRefused(w.error!),
                     style: TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontSize: 11.5,
                         color: w.error == null ? c.muted : _red),
                   ),
@@ -1446,7 +1446,7 @@ class _DispatchWindowState extends State<DispatchWindow>
             s.windowEmpty,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontSize: 13,
               color: c.muted,
             ),
@@ -1531,7 +1531,7 @@ class _DispatchWindowState extends State<DispatchWindow>
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(who,
               style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w800,
                   fontSize: 11.5,
                   color: mine ? Colors.white.withValues(alpha: .8) : const Color(0xFFE07400))),
@@ -1804,7 +1804,7 @@ class _DispatchWindowState extends State<DispatchWindow>
             : context.ts.windowClosed,
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontFamily: 'Urbanist',
+          fontFamily: 'Inter',
           fontWeight: FontWeight.w700,
           fontSize: 13,
           color: context.colors.navy,
@@ -2196,7 +2196,7 @@ class _MapPill extends StatelessWidget {
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 13.5, color: ink)),
+                  style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 13.5, color: ink)),
             ),
           ]),
         ),

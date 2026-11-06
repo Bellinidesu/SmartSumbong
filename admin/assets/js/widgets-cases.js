@@ -68,7 +68,7 @@
       var s = ok(WS.group('numbers')).streets;
       if (!s.length) return A.empty('check', T('No street has open cases', 'Walang kalyeng may bukás na kaso'));
       var mx = s[0].open;
-      return cases(s, function (x, i) { return '<a class="wx-item is-link" href="spatial.php" style="--c:' + WS.catColor(x.category) + '"><span class="wx-av">' + (i + 1) + '</span><span class="wx-it"><b>' + esc(x.place) + '</b><small>' + esc(WS.catName(x.category)) + '</small>' + A.bar(x.open / mx * 100, WS.catColor(x.category), 5) + '</span><span class="wx-r"><b style="font:800 16px Urbanist;color:var(--wx-ink)">' + x.open + '</b> ' + T('open', 'bukás') + '</span></a>'; });
+      return cases(s, function (x, i) { return '<a class="wx-item is-link" href="spatial.php" style="--c:' + WS.catColor(x.category) + '"><span class="wx-av">' + (i + 1) + '</span><span class="wx-it"><b>' + esc(x.place) + '</b><small>' + esc(WS.catName(x.category)) + '</small>' + A.bar(x.open / mx * 100, WS.catColor(x.category), 5) + '</span><span class="wx-r"><b style="font:800 16px Inter;color:var(--wx-ink)">' + x.open + '</b> ' + T('open', 'bukás') + '</span></a>'; });
     }
   };
 

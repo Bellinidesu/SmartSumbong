@@ -51,6 +51,64 @@ test('login.php, signed out', async ({ browser }) => {
   expect(await axe(page), 'serious or critical accessibility problems').toEqual([]);
 });
 
+test('speed (7 Nov 2026): Server-Timing for administrators only, and a page reads in one batch', async ({ request, browser }) => {
+  const st = (await request.get('cases.php')).headers()['server-timing'] || '';
+  expect(st).toMatch(/^app;dur=[\d.]+, db;dur=[\d.]+;desc="\d+ waits, \d+ calls", conn;dur=[\d.]+;desc="\d+ new connections \(longest handshake\)"$/);
+  const out = await (await browser.newContext()).request.get('login.php');
+  expect(out.headers()['server-timing'], 'no timings on the sign-in page').toBeUndefined();
+  // the trace lists each wait: the parts drawn later read with the page's first batch
+  const batchWith = async (url, names) => {
+    const html = await (await request.get(url + (url.includes('?') ? '&' : '?') + '_trace=1')).text();
+    const lines = (html.match(/<!-- trace:[\s\S]*?-->/) || [''])[0].split('\n').filter(l => / batch of \d+:/.test(l));
+    return lines.some(l => names.every(n => l.includes(n)));
+  };
+  expect(await batchWith('notifications.php', ['notifications', 'rpc/smart_module', 'rpc/smart_summary', 'reroute_questions']), 'Notifications: the list, the brain, the strip and the pins together').toBe(true);
+  expect(await batchWith('cases.php', ['rpc/smart_module', 'reports', 'escalation_requests']), 'Case Reports: one batch').toBe(true);
+  expect(await batchWith('summary.php', ['dispatches', 'attendance', 'rpc/smart_module']), 'Report Summary: one batch').toBe(true);
+  expect(await batchWith('dashboard.php', ['rpc/dashboard_metrics', 'rpc/smart_summary', 'status_logs']), 'Dashboard: one batch').toBe(true);
+  expect(await batchWith('settings.php', ['places', 'rpc/portal_uptime_summary', 'users']), 'Settings: every tab in one batch').toBe(true);
+  // the boot batch (7 Nov 2026): this test server keeps no caches, so every small cache is cold on every request; even so a page
+  // waits at most twice (the boot batch, then its own), Notifications three times (its pins have a second step)
+  for (const [url, most] of [['cases.php', 2], ['case.php?id=c0000000-0000-0000-0000-000000000003', 2], ['summary.php', 2], ['dashboard.php', 2],
+                             ['residents.php', 2], ['settings.php', 2], ['inbox.php', 2], ['activity.php', 2], ['notifications.php', 3]]) {
+    const h = (await request.get(url)).headers()['server-timing'] || '';
+    const waits = +((h.match(/"(\d+) waits/) || [])[1] ?? 99);
+    expect(waits, `${url} waited ${waits} times on the database`).toBeLessThanOrEqual(most);
+  }
+});
+
+test('speed, step 4 (7 Nov 2026): a page link held under the pointer is prefetched and used; an Inbox message link never is', async ({ page }) => {
+  const pre = [];
+  page.on('request', r => { const h = r.headers(); if ((h['sec-purpose'] || '').includes('prefetch')) pre.push(r.url().split('/').pop()); });
+  await page.goto('dashboard.php'); await page.waitForLoadState('networkidle');
+  const link = page.locator('a[href="cases.php"]').first();
+  await link.hover();
+  await expect.poll(() => pre.includes('cases.php'), { timeout: 5000 }).toBe(true);
+  await link.click(); await page.waitForURL(/cases\.php/);
+  expect(await page.evaluate(() => performance.getEntriesByType('navigation')[0].deliveryType), 'served from the prefetch').toBe('navigational-prefetch');
+  // opening an Inbox message marks it read, so hovering one must not fetch it
+  await page.goto('inbox.php'); await page.waitForLoadState('networkidle'); pre.length = 0;
+  const m = page.locator('a[href^="inbox.php?m="]').first();
+  await expect(m).toHaveCount(1);
+  await m.hover(); await page.waitForTimeout(1200);
+  expect(pre, 'an Inbox message was prefetched').toEqual([]);
+});
+
+test('one live connection per tab (7 Nov 2026): presence and each page live update share one client (one websocket)', async ({ page }) => {
+  // count the clients a page makes: supabase.js puts its library on window.supabase, and every createClient opens its own socket
+  await page.addInitScript(() => {
+    let lib;
+    Object.defineProperty(window, 'supabase', { configurable: true, get: () => lib, set: v => {
+      lib = v; const make = v.createClient; window.__clients = 0;
+      v.createClient = function () { window.__clients++; return make.apply(this, arguments); };
+    } });
+  });
+  for (const url of ['notifications.php', 'cases.php', 'activity.php', 'summary.php']) {
+    await page.goto(url); await page.waitForLoadState('networkidle'); await page.waitForTimeout(800);
+    expect(await page.evaluate(() => window.__clients || 0), `${url}: supabase clients made`).toBe(1);
+  }
+});
+
 test('Report Summary downloads as a spreadsheet', async ({ request }) => {
   const r = await request.get('summary.php?from=2026-01-01&to=2026-12-31&export=xlsx');
   expect(r.status()).toBe(200);
@@ -188,7 +246,7 @@ test('SMART Iteration 4: the command center (suggest, look, turn on, hand over, 
   await expect(page.locator('#cc-side .cc-modes li')).toHaveCount(4);
   // look first: Fire Surroundings names what is within 50 m
   await page.locator('#cc-side [data-look="fire"]').click();
-  await expect(page.locator('#cc-side .cc-rings')).toContainText('Within 50 m');
+  await expect(page.locator('#cc-side .cc-rings'), 'the places around are read from the map data, which takes a moment on a slow machine').toContainText('Within 50 m', { timeout: 15000 });
   await expect(page.locator('#cc-side .cc-rings')).toContainText('Gasolinahan sa Kanto');
   await expect(page.locator('#cc-side .cc-foot')).toContainText('does not predict');
   expect(await axe(page), 'Command center, looking at Fire Surroundings').toEqual([]);
@@ -382,13 +440,14 @@ test('Committees tab: a card each, a live banner, chips for the kinds of complai
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
 });
 
-test('Administrators and Escalation, peak: position banners filter the table, one seamless block, kinds of complaint wear their colour', async ({ page }) => {
+test('Roles and Escalation, peak: the position chooser filters the table, the band, chooser and table are three objects, kinds of complaint wear their colour', async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1000 });
   const r = await open(page, 'administrative-services.php');
   await page.locator('.st-tabs [data-st="admins"]').click();
   await expect(page.locator('.ad-roles .cm-chip')).toHaveCount(5);   // All, Chairman, Councilor, Secretary, Staff
   const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(); return { a: Math.round(R('.page-administrative-services .ss-pband').bottom), b: Math.round(R('.ad-roles').top), c: Math.round(R('.ad-roles').bottom), d: Math.round(R('#ss-people').top), th: getComputedStyle(document.querySelector('#ss-people thead th')).backgroundColor }; });
-  expect(Math.abs(g.a - g.b) + Math.abs(g.c - g.d), 'the band, the banners and the table touch').toBeLessThanOrEqual(2);
+  expect(Math.min(g.b - g.a, g.d - g.c), 'the band, the chooser and the table are three objects with a gap between them').toBeGreaterThanOrEqual(10);
+  expect(await page.locator('.ad-roles .cm-ind').evaluate(e => e.offsetWidth > 0), 'the chooser pill is drawn, even though its tab was hidden at load').toBe(true);
   expect(g.th, 'blue under the orange band').toBe('rgb(0, 48, 143)');
   const all = await page.locator('#jp-rows tr.ss-arow:visible').count();
   await page.locator('.ad-roles .cm-chip[data-role="kagawad"]').click();
@@ -510,15 +569,51 @@ test('Development team: the DEV switcher makes test accounts, switches into a ru
   await expect(sw.locator('.dv-l')).toHaveCount(4);   // Super admin, Captain, Kagawad, Staff
   await expect(sw.locator('.dv-l').nth(2)).toContainText('Kagawad');
   await expect(sw.locator('.dv-l').nth(2)).toContainText('Peace and Order');
-  await sw.locator('.dv-setup button').click();
+  await sw.locator('.dv-setup button[type=submit]').click();
   await expect(page.locator('.dv-msg')).toContainText('test accounts are ready');
-  await page.locator('.dv-sw summary').click();
+  await expect(page.locator('.dv-sw[open]'), 'the panel is open to show what the last action said').toHaveCount(1);
   await page.locator('.dv-sw .dv-l').nth(2).click();
   await expect(page.locator('.dv-band'), 'a band says whose eyes these are').toContainText('Seeing the portal as Councilor (Kagawad)');
   await expect(page.locator('.dv-sw .dv-l.p-on')).toContainText('Kagawad');
   await page.locator('.dv-band button').click();
   await expect(page.locator('.dv-band')).toHaveCount(0);
   expect(await axe(page), 'the switcher').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Case Reports: a case with more than one concern says so, and is found by any of them', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'cases.php');
+  const row = page.locator('tr', { hasText: 'SS-2610-1001' });
+  await expect(row.locator('.cr-more'), 'two more concerns beside the main category').toHaveText('+2');
+  await expect(row.locator('.cr-more')).toHaveAttribute('title', /Barangay Service \(Open\)/);
+  await expect(row.locator('.cr-more')).toHaveAttribute('title', /Public Safety and Infrastructure \(Resolved\)/);
+  expect(await page.locator('tr:has(.cr-more)').first().evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the pill does not make its row taller').toBeLessThanOrEqual(await page.locator('tbody tr').nth(1).evaluate(e => Math.round(e.getBoundingClientRect().height)) + 2);
+  // a concern's category finds the case, though it is not the main one
+  await open(page, 'cases.php?category=barangay_service');
+  await expect(page.locator('tr', { hasText: 'SS-2610-1001' }), 'found by its second concern').toHaveCount(1);
+  await open(page, 'cases.php?category=peace_order_nuisance');
+  await expect(page.locator('tr', { hasText: 'SS-2610-1001' }), 'and by its main category').toHaveCount(1);
+  await open(page, 'cases.php?category=animal_welfare');
+  await expect(page.locator('tr', { hasText: 'SS-2610-1001' }), 'not by a category it does not have').toHaveCount(0);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Case page: each concern shows its category and option, and what it was filed as when that changed since', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, `case.php?id=${CASE}`);
+  const list = page.locator('.ss-concern-list');
+  await expect(list.locator('li', { hasText: 'Dangling Electric Wires' }), 'the option is named beside its category').toHaveCount(1);
+  await expect(list.locator('li', { hasText: 'Dangling Electric Wires' }).locator('.cn-was'), 'renamed since: what it was filed as').toContainText('Filed as "Public Safety and Infrastructure: Live wire on the ground" (renamed since)');
+  await expect(list.locator('li', { hasText: 'Neglected Pets' }).locator('.cn-was'), 'switched off since').toContainText('no longer offered');
+  await expect(list.locator('li', { hasText: 'Barangay Service' }).locator('.cn-was'), 'nothing changed: no line').toHaveCount(0);
+  // adding one: a category and, when it has them, one of its options; what the case already has is not offered again
+  const add = page.locator('#ac-cat');
+  if (await add.count()) {
+    expect(await add.locator('option[value="public_safety_infrastructure|4"]').count(), 'an option the case already has').toBe(0);
+    expect(await add.locator('option[value="public_safety_infrastructure|5"]').count(), 'another option of the same category').toBe(1);
+    expect(await add.locator('option[value="animal_welfare|6"]').count(), 'a switched-off option').toBe(0);
+  }
   expect(r.errors, 'console errors').toEqual([]);
 });
 
@@ -549,9 +644,10 @@ test('Roles and pages 2: staff are moderators of a committee; the Administrators
   const m = await open(page, 'cases.php');
   await expect(page.locator('#side-user')).toContainText('Staff · Peace and Order');
   await expect(page.locator('.p-side-com')).toContainText('Peace and Order');
-  for (const href of ['dashboard.php', 'administrative-services.php', 'control-room.php', 'settings.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  for (const href of ['dashboard.php', 'administrative-services.php', 'control-room.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="settings.php"]')).toHaveCount(1);   // their own Settings (4 Nov 2026)
   await page.goto('control-room.php');
-  await expect(page).toHaveURL(/notifications\.php/);
+  await expect(page).toHaveURL(/home\.php/);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
@@ -617,7 +713,7 @@ test('Roles and pages 4: tanods in committees, the punch cards, and a Kagawad\'s
   await expect(page.locator('.pc-card').first()).toContainText('Not in today');
   expect(await axe(page), 'Personnel, Committee staff').toEqual([]);
   const d = await open(page, 'personnel.php?id=u2');
-  await expect(page.locator('#tc-card .tc-add button')).toContainText('Add to the committee');
+  await expect(page.locator('#tc-card .tc-add button[type=submit]')).toContainText('Add to the committee');
   expect(await page.locator('.p-controls form').count()).toBeGreaterThan(0);   // a super admin's account controls are there
 
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
@@ -652,7 +748,7 @@ test('Personnel roster: equal rows, duty tiles filter, bulk add to a committee, 
   await page.locator('tr[data-id="u7"] .ss-cb').check(); await page.locator('tr[data-id="u10"] .ss-cb').check();
   await expect(page.locator('#ss-bulk')).toBeVisible();
   await page.locator('#ss-bulk-com').selectOption('peace_order');
-  await Promise.all([page.waitForURL(/personnel\.php/), page.locator('#ss-bulk-tc button').click()]);
+  await Promise.all([page.waitForURL(/personnel\.php/), page.locator('#ss-bulk-tc button[type=submit]').click()]);
   await expect(page.locator('.p-flash--ok')).toContainText('2 added to Peace and Order');
   // the list's 20-second refresh redraws the rows the way the server drew them
   await page.waitForTimeout(21500);
@@ -719,12 +815,16 @@ test('Case Reports and the Dashboard: equal rows, Review is the main button, wha
   expect(cut, 'the Forward button is inside the table').toBe(false);
   const d = await open(page, 'dashboard.php');
   await page.waitForTimeout(1500);   // the tiles ease in
-  const strip = await page.locator('.dh-kpi .ss-tile').evaluateAll(ts => ts.map(t => { const b = t.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.height)]; }));
-  const hero = await page.locator('.dh-hero').evaluate(h => Math.round(h.getBoundingClientRect().top));
-  expect(strip.length, 'four tiles').toBe(4);
-  expect(new Set(strip.map(t => t[0])).size, 'tiles on one line').toBe(1);
-  expect(new Set(strip.map(t => t[1])).size, 'tiles one height').toBe(1);
-  expect(strip[0][0], 'the strip is above the charts').toBeLessThan(hero);
+  // Rose, 2 Nov 2026: the Dashboard's own layout again. The month's reports across the top, the three figures stacked beside
+  // the donuts; what waits on a super admin is in the engine's window.
+  const chart = await page.locator('.dh-recv').evaluate(h => Math.round(h.getBoundingClientRect().bottom));
+  const figs = await page.locator('.p-dash-mid .p-stack .p-tile-s').evaluateAll(ts => ts.map(t => { const b = t.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top)]; }));
+  expect(figs.length, 'three figures').toBe(3);
+  expect(new Set(figs.map(t => t[0])).size, 'stacked in one column').toBe(1);
+  expect(figs[0][1], 'below the chart').toBeGreaterThan(chart);
+  await page.locator('#ss-win-open').click();
+  await expect(page.locator('#ss-panel .dc-needs .ss-tile')).toHaveCount(4);
+  await expect(page.locator('#ss-panel .dc-coms')).toBeVisible();
   expect(r.errors.concat(d.errors), 'console errors').toEqual([]);
 });
 
@@ -807,8 +907,8 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
   const wrong = await page.locator('#rs-ledger tbody tr').evaluateAll(rs => rs.filter(r => /Resolved|Closed/.test(r.children[4].textContent) && /open \d/.test(r.children[r.children.length - 1].textContent)).length);
   expect(wrong, 'a resolved case never reads as open').toBe(0);
   const bands = await page.evaluate(() => { const c = id => getComputedStyle(document.querySelector(id)).backgroundImage + '|' + getComputedStyle(document.querySelector(id)).backgroundColor; return [c('#rs-ledger > .p-card-head'), getComputedStyle(document.querySelector('#rs-ledger thead th')).backgroundColor]; });
-  expect(bands[0], 'the title row is the orange band').toMatch(/255, 1[5-8]\d, \d+/);
-  expect(bands[1], 'the column header under it is the blue').toBe('rgb(0, 48, 143)');
+  expect(bands[0], 'the title row is no longer an orange band (6 Nov: the period band is the one orange is the period band)').not.toMatch(/255, 1[5-8]\d, \d+/);
+  expect(bands[1], 'the column header under it is no longer the blue').not.toBe('rgb(0, 48, 143)');
   await expect(page.locator('thead.p-orange'), 'one pair of colours on every tab').toHaveCount(0);
   await expect(page.locator('.p-period-band .p-btn-pdf2')).toBeVisible();
   expect(r.errors, 'console errors').toEqual([]);
@@ -821,36 +921,30 @@ test('Case Reports, peak: figures that link to their lists, the blue column head
   expect(new Set(tops).size, 'the four figures are one band').toBe(1);
   await expect(page.locator('.cr-fig > a').first()).toHaveAttribute('href', /view=attention/);
   expect(Number(await page.locator('.cr-fig > a').first().locator('b').textContent())).toBeGreaterThan(0);
-  expect(await page.locator('.ss-cases-t thead th').first().evaluate(e => getComputedStyle(e).backgroundColor), 'the column header is the Figma blue').toBe('rgb(0, 48, 143)');
+  expect(await page.locator('.ss-cases-t thead th').first().evaluate(e => getComputedStyle(e).backgroundColor), 'the column header is no longer the blue (6 Nov: white under the one orange header)').not.toBe('rgb(0, 48, 143)');
   expect(await page.locator('.ss-cases-t tr.cr-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
   await page.locator('.cr-fig > a').first().click();
   await expect(page).toHaveURL(/view=attention/);
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('The stacked layout: the strip is one object with the band and the table, no name is cut, the header join is square', async ({ page }) => {
+test('Case Reports: the header, the chooser and the list are three rounded objects on one grid, the chooser is a slim bar like the Report Summary tabs, no name is cut, the column head is white', async ({ page }) => {
   for (const w of [2048, 1440, 720]) {
     await page.setViewportSize({ width: w, height: 1000 });
     const r = await open(page, 'cases.php');
     const g = await page.evaluate(() => { const b = document.querySelector('.ss-cr-band').getBoundingClientRect(), c = document.querySelector('.cm-chips').getBoundingClientRect(), t = document.querySelector('.ss-cases-t').closest('.p-table-card').getBoundingClientRect(); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(Math.round) }; });
-    expect([g.x[0], g.x[1]], 'the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
-    expect([g.x[2], g.x[3]], 'and the table at ' + w).toEqual([g.x[4], g.x[5]]);
-    expect(Math.abs(g.y[0] - g.y[1]) <= 1 && Math.abs(g.y[2] - g.y[3]) <= 1, 'with no gap at ' + w + ': ' + g.y).toBe(true);
-    expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the strip is as slim as the tab strip of Report Summary at ' + w).toBeLessThanOrEqual(w === 720 ? 400 : 80);
-    const cut = await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
+    expect([g.x[0], g.x[1]], 'the header and the chooser share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+    expect([g.x[2], g.x[3]], 'and the list at ' + w).toEqual([g.x[4], g.x[5]]);
+    expect(g.y[1] - g.y[0], 'a gap between the header and the chooser at ' + w).toBeGreaterThanOrEqual(10);
+    expect(g.y[3] - g.y[2], 'and between the chooser and the list at ' + w).toBeGreaterThanOrEqual(10);
+    expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser is as slim as the tab bar of Report Summary at ' + w).toBeLessThanOrEqual(w === 720 ? 330 : w === 1440 ? 100 : 60);   // one line on a wide screen, two when the seven tabs no longer fit
+    const cut = await page.locator('.cm-chips .cm-chip').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
     expect(cut, 'no committee name is cut at ' + w).toBe(0);
-    expect(await page.locator('.ss-cases-t thead th:first-child').evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'square header corners at ' + w).toEqual(['0px', '0px']);
-    const joint = await page.evaluate(() => { const card = getComputedStyle(document.querySelector('.ss-cases-t').closest('.p-table-card')), band = getComputedStyle(document.querySelector('.ss-cr-band')); return { cardTop: [card.borderTopLeftRadius, card.borderTopRightRadius], bandBottom: [band.borderBottomLeftRadius, band.borderBottomRightRadius], glow: band.boxShadow.includes('240') && !/^rgba\(255, 255, 255, 0.4\) 0px 1px 0px 0px inset$/.test(band.boxShadow) }; });
-    expect(joint.cardTop, 'the table card (it clips the header) has square top corners at ' + w).toEqual(['0px', '0px']);
-    expect(joint.bandBottom, 'and so does the band at its bottom, at ' + w).toEqual(['0px', '0px']);
-    expect(joint.glow, 'the band casts no glow onto the strip at ' + w).toBe(false);
-    expect(await page.locator('.cm-chips .cm-bg').count(), 'every banner carries its large faint symbol at ' + w).toBeGreaterThanOrEqual(5);
-    const mismatch = await page.locator('.cm-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c.querySelector('.cm-n')).color !== getComputedStyle(c.querySelector('b')).color).length);
-    expect(mismatch, 'each button name and count share one colour at ' + w).toBe(0);
-    const flat = await page.locator('.cm-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c).backgroundImage === 'none').length);
-    expect(flat, 'every committee cell is a stylised gradient button at ' + w).toBe(0);
-    expect(await page.locator('.cm-chip.cm-sd .cm-ic svg, .cm-chip.cm-sd svg.cm-ic').count(), 'the committees wear Spatial Distribution icons at ' + w).toBeGreaterThanOrEqual(3);
-    expect(await page.locator('.cm-chip.cm-sd svg.cm-ic').evaluateAll(v => v.filter(x => !x.innerHTML.trim()).length), 'every icon is drawn from the SD family at ' + w).toBe(0);
+    const heads = await page.locator('.ss-cases-t thead th').first().evaluate(e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).textTransform]);
+    expect(heads[0], 'the column head is not the blue at ' + w).not.toBe('rgb(0, 48, 143)');
+    expect(await page.locator('.cm-ind').count(), 'the chosen tab is one sliding pill at ' + w).toBe(1);
+    expect(await page.locator('.cm-ind').evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'in the committee colours at ' + w).toBe(true);
+    expect(await page.locator('.cm-chips .cm-chip > b').count(), 'every tab carries its count at ' + w).toBeGreaterThanOrEqual(5);
     expect(r.errors, 'console errors').toEqual([]);
   }
   await page.setViewportSize({ width: 2048, height: 1000 });
@@ -860,19 +954,19 @@ test('The stacked layout: the strip is one object with the band and the table, n
   await expect(page.locator('.rs-layout, .cr-rail'), 'no rail anywhere').toHaveCount(0);
 });
 
-test('Notifications keeps its live layout and wears the committee banners, joined to its band', async ({ page }) => {
+test('Notifications keeps its live layout and wears the committee chooser, a slim bar under its header', async ({ page }) => {
   for (const w of [2048, 1440]) {
     await page.setViewportSize({ width: w, height: 1000 });
     const r = await open(page, 'notifications.php');
     const g = await page.evaluate(() => { const b = document.querySelector('.nf-main .p-band--calm').getBoundingClientRect(), c = document.querySelector('.nf-chips').getBoundingClientRect(), m = document.querySelector('.nf-main').getBoundingClientRect(), rail = document.querySelector('.nf-rail'); return { x: [b.left, b.right, c.left, c.right].map(Math.round), y: [b.bottom, c.top].map(Math.round), railBeside: !!rail && rail.getBoundingClientRect().left >= m.right - 1 }; });
     expect([g.x[0], g.x[1]], 'the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
-    expect(Math.abs(g.y[0] - g.y[1]) <= 1, 'with no gap at ' + w).toBe(true);
+    expect(g.y[1] - g.y[0], 'a gap between the header and the chooser at ' + w).toBeGreaterThanOrEqual(10);
     if (w === 2048) expect(g.railBeside, 'the live layout: the work and the engine reading beside the feed').toBe(true);
     await expect(page.locator('.nf-chips .cm-chip')).toHaveCount(1 + 4 + 1 + 1);   // All, each active committee, No committee, System
-    expect(await page.locator('.nf-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c).backgroundImage === 'none').length), 'every banner is a gradient at ' + w).toBe(0);
+    expect(await page.locator('.nf-chips .cm-ind').evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'the chosen tab is a gradient pill at ' + w).toBe(true);
     expect(await page.locator('.nf-chips .cm-bg').count(), 'each carries its faint symbol at ' + w).toBeGreaterThanOrEqual(6);
-    expect(await page.locator('.nf-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the strip is as slim as the tab strip of Report Summary at ' + w).toBeLessThanOrEqual(80);
-    expect(await page.locator('.nf-chips ~ .p-notif-card').first().evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'and the list is attached to it, square at the top, at ' + w).toEqual(['0px', '0px']);
+    expect(await page.locator('.nf-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser is as slim as the tab bar of Report Summary at ' + w).toBeLessThanOrEqual(100);   // one line when the seven tabs fit, two when the feed column leaves them less room
+    expect(await page.locator('.nf-chips ~ .p-notif-card').first().evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'and the list is its own rounded card at ' + w).toEqual(['16px', '16px']);
     expect(await page.locator('.nf-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length), 'no name is cut at ' + w).toBe(0);
     expect(r.errors, 'console errors').toEqual([]);
   }
@@ -895,7 +989,7 @@ test('Personnel duty tiles keep their colour fields, so their white lettering re
     const tiles = await page.locator('.p-attendance .p-kpi').evaluateAll(ts => ts.map(t => ({ bg: getComputedStyle(t).backgroundImage, fg: getComputedStyle(t.querySelector('.p-label')).color, v: getComputedStyle(t.querySelector('.p-value')).color, d: getComputedStyle(t.querySelector('.p-delta')).color, brk: t.classList.contains('p-att-break') })));
     expect(tiles.length).toBe(4);
     for (const x of tiles) {
-      expect(x.bg, 'a colour field, not a white card (' + scheme + ')').toMatch(/^linear-gradient\(145deg/);
+      expect(x.bg, 'a colour field, not a white card (' + scheme + ')').toMatch(/linear-gradient\(145deg/);
       expect(x.fg, 'the label is the same ink as the number (' + scheme + ')').toBe(x.v);
       expect(x.d, 'and the line under it (' + scheme + ')').toBe(x.v);
       expect(x.v, 'white, or dark on the yellow Break tile').toBe(x.brk ? 'rgb(59, 42, 0)' : 'rgb(255, 255, 255)');
@@ -903,25 +997,42 @@ test('Personnel duty tiles keep their colour fields, so their white lettering re
   }
 });
 
-test('Residents and Personnel: the orange band, the banner strip and the blue header are one seamless, square block', async ({ page }) => {
-  for (const [pg, banners] of [['residents.php', 6], ['personnel.php', 6]]) {
+test('Personnel (tanods) and Residents wear the new chooser: a rounded header bar, a slim sliding chooser, a white column head, three objects with gaps', async ({ page }) => {
+  for (const pg of ['personnel.php']) {
     for (const w of [2048, 1440]) {
       await page.setViewportSize({ width: w, height: 1000 });
       const r = await open(page, pg);
       await page.evaluate(() => { try { localStorage.setItem('ss-people-view', 'list'); } catch (e) {} });
       await page.reload();
       const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(), b = R('.ss-pband'), c = R('.cm-chips'), t = R('.ss-people'); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(v => Math.round(v * 10) / 10) }; });
-      expect([g.x[0], g.x[1]], pg + ': the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
-      expect([g.x[0], g.x[1]], 'and the table at ' + w).toEqual([g.x[4], g.x[5]]);
-      expect(Math.abs(g.y[0] - g.y[1]) <= 1 && Math.abs(g.y[2] - g.y[3]) <= 1, 'with no gap between band, strip and table at ' + w).toBe(true);
-      await expect(page.locator('.cm-chips .cm-chip'), pg + ' banners').toHaveCount(banners);
-      expect(await page.locator('.cm-chips .cm-chip').evaluateAll(cs => cs.filter(c => c.classList.contains('cm-sd') && getComputedStyle(c).backgroundImage === 'none').length), 'every banner is a gradient at ' + w).toBe(0);
-      expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the strip stays slim at ' + w).toBeLessThanOrEqual(80);
-      expect(await page.locator('.ss-people thead th').evaluateAll(ths => ths.map(t => getComputedStyle(t).borderTopLeftRadius + getComputedStyle(t).borderTopRightRadius).filter(v => v !== '0px0px').length), 'the header cells are square at ' + w).toBe(0);
-      expect(await page.locator('.ss-people thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'blue under the orange band').not.toBe('rgba(0, 0, 0, 0)');
-      expect(await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length), 'no name is cut at ' + w).toBe(0);
+      expect([g.x[0], g.x[1]], pg + ': the header and the chooser share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+      expect([g.x[0], g.x[1]], 'and the list at ' + w).toEqual([g.x[4], g.x[5]]);
+      expect(g.y[1] - g.y[0], 'a gap under the header at ' + w).toBeGreaterThanOrEqual(10);
+      expect(g.y[3] - g.y[2], 'and under the chooser at ' + w).toBeGreaterThanOrEqual(10);
+      await expect(page.locator('.cm-chips .cm-chip'), pg + ' tabs').toHaveCount(6);
+      expect(await page.locator('.cm-chips .cm-ind').evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'the chosen tab is a gradient pill at ' + w).toBe(true);
+      expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser stays slim at ' + w).toBeLessThanOrEqual(100);
+      expect(await page.locator('.ss-people thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'the column head is no longer the blue at ' + w).not.toBe('rgb(0, 48, 143)');
+      expect(await page.locator('.p-attendance .p-kpi').first().evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'the duty tiles are full-colour gradients').toBe(true);
       expect(r.errors, 'console errors').toEqual([]);
     }
+  }
+  // Residents (6 Nov): a one-height header bar, the sliding chooser, a white column head, three rounded objects on one grid
+  for (const w of [2048, 1440]) {
+    await page.setViewportSize({ width: w, height: 1000 });
+    const r = await open(page, 'residents.php');
+    await page.evaluate(() => { try { localStorage.setItem('ss-people-view', 'list'); } catch (e) {} });
+    await page.reload();
+    const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(), b = R('.ss-pband'), c = R('.cm-chips'), t = R('.ss-people'); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(Math.round) }; });
+    expect([g.x[0], g.x[1]], 'residents: the header and the chooser share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+    expect([g.x[0], g.x[1]], 'and the list at ' + w).toEqual([g.x[4], g.x[5]]);
+    expect(g.y[1] - g.y[0], 'a gap under the header at ' + w).toBeGreaterThanOrEqual(10);
+    expect(g.y[3] - g.y[2], 'and under the chooser at ' + w).toBeGreaterThanOrEqual(10);
+    await expect(page.locator('.cm-chips .cm-chip'), 'residents tabs').toHaveCount(6);
+    expect(await page.locator('.cm-chips .cm-ind').evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'the chosen tab is a gradient pill at ' + w).toBe(true);
+    expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser stays slim at ' + w).toBeLessThanOrEqual(100);
+    expect(await page.locator('.ss-people thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'the column head is no longer the blue at ' + w).not.toBe('rgb(0, 48, 143)');
+    expect(r.errors, 'console errors').toEqual([]);
   }
   // Squares: wide cards, no lone straggler beside a gap, the strip closes off under the band
   await page.setViewportSize({ width: 2048, height: 1000 });
@@ -958,7 +1069,7 @@ test('Account pages, peak: the tanod page leads with figures and banners, and a 
   expect(page.url(), 'copying a tracking ID does not open the row').toBe(here);
   expect(g.bg, 'in the committee colours').toContain('gradient');
   expect(g.th, 'blue under the orange band').not.toBe('rgba(0, 0, 0, 0)');
-  expect(Math.abs(g.bandBottom - g.headTop), 'joined').toBeLessThanOrEqual(1);
+  expect(g.headTop - g.bandBottom, 'the header bar and the chooser are two objects with a gap (6 Nov)').toBeGreaterThanOrEqual(10);
   expect(r.errors, 'console errors').toEqual([]);
   expect(await axe(page), 'Tanod account').toEqual([]);
   await open(page, 'personnel.php?view=staff');
@@ -1067,7 +1178,7 @@ test('Roles and pages 6a: the Dashboard super admin module, the box beside the d
 
 test('Roles and pages 6b: Report Summary by committee, and the committee form signed by its Kagawad', async ({ page, context }) => {
   const s = await open(page, 'summary.php?range=month');
-  await expect(page.locator('.rs-scope')).toContainText('Whole barangay');
+  await expect(page.locator('.rs-scope')).toContainText('Barangay Overall');
   await expect(page.locator('#rs-ledger thead th', { hasText: 'Committee' })).toHaveCount(1);
   await expect(page.locator('#rs-com tbody tr')).toHaveCount(4 + 1);
   await expect(page.locator('#ss-jump a[href="#rs-com"]')).toHaveCount(1);
@@ -1102,11 +1213,66 @@ test('Roles and pages 6c: Notifications by committee, a dot on each case, engine
   expect(n.errors.concat(k.errors), 'console errors').toEqual([]);
 });
 
+test('Profile (6 Nov), the Facebook way: edited in popups from the face, the cover, Edit profile and Change; the role ring is solid; the colour box is filled; Save is one step', async ({ page }) => {
+  const e = await open(page, 'profile.php');
+  await expect(page.locator('.p-topbar h1')).toHaveText('Profile');
+  expect(await page.locator('#profile-form').getAttribute('data-native-confirm'), 'no browser dialog on Save').toBeNull();
+  const ring = await page.locator('.ss-pf-av[data-r]').first().evaluate(el => { const s = getComputedStyle(el); return [s.outlineStyle, s.borderTopWidth]; });
+  expect(ring, 'the role colour fills its ring: no outline gap, no white border').toEqual(['none', '0px']);
+  // hovering the head shows the cover's Edit button; the face is a button
+  await page.locator('.ss-pf-head').hover();
+  await expect(page.locator('.pf-cvbtn')).toBeVisible();
+  await page.locator('.pf-avbtn').click();
+  await expect(page.locator('#m-avatar')).toBeVisible();
+  const png = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 600; c.height = 400; const g = c.getContext('2d'); g.fillStyle = '#356cf9'; g.fillRect(0, 0, 600, 400); return c.toDataURL('image/png').split(',')[1]; });
+  await page.setInputFiles('#avatar', { name: 'a.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+  await expect(page.locator('.cr-modal')).toBeVisible();
+  await page.locator('.cr-ok').click();
+  await expect(page.locator('.cr-modal')).toHaveCount(0);
+  expect(await page.locator('#avatar').evaluate(i => [i.files.length, i.files[0].name, i.files[0].size > 0]), 'the cropped picture is what the form posts').toEqual([1, 'photo.jpg', true]);
+  await page.locator('#m-avatar [data-pf-cancel]').click();
+  await expect(page.locator('#m-avatar')).toBeHidden();
+  // the cover popup, with our colour box filled with the colour
+  await page.goto('profile.php'); await page.locator('.ss-pf-head').hover(); await page.locator('.pf-cvbtn').click();
+  await expect(page.locator('#m-cover')).toBeVisible();
+  expect(await page.locator('#m-cover .sdp-colour').evaluate(el => getComputedStyle(el).backgroundColor), 'the colour box is the colour, filled').toBe('rgb(0, 48, 143)');
+  // Change (name, mobile) opens the details popup; Change (password) opens the password popup; Save is one step, the browser never asks
+  await page.goto('profile.php');
+  let native = 0; page.on('dialog', d => { native++; d.dismiss(); });
+  await page.locator('.ss-pf-change').first().click();
+  await expect(page.locator('#m-details')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.locator('.ss-pf-change', { hasText: 'Change' }).last().click();
+  await expect(page.locator('#m-password')).toBeVisible();
+  expect(native, 'the browser did not ask').toBe(0);
+  expect(e.errors.filter(m => !/WebSocket/.test(m)), 'console errors').toEqual([]);
+  expect(await axe(page), 'Profile with a popup open').toEqual([]);
+});
+
+test('The ladder (0166): an escalation names who it reaches; staff ask to retire from their profile; a Kagawad sees who is staff', async ({ page, context }) => {
+  // a case the signed-in admin handles, still at the first rung: the Escalate control names the Kagawad it reaches
+  const c = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000003');
+  await expect(page.locator('summary', { hasText: 'Escalate to Dela Cruz Ramon, Kagawad (Peace and Order)' })).toHaveCount(1);
+  await expect(page.locator('#eb-comm option').first()).toHaveText('The committee the case is with now');
+  // staff (moderator): Profile > Account has the Retirement row and its button, behind a confirm
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const s = await open(page, 'profile.php');
+  await expect(page.locator('.ss-pf-row', { hasText: 'Retirement' }).locator('button[data-native-confirm]')).toHaveText('Ask to retire');
+  expect(await axe(page), 'Profile, staff').toEqual([]);
+  // the Kagawad's Retirement requests: tanod and staff, each labelled
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }]);
+  const k = await open(page, 'personnel.php?view=retire');
+  await expect(page.locator('#rt-k tbody tr').nth(1)).toContainText('Staff');
+  await expect(page.locator('#rt-k tbody tr').nth(0)).toContainText('Tanod');
+  expect(c.errors.concat(s.errors, k.errors), 'console errors').toEqual([]);
+});
+
 test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card) and a Kagawad endorsing a retirement', async ({ page, context }) => {
   const p = await open(page, 'profile.php');
   for (const k of ['case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail']) await expect(page.locator(`.ss-al-kinds input[data-kind="${k}"]`)).toHaveCount(1);
   await expect(page.locator('.ss-pf-who .rank')).toHaveCount(1);
-  const e = await open(page, 'profile.php?edit=1');
+  const e = await open(page, 'profile.php');
+  await page.locator('.ss-pf-head').hover(); await page.locator('.pf-cvbtn').click();
   await page.locator('input[name="banner_preset"][value="solid"]').check();
   await page.locator('#banner_colour').fill('#1e9e4a');
   await expect(page.locator('#ss-pf-banner')).toHaveAttribute('style', /background: (rgb\(30, 158, 74\)|#1e9e4a)/);
@@ -1126,14 +1292,14 @@ test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');
-  for (const href of ['dashboard.php', 'settings.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  for (const href of ['dashboard.php', 'residents.php', 'administrative-services.php', 'control-room.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
   await expect(page.locator('.p-sidebar a[href="personnel.php"]').first()).toBeVisible();   // 0153: a Kagawad sees their committee's tanods and staff
   await expect(page.locator('.p-sidebar a[href="cases.php"]').first()).toBeVisible();
   await expect(page.locator('#side-user')).toContainText('Peace and Order');
   await page.goto('dashboard.php');
-  await expect(page).toHaveURL(/notifications\.php/);
-  await page.goto('settings.php');
-  await expect(page).toHaveURL(/notifications\.php/);
+  await expect(page).toHaveURL(/home\.php/);
+  await page.goto('control-room.php');
+  await expect(page).toHaveURL(/home\.php/);
   const s = await open(page, 'spatial.php');
   await expect(page.locator('#smart-toggle')).toHaveCount(0);
   await expect(page.locator('#smart-side')).toHaveCount(0);
@@ -1151,4 +1317,485 @@ test('0145 access: a captain reads a case but its controls are view only', async
   await expect(page.locator('#side-user')).toContainText('Captain');
   expect(await axe(page), 'Case page, captain').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('0164 each rung: the seal alone for a super admin, the committee logo beside it for a Kagawad, Personnel view only for staff', async ({ page, context }) => {
+  const r = await open(page, 'notifications.php');
+  await expect(page.locator('.p-side-top .p-brand-img')).toHaveCount(1);   // the barangay seal
+  await expect(page.locator('.p-side-top .p-brand-com')).toHaveCount(0);
+  await expect(page.locator('.p-sidebar img[src*="logo-wordmark"]')).toHaveCount(0);   // the wordmark is on the sign-in pages only
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'environment', url: 'http://127.0.0.1:8013' }]);
+  await open(page, 'notifications.php');
+  await expect(page.locator('.p-side-top img.p-brand-com')).toHaveAttribute('alt', /Environment and Disaster Risk/);   // an uploaded logo
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'personnel.php');
+  await expect(page.locator('.p-side-top .p-brand-com.p-brand-sym svg path').first()).toBeAttached();   // no logo yet: the committee's symbol
+  await expect(page.locator('.p-sidebar a[href="personnel.php"]').first()).toBeVisible();
+  await expect(page.locator('.tc-tabs a')).toHaveText(['Tanods', 'Committee staff']);
+  await expect(page.locator('#tc-propose, #ss-bulk-tc, .quick-verify-form, .ss-requests')).toHaveCount(0);
+  await expect(page.locator('#overdue-banner')).toBeHidden();
+  await expect(page.locator('#ss-people a.p-btn-primary')).toHaveCount(0);   // nothing to review: only a super admin verifies
+  await open(page, 'personnel.php?view=staff');
+  await expect(page.locator('.p-main form')).toHaveCount(0);
+  await open(page, 'personnel.php?id=u2');
+  await expect(page.locator('.p-main form')).toHaveCount(0);
+  expect(await axe(page), 'tanod page, staff').toEqual([]);
+  for (const href of ['residents.php', 'administrative-services.php', 'control-room.php', 'dashboard.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
+});
+
+test('Settings for a Kagawad and staff: their look, their committee read only, their SMART module (0165)', async ({ page, context }) => {
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const r = await open(page, 'settings.php');
+  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['Appearance', 'My committee', 'SMART']);
+  await expect(page.locator('#places, #st-check, [data-pane="status"], [data-pane="smart"]')).toHaveCount(0);   // the super admins' own
+  await page.locator('.st-tabs [data-st="committee"]').click();
+  await expect(page.locator('[data-pane="committee"] .cmx-banner')).toContainText('Peace and Order');
+  await expect(page.locator('[data-pane="committee"] form, [data-pane="committee"] input')).toHaveCount(0);   // read only
+  await page.locator('.st-tabs [data-st="module"]').click();
+  await expect(page.locator('.my-mod h2')).toHaveText('Committee module');
+  await expect(page.locator('.sm-four .sm-tile')).toHaveCount(4);   // the decisions waiting on the Kagawad
+  expect(await axe(page), 'Settings, Kagawad').toEqual([]);
+  await page.goto('settings.php#smart');   // an old link to the SMART tab opens their module, and does not loop
+  await expect(page.locator('[data-pane="module"]')).toBeVisible();
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'settings.php');
+  await page.locator('.st-tabs [data-st="module"]').click();
+  await expect(page.locator('.my-mod h2')).toHaveText('Staff module');
+  await expect(page.locator('.sm-four')).toHaveCount(0);   // decisions stay with the Kagawad
+  expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
+});
+
+test('Rose, 2 Nov: the lock holds when the map is pressed, the layers are a row of the floating tab, and the first day picked can be taken back', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'spatial.php');
+  await expect(page.locator('#map-search .p-row-lyr #lyr-list .map-sw')).not.toHaveCount(0);   // the layers, in the tab
+  await expect(page.locator('#layers-btn')).toBeHidden();
+  await page.locator('#map-pin').click();
+  await expect(page.locator('#map-pin')).toHaveAttribute('aria-pressed', 'true');
+  await page.mouse.move(1200, 900); await page.mouse.down(); await page.mouse.move(1260, 860, { steps: 6 }); await page.mouse.up();   // press and drag on the map
+  await page.waitForTimeout(600);
+  await expect(page.locator('#f-category')).toBeVisible();   // the filters stay
+  expect(await page.locator('.p-row-lyr').evaluate(e => e.getBoundingClientRect().height)).toBeGreaterThan(30);
+  await page.locator('#map-pin').click();   // unlocked again for the other tests
+  const s = await open(page, 'summary.php');
+  await page.locator('#period-form .sdp-btn').first().click();
+  const day = page.locator('.sdp-rng .sdp-d[data-d]').nth(9);
+  await day.click();
+  await expect(page.locator('.sdp-rng [data-go]')).toBeEnabled();
+  await day.click();   // the same day again takes it back
+  await expect(page.locator('.sdp-rng [data-go]')).toBeDisabled();
+  await day.click(); await page.locator('.sdp-rng .sdp-d[data-d]').nth(14).click();
+  await expect(page.locator('.sdp-rng .sdp-rt')).toContainText('6 days');
+  await page.locator('.sdp-rng [data-clear]').click();
+  await expect(page.locator('.sdp-rng [data-go]')).toBeDisabled();
+  expect(r.errors.concat(s.errors), 'console errors').toEqual([]);
+});
+
+test('Home for a Kagawad and staff: they land there, it reads their SMART module, and the Dashboard stays with the super admins (part 3)', async ({ page, context }) => {
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  await page.goto('index.php');
+  await expect(page).toHaveURL(/home\.php/);   // where they land after signing in
+  const r = await open(page, 'home.php');
+  await expect(page.locator('.p-sidebar .p-nav a').first()).toHaveAttribute('href', 'home.php');
+  await expect(page.locator('.hm-banner')).toContainText('Peace and Order');
+  await expect(page.locator('.hm-lead .hm-tile')).toHaveCount(4);
+  await expect(page.locator('.hm-lead .hm-tile').first()).toContainText('Escalations to approve');
+  await expect(page.locator('.hm-row-6 .hm-tile')).toHaveCount(6);
+  await expect(page.locator('.hm-list tr[data-href^="case.php?id="]').first()).toBeAttached();
+  expect(await axe(page), 'Home, Kagawad').toEqual([]);
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'home.php');
+  await expect(page.locator('.hm-lead .hm-tile').first()).toContainText('Yours');   // staff: their work, not decisions
+  await expect(page.locator('.hm-lead')).not.toContainText('Escalations to approve');
+  await context.addCookies([{ name: 'ss_tier', value: 'super', url: 'http://127.0.0.1:8013' }]);
+  await page.goto('home.php');
+  await expect(page).toHaveURL(/notifications\.php/);   // a super admin has the Dashboard
+  await expect(page.locator('.p-sidebar a[href="home.php"]')).toHaveCount(0);
+  expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
+});
+
+test('The brain button answers from the person\'s SMART module on Case Reports, Notifications, Report Summary and Home (part 4)', async ({ page, context }) => {
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const errs = [];
+  for (const p of ['cases.php', 'notifications.php', 'summary.php', 'home.php']) {
+    const r = await open(page, p);
+    errs.push(...r.errors);
+    await page.locator('#ss-win-open').click();
+    await expect(page.locator('#ss-panel')).toHaveClass(/is-open/);
+    await expect(page.locator('#ss-panel .mb-sec').first()).toContainText('Peace and Order');
+    await expect(page.locator('#ss-panel .mb-sec .ss-tile').first()).toContainText('Escalations to decide');
+    if (p === 'cases.php') {
+      await expect(page.locator('.ss-brain-n')).toHaveText('5');   // the decisions waiting on the Kagawad
+      expect(await axe(page), 'engine window on Case Reports, Kagawad').toEqual([]);
+    }
+    if (p === 'home.php') await expect(page.locator('#ss-panel .mb-home')).toHaveCount(0);   // already home
+    if (p === 'summary.php') await expect(page.locator('#ss-panel .rs-w-card').first()).toBeAttached();   // the report's own notes follow
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#ss-panel')).not.toHaveClass(/is-open/);
+  }
+  expect(errs, 'console errors').toEqual([]);
+});
+
+test('The DEV switcher is a floating pill: out of the sidebar, draggable, remembered, put back by a double-click', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'notifications.php');
+  await expect(page.locator('.p-sidebar .dv-sw'), 'the sidebar keeps its room').toHaveCount(0);
+  const pill = page.locator('.dv-float summary');
+  await expect(pill).toBeVisible();
+  await expect(page.locator('.dv-sw[open]'), 'closed until asked').toHaveCount(0);
+  const home = await pill.boundingBox();
+  await page.mouse.move(home.x + 20, home.y + 10); await page.mouse.down(); await page.mouse.move(home.x + 520, home.y - 400, { steps: 8 }); await page.mouse.up();
+  const moved = await pill.boundingBox();
+  expect(Math.abs(moved.x - home.x), 'it moved').toBeGreaterThan(300);
+  await expect(page.locator('.dv-sw[open]'), 'a drag does not open it').toHaveCount(0);
+  await page.goto('cases.php', { waitUntil: 'networkidle' });
+  const again = await pill.boundingBox();
+  expect(Math.abs(again.x - moved.x) + Math.abs(again.y - moved.y), 'it stays where it was left on the next page').toBeLessThan(4);
+  await pill.click();
+  await expect(page.locator('.dv-sw[open] .dv-body')).toBeVisible();
+  const panel = await page.locator('.dv-sw .dv-body').boundingBox();
+  expect(panel.x >= 0 && panel.x + panel.width <= 2048 && panel.y >= 0 && panel.y + panel.height <= 1100, 'the panel stays on screen').toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.dv-sw[open]')).toHaveCount(0);
+  await pill.dblclick();
+  const back = await pill.boundingBox();
+  expect(Math.abs(back.x - home.x) + Math.abs(back.y - home.y), 'a double-click puts it back').toBeLessThan(4);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Press flow foundation (7 Nov): htmx with the portal config, a swap changes only its region, no page HTML in localStorage, a failed fetch falls back to the plain page', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  const cfg = await page.evaluate(() => [typeof htmx, htmx.config.allowEval, htmx.config.allowScriptTags, htmx.config.historyCacheSize, htmx.config.selfRequestsOnly, typeof ssPress, typeof ssPickersInit, typeof ssChooserInit, !!document.querySelector('.ss-progress')]);
+  expect(cfg, 'htmx and the press layer are on the page, set up safely').toEqual(['object', false, false, 0, true, 'object', 'function', 'function', true]);
+  const before = await page.locator('.ss-cases-t tbody tr').count();
+  await page.evaluate(() => {
+    window.__stay = 1;
+    const b = document.createElement('button'); b.id = 'hx-probe'; b.textContent = 'probe';
+    b.setAttribute('hx-get', 'cases.php?com=none'); b.setAttribute('hx-select', '.ss-cases-t tbody'); b.setAttribute('hx-target', '.ss-cases-t tbody'); b.setAttribute('hx-swap', 'outerHTML');
+    document.body.appendChild(b); htmx.process(b);
+    window.__settled = new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true }));
+  });
+  await page.locator('#hx-probe').click();
+  await page.evaluate(() => window.__settled);
+  expect(await page.evaluate(() => window.__stay), 'the page did not reload').toBe(1);
+  expect(await page.locator('.ss-cases-t tbody tr').count(), 'the list was swapped').toBeGreaterThan(0);
+  expect(await page.evaluate(() => Object.keys(localStorage).filter(k => /htmx/i.test(k))), 'no page HTML kept in the browser').toEqual([]);
+  expect(before).toBeGreaterThan(0);
+  // a fetch that fails: the press opens the plain page instead of doing nothing
+  await page.route(/cases\.php\?com=fallback/, route => (route.request().headers()['hx-request'] ? route.abort() : route.continue()));
+  await page.evaluate(() => {
+    const b = document.createElement('button'); b.id = 'hx-probe2'; b.textContent = 'probe2';
+    b.setAttribute('hx-get', 'cases.php?com=fallback'); b.setAttribute('hx-select', '.ss-cases-t tbody'); b.setAttribute('hx-target', '.ss-cases-t tbody');
+    document.body.appendChild(b); htmx.process(b);
+  });
+  await Promise.all([page.waitForURL(/com=fallback/), page.locator('#hx-probe2').click()]);
+  // the simulated failure itself is logged (htmx names the failed request, the browser the aborted fetch); nothing else may be
+  expect(r.errors.filter(m => !/htmx:(afterRequest|sendError)|net::ERR_FAILED/.test(m)), 'console errors').toEqual([]);
+});
+
+test('Press flow step 2 (7 Nov): a save shows that it is working and a second press does not send it again', async ({ browser }) => {
+  // its own context with the service worker blocked: the portal's worker answers requests before a test's network hook would see them
+  const ctx = await browser.newContext({ serviceWorkers: 'block', baseURL: 'http://127.0.0.1:8013/admin/', viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const r = await open(page, 'notifications.php');
+  let posts = 0;
+  await page.route(/notifications\.php/, async route => {
+    if (route.request().method() !== 'POST') return route.continue();
+    posts++; await new Promise(res => setTimeout(res, 2500)); return route.continue();   // a slow connection
+  });
+  // a plain save form (the guard covers every form that loads the next page the usual way), answering into a hidden frame so this
+  // page stays on screen while the save is on its way (a test cannot read a page that a form is navigating away)
+  await page.evaluate(() => {
+    const fr = document.createElement('iframe'); fr.name = 'sink'; fr.hidden = true; document.body.appendChild(fr);
+    const csrf = document.querySelector('input[name="csrf"]').value;
+    const f = document.createElement('form'); f.method = 'post'; f.action = 'notifications.php'; f.target = 'sink'; f.id = 'probe-save';
+    [['csrf', csrf], ['action', 'read_all']].forEach(([n, v]) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; f.appendChild(i); });
+    const b = document.createElement('button'); b.type = 'submit'; b.textContent = 'Save'; f.appendChild(b);
+    document.body.appendChild(f);
+  });
+  const btn = page.locator('#probe-save button');
+  await btn.click();
+  await expect(btn, 'the pressed button says it is working').toHaveClass(/is-sending/);
+  await expect(page.locator('#probe-save')).toHaveAttribute('aria-busy', 'true');
+  // a second press, and a script sending the form again, while the first is on its way
+  await btn.click({ force: true });
+  await page.evaluate(() => document.getElementById('probe-save').requestSubmit());
+  await page.waitForTimeout(3200);
+  expect(posts, 'one press, one request').toBe(1);
+  expect(r.errors, 'console errors').toEqual([]);
+  await ctx.close();
+});
+
+test('Press flow step 3, Case Reports (7 Nov): the chooser, a filter and the pager swap the list in place; the address follows; a live refresh keeps the view; the Forward dialog still works', async ({ page, context }) => {
+  const r = await open(page, 'cases.php');
+  const ids = async (p) => p.locator('.ss-cases-t tbody .p-mono-id').allTextContents();
+  await page.evaluate(() => { window.__stay = 1; });
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  // a committee on the chooser
+  let s = settle(); await page.locator('#cr-list .cm-chips .cm-chip').nth(1).click(); await s;
+  expect(await page.evaluate(() => window.__stay), 'no reload').toBe(1);
+  expect(page.url(), 'the address follows').toMatch(/com=/);
+  await expect(page.locator('#cr-list .cm-chips .cm-chip').nth(1)).toHaveClass(/p-on/);
+  const fresh = await context.newPage(); await fresh.goto(page.url(), { waitUntil: 'domcontentloaded' });
+  expect(await ids(page), 'the rows are what the server draws for this address').toEqual(await ids(fresh));
+  await fresh.close();
+  // a filter dropdown (autosubmit) swaps too
+  s = settle(); await page.evaluate(() => { const sel = document.querySelector('#cr-list form.ss-band-filters select[name="tanod"]'); sel.value = 'needs'; sel.dispatchEvent(new Event('change', { bubbles: true })); }); await s;
+  expect(await page.evaluate(() => window.__stay), 'a filter does not reload').toBe(1);
+  expect(page.url()).toMatch(/tanod=needs/);
+  // a live update asks the server for the view on screen now, not the one the page first loaded with
+  const shown = await ids(page);
+  s = settle(); await page.evaluate(() => window.ssLive.cases()); await s;
+  expect(await ids(page), 'a live refresh keeps the chosen view').toEqual(shown);
+  expect(page.url()).toMatch(/tanod=needs/);
+  // the Forward dialog is outside the region: after a swap it still opens, and it returns to the view on screen
+  const fw = page.locator('#cr-list tbody [data-fw-open]').first();
+  if (await fw.count()) {
+    await fw.click(); await expect(page.locator('#fw-dlg')).toBeVisible();
+    expect(await page.locator('#fw-dlg input[name="back"]').inputValue()).toMatch(/tanod=needs/);
+    await page.locator('#fw-dlg [data-fw-close]').first().click();
+  }
+  // Back returns to the earlier view
+  await page.goBack(); await page.waitForLoadState('domcontentloaded');
+  expect(page.url()).not.toMatch(/tanod=needs/);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Press flow step 3, Notifications (7 Nov): Unread/All, the chooser and the sort swap in place, the address follows, a live refresh keeps the view', async ({ page, context }) => {
+  const r = await open(page, 'notifications.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  let s = settle(); await page.locator('#nf-list .bd-scope a').nth(1).click(); await s;
+  expect(await page.evaluate(() => window.__stay), 'no reload').toBe(1);
+  expect(page.url()).toMatch(/nview=all/);
+  s = settle(); await page.locator('#nf-list .nf-chips .cm-chip').nth(1).click(); await s;
+  expect(page.url()).toMatch(/ncom=/);
+  const rows = async (p) => p.locator('#notif-list .p-notif, #notif-list .nf-group').count();
+  const fresh = await context.newPage(); await fresh.goto(page.url(), { waitUntil: 'domcontentloaded' });
+  expect(await rows(page), 'what the server draws for this address').toBe(await rows(fresh)); await fresh.close();
+  const before = await rows(page);
+  s = settle(); await page.evaluate(() => window.ssLive.notes()); await s;
+  expect(await rows(page), 'a live refresh keeps the view').toBe(before);
+  expect(page.url()).toMatch(/ncom=/);
+  expect(await page.evaluate(() => window.__stay)).toBe(1);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Speed, step 3 (7 Nov 2026): Activity, the Inbox and Report Summary change view in place; their widgets work after a swap', async ({ page }) => {
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  // Activity: the scopes swap the feed; the address follows
+  const a = await open(page, 'activity.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  let s = settle(); await page.locator('#act-list .ss-seg a').nth(2).click(); await s;
+  expect(page.url()).toMatch(/show=peers/);
+  await expect(page.locator('#act-list .ss-seg a.p-on')).toHaveCount(1);
+  expect(await page.evaluate(() => window.__stay), 'Activity did not reload').toBe(1);
+  // Inbox: Sent, then a message, in place; the case link inside a message stays an ordinary page change
+  const i = await open(page, 'inbox.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  s = settle(); await page.locator('#ib-main .ib-tabs a[href="inbox.php?box=sent"]').click(); await s;
+  expect(page.url()).toMatch(/box=sent/);
+  s = settle(); await page.locator('#ib-main .ib-tabs a[href="inbox.php"]').click(); await s;
+  s = settle(); await page.locator('#ib-main a.ib-row').first().click(); await s;
+  expect(page.url()).toMatch(/[?&]m=\d+/);
+  await expect(page.locator('#ib-main .ib-read')).toHaveCount(1);
+  expect(await page.evaluate(() => window.__stay), 'the Inbox did not reload').toBe(1);
+  expect(await page.locator('#ib-main a[href^="case.php"][hx-boost]').count(), 'a case link is not boosted').toBe(0);
+  // Report Summary: a quick range swaps the report; the tabs, the title and the engine window follow; a pager lands on its tab
+  const r = await open(page, 'summary.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  s = settle(); await page.locator('#rs-main .p-chips-q a.p-chip').nth(3).click(); await s;
+  expect(page.url()).toMatch(/range=quarter/);
+  await expect(page.locator('#rs-main .p-chips-q a.p-chip.p-on')).toHaveText(/90/);
+  await expect(page.locator('#ss-jump .ss-jump-ind'), 'the tabs are set up again on the new report').toHaveCount(1);
+  await page.locator('#ss-jump a[href="#rs-tanod"]').click();
+  await expect(page.locator('#rs-tanod.p-table-card')).not.toHaveClass(/rs-off/);
+  await expect(page.locator('#rs-ledger')).toHaveClass(/rs-off/);
+  expect(await page.evaluate(() => document.getElementById('rs-win-dates').textContent), 'the engine window follows the period').toMatch(/–|-/);
+  // a By committee row: the report swaps to that committee's version in place
+  await page.locator('#ss-jump a[href="#rs-com"]').click();
+  s = settle(); await page.locator('#rs-com tr.p-click').first().click(); await s;
+  expect(page.url()).toMatch(/com=/);
+  await expect(page.locator('#rs-scope-sync .rs-scope')).not.toHaveText('Barangay Overall');
+  expect(await page.evaluate(() => window.__stay), 'Report Summary did not reload').toBe(1);
+  // the spreadsheet stays an ordinary download, never boosted
+  expect(await page.locator('#rs-main a[href*="export=xlsx"]').evaluate(el => !el.closest('[hx-boost]'))).toBe(true);
+  expect(a.errors.concat(i.errors, r.errors), 'console errors').toEqual([]);
+});
+
+test('Press flow step 3, Residents and Personnel (7 Nov): chooser and duty tiles swap in place; the view, the ticks and the put-away banner survive a swap', async ({ page, context }) => {
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  const r = await open(page, 'residents.php');
+  await page.evaluate(() => { window.__stay = 1; try { localStorage.setItem('ss-people-view', 'list'); sessionStorage.removeItem('ss-res-ov-off'); } catch (e) {} });
+  // put the banner away, choose Squares
+  if (await page.locator('#overdue-x').isVisible()) await page.locator('#overdue-x').click();
+  await page.locator('.ss-viewsw [data-view="sq"]').click();
+  let s = settle(); await page.locator('#people-list .rs-st .cm-chip[data-chip="verified"]').click(); await s;
+  expect(await page.evaluate(() => window.__stay), 'no reload').toBe(1);
+  expect(page.url()).toMatch(/sort=verified/);
+  await expect(page.locator('#ss-people'), 'Squares survives the swap').toHaveClass(/ss-sq/);
+  await expect(page.locator('#overdue-banner'), 'the banner stays put away').toBeHidden();
+  const fresh = await context.newPage(); await fresh.goto(page.url(), { waitUntil: 'domcontentloaded' });
+  const names = async (p) => p.locator('#accounts-tbody .p-person > span:last-child').allTextContents();
+  expect(await names(page), 'what the server draws for this address').toEqual(await names(fresh)); await fresh.close();
+  // a tick survives the 20-second refresh, and the bulk bar with it
+  await page.locator('.ss-viewsw [data-view="list"]').click();
+  await page.locator('#accounts-tbody .ss-cb').first().check();
+  await expect(page.locator('#ss-bulk')).toBeVisible();
+  s = settle(); await page.evaluate(() => window.ssLive.people()); await s;
+  await expect(page.locator('#accounts-tbody .ss-cb').first(), 'the tick is kept').toBeChecked();
+  await expect(page.locator('#ss-bulk')).toBeVisible();
+  expect(page.url()).toMatch(/sort=verified/);
+  // Personnel: a duty tile swaps the list
+  const p2 = await open(page, 'personnel.php');
+  await page.evaluate(() => { window.__stay = 2; });
+  s = settle(); await page.locator('#people-list #attendance-grid a').first().click(); await s;
+  expect(await page.evaluate(() => window.__stay), 'no reload on Personnel').toBe(2);
+  expect(page.url()).toMatch(/duty=/);
+  expect(r.errors.concat(p2.errors), 'console errors').toEqual([]);
+});
+
+test('Press flow step 4 (7 Nov): saves update their region in place: a mark as read, a forward, a proposed tanod; the address stays; one request per save', async ({ page }) => {
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  let posts = 0; page.on('request', q => { if (q.method() === 'POST' && /\.php/.test(q.url()) && !/geocode|heartbeat|presence|ping/.test(q.url())) posts++; });
+  // Notifications: mark one as read
+  const r = await open(page, 'notifications.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  const url0 = page.url();
+  const tick = page.locator('#nf-list form.p-n-x button[type="submit"]').first();
+  if (await tick.count()) {
+    let s = settle(); posts = 0; await tick.click(); await s;
+    expect(await page.evaluate(() => window.__stay), 'a mark as read does not reload').toBe(1);
+    expect(page.url(), 'the address stays').toBe(url0);
+    expect(posts, 'one save, one request').toBe(1);
+  }
+  // Case Reports: a forward from the dialog
+  const r2 = await open(page, 'cases.php');
+  await page.evaluate(() => { window.__stay = 2; });
+  const fw = page.locator('#cr-list tbody [data-fw-open]').first();
+  if (await fw.count()) {
+    await fw.click(); await expect(page.locator('#fw-dlg')).toBeVisible();
+    const to = page.locator('#fw-dlg select[name="to"]');
+    if (await to.count()) await to.evaluate(sel => { const o = [...sel.options].find(x => x.value && !x.disabled); if (o) { sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); } });
+    let s = settle(); posts = 0; await page.locator('#fw-dlg button[type="submit"]').first().click(); await s;
+    expect(await page.evaluate(() => window.__stay), 'a forward does not reload').toBe(2);
+    await expect(page.locator('#fw-dlg'), 'the dialog closes').toBeHidden();
+    expect(posts).toBe(1);
+  }
+  // Personnel: a proposed tanod
+  const r3 = await open(page, 'personnel.php');
+  await page.evaluate(() => { window.__stay = 3; });
+  const ok = page.locator('#people-list form.tc-row button[type="submit"]').first();
+  if (await ok.count()) {
+    let s = settle(); await ok.click(); await s;
+    expect(await page.evaluate(() => window.__stay), 'a decision does not reload').toBe(3);
+  }
+  expect(r.errors.concat(r2.errors, r3.errors), 'console errors').toEqual([]);
+});
+
+test('Press flow (7 Nov, Ace: "always a thin orange bar"): the bar goes away after a filter change and after a press that cancels an earlier one', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  const idle = async (why) => { await page.waitForTimeout(900); expect(await page.evaluate(() => [document.querySelector('.ss-progress').classList.contains('is-on') && !document.querySelector('.ss-progress').classList.contains('is-done'), document.documentElement.getAttribute('aria-busy')]), why).toEqual([false, null]); };
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  // a filter dropdown (autosubmit, sent by htmx)
+  let s = settle(); await page.evaluate(() => { const sel = document.querySelector('#cr-list form.ss-band-filters select[name="tanod"]'); sel.value = 'needs'; sel.dispatchEvent(new Event('change', { bubbles: true })); }); await s;
+  await idle('no bar left after a filter change');
+  // two chooser presses at once: the second cancels the first
+  s = settle(); await page.evaluate(() => { const c = document.querySelectorAll('#cr-list .cm-chips .cm-chip'); c[1].click(); c[2].click(); }); await s;
+  await idle('no bar left after a cancelled request');
+  // Notifications' sort
+  await open(page, 'notifications.php');
+  s = settle(); await page.evaluate(() => { const sel = document.querySelector('#nf-list select[name="nsort"]'); sel.value = 'oldest'; sel.dispatchEvent(new Event('change', { bubbles: true })); }); await s;
+  await idle('no bar left after a sort');
+  // the cancelled request is logged by htmx (it names the request it dropped); nothing else may be
+  expect(r.errors.filter(m => !/htmx:(afterRequest|sendAbort|abort)/.test(m)), 'console errors').toEqual([]);
+});
+
+test('Press flow (7 Nov): a background refresh never cancels a press (Personnel, a duty tile pressed just as the 20-second refresh fires)', async ({ browser }) => {
+  const ctx = await browser.newContext({ serviceWorkers: 'block', baseURL: 'http://127.0.0.1:8013/admin/', viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const r = await open(page, 'personnel.php');
+  // the press's request takes its time (a slow connection); the background refresh fires while it is on its way
+  await page.route(/personnel\.php\?duty=/, async route => { await new Promise(res => setTimeout(res, 1500)); return route.continue(); });
+  const settled = page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', e => { const c = e.detail && e.detail.requestConfig; if (!(c && c.headers && c.headers['X-Press-Quiet'])) res(); })));
+  await page.locator('#people-list .p-att-on_duty').click();
+  await page.evaluate(() => window.ssLive.people());
+  await settled;
+  await expect(page, 'the press won').toHaveURL(/duty=on_duty/);
+  await expect(page.locator('#accounts-tbody tr'), 'and its list is shown').toHaveCount(2);
+  expect(r.errors.filter(m => !/htmx:(afterRequest|sendAbort|abort)/.test(m)), 'console errors').toEqual([]);
+  await ctx.close();
+});
+
+test('Press flow (7 Nov): a background refresh waits while someone types in the list, and a save goes back to the view it was made on', async ({ page }) => {
+  // Residents: typing in the search box when the 20-second refresh fires
+  const r = await open(page, 'residents.php');
+  const box = page.locator('#acc-q');
+  await box.click(); await box.pressSequentially('Mar');
+  await page.evaluate(() => { window.__swaps = 0; document.addEventListener('htmx:afterSettle', () => window.__swaps++); window.ssLive.people(); });
+  await page.waitForTimeout(700);
+  expect(await page.evaluate(() => window.__swaps), 'no swap while typing').toBe(0);
+  await expect(box, 'what was typed is still there').toHaveValue('Mar');
+  await expect(box, 'and the box keeps the cursor').toBeFocused();
+  await page.locator('.p-topbar h1').click();   // leaving the box lets the refresh run
+  await expect.poll(() => page.evaluate(() => window.__swaps), { message: 'the refresh runs once the box is left' }).toBeGreaterThan(0);
+  // Notifications: marking one read on a committee's view stays on that view
+  await open(page, 'notifications.php');
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  let s = settle(); await page.locator('#nf-list .nf-chips .cm-chip').nth(1).click(); await s;
+  const url = page.url(); expect(url).toMatch(/ncom=/);
+  const tick = page.locator('#nf-list form.p-n-x button[type="submit"]').first();
+  if (await tick.count()) {
+    s = settle(); await tick.click(); await s;
+    expect(page.url()).toBe(url);
+    await expect(page.locator('#nf-list .nf-chips .cm-chip').nth(1), 'the same committee is still chosen after the save').toHaveClass(/p-on/);
+  }
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Press flow (7 Nov): a keyboard press on a chooser tab keeps the focus on that tab after the swap', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  const tab = page.locator('#cr-list .cm-chips .cm-chip').nth(2);
+  const href = await tab.getAttribute('href');
+  await tab.focus();
+  const s = settle(); await page.keyboard.press('Enter'); await s;
+  expect(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('href')), 'the focus is on the tab that was pressed').toBe(href);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Press flow (7 Nov): after a swap the new list has its widgets: the dropdowns are the portal pickers again and the chooser has its pill', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  const s = settle(); await page.locator('#cr-list .cm-chips .cm-chip').nth(1).click(); await s;
+  expect(await page.locator('#cr-list form.ss-band-filters .sdp-btn').count(), 'the filter dropdowns are pickers in the new list').toBeGreaterThan(0);
+  expect(await page.locator('#cr-list form.ss-band-filters select:not(.sdp-native)').count(), 'no bare browser dropdown left').toBe(0);
+  await expect(page.locator('#cr-list .cm-chips .cm-ind'), 'the chooser has its pill').toHaveCount(1);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Press flow (7 Nov): a cancelled confirm does not leave a form stuck; the next press sends it, once', async ({ browser }) => {
+  const ctx = await browser.newContext({ serviceWorkers: 'block', baseURL: 'http://127.0.0.1:8013/admin/', viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const r = await open(page, 'notifications.php');
+  let posts = 0;
+  await page.route(/notifications\.php/, route => { if (route.request().method() === 'POST') posts++; return route.continue(); });
+  await page.evaluate(() => {
+    const fr = document.createElement('iframe'); fr.name = 'sink2'; fr.hidden = true; document.body.appendChild(fr);
+    const f = document.createElement('form'); f.method = 'post'; f.action = 'notifications.php'; f.target = 'sink2'; f.id = 'probe-confirm';
+    f.setAttribute('data-native-confirm', 'Send it?');
+    [['csrf', document.querySelector('input[name="csrf"]').value], ['action', 'read_all']].forEach(([n, v]) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; f.appendChild(i); });
+    const b = document.createElement('button'); b.type = 'submit'; b.textContent = 'Send'; f.appendChild(b); document.body.appendChild(f);
+  });
+  const btn = page.locator('#probe-confirm button');
+  page.once('dialog', d => d.dismiss());
+  await btn.click(); await page.waitForTimeout(300);
+  expect(posts, 'a cancelled confirm sends nothing').toBe(0);
+  expect(await btn.evaluate(b => [b.disabled, b.classList.contains('is-sending'), b.form.dataset.pressSending || '']), 'and leaves nothing stuck').toEqual([false, false, '']);
+  page.once('dialog', d => d.accept());
+  await btn.click(); await page.waitForTimeout(800);
+  expect(posts, 'the next press sends it, once').toBe(1);
+  expect(r.errors, 'console errors').toEqual([]);
+  await ctx.close();
 });

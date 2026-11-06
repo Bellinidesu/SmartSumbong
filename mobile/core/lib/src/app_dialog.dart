@@ -61,7 +61,7 @@ class AppDialog extends StatelessWidget {
                 borderRadius: BorderRadius.circular(50),
               ),
               textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
               ),
@@ -90,7 +90,7 @@ class AppDialog extends StatelessWidget {
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter Tight',
                   fontWeight: FontWeight.w700,
                   fontSize: 24,
                   height: 1.1,
@@ -102,7 +102,7 @@ class AppDialog extends StatelessWidget {
                 body,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   fontSize: 16,
                   height: 1.25,

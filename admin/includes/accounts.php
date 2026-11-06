@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/layout.php';
+require_once __DIR__ . '/module_brain.php';
 require_once __DIR__ . '/forwarding.php';   // the committee banners (committee_sd_types, cm_banner_style, cm_sym_tag, committee_banner_script)
 
 /**
@@ -53,11 +54,11 @@ function render_account_screen(string $role): void
     // 0153: the Committee staff tab (punch cards) of Personnel
     if ($isTanod) {
         require_once __DIR__ . '/personnel_committees.php';
-        if (($_GET['view'] ?? '') === 'staff' && (is_super() || is_captain() || is_committee())) {
+        if (($_GET['view'] ?? '') === 'staff' && (is_super() || is_captain() || is_scoped())) {
             render_punch_page($db);
             return;
         }
-        if (isset($_GET['staff']) && (is_super() || is_captain() || is_committee())) {
+        if (isset($_GET['staff']) && (is_super() || is_captain() || is_scoped())) {
             render_staff_profile($db, (string) $_GET['staff']);
             return;
         }
@@ -235,8 +236,12 @@ function render_account_screen(string $role): void
     layout_head($title, $navFile);
     ?>
 
+    <?php $requests = isset($got['requests']) && is_array($got['requests'])
+        ? array_values(array_filter($got['requests'], fn($r) => ($r['who']['role'] ?? '') === ($isTanod ? 'tanod' : 'resident')))
+        : []; ?>
     <div class="p-topbar"><h1><?= e($title) ?></h1>
-      <span class="p-live" id="live-badge" title="<?= e(t('New registrations appear here on their own', 'Kusang lumalabas dito ang mga bagong rehistro')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
+      <span class="p-live" id="live-badge" title="<?= e(t('New registrations appear here on their own', 'Kusang lumalabas dito ang mga bagong rehistro')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span>
+      <?php if (!$isTanod): ?><span class="p-spacer" style="flex:1"></span><?= residents_brain($chipN, count($requests)) ?><?php endif; ?></div>
     <?= $isTanod ? personnel_tabs('') : '' ?>
 
     <?php if ($flash): ?>
@@ -252,8 +257,8 @@ function render_account_screen(string $role): void
         ? array_values(array_filter($got['requests'], fn($r) => ($r['who']['role'] ?? '') === ($isTanod ? 'tanod' : 'resident')))
         : [];
     ?>
-    <?php if ($requests): ?>
-      <div class="p-card p-card-pad ss-requests">
+    <?php if ($requests && is_super()): ?>
+      <div class="p-card p-card-pad ss-requests" id="ss-requests">
         <p class="p-eyebrow"><?= e(t('Requests waiting', 'Mga naghihintay na kahilingan')) ?> · <?= count($requests) ?></p>
         <div style="display:grid;gap:12px">
         <?php foreach ($requests as $r): ?>
@@ -285,18 +290,57 @@ function render_account_screen(string $role): void
       </div>
     <?php endif; ?>
 
+    <?php // The press flow (step 3, 7 Nov 2026): a press on a duty tile, the search, the status, a chooser tab or a page fetches this same
+          // page and swaps only this region; the address follows. The 20-second refresh asks for the view on screen in the same way. ?>
+    <div id="people-list" class="press-region" hx-target="#people-list" hx-select="#people-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#people-list:replace"
+         data-announce="<?= e(sprintf(t('Showing %d accounts', 'Ipinapakita ang %d account'), (int) $accTotal)) ?>">
     <!-- Always rendered so the polling below can show it as accounts age past the window. -->
-    <div class="p-flash p-flash--error" id="overdue-banner" role="alert"<?= $overdue > 0 ? '' : ' hidden' ?>>
+    <div class="p-flash p-flash--error rs-banner" id="overdue-banner" hx-boost="true" role="alert"<?= $overdue > 0 && is_super() ? '' : ' hidden' ?>>
       <span id="overdue-text"><?= $overdue ?> <?= e(t(($overdue === 1 ? 'registration has' : 'registrations have') . ' passed the two-hour verification window.',
                                                  'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.')) ?></span>
+      <a class="p-btn p-btn-sm p-btn-ghost" href="residents.php?sort=overdue"><?= e(t('Show them', 'Ipakita')) ?></a>
+      <?php if (!$isTanod): ?><button type="button" class="rs-banner-x" id="overdue-x" aria-label="<?= e(t('Keep this in the engine button', 'Itabi ito sa button ng engine')) ?>" title="<?= e(t('Keep this in the engine button', 'Itabi ito sa button ng engine')) ?>"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><?php endif; ?>
     </div>
+    <?php if (!$isTanod): ?>
+    <script>
+    // The red banner can be put away; it is kept in the engine button, and comes back only if more registrations go past the window.
+    // It reads the banner and the chooser that are on screen each time, so it keeps working after the list is swapped in place.
+    (function () {
+      var KEY = 'ss-res-ov-off', win = document.getElementById('ss-panel'), obs = null;
+      window.ssOvOff = function () { try { return parseInt(sessionStorage.getItem(KEY), 10) || 0; } catch (e) { return 0; } };
+      function count() { var t = document.getElementById('overdue-text'); var n = t ? parseInt((t.textContent || '').trim(), 10) : 0; return n > 0 ? n : 0; }
+      function hideIfPutAway() { var ban = document.getElementById('overdue-banner'); if (ban && !ban.hidden && count() <= window.ssOvOff()) ban.hidden = true; }
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('#overdue-x')) return;
+        try { sessionStorage.setItem(KEY, String(count())); } catch (x) {}
+        var ban = document.getElementById('overdue-banner'); if (ban) ban.hidden = true;
+        var b = document.getElementById('ss-win-open'); if (b) { b.classList.remove('is-nudged'); void b.offsetWidth; b.classList.add('is-nudged'); }
+      });
+      // the window's numbers and the button's badge follow the chips' counts
+      function sync() {
+        var chips = document.querySelector('.rs-st'); if (!chips) return;
+        var n = {}; chips.querySelectorAll('.cm-chip[data-chip]').forEach(function (c) { var b = c.querySelector('b'); if (b) n[c.dataset.chip] = parseInt(b.textContent, 10) || 0; });
+        if (win) win.querySelectorAll('.rs-al[data-rs]').forEach(function (r) { var k = r.dataset.rs; if (k in n) { var e = r.querySelector('[data-rs-n]'); if (e) e.textContent = n[k]; r.classList.toggle('is-zero', !n[k]); } });
+        var badge = document.getElementById('rs-brain-n'); if (badge) { var req = win && win.querySelector('.rs-al[data-rs="requests"] .rs-al-n'); var t = (n.pending || 0) + (n.duplicate || 0) + (req ? parseInt(req.textContent, 10) || 0 : 0); badge.textContent = t > 99 ? '99+' : t; badge.hidden = !t; }
+      }
+      function watch() {
+        if (obs) obs.disconnect();
+        var chips = document.querySelector('.rs-st');
+        if (chips && window.MutationObserver) { obs = new MutationObserver(sync); obs.observe(chips, { childList: true, subtree: true, characterData: true }); }
+      }
+      hideIfPutAway(); watch();
+      document.addEventListener('htmx:afterSettle', function () { hideIfPutAway(); watch(); sync(); });
+      if (win) win.addEventListener('click', function (e) { if (e.target.closest('[data-close-win]')) { var c = document.getElementById('ss-win-close'); if (c) c.click(); } });
+    })();
+    </script>
+    <?php endif; ?>
 
     <?php if ($isTanod) { render_tc_strip($db, $tc, $allAccounts); } ?>
 
     <?php if ($isTanod):
         $dutyHref = fn (string $d) => 'personnel.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $statusFilter, 'com' => $comF, 'duty' => $d], fn ($v) => $v !== '')); ?>
       <!-- Today's shift: every active tanod (verified, not suspended or retired), whatever the search. A tile filters the list; the lit one again clears it. -->
-      <nav class="p-kpis p-attendance" id="attendance-grid" aria-label="<?= e(t("Today's shift attendance summary", 'Buod ng pagdalo sa shift ngayong araw')) ?>">
+      <nav class="p-kpis p-attendance" id="attendance-grid" hx-boost="true" aria-label="<?= e(t("Today's shift attendance summary", 'Buod ng pagdalo sa shift ngayong araw')) ?>">
         <?php foreach (TANOD_DUTY_STATES as $state => $label): $on = $dutyF === $state; ?>
           <a class="p-card p-kpi p-att-<?= e($state) ?><?= $on ? ' p-on' : '' ?>" href="<?= e($dutyHref($on ? '' : $state)) ?>"<?= $on ? ' aria-current="true"' : '' ?> title="<?= e($on ? t('Show everyone again', 'Ipakita muli ang lahat') : sprintf(t('Show only %s', 'Ipakita lamang ang %s'), status_label($state))) ?>"><div class="p-label"><span class="p-att-dot" aria-hidden="true"></span><?= e(status_label($state)) ?></div>
             <div class="p-value p-num" data-state="<?= e($state) ?>"><?= (int) ($attendance[$state] ?? 0) ?></div>
@@ -306,7 +350,7 @@ function render_account_screen(string $role): void
     <?php endif; ?>
 
 
-    <div class="p-band ss-pband">
+    <div class="p-band ss-pband" hx-boost="true">
       <h2><?= e(t($noun . ' accounts', 'Mga account ng ' . $nounLabel)) ?><span class="p-badge-n p-badge-n--quiet" id="accounts-count"><?= $accTotal ?></span><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('to review', 'susuriin')) ?></span></h2>
       <form class="p-search" method="get" role="search">
         <?= p_icon('i-search', 16) ?><label class="p-sr" for="acc-q"><?= e(t('Search', 'Maghanap')) ?></label>
@@ -335,7 +379,7 @@ function render_account_screen(string $role): void
         $comHref = fn (string $c) => 'personnel.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $statusFilter, 'duty' => $dutyF, 'com' => $c], fn ($v) => $v !== ''));
         $comN = fn (string $k) => count(array_filter($allAccounts, fn ($a) => $k === 'none' ? !$inCom($a, '') : $inCom($a, $k)));
         $sdTypes = committee_sd_types($db); ?>
-    <nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+    <nav class="cm-chips cm-choose" hx-boost="true" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
       <a class="cm-chip<?= $comF === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $comF === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>"><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span><b><?= count($allAccounts) ?></b></a>
       <?php foreach (committees_active() as $ck => $cl): ?>
         <a class="cm-chip cm-sd<?= $comF === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($comHref($ck)) ?>"<?= $comF === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span><b><?= $comN($ck) ?></b></a>
@@ -343,17 +387,19 @@ function render_account_screen(string $role): void
       <a class="cm-chip cm-chip-none<?= $comF === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $comF === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b><?= $comN('none') ?></b></a>
     </nav>
     <?= committee_banner_script() ?>
+    <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
     <?php elseif (!$isTanod):
         // Residents: the slices of the list are banners with their counts (the dropdown they replace did the same in words)
         $rsHref = fn (string $k) => 'residents.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $k], fn ($v) => $v !== ''));
         $rsDef = ['' => ['all', '#2D5BFF', '#00A3FF', '#FFFFFF', 'layers'], 'pending' => ['pending', '#FFC21A', '#FF9100', '#2B1A00', 'calendar'], 'verified' => ['verified', '#12B24F', '#0FA968', '#FFFFFF', 'handler'],
                   'overdue' => ['overdue', '#FF2D4B', '#FF6A3D', '#FFFFFF', 'focus'], 'duplicate' => ['duplicate', '#6A4CE0', '#B15CFF', '#FFFFFF', 'copy'], 'suspended' => ['suspended', '#4A5578', '#7C86A6', '#FFFFFF', 'obstruction']]; ?>
-    <nav class="cm-chips rs-st" aria-label="<?= e(t('Status', 'Katayuan')) ?>">
+    <nav class="cm-chips cm-choose rs-st" hx-boost="true" data-chooser="a.cm-chip" aria-label="<?= e(t('Status', 'Katayuan')) ?>">
       <?php foreach ($chipLabel as $k => $cl): [$dk, $c1, $c2, $ink, $ic] = $rsDef[$k]; ?>
         <a class="cm-chip cm-sd<?= $statusFilter === $k ? ' p-on' : '' ?>" data-chip="<?= e($dk) ?>" style="--cc:<?= e($c1) ?>;--ct:<?= e($ink) ?>;--g1:<?= e($c1) ?>;--g2:<?= e($c2) ?>;--g3:<?= e($c2) ?>" href="<?= e($rsHref($k)) ?>"<?= $statusFilter === $k ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><i class="cm-sym"><svg class="cm-ic" data-ic="<?= e($ic) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg></i><span class="cm-n"><?= e($cl) ?></span><b><?= (int) $chipN[$k] ?></b></a>
       <?php endforeach; ?>
     </nav>
     <?= committee_banner_script() ?>
+    <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
     <?php endif; ?>
 
     <div class="ss-bulk" id="ss-bulk" hidden>
@@ -416,10 +462,11 @@ function render_account_screen(string $role): void
                       && (empty($a['ocr_processed_at'])
                           || (string) $a['ocr_processed_at'] < (string) $a['ocr_rescan_requested_at'])): ?><span class="p-badge p-b-grey" title="<?= e(t('Waiting for them to open the app', 'Hinihintay na buksan nila ang app')) ?>"><?= e(t('Re-check pending', 'Nakabinbing muling pagsuri')) ?></span><?php endif; ?></div></td>
               <td class="p-right">
-                <a class="p-btn p-btn-sm <?= $a['verification_status'] === 'pending' ? 'p-btn-primary' : 'p-btn-ghost' ?>" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
-                  <?= $a['verification_status'] === 'pending' ? e(t('Review', 'Suriin')) : e(t('View', 'Tingnan')) ?>
+                <?php $toReview = $a['verification_status'] === 'pending' && is_super(); ?>
+                <a class="p-btn p-btn-sm <?= $toReview ? 'p-btn-primary' : 'p-btn-ghost' ?>" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
+                  <?= $toReview ? e(t('Review', 'Suriin')) : e(t('View', 'Tingnan')) ?>
                 </a>
-                <?php if ($a['verification_status'] === 'pending'
+                <?php if ($a['verification_status'] === 'pending' && is_super()
                           && ID_OCR_ENABLED && account_ocr_is_clean($a)
                           && empty($dupes[$a['id']])): ?>
                   <form method="post" class="quick-verify-form" style="display:inline" data-name="<?= e(display_name($a['full_name'])) ?>">
@@ -436,8 +483,9 @@ function render_account_screen(string $role): void
         </tbody>
       </table>
     </div></div>
-    <div id="accounts-pager"><?= pager($accTotal, $accPage, 'page', $perPage) ?></div>
-    <script src="assets/js/people-list.js?v=2"></script>
+    <div id="accounts-pager" hx-boost="true" hx-swap="outerHTML show:#people-list:top"><?= pager($accTotal, $accPage, 'page', $perPage) ?></div>
+    </div><?php // #people-list ?>
+    <script src="assets/js/people-list.js?v=<?= e(asset_version('../js/people-list.js')) ?>"></script>
 
     <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
     <script>
@@ -468,6 +516,7 @@ function render_account_screen(string $role): void
       // input.
       const CSRF = <?= json_encode(csrf_token()) ?>;
       const OCR_ON = <?= json_encode(ID_OCR_ENABLED) ?>;
+      const CAN_VERIFY = <?= json_encode(is_super()) ?>;   // only a super admin verifies (staff and Kagawads see the list)
       const STATUS_LABEL = <?= json_encode(status_labels(), JSON_UNESCAPED_UNICODE) ?>;
       const NOUN_LABEL = <?= json_encode(strtolower($nounLabel), JSON_UNESCAPED_UNICODE) ?>;
       const IS_TANOD = <?= json_encode($isTanod) ?>;
@@ -480,11 +529,7 @@ function render_account_screen(string $role): void
       const COM_F = <?= json_encode($isTanod ? $comF : '') ?>;
       const DUTY_F = <?= json_encode($dutyF ?? '') ?>;
       const NO_COM = <?= json_encode(is_scoped() ? '—' : t('No committee', 'Walang komite')) ?>;
-      const sb = createClient(
-        <?= json_encode(supabase_url()) ?>,
-        <?= json_encode(supabase_key()) ?>,
-        { accessToken: window.ssAccessToken(TOKEN) }
-      );
+      const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
       function escapeHtml(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -702,7 +747,7 @@ function render_account_screen(string $role): void
         document.getElementById('pending-count').textContent = pending;
 
         var overdueBanner = document.getElementById('overdue-banner');
-        overdueBanner.hidden = !(overdue > 0);
+        overdueBanner.hidden = !(overdue > 0 && CAN_VERIFY && overdue > (window.ssOvOff ? window.ssOvOff() : 0));
         document.getElementById('overdue-text').textContent =
           overdue + ' ' + T((overdue === 1 ? 'registration has' : 'registrations have') + ' passed the two-hour verification window.',
                             'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.');
@@ -735,7 +780,7 @@ function render_account_screen(string $role): void
             extra += '<span class="p-badge p-b-grey" title="' + T('Waiting for them to open the app', 'Hinihintay na buksan nila ang app') + '">' + T('Re-check pending', 'Nakabinbing muling pagsuri') + '</span>';
           }
           var quickVerify = '';
-          if (OCR_ON && a.verification_status === 'pending' && ocrIsClean(a) &&
+          if (CAN_VERIFY && OCR_ON && a.verification_status === 'pending' && ocrIsClean(a) &&
               !(dupes[a.id] && dupes[a.id].length)) {
             quickVerify =
               '<form method="post" class="quick-verify-form" style="display:inline" data-name="' + escapeHtml(window.ssName(a.full_name)) + '">' +
@@ -759,8 +804,8 @@ function render_account_screen(string $role): void
                 '<td class="pe-contact"><span class="p-num">' + escapeHtml(a.mobile_number) + '</span><span class="pe-mail"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '—') + '</span></td>'
               : '<td class="pe-contact"><span class="p-num">' + escapeHtml(a.mobile_number) + '</span><span class="pe-mail"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '—') + '</span></td>') +
             '<td><div class="p-badges">' + statusPillsHtml(a) + extra + '</div></td>' +
-            '<td class="p-right"><a class="p-btn p-btn-sm ' + (a.verification_status === 'pending' ? 'p-btn-primary' : 'p-btn-ghost') + '" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
-              (a.verification_status === 'pending' ? T('Review', 'Suriin') : T('View', 'Tingnan')) + '</a>' + quickVerify + '</td>' +
+            '<td class="p-right"><a class="p-btn p-btn-sm ' + (a.verification_status === 'pending' && CAN_VERIFY ? 'p-btn-primary' : 'p-btn-ghost') + '" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
+              (a.verification_status === 'pending' && CAN_VERIFY ? T('Review', 'Suriin') : T('View', 'Tingnan')) + '</a>' + quickVerify + '</td>' +
             '</tr>';
         }).join('');
       }
@@ -815,7 +860,12 @@ function render_account_screen(string $role): void
       // "live" here means "polls quietly" rather than "pushed instantly."
       // Said plainly rather than dressed up as the same thing cases.php
       // and dashboard.php do.
-      setInterval(scheduleRefresh, 20000);
+      function livePeople() {
+        if (window.htmx && window.ssPress && document.getElementById('people-list')) { window.ssPress.refresh('#people-list'); return; }
+        scheduleRefresh();
+      }
+      window.ssLive = window.ssLive || {}; window.ssLive.people = livePeople;
+      setInterval(livePeople, 20000);
 
       var badge = document.getElementById('live-badge'),
           text  = document.getElementById('live-badge-text');
@@ -1177,7 +1227,7 @@ function render_account_detail(
       <a class="ss-bulk-go" id="ss-rqbar-next" href="#"><?= e(t('Next in the queue', 'Susunod sa pila')) ?> &rarr;</a>
       <button type="button" class="ss-bulk-clear" id="ss-rqbar-drop"><?= e(t('Drop the queue', 'Alisin ang pila')) ?></button>
     </div>
-    <script src="assets/js/people-list.js?v=2"></script>
+    <script src="assets/js/people-list.js?v=<?= e(asset_version('../js/people-list.js')) ?>"></script>
 
     <div class="p-acc-top">
       <a class="p-back" href="<?= e($self) ?>" aria-label="<?= e(t('Back to the list', 'Bumalik sa listahan')) ?>"><?= p_icon('i-back', 18) ?><?= e($navFile === 'personnel.php' ? t('Personnel', 'Mga Tanod') : t('Residents', 'Mga Residente')) ?></a>
@@ -1666,11 +1716,7 @@ function render_account_detail(
       const TOKEN = <?= json_encode(access_token()) ?>;
       const ROLE  = <?= json_encode($role) ?>;
       const ACCOUNT_ID = <?= json_encode($p['id']) ?>;
-      const sb = createClient(
-        <?= json_encode(supabase_url()) ?>,
-        <?= json_encode(supabase_key()) ?>,
-        { accessToken: window.ssAccessToken(TOKEN) }
-      );
+      const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
       // Excludes minutes_left/is_overdue on purpose — those already tick
       // on their own via the countdown script above and would otherwise
