@@ -174,8 +174,12 @@ $com   = (string) ($_GET['com'] ?? '');
 $myCom = is_scoped() ? (string) (current_admin()['committee'] ?? '') : '';
 if (!in_array($com, array_merge(['', 'none', 'fwd', 'flagged'], array_keys(committees_all())), true)) { $com = ''; }
 $flagIds = [];
-if (my_tier() === 'committee' && $myCom !== '') {
-    try { $flagIds = array_values(array_unique(array_column((array) $db->select('case_forward_flags', ['select' => 'report_id', 'from_committee' => 'eq.' . $myCom]), 'report_id'))); } catch (SupabaseError) {}
+// what this Kagawad's staff flagged: read with the page's one batch below (the chip's count, the rows' marks); only the Flagged
+// view itself needs them first, to ask for those cases
+$flagQuery = my_tier() === 'committee' && $myCom !== '' ? ['case_forward_flags', ['select' => 'report_id', 'from_committee' => 'eq.' . $myCom], true] : null;
+if ($flagQuery && $com === 'flagged') {
+    try { $flagIds = array_values(array_unique(array_column((array) $db->select($flagQuery[0], $flagQuery[1]), 'report_id'))); } catch (SupabaseError) {}
+    $flagQuery = null;
 }
 // The Notification panel's own search and order (Rose, 27 Sep 2026: both
 // were only drawn, never read).
@@ -389,7 +393,9 @@ try {
     if ($notices) { foreach (briefing_reads() as $k => $e) { $sel['pre:b:' . $k] = $e; } }
     if ($tab === 'notes') { foreach (forwarding_pins_reads() as $k => $e) { $sel['pre:p:' . $k] = $e; } }
     if ($workspace && function_exists('widget_panel_reads')) { foreach (widget_panel_reads($admin) as $k => $e) { $sel['pre:w:' . $k] = $e; } }
+    if ($flagQuery) { $sel['flags'] = $flagQuery; }
     $got = $db->selectMany($sel);
+    if ($flagQuery && is_array($got['flags'] ?? null)) { $flagIds = array_values(array_unique(array_column($got['flags'], 'report_id'))); }
     $notesUnread   = is_int($got['notes_n'] ?? null) ? $got['notes_n'] : 0;
     $escCount      = is_int($got['esc_n'] ?? null) ? $got['esc_n'] : 0;
     $reports       = $got['reports'] ?? [];

@@ -48,6 +48,7 @@ try {
     if ($act === 'back') {
         if (isset($_SESSION['dev_origin'])) {
             try { (new Supabase((string) access_token()))->signOut(); } catch (Throwable) {}
+            session_writable();
             session_regenerate_id(true);
             $_SESSION[SESSION_KEY] = $origin;
             unset($_SESSION['dev_origin'], $_SESSION['dev_view']);

@@ -31,3 +31,17 @@ and it has not been updated since June 2025; Lighthouse itself has none.)
 
 To check a new page, add it to `PAGES` in `pages.spec.mjs`; if it needs data
 the fake does not have yet, add it to `fake/fake_sb.py` (keep it invented).
+
+## The speed probe
+
+`chooser-probe.spec.mjs` presses every chooser on every page (tabs, chips, filters, pagers that stay on the page) for a super
+admin and a Kagawad, and prints for each press whether it swapped in place or reloaded, how long until it settled, and the
+server's Server-Timing (waits on the database, calls, server time); `?_trace=1` lists each wait. Give the fake a round trip so
+waits cost what Mumbai makes them cost, and the shared cache its live lifetime:
+
+    SITE=$(mktemp -d) FAKE_RTT_MS=100 bash serve.sh
+    sed -i 's/^FEATURE_CACHE_TTL=0/FEATURE_CACHE_TTL=300/' "$SITE/.env"
+    CP=1 OUT=probe.jsonl npx playwright test chooser-probe.spec.mjs --workers=1
+
+The local server answers one request at a time, so background calls (the street labels, the widgets) can make a page's own
+time look longer than it is on Render; the waits and the server time are the figures to compare.
