@@ -150,6 +150,73 @@ function server_timing_value(): string
         . ($held !== null ? sprintf(', held;dur=%.1f;desc="held back by the CPU quota"', $held) : '');
 }
 
+/**
+ * The engine's reads, kept per person for a minute (7 Nov 2026, after the move to Singapore).
+ *
+ * Measured on the live database: smart_module() costs about 330 ms the first time a database connection runs it (its plans and
+ * the tables' metadata are loaded cold) and about 10 ms after. The API keeps only a small pool of connections and lets idle
+ * ones go, so a person clicking at a human pace kept landing on a cold one, and every page waited the 330 ms for the brain
+ * button's module. These functions summarise the whole barangay (counts, deadline risk, quiet cases, spikes, patterns), so
+ * their answer for one person is kept for ENGINE_CACHE_TTL seconds (60 by default) in a small file only this server reads.
+ *
+ * Rules: per person (the user id inside their own sign-in token; no token, no cache); a failed or empty answer is never
+ * kept; any form a person sends drops all of their copies at once (engine_forget_mine(), called by require_admin()), so what
+ * they just did shows on their next page. What someone else changed reaches the module within the minute.
+ */
+const ENGINE_RPCS = ['smart_module', 'smart_summary', 'smart_deadline_risk', 'smart_spikes', 'smart_patterns', 'smart_stuck_cases'];
+
+function engine_cache_ttl(): int
+{
+    return (int) env('ENGINE_CACHE_TTL', '60');
+}
+
+/** The person a sign-in token belongs to (its sub claim), or null: the token is only read, never trusted for access. */
+function engine_cache_who(?string $token): ?string
+{
+    if ($token === null || substr_count($token, '.') !== 2) return null;
+    $claims = json_decode((string) base64_decode(strtr(explode('.', $token)[1], '-_', '+/')), true);
+    $sub = is_array($claims) ? (string) ($claims['sub'] ?? '') : '';
+    return preg_match('/^[0-9a-f-]{36}$/i', $sub) ? strtolower($sub) : null;
+}
+
+function engine_cache_prefix(string $who): string
+{
+    return sys_get_temp_dir() . '/ss-engine-' . substr(hash('sha256', $who . '|' . env('SUPABASE_URL', '')), 0, 20) . '-';
+}
+
+/** This person's copy of one engine read, as a file path; null when it is not one of the engine's reads or no one is signed in. */
+function engine_cache_file(?string $token, string $table, array $query): ?string
+{
+    if (!str_starts_with($table, 'rpc/') || !in_array(substr($table, 4), ENGINE_RPCS, true) || engine_cache_ttl() <= 0) return null;
+    $who = engine_cache_who($token);
+    if ($who === null) return null;
+    return engine_cache_prefix($who) . substr(hash('sha256', $table . '|' . json_encode($query)), 0, 20) . '.json';
+}
+
+function engine_cache_get(?string $file): array
+{
+    if ($file === null || !is_file($file) || @filemtime($file) <= time() - engine_cache_ttl()) return [false, null];
+    $v = json_decode((string) @file_get_contents($file), true);
+    return is_array($v) && array_key_exists('v', $v) ? [true, $v['v']] : [false, null];
+}
+
+function engine_cache_put(?string $file, mixed $value): void
+{
+    if ($file === null || $value === null || $value === [] || $value === '') return;
+    $tmp = $file . '.' . bin2hex(random_bytes(4));
+    if (@file_put_contents($tmp, json_encode(['v' => $value], JSON_UNESCAPED_UNICODE)) !== false) {
+        if (!@rename($tmp, $file)) @unlink($tmp);
+    }
+}
+
+/** Drop every engine copy of the person signed in with this token (they sent a form). */
+function engine_forget_mine(?string $token): void
+{
+    $who = engine_cache_who($token);
+    if ($who === null) return;
+    foreach (glob(engine_cache_prefix($who) . '*.json') ?: [] as $f) @unlink($f);
+}
+
 class SupabaseError extends RuntimeException
 {
     public function __construct(string $message, public readonly int $status = 0)
@@ -387,6 +454,10 @@ final class Supabase
             $q = $s[1];
             if ($mode[$key] === 'count') { $q['select'] = $count ? 'id' : (($q['select'] ?? '') !== '' ? $q['select'] : 'id'); }
             $keyOf[$key] = $this->seenKey($mode[$key], $s[0], $q);
+            if ($mode[$key] === '' && !array_key_exists($keyOf[$key], self::$seen)) {
+                [$hit, $val] = engine_cache_get(engine_cache_file($this->accessToken, $s[0], $q));
+                if ($hit) { self::$seen[$keyOf[$key]] = $val; }
+            }
             if (array_key_exists($keyOf[$key], self::$seen)) {
                 $hit = self::$seen[$keyOf[$key]];
                 if ($mode[$key] === 'total') { [$out[$key], $out[$key . ':total']] = $hit; } else { $out[$key] = $hit; }
@@ -467,6 +538,7 @@ final class Supabase
                         if ($mode[$key] === 'total') { $out[$key . ':total'] = $total; }
                     }
                     self::$seen[$keyOf[$key]] = $mode[$key] === 'total' ? [$out[$key], $out[$key . ':total']] : $out[$key];
+                    if ($mode[$key] === '') { engine_cache_put(engine_cache_file($this->accessToken, $selects[$key][0], $selects[$key][1]), $out[$key]); }
                 } catch (SupabaseError $ex) {
                     if (!$optional[$key]) { throw $ex; }
                     $out[$key] = $ex;
@@ -574,7 +646,13 @@ final class Supabase
         // goes to the database and empties the memo (request() above)
         $k = $this->seenKey('', 'rpc/' . $fn, $args);
         if (array_key_exists($k, self::$seen)) return self::$seen[$k];
-        return $this->request('POST', "/rest/v1/rpc/{$fn}", $args);
+        // one of the engine's reads: this person's copy from the last minute, if there is one (engine_cache_file above)
+        $file = engine_cache_file($this->accessToken, 'rpc/' . $fn, $args);
+        [$hit, $val] = engine_cache_get($file);
+        if ($hit) { self::$seen[$k] = $val; return $val; }
+        $v = $this->request('POST', "/rest/v1/rpc/{$fn}", $args);
+        if ($file !== null) { self::$seen[$k] = $v; engine_cache_put($file, $v); }
+        return $v;
     }
 }
 
