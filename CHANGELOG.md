@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Hardening (7 Nov, the gap search)**
+- The portal image no longer ships compilers and headers (gcc, g++, the libc and kernel headers, -dev packages): they were most
+  of the image scan's findings. The build keeps only what PHP, its extensions and Apache link to, and fails if a build tool is
+  left or an extension stops loading.
+- The session cookie is `__Host-ssid` over HTTPS: only this host can set it (onrender.com is shared). Everyone signs in once
+  after the deploy.
+- `Cross-Origin-Resource-Policy: same-origin` on the portal's answers.
+- One live connection per tab: presence and each page's live updates shared nothing and opened two websockets per tab, so a few
+  open tabs met the plan's connection limit (a live connection was refused on Notifications). They now share one client.
+
 **Warm connections (7 Nov)**
 - Measured on the live portal: one database wait took ~376 ms, far more than the ~65 ms round trip to Mumbai. Server-Timing now
   also says how many new connections a page had to open (`conn`), and the image keeps fewer, longer-lived workers so their

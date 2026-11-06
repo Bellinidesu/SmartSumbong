@@ -508,6 +508,15 @@ window.ssAccessToken = function (initial) {
       : Promise.resolve(token);
   };
 };
+// One live connection per page (7 Nov 2026). Every createClient opened its own websocket to Supabase: presence.js one, the page's
+// live list another, so each tab held two and a few tabs ran into the plan's connection limit (a live connection was refused on
+// Notifications). Every part of the page now shares this one client; its channels ride the one socket. The token renews as above.
+window.ssSupabase = function (url, key, initial) {
+  if (window.__ssSb) return window.__ssSb;
+  if (!window.supabase || !window.supabase.createClient) return null;
+  window.__ssSb = window.supabase.createClient(url, key, { accessToken: window.ssAccessToken(initial) });
+  return window.__ssSb;
+};
 </script>
 <title><?= e($title) ?> — Smart Sumbong | <?= e(barangay()['name']) ?></title>
 <meta name="description" content="Smart Sumbong: <?= e(brgy_line()) ?> complaint management portal for barangay staff.">

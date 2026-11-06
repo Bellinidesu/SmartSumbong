@@ -203,6 +203,8 @@ function send_security_policy(): void
     ];
     if (request_is_https()) $policy[] = "upgrade-insecure-requests";
     header('Content-Security-Policy: ' . implode('; ', $policy));
+    // the portal's own answers are for the portal's own pages: another site cannot embed them as an image, a script or a frame source
+    header('Cross-Origin-Resource-Policy: same-origin');
     // Stamp the nonce on every <script> of an HTML page as it goes out.
     ob_start(function (string $out) use ($nonce): string {
         // the page is held until it is complete, so its timing can still go in a header (speed work, 7 Nov 2026). Only for a

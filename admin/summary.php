@@ -819,11 +819,7 @@ $tlTone = function (array $l): string {
     if (!window.supabase) { return; }
     const { createClient } = supabase;
     const TOKEN = <?= json_encode(access_token()) ?>;
-    const sb = createClient(
-      <?= json_encode(supabase_url()) ?>,
-      <?= json_encode(supabase_key()) ?>,
-      { accessToken: window.ssAccessToken(TOKEN) }
-    );
+    const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
     sb.channel('summary-period')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' },

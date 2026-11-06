@@ -1862,11 +1862,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 
   const TOKEN = <?= json_encode(access_token()) ?>;
   const REPORT_ID = <?= json_encode($id) ?>;
-  const sb = createClient(
-    <?= json_encode(supabase_url()) ?>,
-    <?= json_encode(supabase_key()) ?>,
-    { accessToken: window.ssAccessToken(TOKEN) }
-  );
+  const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
   function showBanner() {
     document.getElementById('update-banner').classList.add('p-on');

@@ -98,7 +98,7 @@
   };
 
   function start() {
-    var sb = window.supabase.createClient(cfg.url, cfg.key, { accessToken: window.ssAccessToken(cfg.token) });
+    var sb = window.ssSupabase(cfg.url, cfg.key, cfg.token);
     var ch = sb.channel('portal-presence', { config: { presence: { key: cfg.me.id } } });
     ch.on('presence', { event: 'sync' }, function () {
       var st = ch.presenceState();

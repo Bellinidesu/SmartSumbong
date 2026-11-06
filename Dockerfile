@@ -24,16 +24,30 @@ FROM composer:2.10.3 AS composer
 # cannot, and Dependabot raises it with each new patch.
 FROM php:8.5.12-apache
 
-# apt-get upgrade (4 Nov 2026): Debian's security fixes that are newer than the PHP base image. The scan failed on 51
-# findings, all in linux-libc-dev (the kernel headers, part of the base image itself); Debian's fixed version arrives this
-# way, and the next one will too, at the next build.
-RUN apt-get update \
-    && apt-get upgrade -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev \
-    && docker-php-ext-install curl mbstring zip \
-    && a2enmod rewrite expires headers deflate \
-    && sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf \
-    && rm -rf /var/lib/apt/lists/*
+# apt-get upgrade (4 Nov 2026): Debian's security fixes that are newer than the PHP base image.
+# No build tools in the running image (7 Nov 2026): the compilers and headers that building the zip extension needs (gcc, g++,
+# the libc and kernel headers, the -dev packages; the base image keeps them as $PHPIZE_DEPS) were shipped to production and were
+# most of the image scan's findings. The docker-library way: build, keep only the libraries PHP, its extensions and Apache link
+# to (found with ldd), purge the rest, then prove the extensions still load and no compiler is left.
+RUN set -eux; \
+    apt-get update; \
+    apt-get upgrade -y --no-install-recommends; \
+    savedAptMark="$(apt-mark showmanual | grep -vxF "$(printf '%s\n' $PHPIZE_DEPS libc6-dev)" || true)"; \
+    apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev; \
+    docker-php-ext-install curl mbstring zip; \
+    apt-mark auto '.*' > /dev/null; \
+    [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark > /dev/null; \
+    find /usr/local /usr/lib/apache2/modules -type f \( -name '*.so' -o -perm -u+x \) -exec ldd '{}' ';' 2>/dev/null \
+      | awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
+      | sort -u | xargs -r dpkg-query --search 2>/dev/null \
+      | awk -F': ' '/^diversion/ { next } { n = split($1, p, ", "); for (i = 1; i <= n; i++) print p[i] }' \
+      | sort -u | xargs -r apt-mark manual > /dev/null; \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+    for m in curl mbstring zip; do php -m | grep -qix "$m"; done; \
+    if command -v gcc || command -v g++ || command -v make; then echo 'a build tool is still in the image' >&2; exit 1; fi; \
+    a2enmod rewrite expires headers deflate; \
+    sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf; \
+    rm -rf /var/lib/apt/lists/*
 
 # The image ships no php.ini, and PHP's built-in default prints errors
 # into the page — a fatal on request-access.php showed visitors the

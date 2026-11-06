@@ -420,11 +420,7 @@ function render_retirement_queue(): void
       // same way the PHP-rendered ones already carry it as a hidden
       // input.
       const CSRF = <?= json_encode(csrf_token()) ?>;
-      const sb = window.supabase ? window.supabase.createClient(
-        <?= json_encode(supabase_url()) ?>,
-        <?= json_encode(supabase_key()) ?>,
-        { accessToken: window.ssAccessToken(TOKEN) }
-      ) : null;
+      const sb = window.supabase ? window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN) : null;
 
       function escapeHtml(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
