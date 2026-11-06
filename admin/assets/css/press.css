@@ -1,0 +1,29 @@
+/* The press flow (7 Nov 2026): a press always answers. A thin bar runs along the top while anything is in flight (it shows only
+   after 120 ms, so a fast answer never flickers), the pressed control says it is working, and a swap fades rather than jumps. */
+.ss-progress { position: fixed; left: 0; top: 0; z-index: 2000; height: 3px; width: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, #FF9800, #FFC21A, #FF9800); box-shadow: 0 0 10px rgba(255,152,0,.7);
+  transition: width .2s ease, opacity .25s ease; }
+.ss-progress.is-on { opacity: 1; width: 82%; transition: width 6s cubic-bezier(.08,.6,.2,1), opacity .15s ease; }
+.ss-progress.is-on.is-done { width: 100%; opacity: 0; transition: width .2s ease, opacity .3s ease .15s; }
+/* the control that started a request */
+.htmx-request:is(a, button), button.htmx-request, form.htmx-request [type="submit"] { cursor: progress; }
+.htmx-request:is(a, button):not(.cm-chip), form.htmx-request [type="submit"] { opacity: .78; }
+/* the region being replaced */
+.htmx-swapping { opacity: .55; transition: opacity .12s ease; }
+.htmx-settling { transition: opacity .18s ease; }
+[aria-busy="true"] body { cursor: progress; }
+@media (prefers-reduced-motion: reduce) { .ss-progress, .ss-progress.is-on, .htmx-swapping, .htmx-settling { transition: none; } }
+/* step 2: a button that has sent its form shows a turning ring and cannot be pressed again */
+.is-sending { position: relative; cursor: progress !important; pointer-events: none; }
+.is-sending::after { content: ""; display: inline-block; width: 13px; height: 13px; margin-left: 8px; vertical-align: -2px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent; animation: ssSpin .7s linear infinite; }
+form[aria-busy="true"] { cursor: progress; }
+@keyframes ssSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .is-sending::after { animation-duration: 2s; } }
+/* step 4: a save sent in place shows the same turning ring on its button until its answer comes */
+form.htmx-request button[type="submit"]::after { content: ""; display: inline-block; width: 13px; height: 13px; margin-left: 8px; vertical-align: -2px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent; animation: ssSpin .7s linear infinite; }
+form.htmx-request { cursor: progress; }
+/* a region that takes the focus after a swap (when the pressed control is gone) shows no box for a mouse press, a quiet one for the keyboard */
+.press-region:focus { outline: none; }
+.press-region:focus-visible { outline: 2px solid color-mix(in srgb, var(--p-orange, #FF9800) 55%, transparent); outline-offset: 6px; border-radius: 16px; }

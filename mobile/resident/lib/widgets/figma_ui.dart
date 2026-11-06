@@ -44,7 +44,7 @@ class FigmaTitle extends StatelessWidget {
         text,
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontFamily: 'Urbanist',
+          fontFamily: 'Inter Tight',
           fontWeight: FontWeight.w800,
           fontSize: size,
           height: 43.68 / 28,
@@ -123,7 +123,7 @@ class FigmaPill extends StatelessWidget {
               borderRadius: BorderRadius.circular(50),
             ),
             textStyle: const TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 16,
             ),
@@ -255,7 +255,7 @@ class FigmaDialogPill extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
           textStyle: const TextStyle(
-            fontFamily: 'Urbanist',
+            fontFamily: 'Inter',
             fontWeight: FontWeight.w700,
             fontSize: 16,
           ),
@@ -363,7 +363,7 @@ class FigmaRadioRow extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontFamily: 'Urbanist',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                     color: context.colors.navy,
@@ -512,7 +512,7 @@ class FigmaDialogField extends StatelessWidget {
       inputFormatters: inputFormatters,
       onSubmitted: onSubmitted,
       style: TextStyle(
-        fontFamily: 'Urbanist',
+        fontFamily: 'Inter',
         fontWeight: FontWeight.w500,
         fontSize: 14,
         color: d.ink,
@@ -520,7 +520,7 @@ class FigmaDialogField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          fontFamily: 'Urbanist',
+          fontFamily: 'Inter',
           fontStyle: FontStyle.italic,
           fontSize: 13,
           color: d.muted,
@@ -622,7 +622,7 @@ class PDialog extends StatelessWidget {
     final d = context.d;
     final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(14));
     const size = Size.fromHeight(46);
-    const label = TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 15);
+    const label = TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 15);
     return Dialog(
       backgroundColor: d.card,
       insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),

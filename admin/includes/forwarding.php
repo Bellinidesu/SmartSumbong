@@ -76,12 +76,12 @@ function forward_options(?string $except = null): string
 }
 
 /** The one dialog the Forward and Flag buttons open. $back: the list address to return to. */
-function forward_dialog(string $back): string
+function forward_dialog(string $back, string $region = ''): string
 {
     $mod = my_tier() === 'moderator';
     ob_start(); ?>
 <dialog class="fw-dlg" id="fw-dlg" aria-labelledby="fw-title">
-  <form method="post" class="fw-form">
+  <form method="post" class="fw-form"<?= $region !== '' ? press_save($region) : '' ?>>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="action" value="<?= $mod ? 'flag_list' : 'forward_list' ?>">
     <input type="hidden" name="ids" id="fw-ids" value="">
@@ -106,6 +106,32 @@ function forward_dialog(string $back): string
 }
 
 /**
+ * What the pins read first, as selectMany entries: a page puts them in its own first batch (speed work, 7 Nov 2026) and
+ * forwarding_pins() finds them in the request's read memo (supabase.php).
+ */
+function forwarding_pins_reads(): array
+{
+    $tier = my_tier();
+    $me = current_admin() ?? [];
+    $isCom = $tier === 'committee' && !empty($me['committee']);
+    $first = [];
+    if ($tier === 'super') {
+        $first['place'] = ['reports', ['select' => 'id,tracking_id,updated_at', 'awaiting_placement' => 'is.true', 'deleted_at' => 'is.null', 'order' => 'updated_at.asc', 'limit' => '20'], true];
+    }
+    // 0155: a reroute waiting on this Kagawad (or, for a super admin, on any): pick a tanod before the wait runs out
+    if ($tier === 'super' || $isCom) {
+        $rq = ['select' => 'id,report_id,due_at,report:reports!reroute_questions_report_id_fkey(tracking_id)', 'state' => 'eq.open', 'order' => 'due_at.asc', 'limit' => '20'];
+        if ($isCom) { $rq['committee'] = 'eq.' . $me['committee']; }
+        $first['reroute'] = ['reroute_questions', $rq, true];
+    }
+    if ($isCom) {
+        $first['flags'] = ['case_forward_flags', ['select' => 'id,report_id,note,created_at', 'from_committee' => 'eq.' . $me['committee'], 'order' => 'created_at.asc', 'limit' => '20'], true];
+        $first['fwd'] = ['notifications', ['select' => 'report_id,message,created_at', 'user_id' => 'eq.' . $me['id'], 'kind' => 'eq.case_forwarded', 'is_read' => 'is.false', 'order' => 'created_at.asc', 'limit' => '20'], true];
+    }
+    return $first;
+}
+
+/**
  * What waits on this person, pinned at the top of Notifications (Ace: "pinned at the top because they're urgent"): for a super
  * admin, the cases handed to the super admins to place; for a Kagawad, the cases their staff flagged and the cases forwarded to
  * their committee that they have not opened yet.
@@ -115,44 +141,48 @@ function forward_dialog(string $back): string
 function forwarding_pins(Supabase $db): array
 {
     $pins = [];
-    $tier = my_tier();
     $me = current_admin() ?? [];
-    try {
-        if ($tier === 'super') {
-            foreach ((array) $db->select('reports', ['select' => 'id,tracking_id,updated_at', 'awaiting_placement' => 'is.true', 'deleted_at' => 'is.null', 'order' => 'updated_at.asc', 'limit' => '20']) as $r) {
-                $pins[] = ['report' => (string) $r['id'], 'tracking' => (string) $r['tracking_id'], 'kind' => 'place', 'at' => (string) $r['updated_at'],
-                           'text' => t('Forwarded to the super admins: place it with a committee.', 'Ipinasa sa mga super admin: ilagay ito sa isang komite.')];
-            }
-        }
-        // 0155: a reroute waiting on this Kagawad (or, for a super admin, on any): pick a tanod before the wait runs out
-        if ($tier === 'super' || ($tier === 'committee' && !empty($me['committee']))) {
-            $rq = ['select' => 'id,report_id,due_at,report:reports!reroute_questions_report_id_fkey(tracking_id)', 'state' => 'eq.open', 'order' => 'due_at.asc', 'limit' => '20'];
-            if ($tier === 'committee') { $rq['committee'] = 'eq.' . $me['committee']; }
-            foreach ((array) $db->select('reroute_questions', $rq) as $q) {
-                $msg = (array) $db->select('inbox_messages', ['select' => 'id', 'question_id' => 'eq.' . (int) $q['id'], 'recipient' => 'eq.' . ($me['id'] ?? '0'), 'limit' => '1']);
-                $pins[] = ['report' => (string) $q['report_id'], 'tracking' => (string) ($q['report']['tracking_id'] ?? ''), 'kind' => 'reroute', 'at' => (string) $q['due_at'],
-                           'href' => $msg ? 'inbox.php?m=' . (int) $msg[0]['id'] : null,
-                           'text' => sprintf(t('No tanod of the committee is free. Pick one by %s, or the nearest from any committee is sent.', 'Walang bakanteng tanod ang komite. Pumili bago mag-%s, o ipapadala ang pinakamalapit mula sa kahit anong komite.'),
-                                             (new DateTimeImmutable((string) $q['due_at']))->setTimezone(new DateTimeZone('Asia/Manila'))->format('g:i A'))];
-            }
-        }
-        if ($tier === 'committee' && !empty($me['committee'])) {
-            $flags = (array) $db->select('case_forward_flags', ['select' => 'id,report_id,note,created_at', 'from_committee' => 'eq.' . $me['committee'], 'order' => 'created_at.asc', 'limit' => '20']);
-            $fwd = (array) $db->select('notifications', ['select' => 'report_id,message,created_at', 'user_id' => 'eq.' . $me['id'], 'kind' => 'eq.case_forwarded', 'is_read' => 'is.false', 'order' => 'created_at.asc', 'limit' => '20']);
-            $ids = array_values(array_unique(array_filter(array_merge(array_column($flags, 'report_id'), array_column($fwd, 'report_id')))));
-            $track = [];
-            if ($ids) {
-                foreach ((array) $db->select('reports', ['select' => 'id,tracking_id', 'id' => 'in.(' . implode(',', $ids) . ')']) as $r) { $track[(string) $r['id']] = (string) $r['tracking_id']; }
-            }
-            foreach ($flags as $f) {
-                $pins[] = ['report' => (string) $f['report_id'], 'tracking' => $track[(string) $f['report_id']] ?? '', 'kind' => 'flag', 'at' => (string) $f['created_at'],
-                           'text' => sprintf(t('Staff flagged it for forwarding: %s', 'In-flag ng kawani para ipasa: %s'), (string) $f['note'])];
-            }
-            foreach ($fwd as $n) {
-                $pins[] = ['report' => (string) $n['report_id'], 'tracking' => $track[(string) $n['report_id']] ?? '', 'kind' => 'fwd', 'at' => (string) $n['created_at'], 'text' => (string) $n['message']];
-            }
-        }
-    } catch (SupabaseError) {}
+    $first = forwarding_pins_reads();
+    // Two waits at most (speed work, 7 Nov 2026): every list in one batch, then the inbox links and the tracking numbers in one
+    // more. A part that cannot be read is left out; the others still show.
+    if (!$first) return [];
+    try { $got = $db->selectMany($first); } catch (SupabaseError) { return []; }
+    $list = static fn (string $k): array => isset($got[$k]) && is_array($got[$k]) ? $got[$k] : [];
+    $places = $list('place'); $questions = $list('reroute'); $flags = $list('flags'); $fwd = $list('fwd');
+
+    $second = [];
+    $qids = array_values(array_filter(array_map(fn ($q) => (int) ($q['id'] ?? 0), $questions)));
+    if ($qids) {
+        $second['msgs'] = ['inbox_messages', ['select' => 'id,question_id', 'question_id' => 'in.(' . implode(',', $qids) . ')', 'recipient' => 'eq.' . ($me['id'] ?? '0'), 'order' => 'id.asc'], true];
+    }
+    $ids = array_values(array_unique(array_filter(array_merge(array_column($flags, 'report_id'), array_column($fwd, 'report_id')))));
+    if ($ids) {
+        $second['track'] = ['reports', ['select' => 'id,tracking_id', 'id' => 'in.(' . implode(',', $ids) . ')'], true];
+    }
+    try { $more = $second ? $db->selectMany($second) : []; } catch (SupabaseError) { $more = []; }
+    $msgOf = [];
+    foreach (isset($more['msgs']) && is_array($more['msgs']) ? $more['msgs'] : [] as $m) { $msgOf[(int) $m['question_id']] ??= (int) $m['id']; }
+    $track = [];
+    foreach (isset($more['track']) && is_array($more['track']) ? $more['track'] : [] as $r) { $track[(string) $r['id']] = (string) $r['tracking_id']; }
+
+    foreach ($places as $r) {
+        $pins[] = ['report' => (string) $r['id'], 'tracking' => (string) $r['tracking_id'], 'kind' => 'place', 'at' => (string) $r['updated_at'],
+                   'text' => t('Forwarded to the super admins: place it with a committee.', 'Ipinasa sa mga super admin: ilagay ito sa isang komite.')];
+    }
+    foreach ($questions as $q) {
+        $mid = $msgOf[(int) $q['id']] ?? null;
+        $pins[] = ['report' => (string) $q['report_id'], 'tracking' => (string) ($q['report']['tracking_id'] ?? ''), 'kind' => 'reroute', 'at' => (string) $q['due_at'],
+                   'href' => $mid ? 'inbox.php?m=' . $mid : null,
+                   'text' => sprintf(t('No tanod of the committee is free. Pick one by %s, or the nearest from any committee is sent.', 'Walang bakanteng tanod ang komite. Pumili bago mag-%s, o ipapadala ang pinakamalapit mula sa kahit anong komite.'),
+                                     (new DateTimeImmutable((string) $q['due_at']))->setTimezone(new DateTimeZone('Asia/Manila'))->format('g:i A'))];
+    }
+    foreach ($flags as $f) {
+        $pins[] = ['report' => (string) $f['report_id'], 'tracking' => $track[(string) $f['report_id']] ?? '', 'kind' => 'flag', 'at' => (string) $f['created_at'],
+                   'text' => sprintf(t('Staff flagged it for forwarding: %s', 'In-flag ng kawani para ipasa: %s'), (string) $f['note'])];
+    }
+    foreach ($fwd as $n) {
+        $pins[] = ['report' => (string) $n['report_id'], 'tracking' => $track[(string) $n['report_id']] ?? '', 'kind' => 'fwd', 'at' => (string) $n['created_at'], 'text' => (string) $n['message']];
+    }
     // most urgent first: a reroute question has a clock on it, then a staff flag, then cases to place or forwarded to us
     $rank = ['reroute' => 0, 'flag' => 1, 'fwd' => 2, 'place' => 3];
     usort($pins, fn ($a, $b) => [$rank[$a['kind']] ?? 9, $a['at']] <=> [$rank[$b['kind']] ?? 9, $b['at']]);
@@ -176,7 +206,7 @@ function committee_sd_types(Supabase $db): array
     $out = [];
     try {
         $tick = [];
-        foreach ((array) $db->select('committee_categories', ['select' => 'committee,category']) as $x) { $tick[(string) $x['committee']][(string) $x['category']] = true; }
+        foreach (committee_categories_all() as $ck0 => $cats0) { foreach ($cats0 as $c0) { $tick[(string) $ck0][$c0] = true; } }
         foreach ($tick as $ckey => $cats) {
             foreach (categories_all() as $catKey => $cat) {
                 if (!isset($cats[$catKey]) || empty($cat['active'])) continue;

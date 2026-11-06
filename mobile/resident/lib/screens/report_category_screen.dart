@@ -118,7 +118,7 @@ class _CategoryCard extends StatelessWidget {
       child: Wrap(spacing: 6, runSpacing: 6, children: [
         for (final o in category.options)
           Builder(builder: (context) {
-            final choice = CategoryChoice(category: category, issue: o.en, issueFil: o.fil);
+            final choice = CategoryChoice(category: category, issue: o.en, issueFil: o.fil, optionId: o.id);
             final key = _keyOf(choice);
             return _IssuePill(label: context.tr(o.en, o.fil), colour: col, selected: selectedKey == key, onTap: () => onPick(key, choice));
           }),
@@ -217,7 +217,7 @@ class _IssuePill extends StatelessWidget {
           ),
           child: Text(label,
               style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   fontSize: 12.5,
                   color: selected ? Colors.white : d.ink)),

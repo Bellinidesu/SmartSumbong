@@ -73,6 +73,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // details and, when any password box is filled, the password.
             // The older single-purpose actions still work the same way.
             $action = (string) ($_POST['action'] ?? '');
+            // 0166: a staff member asks to retire; their Kagawad can endorse it, a super admin decides
+            if ($action === 'retire') {
+                if (!is_moderator()) throw new SupabaseError(t('Only staff ask to retire here.', 'Ang kawani lamang ang humihiling magretiro rito.'));
+                $db->rpc('request_retirement');
+                $_SESSION['flash'] = ['text' => t('Your request to retire was sent. Your Kagawad can endorse it; a super admin decides.', 'Naipadala ang iyong kahilingang magretiro. Maaaring i-endorso ito ng iyong Kagawad; ang super admin ang magpapasya.'), 'level' => 'ok'];
+                header('Location: profile.php');
+                exit;
+            }
             if (!in_array($action, ['profile', 'details', 'password'], true)) {
                 throw new SupabaseError(t('Unknown action.', 'Hindi kilalang aksyon.'));
             }
@@ -202,18 +210,24 @@ unset($_SESSION['flash']);
 $error = null;
 $me    = null;
 $browsers = [];
+$retire = null;   // a staff member's latest retirement request (0166)
 
 try {
-    $rows = $db->select('users', [
-        'select' => 'id,full_name,email,mobile_number,role,verification_status,created_at,avatar_url,'
-                  . 'muted_notification_kinds,push_scope,push_quiet_from,push_quiet_to,push_quiet_urgent,'
-                  . 'official_role,committee,admin_tier,banner_preset,banner_colour,banner_url,banner_y',
-        'id'     => 'eq.' . $admin['id'],
-        'limit'  => '1',
-    ]);
-    $me = $rows[0] ?? null;
-    // their browsers with alerts on (0136); row-level security shows only their own
-    $browsers = $db->select('web_push_subscriptions', ['select' => 'id,endpoint,label,created_at,last_ok_at', 'order' => 'created_at.desc']);
+    // one wait: the person, their browsers with alerts on (0136; row-level security shows only their own) and, for staff, their
+    // retirement request (0166)
+    $pg = $db->selectMany([
+        'me' => ['users', [
+            'select' => 'id,full_name,email,mobile_number,role,verification_status,created_at,avatar_url,'
+                      . 'muted_notification_kinds,push_scope,push_quiet_from,push_quiet_to,push_quiet_urgent,'
+                      . 'official_role,committee,admin_tier,banner_preset,banner_colour,banner_url,banner_y',
+            'id'     => 'eq.' . $admin['id'],
+            'limit'  => '1',
+        ]],
+        'browsers' => ['web_push_subscriptions', ['select' => 'id,endpoint,label,created_at,last_ok_at', 'order' => 'created_at.desc']],
+    ] + (is_moderator() ? ['retire' => ['rpc/my_retirement_status', [], true]] : []));
+    $me = $pg['me'][0] ?? null;
+    $browsers = (array) $pg['browsers'];
+    $retire = is_array($pg['retire'] ?? null) ? ($pg['retire'][0] ?? null) : null;
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
 }
@@ -250,9 +264,10 @@ function profile_banner_style(array $me): string
     };
 }
 
-layout_head(t('Edit Profile', 'I-edit ang Profile'), 'profile.php');
+$pfTitle = t('Profile', 'Aking Profile');
+layout_head($pfTitle, 'profile.php');
 ?>
-<div class="p-topbar"><h1><?= e(t('Edit Profile', 'I-edit ang Profile')) ?></h1></div>
+<div class="p-topbar"><h1><?= e($pfTitle) ?></h1></div>
 
 <?php if ($flash): ?>
   <div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
@@ -271,14 +286,18 @@ $pfRank = admin_ranks()[(string) ($me['id'] ?? '')] ?? rank_of($me['official_rol
 $comma    = strpos((string) $me['full_name'], ',');
 $firstVal = $comma > 0 ? trim(substr($me['full_name'], $comma + 1)) : (string) $me['full_name'];
 $lastVal  = $comma > 0 ? trim(substr($me['full_name'], 0, $comma)) : '';
-$change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit=1#' . $field . '">' . e(t('Change', 'Palitan')) . '</a>';
+$change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit=1#' . $field . '" data-open="' . ($field === 'current_password' ? 'm-password' : 'm-details') . '" data-focus="' . $field . '">' . e(t('Change', 'Palitan')) . '</a>';
 ?>
 <!-- Ace (7 Oct): banner header (idea A) over settings rows (idea B). -->
 <section class="p-card ss-pf-head">
   <div class="ss-pf-banner<?= in_array($me['banner_preset'] ?? 'sidebar', ['photo', 'contour'], true) ? ' ss-pf-banner--plain' : '' ?>" id="ss-pf-banner" aria-hidden="true" style="<?= profile_banner_style($me) ?>"></div>
+  <button type="button" class="pf-cvbtn" data-open="m-cover"><?= p_icon('i-cam', 17) ?><span><?= e(t('Edit cover photo', 'I-edit ang cover photo')) ?></span></button>
   <div class="ss-pf-id">
-    <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av" data-r="<?= e($pfRank) ?>" src="<?= e(cld_thumb($me['avatar_url'], 240, true)) ?>" alt="" id="ss-photo-preview">
+    <button type="button" class="pf-avbtn" data-open="m-avatar" aria-label="<?= e(t('Update profile picture', 'I-update ang larawan sa profile')) ?>">
+      <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av" data-r="<?= e($pfRank) ?>" src="<?= e(cld_thumb($me['avatar_url'], 240, true)) ?>" alt="" id="ss-photo-preview">
     <?php else: ?><span class="ss-pf-av ss-pf-ini" data-r="<?= e($pfRank) ?>" id="ss-photo-preview"><?= e($initials) ?></span><?php endif; ?>
+      <span class="pf-avov" aria-hidden="true"><?= p_icon('i-cam', 26) ?></span>
+    </button>
     <div class="ss-pf-who">
       <h2><?= e($shown) ?></h2>
       <div class="p-badges">
@@ -287,21 +306,9 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
         <?php if (!empty($me['committee'])): ?><?= committee_pill((string) $me['committee']) ?><?php endif; ?>
       </div>
     </div>
-    <div class="ss-pf-act">
-      <?php if (!$editing): ?>
-        <a class="p-btn p-btn-orange" href="profile.php?edit=1"><?= p_icon('i-gear', 16) ?><?= e(t('Edit profile', 'I-edit ang profile')) ?></a>
-      <?php else: ?>
-        <label class="p-btn" for="avatar"><?= p_icon('i-cam', 16) ?><?= e(t('Change photo', 'Palitan ang larawan')) ?></label>
-        <input class="ss-file" type="file" id="avatar" name="avatar[]" form="profile-form" accept="image/jpeg,image/png,image/webp">
-        <?php if (!empty($me['avatar_url'])): ?>
-          <label class="p-check"><input type="checkbox" name="remove_avatar" value="1" form="profile-form"> <?= e(t('Remove my photo', 'Alisin ang aking larawan')) ?></label>
-        <?php endif; ?>
-      <?php endif; ?>
-    </div>
   </div>
 </section>
 
-<?php if (!$editing): ?>
 <div class="pf-grid"><div class="pf-left">
   <p class="p-eyebrow ss-pf-sec"><?= e(t('Your details', 'Iyong mga detalye')) ?></p>
   <div class="p-card ss-pf-rows">
@@ -327,6 +334,17 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
   <div class="p-card ss-pf-rows">
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Role', 'Tungkulin')) ?></span><span class="ss-pf-v"><?= e(t('Barangay administrator', 'Administrador ng barangay')) ?></span><span></span></div>
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Account created', 'Ginawa ang account')) ?></span><span class="ss-pf-v"><?= e(long_datetime($me['created_at'])) ?></span><span></span></div>
+    <?php if (is_moderator()):   // 0166: staff ask to retire here; their Kagawad can endorse it, a super admin decides
+      $rs = (string) ($retire['status'] ?? ''); ?>
+      <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Retirement', 'Pagreretiro')) ?></span>
+        <span class="ss-pf-v"><?php if ($rs === 'pending'): ?><?= e(sprintf(t('Asked on %s. Waiting for a super admin.', 'Hiniling noong %s. Hinihintay ang super admin.'), long_datetime((string) $retire['requested_at']))) ?>
+          <?php elseif ($rs === 'denied'): ?><?= e(sprintf(t('Not approved: %s', 'Hindi inaprubahan: %s'), (string) ($retire['denial_reason'] ?? ''))) ?>
+          <?php else: ?><span class="p-sub"><?= e(t('Your Kagawad can endorse it; a super admin decides.', 'Maaaring i-endorso ng iyong Kagawad; ang super admin ang magpapasya.')) ?></span><?php endif; ?></span>
+        <?php if ($rs !== 'pending'): ?>
+          <form method="post" class="ss-pf-act"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="retire">
+            <button type="submit" class="p-btn p-btn-ghost p-btn-sm" data-native-confirm="<?= e(t('Ask to retire? Your Kagawad and the super admins are told. Once a super admin approves it, this account no longer signs in and your cases go back to your committee.', 'Hilingin na magretiro? Sasabihan ang iyong Kagawad at ang mga super admin. Kapag inaprubahan ng super admin, hindi na makakapag-sign in ang account na ito at babalik sa iyong komite ang iyong mga kaso.')) ?>"><?= e(t('Ask to retire', 'Humiling magretiro')) ?></button></form>
+        <?php else: ?><span></span><?php endif; ?></div>
+    <?php endif; ?>
     <?php if ($lastSeen): ?>
       <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Last signed in', 'Huling pag-sign in')) ?></span><span class="ss-pf-v"><?= e(long_datetime($lastSeen)) ?></span><span></span></div>
     <?php endif; ?>
@@ -394,135 +412,162 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
   </div>
   <script src="assets/js/alerts.js?v=<?= e(asset_version('../js/alerts.js')) ?>" defer></script>
 </div></div>
-<?php else: ?>
-  <form method="post" id="profile-form" enctype="multipart/form-data" class="p-card p-card-pad ss-pf-form" data-native-confirm="<?= e(t('Save the changes to your account?', 'I-save ang mga pagbabago sa iyong account?')) ?>">
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-    <input type="hidden" name="action" value="profile">
-    <p class="p-eyebrow"><?= e(t('Your details', 'Iyong mga detalye')) ?></p>
+
+<form method="post" id="profile-form" enctype="multipart/form-data" novalidate>
+  <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+  <input type="hidden" name="action" value="profile">
+  <input type="hidden" id="banner_y" name="banner_y" value="<?= (int) ($me['banner_y'] ?? 50) ?>">
+</form>
+
+<?php $bp = (string) ($me['banner_preset'] ?? 'sidebar'); ?>
+<!-- Facebook's way: nothing on this page is a form until you press its picture, its cover or its Edit. Each popup is a part of one form. -->
+<div class="p-scrim" id="m-avatar"><div class="p-modal pf-modal" role="dialog" aria-modal="true" aria-labelledby="mav-t">
+  <h3 id="mav-t"><?= e(t('Update profile picture', 'I-update ang larawan sa profile')) ?></h3>
+  <div class="pf-mav">
+    <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av pf-photo-av" data-r="<?= e($pfRank) ?>" src="<?= e(cld_thumb($me['avatar_url'], 360, true)) ?>" alt=""><?php else: ?><span class="ss-pf-av ss-pf-ini pf-photo-av" data-r="<?= e($pfRank) ?>"><?= e($initials) ?></span><?php endif; ?>
+  </div>
+  <p class="p-hint pf-mn"><?= e(t('Shown as a circle, framed in your role colour everywhere in the portal.', 'Lalabas bilang bilog, na may kulay ng iyong tungkulin sa buong portal.')) ?></p>
+  <div class="pf-macts">
+    <label class="p-btn p-btn-primary" for="avatar"><?= p_icon('i-cam', 16) ?><?= e(t('Upload photo', 'Mag-upload ng larawan')) ?></label>
+    <input class="ss-file" type="file" id="avatar" name="avatar[]" form="profile-form" accept="image/jpeg,image/png,image/webp">
+    <?php if (!empty($me['avatar_url'])): ?>
+      <button type="button" class="p-btn" id="avatar-adjust" data-src="<?= e(cld_thumb($me['avatar_url'], 900, true)) ?>"><?= e(t('Adjust', 'Ayusin')) ?></button>
+      <label class="p-check"><input type="checkbox" name="remove_avatar" value="1" form="profile-form"> <?= e(t('Remove my photo', 'Alisin ang aking larawan')) ?></label>
+    <?php endif; ?>
+  </div>
+  <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-pf-cancel><?= e(t('Cancel', 'Kanselahin')) ?></button><button type="button" class="p-btn p-btn-primary" data-pf-save><?= e(t('Save', 'I-save')) ?></button></div>
+</div></div>
+
+<div class="p-scrim" id="m-cover"><div class="p-modal pf-modal pf-modal--wide" role="dialog" aria-modal="true" aria-labelledby="mcv-t">
+  <h3 id="mcv-t"><?= e(t('Cover photo', 'Larawan sa itaas')) ?></h3>
+  <div class="ss-pf-banner pf-cover<?= in_array($bp, ['photo', 'contour'], true) ? ' ss-pf-banner--plain' : '' ?>" aria-hidden="true" style="<?= profile_banner_style($me) ?>"></div>
+  <fieldset class="pf-banner">
+    <legend class="p-sr"><?= e(t('Cover', 'Larawan sa itaas')) ?></legend>
+    <div class="pf-presets" role="radiogroup">
+      <?php foreach (['sidebar' => t('My sidebar colour', 'Kulay ng aking sidebar'), 'contour' => t('The barangay\'s contour pattern', 'Contour pattern ng barangay'), 'solid' => t('A colour', 'Isang kulay'),
+                      'committee' => t('My committee\'s colour', 'Kulay ng aking komite'), 'photo' => t('My own picture', 'Sarili kong larawan')] as $pk => $pl):
+            if ($pk === 'committee' && empty($me['committee'])) continue; ?>
+        <label class="ib-person"><input type="radio" name="banner_preset" form="profile-form" value="<?= e($pk) ?>"<?= $bp === $pk ? ' checked' : '' ?>> <?= e($pl) ?></label>
+      <?php endforeach; ?>
+    </div>
+    <div class="pf-colrow"><span><?= e(t('Colour', 'Kulay')) ?></span>
+      <label class="pf-col" for="banner_colour"><span class="p-sr"><?= e(t('Colour', 'Kulay')) ?></span><input type="color" id="banner_colour" name="banner_colour" form="profile-form" value="<?= e((string) ($me['banner_colour'] ?? '#00308F')) ?>"></label></div>
+  </fieldset>
+  <div class="pf-macts">
+    <label class="p-btn" for="banner"><?= p_icon('i-cam', 16) ?><?= e(t('Choose a picture', 'Pumili ng larawan')) ?></label>
+    <input class="ss-file" type="file" id="banner" name="banner[]" form="profile-form" accept="image/jpeg,image/png,image/webp">
+    <?php if (!empty($me['banner_url'])): ?><button type="button" class="p-btn" id="banner-adjust" data-src="<?= e(cld_thumb((string) $me['banner_url'], 2400)) ?>"><?= e(t('Adjust', 'Ayusin')) ?></button><?php endif; ?>
+    <span class="pf-fn" id="banner-fn"></span>
+  </div>
+  <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-pf-cancel><?= e(t('Cancel', 'Kanselahin')) ?></button><button type="button" class="p-btn p-btn-primary" data-pf-save><?= e(t('Save', 'I-save')) ?></button></div>
+</div></div>
+
+<div class="p-scrim" id="m-details"><div class="p-modal pf-modal pf-modal--wide" role="dialog" aria-modal="true" aria-labelledby="mdt-t">
+  <h3 id="mdt-t"><?= e(t('Edit profile', 'I-edit ang profile')) ?></h3>
     <div class="ss-pf-2">
-      <label class="p-field" for="first_name"><span><?= e(t('First name', 'Pangalan')) ?></span><div class="p-input"><input type="text" id="first_name" name="first_name" required maxlength="60" value="<?= e($firstVal) ?>"></div></label>
-      <label class="p-field" for="last_name"><span><?= e(t('Last name', 'Apelyido')) ?></span><div class="p-input"><input type="text" id="last_name" name="last_name" maxlength="60" value="<?= e($lastVal) ?>"></div></label>
+      <label class="p-field" for="first_name"><span><?= e(t('First name', 'Pangalan')) ?></span><div class="p-input"><input form="profile-form" type="text" id="first_name" name="first_name" required maxlength="60" value="<?= e($firstVal) ?>"></div></label>
+      <label class="p-field" for="last_name"><span><?= e(t('Last name', 'Apelyido')) ?></span><div class="p-input"><input form="profile-form" type="text" id="last_name" name="last_name" maxlength="60" value="<?= e($lastVal) ?>"></div></label>
     </div>
     <div class="ss-pf-2">
       <label class="p-field" for="mobile_number"><span><?= e(t('Mobile number', 'Mobile number')) ?></span>
         <?php if ($mobileLocked): ?>
           <!-- Sent unchanged, so the server still sees the same number. -->
-          <div class="p-input"><input type="tel" id="mobile_number" name="mobile_number" readonly value="<?= e($me['mobile_number']) ?>"></div>
+          <div class="p-input"><input form="profile-form" type="tel" id="mobile_number" name="mobile_number" readonly value="<?= e($me['mobile_number']) ?>"></div>
           <small class="p-hint"><?= e(t('This is how you sign in to the Smart Sumbong app, so it cannot be changed here.', 'Ito ang ginagamit mo sa pag-sign in sa Smart Sumbong app, kaya hindi ito mapapalitan dito.')) ?></small>
         <?php else: ?>
-          <div class="p-input"><input type="tel" id="mobile_number" name="mobile_number" required pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>"></div>
+          <div class="p-input"><input form="profile-form" type="tel" id="mobile_number" name="mobile_number" required pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>"></div>
           <small class="p-hint"><?= e(t('Eleven digits, starting 09.', 'Labing-isang digit, nagsisimula sa 09.')) ?></small>
         <?php endif; ?></label>
-      <label class="p-field" for="email_ro"><span><?= e(t('Email', 'Email')) ?></span><div class="p-input"><input type="email" id="email_ro" value="<?= e($me['email']) ?>" disabled></div>
+      <label class="p-field" for="email_ro"><span><?= e(t('Email', 'Email')) ?></span><div class="p-input"><input form="profile-form" type="email" id="email_ro" value="<?= e($me['email']) ?>" disabled></div>
         <small class="p-hint"><?= e(t('This is your sign-in identity and cannot be changed here.', 'Ito ang iyong pagkakakilanlan sa pag-sign in at hindi mapapalitan dito.')) ?></small></label>
     </div>
 
-    <?php $bp = (string) ($me['banner_preset'] ?? 'sidebar'); ?>
-    <fieldset class="pf-banner">
-      <legend class="p-eyebrow ss-pf-sec2"><?= e(t('Banner', 'Larawan sa itaas')) ?></legend>
-      <div class="pf-presets" role="radiogroup">
-        <?php foreach (['sidebar' => t('My sidebar colour', 'Kulay ng aking sidebar'), 'contour' => t('The barangay\'s contour pattern', 'Contour pattern ng barangay'), 'solid' => t('A colour', 'Isang kulay'),
-                        'committee' => t('My committee\'s colour', 'Kulay ng aking komite'), 'photo' => t('My own picture', 'Sarili kong larawan')] as $pk => $pl):
-              if ($pk === 'committee' && empty($me['committee'])) continue; ?>
-          <label class="ib-person"><input type="radio" name="banner_preset" value="<?= e($pk) ?>"<?= $bp === $pk ? ' checked' : '' ?>> <?= e($pl) ?></label>
-        <?php endforeach; ?>
-      </div>
-      <div class="ss-pf-2">
-        <label class="p-field" for="banner_colour"><span><?= e(t('Colour', 'Kulay')) ?></span><input type="color" id="banner_colour" name="banner_colour" value="<?= e((string) ($me['banner_colour'] ?? '#00308F')) ?>"></label>
-        <label class="p-field" for="banner"><span><?= e(t('Picture', 'Larawan')) ?></span><input class="ss-file-plain" type="file" id="banner" name="banner[]" accept="image/jpeg,image/png,image/webp"></label>
-      </div>
-      <label class="p-field" for="banner_y"><span><?= e(t('Frame the picture: drag the banner up or down, or use this', 'I-frame ang larawan: hilahin pataas o pababa ang banner, o gamitin ito')) ?></span>
-        <input type="range" id="banner_y" name="banner_y" min="0" max="100" value="<?= (int) ($me['banner_y'] ?? 50) ?>"></label>
-    </fieldset>
+  <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-pf-cancel><?= e(t('Cancel', 'Kanselahin')) ?></button><button type="button" class="p-btn p-btn-primary" data-pf-save><?= e(t('Save', 'I-save')) ?></button></div>
+</div></div>
 
-    <p class="p-eyebrow ss-pf-sec2"><?= e(t('Password', 'Password')) ?></p>
+<div class="p-scrim" id="m-password"><div class="p-modal pf-modal pf-modal--wide" role="dialog" aria-modal="true" aria-labelledby="mpw-t">
+  <h3 id="mpw-t"><?= e(t('Change password', 'Palitan ang password')) ?></h3>
     <p class="p-hint" style="margin:-4px 0 12px"><?= e(t('To change your password, fill in all three boxes. Leave them empty to keep it.', 'Para palitan ang password, punan ang tatlong kahon. Iwanang blangko para panatilihin ito.')) ?></p>
     <div class="ss-pf-3">
-      <label class="p-field" for="current_password"><span><?= e(t('Current password', 'Kasalukuyang password')) ?></span><div class="p-input"><input type="password" id="current_password" name="current_password" autocomplete="current-password"></div></label>
-      <label class="p-field" for="new_password"><span><?= e(t('New password', 'Bagong password')) ?></span><div class="p-input"><input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password"></div>
+      <label class="p-field" for="current_password"><span><?= e(t('Current password', 'Kasalukuyang password')) ?></span><div class="p-input"><input form="profile-form" type="password" id="current_password" name="current_password" autocomplete="current-password"></div></label>
+      <label class="p-field" for="new_password"><span><?= e(t('New password', 'Bagong password')) ?></span><div class="p-input"><input form="profile-form" type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password"></div>
         <!-- Guidance, not a gate: the rule is eight characters. -->
         <div class="p-pw-meter" aria-hidden="true"><span id="pw-bar"></span></div>
         <small class="p-hint" id="pw-note"><?= e(t('At least 8 characters.', 'Hindi bababa sa 8 karakter.')) ?></small></label>
-      <label class="p-field" for="confirm_password"><span><?= e(t('Repeat new password', 'Ulitin ang bagong password')) ?></span><div class="p-input"><input type="password" id="confirm_password" name="confirm_password" minlength="8" autocomplete="new-password"></div></label>
+      <label class="p-field" for="confirm_password"><span><?= e(t('Repeat new password', 'Ulitin ang bagong password')) ?></span><div class="p-input"><input form="profile-form" type="password" id="confirm_password" name="confirm_password" minlength="8" autocomplete="new-password"></div></label>
     </div>
-    <div class="ss-pf-foot">
-      <button type="button" class="p-btn p-btn-ghost" id="profile-cancel"><?= e(t('Cancel', 'Kanselahin')) ?></button>
-      <button type="submit" class="p-btn p-btn-primary"><?= e(t('Save changes', 'I-save ang mga pagbabago')) ?></button>
-    </div>
-  </form>
+  <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-pf-cancel><?= e(t('Cancel', 'Kanselahin')) ?></button><button type="button" class="p-btn p-btn-primary" data-pf-save><?= e(t('Save', 'I-save')) ?></button></div>
+</div></div>
 
-  <div class="p-scrim" id="confirm-save"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="cs-t">
-    <div class="p-m-ico" style="background:var(--p-green-bg);color:var(--p-green)"><?= p_icon('i-check', 26) ?></div>
-    <h3 id="cs-t"><?= e(t('Save changes?', 'I-save ang mga pagbabago?')) ?></h3><p><?= e(t('Your profile will be updated right away.', 'Maa-update agad ang iyong profile.')) ?></p>
-    <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-p-close><?= e(t('Keep editing', 'Ituloy ang pag-edit')) ?></button><button type="button" class="p-btn p-btn-primary" id="confirm-save-ok"><?= e(t('Save', 'I-save')) ?></button></div></div></div>
-  <div class="p-scrim" id="confirm-cancel"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="cc-t">
-    <div class="p-m-ico" style="background:var(--p-red-bg);color:var(--p-red)"><?= p_icon('i-x', 26) ?></div>
-    <h3 id="cc-t"><?= e(t('Discard changes?', 'Itapon ang mga pagbabago?')) ?></h3><p><?= e(t('Anything you changed will be lost.', 'Mawawala ang anumang binago mo.')) ?></p>
-    <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-p-close><?= e(t('Keep editing', 'Ituloy ang pag-edit')) ?></button><a class="p-btn p-btn-danger-soft" href="profile.php"><?= e(t('Discard', 'Itapon')) ?></a></div></div></div>
-
-  <script>
-  // A picked photo shows in the banner straight away; a "Change" link from
-  // the details rows lands with that box focused.
-  document.getElementById('avatar').addEventListener('change', function (e) {
-    var f = e.target.files && e.target.files[0]; if (!f) return;
-    var p = document.getElementById('ss-photo-preview'), img = document.createElement('img');
-    img.className = 'ss-pf-av'; img.id = 'ss-photo-preview'; img.alt = ''; img.src = URL.createObjectURL(f); p.replaceWith(img);
+<script src="assets/js/cropper.js?v=<?= e(asset_version('../js/cropper.js')) ?>"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); }, form = $('profile-form');
+  var X = <?= json_encode(['photo' => t('Your photo', 'Iyong larawan'), 'banner' => t('Your banner', 'Iyong banner'), 'use' => t('Use this picture', 'Gamitin ang larawang ito'), 'cancel' => t('Cancel', 'Kanselahin')]) ?>;
+  // ---- the popups: a picture, a cover, the details, the password
+  function openM(id, focus) { window.pOpen(id); var f = focus && $(focus); if (f && f.focus) f.focus(); }
+  document.addEventListener('click', function (e) { var o = e.target.closest('[data-open]'); if (o) { e.preventDefault(); openM(o.getAttribute('data-open'), o.getAttribute('data-focus')); } });
+  var dirty = {};
+  document.querySelectorAll('.pf-modal').forEach(function (m) {
+    ['input', 'change'].forEach(function (ev) { m.addEventListener(ev, function () { dirty[m.parentNode.id] = true; }); });
   });
-  // 0157: the banner previews as it is set up, and a picture is framed by dragging the banner
-  (function () {
-    var b = document.getElementById('ss-pf-banner'), y = document.getElementById('banner_y'), file = document.getElementById('banner'),
-        col = document.getElementById('banner_colour'), url = null;
-    if (!b || !y) return;
-    var SIDE = '', COM = <?= json_encode(!empty($me['committee']) ? committee_colour((string) $me['committee']) : '') ?>, PHOTO = <?= json_encode(!empty($me['banner_url']) ? cld_thumb((string) $me['banner_url'], 1600) : '') ?>;
-    function pick() { var r = document.querySelector('input[name="banner_preset"]:checked'); return r ? r.value : 'sidebar'; }
-    function paint() {
-      var p = pick(), pic = url || PHOTO;
+  // Cancel throws away what was changed in that popup (the page is read again so the pictures and the cover return as they were)
+  document.addEventListener('click', function (e) {
+    var c = e.target.closest('[data-pf-cancel]'); if (!c) return; var id = c.closest('.p-scrim').id; window.pClose(); if (dirty[id]) location.href = 'profile.php';
+  });
+  // Save is that popup's own question: it checks its own boxes and sends the one form (the other popups' boxes go along unchanged)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pf-save]'); if (!b) return; var m = b.closest('.p-scrim'), bad = null;
+    m.querySelectorAll('input, select, textarea').forEach(function (i) { if (!bad && !i.checkValidity()) bad = i; });
+    if (bad) { bad.reportValidity(); return; }
+    b.disabled = true; form.requestSubmit ? form.requestSubmit() : form.submit();
+  });
+  if (/[?&]edit=1/.test(location.search) || /^#(first_name|last_name|mobile_number)$/.test(location.hash)) openM('m-details', location.hash.slice(1));
+  if (location.hash === '#current_password' || location.hash === '#new_password') openM('m-password', location.hash.slice(1));
+
+  // ---- the picture editor: what is inside the frame is what is saved
+  function setFile(input, blob, name) { var dt = new DataTransfer(); dt.items.add(new File([blob], name, { type: blob.type || 'image/jpeg' })); input.files = dt.files; }
+  var av = $('avatar'), avAdj = $('avatar-adjust');
+  function photoDone(b) {
+    if (!b) return false; setFile(av, b, 'photo.jpg'); var url = URL.createObjectURL(b);
+    document.querySelectorAll('.ss-pf-av').forEach(function (el) {
+      var img = document.createElement('img'); img.className = el.className.replace('ss-pf-ini', '').trim(); img.alt = ''; img.src = url; if (el.id) img.id = el.id; var r = el.getAttribute('data-r'); if (r) img.setAttribute('data-r', r); el.replaceWith(img);
+    });
+    var rm = document.querySelector('input[name="remove_avatar"]'); if (rm) rm.checked = false; dirty['m-avatar'] = true; return true;
+  }
+  var PHOTO = { round: true, aspect: 1, outW: 640, outH: 640, title: X.photo, apply: X.use, cancel: X.cancel };
+  av.addEventListener('change', function () { var f = av.files && av.files[0]; if (!f) return; window.ssCrop.open(Object.assign({ file: f }, PHOTO)).then(function (b) { if (!photoDone(b)) av.value = ''; }); });
+  if (avAdj) avAdj.addEventListener('click', function () { window.ssCrop.open(Object.assign({ url: avAdj.dataset.src }, PHOTO)).then(photoDone); });
+  // ---- the cover: the page's cover and the popup's own preview follow what is set
+  var bs = [].slice.call(document.querySelectorAll('.ss-pf-banner')), y = $('banner_y'), file = $('banner'), col = $('banner_colour'), bnAdj = $('banner-adjust'), url = null;
+  var COM = <?= json_encode(!empty($me['committee']) ? committee_colour((string) $me['committee']) : '') ?>, PHOTO_URL = <?= json_encode(!empty($me['banner_url']) ? cld_thumb((string) $me['banner_url'], 1600) : '') ?>;
+  function pick() { var r = document.querySelector('input[name="banner_preset"]:checked'); return r ? r.value : 'sidebar'; }
+  function paint() {
+    var p = pick(), pic = url || PHOTO_URL;
+    bs.forEach(function (b) {
       b.classList.toggle('ss-pf-banner--plain', p === 'photo' || p === 'contour');
       b.style.cssText = p === 'solid' ? 'background:' + col.value
         : p === 'committee' ? 'background:' + COM
         : p === 'contour' ? 'background:var(--p-side-a) url(assets/img/texture-contours.webp) center/cover;background-blend-mode:soft-light'
-        : p === 'photo' && pic ? 'background:#222 url("' + pic + '") center ' + y.value + '%/cover;cursor:ns-resize' : SIDE;
-    }
-    document.querySelectorAll('input[name="banner_preset"]').forEach(function (r) { r.addEventListener('change', paint); });
-    col.addEventListener('input', function () { document.querySelector('input[name="banner_preset"][value="solid"]').checked = true; paint(); });
-    y.addEventListener('input', paint);
-    file.addEventListener('change', function () { var f = file.files && file.files[0]; if (!f) return; url = URL.createObjectURL(f); document.querySelector('input[name="banner_preset"][value="photo"]').checked = true; paint(); });
-    var drag = null;
-    b.addEventListener('pointerdown', function (e) { if (pick() !== 'photo') return; drag = { y: e.clientY, v: +y.value }; b.setPointerCapture(e.pointerId); });
-    b.addEventListener('pointermove', function (e) { if (!drag) return; y.value = Math.max(0, Math.min(100, Math.round(drag.v - (e.clientY - drag.y) / 2))); paint(); });
-    b.addEventListener('pointerup', function () { drag = null; });
-  })();
-  (function () {
-    var box = location.hash && document.getElementById(location.hash.slice(1));
-    if (box && box.focus) { box.focus(); box.scrollIntoView({ block: 'center' }); }
-  })();
-  </script>
-<?php endif; ?>
+        : p === 'photo' && pic ? 'background:#222 url("' + pic + '") center ' + y.value + '%/cover' : '';
+    });
+  }
+  document.querySelectorAll('input[name="banner_preset"]').forEach(function (r) { r.addEventListener('change', paint); });
+  col.addEventListener('input', function () { document.querySelector('input[name="banner_preset"][value="solid"]').checked = true; paint(); });
+  var BANNER = { round: false, aspect: 12, outW: 1920, outH: 160, title: X.banner, apply: X.use, cancel: X.cancel };
+  function bannerDone(blob) {
+    if (!blob) return false; setFile(file, blob, 'banner.jpg'); url = URL.createObjectURL(blob); y.value = 50;
+    document.querySelector('input[name="banner_preset"][value="photo"]').checked = true; var fn = $('banner-fn'); if (fn) fn.textContent = 'banner.jpg'; dirty['m-cover'] = true; paint(); return true;
+  }
+  file.addEventListener('change', function () { var f = file.files && file.files[0]; if (!f) return; window.ssCrop.open(Object.assign({ file: f }, BANNER)).then(function (blob) { if (!bannerDone(blob)) file.value = ''; }); });
+  if (bnAdj) bnAdj.addEventListener('click', function () { window.ssCrop.open(Object.assign({ url: bnAdj.dataset.src }, BANNER)).then(bannerDone); });
+})();
+</script>
 
 <script>
 (function () {
-  var form = document.getElementById('profile-form');
-  if (!form) return;
-  // Save asks first; the browser's own checks run before the question.
-  var sure = false;
-  form.addEventListener('submit', function (e) {
-    if (sure) return;
-    e.preventDefault();
-    if (!form.reportValidity()) return;
-    window.pOpen('confirm-save');
-  });
-  document.getElementById('confirm-save-ok').addEventListener('click', function () {
-    sure = true; window.pClose(); form.requestSubmit();
-  });
-  // Cancel asks only when something was changed.
-  var start = new FormData(form);
-  document.getElementById('profile-cancel').addEventListener('click', function () {
-    var changed = false;
-    new FormData(form).forEach(function (v, k) { if (v instanceof File ? v.size > 0 : start.get(k) !== v) changed = true; });
-    if (changed) window.pOpen('confirm-cancel'); else location.href = 'profile.php';
-  });
   // A password change needs all three boxes: any one filled makes the other two required.
-  var pwBoxes = ['current_password', 'new_password', 'confirm_password'].map(function (id) { return document.getElementById(id); });
+  var pwBoxes = ['current_password', 'new_password', 'confirm_password'].map(function (id) { return document.getElementById(id); }).filter(Boolean);
   pwBoxes.forEach(function (box) {
     box.addEventListener('input', function () {
       var any = pwBoxes.some(function (b) { return b.value !== ''; });

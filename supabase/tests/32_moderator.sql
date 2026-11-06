@@ -56,16 +56,14 @@ begin
     v_log := v_log || E'\n' || 'ok  a moderator reads and works their committee''s cases, not another''s';
   exception when others then reset role; v_log := v_log || E'\n' || 'FAIL scope: ' || sqlerrm; end;
 
-  -- 3. the decisions that change who answers for a case are not a moderator's
+  -- 3. staff hold the decisions that change who answers for a case (0166, Ace 7 Nov: "Staff get all 5"); here, escalating
+  --    their committee's case reaches its Kagawad
+  declare v_to uuid;
   begin
     perform set_config('request.jwt.claim.sub', v_stf::text, true);
-    begin perform public.hand_to_higher_official(r_po, 'chairman', null); raise exception 'a moderator handed a case up';
-    exception when insufficient_privilege then null; end;
-    begin perform public.refer_report(r_po, 'PNP', null); raise exception 'a moderator referred a case out';
-    exception when insufficient_privilege then null; end;
-    begin perform public.escalate_in_barangay(r_po, 'Needs the Chairman', null); raise exception 'a moderator escalated';
-    exception when insufficient_privilege then null; end;
-    v_log := v_log || E'\n' || 'ok  a moderator cannot hand a case up, refer it out or escalate it';
+    v_to := public.escalate_in_barangay(r_po, 'Needs the Kagawad', null);
+    if v_to <> v_kag then raise exception 'went to %', v_to; end if;
+    v_log := v_log || E'\n' || 'ok  a moderator escalates their committee''s case, and it reaches the committee''s Kagawad';
   exception when others then v_log := v_log || E'\n' || 'FAIL decisions: ' || sqlerrm; end;
 
   -- 4. a moderator is never notified about a case outside their committee
