@@ -64,7 +64,7 @@ for (const tier of RUNGS) for (const p of (tier === 'super' ? PAGES : ['home.php
   console.log('CANDS', p, cands.length);
   for (const c of cands) {
     await page.goto(base, { waitUntil: 'load' });
-    const a = page.locator(`main a[href="${c.href.replace(/"/g, '\\"')}"] >> visible=true`).first();
+    const a = page.locator(`main a[href="${c.href.replace(/[\\"]/g, '\\$&')}"] >> visible=true`).first();   // backslashes and quotes escaped for the CSS string
     if (!(await a.isVisible().catch(() => false))) { console.log('SKIP hidden', c.where, c.text); continue; }
     await page.evaluate(() => { window.__stay = 1; window.__done = 0; document.addEventListener('htmx:afterSettle', () => { window.__done = 1; }, { once: true }); });
     const respP = page.waitForResponse(r => { const u = new URL(r.url()); return u.pathname + u.search === c.url && ['document', 'fetch', 'xhr'].includes(r.request().resourceType()); }, { timeout: 15000 }).catch(() => null);
