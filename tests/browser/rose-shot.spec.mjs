@@ -1,6 +1,6 @@
 // Local audit tool: RS=1 npx playwright test rose-shot.spec.mjs -> Rose's 2 Nov notes: the Spatial floating tab with its layers row and its lock,
 // and the Report Summary range picker taking back the first day.
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 test.skip(!process.env.RS, 'audit tool');
 test.setTimeout(120000);
 const OUT = (process.env.OUT || 'C:/Users/acele/AppData/Local/Temp/claude/c--Users-acele-SmartSumbong/ccfb5882-e083-41a8-8f98-f68c68abfe82/scratchpad/rs') + '/';

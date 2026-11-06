@@ -19,12 +19,17 @@ require_once __DIR__ . '/boot.php';
 function session_start_once(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
+        // Over HTTPS the cookie carries the __Host- prefix (7 Nov 2026): a browser then accepts it only when it is Secure, for the
+        // whole site (path /) and set by this host alone, so no other site under a shared domain (onrender.com) can plant or
+        // overwrite it. Plain HTTP (the local test site) keeps PHP's own name, since the prefix needs Secure.
+        if (request_is_https()) session_name('__Host-ssid');
         session_set_cookie_params([
             'httponly' => true,
             'samesite' => 'Lax',
             // Render terminates HTTPS at its proxy, so PHP itself sees plain
             // HTTP; the proxy says so in X-Forwarded-Proto.
             'secure'   => request_is_https(),
+            'path'     => '/',
         ]);
         session_start();
     }
