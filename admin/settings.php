@@ -32,9 +32,9 @@ $db    = db();
 // Services takes the barangay's people and paperwork, the Control Room takes how the app behaves for this barangay. Each page
 // sets ST_PAGE and includes this file; a form posts to the page it is on and comes back to its tab on the page that owns it.
 const ST_PAGES = [
-    'settings' => ['file' => 'settings.php', 'tabs' => ['status', 'usage', 'smart', 'look']],
-    'admin'    => ['file' => 'administrative-services.php', 'tabs' => ['access', 'admins', 'ladder', 'plan']],
-    'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts', 'updates']],
+    'settings' => ['file' => 'settings.php', 'tabs' => ['status', 'usage', 'smart', 'plan', 'look']],
+    'admin'    => ['file' => 'administrative-services.php', 'tabs' => ['access', 'admins', 'ladder']],
+    'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'hotlines', 'wording', 'brgy', 'parts', 'updates']],
     // a Kagawad or staff member (4 Nov 2026): their own look, their committee (read only) and their module of the engine
     'mine'     => ['file' => 'settings.php', 'tabs' => ['look', 'committee', 'module']],
 ];
@@ -674,7 +674,7 @@ function st_reads(string $stPage): array
             'ccats' => ['committee_categories', ['select' => 'committee,category'], true],
         ];
     }
-    if (st_on('rules') || st_on('hotlines')) {
+    if (st_on('hotlines')) {
         $g['rules'] = [
             'ops' => ['operational_settings', ['select' => '*', 'id' => 'eq.1']],
             'sla' => ['sla_policies', ['select' => 'category,resolution_hours,accept_minutes']],
@@ -1348,7 +1348,7 @@ endif;
 </section>
 <?php endif; ?>
 
-<?php if (st_on('rules') || st_on('hotlines')):
+<?php if (st_on('hotlines')):
 // ---------- Rules and Hotlines (0147) ----------
 $ops = []; $slas = []; $hlGroups = []; $hlNums = [];
 try {
@@ -1366,58 +1366,6 @@ foreach ($hlGroups as $g) { if (!empty($g['parent_id'])) $hlKids[(string) $g['pa
 $hlNext = static fn (array $rows): int => $rows ? max(array_map(fn ($r) => (int) $r['sort_order'], $rows)) + 1 : 1;
 endif;
 ?>
-<?php if (st_on('rules')): ?>
-<section class="st-pane" data-pane="rules" hidden>
-  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
-  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
-  <form method="post" class="cmx-page ru-form" id="rules-card">
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="rules_save">
-    <div class="p-card p-card-pad ru-sec">
-    <h2 class="cmx-h"><?= e(t('Deadlines for each kind of complaint', 'Mga deadline sa bawat uri ng reklamo')) ?></h2>
-    <p class="p-hint"><?= e(t('A new report is due this many hours after it is filed; a tanod has this many minutes to accept a job. Reports already filed keep their deadline.', 'Dapat matapos ang bagong ulat sa ganitong dami ng oras mula nang maisampa; may ganitong dami ng minuto ang tanod para tanggapin ang trabaho. Hindi nagbabago ang deadline ng mga naisampa na.')) ?></p>
-    <div class="p-tscroll"><table class="p-t ru-t">
-      <thead><tr><th scope="col"><?= e(t('Kind of complaint', 'Uri ng reklamo')) ?></th><th scope="col"><?= e(t('Hours to resolve', 'Oras para malutas')) ?></th><th scope="col"><?= e(t('Minutes to accept', 'Minuto para tanggapin')) ?></th></tr></thead>
-      <tbody>
-      <?php foreach (categories_all() as $ck => $cc): $sl = $slas[$ck] ?? $otherSla; ?>
-        <tr<?= $cc['active'] ? '' : ' class="ty-off"' ?>><td><span class="cmx-t cmx-t-ro ty-chip" style="--tc:<?= e($cc['colour']) ?>;--tk:<?= e(ink_on_bold([(string) $cc['colour']])) ?>"><svg class="cm-ic cmx-ti" data-ic="<?= e(sd_icon_for((string) $ck, (array) $cc)) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg><b><?= e(t($cc['en'], $cc['fil'])) ?></b></span></td>
-          <td><label class="p-sr" for="sh-<?= e($ck) ?>"><?= e(t('Hours to resolve', 'Oras para malutas')) ?>, <?= e(t($cc['en'], $cc['fil'])) ?></label><input class="p-input-plain" id="sh-<?= e($ck) ?>" type="number" name="sla[<?= e($ck) ?>][hours]" min="1" max="720" value="<?= (int) $sl['resolution_hours'] ?>"></td>
-          <td><label class="p-sr" for="sa-<?= e($ck) ?>"><?= e(t('Minutes to accept', 'Minuto para tanggapin')) ?>, <?= e(t($cc['en'], $cc['fil'])) ?></label><input class="p-input-plain" id="sa-<?= e($ck) ?>" type="number" name="sla[<?= e($ck) ?>][accept]" min="1" max="240" value="<?= (int) $sl['accept_minutes'] ?>"></td></tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table></div>
-    </div>
-    <h2 class="cmx-h ru-lh"><?= e(t('Limits', 'Mga hangganan')) ?></h2>
-    <?php
-    $ruGroups = RULE_GROUPS;
-    $ruLeft = array_values(array_diff(array_keys(RULE_LIMITS), array_merge(...array_column($ruGroups, 2))));
-    if ($ruLeft) { $ruGroups[] = ['More', 'Iba pa', $ruLeft]; }
-    foreach ($ruGroups as [$gen, $gfil, $gcols]): ?>
-    <div class="ru-group p-card p-card-pad"><h3 class="ru-gh"><?= e(t($gen, $gfil)) ?></h3>
-    <div class="ru-grid">
-      <?php foreach ($gcols as $col): [$en, $fil, $hen, $hfil, $lo, $hi] = RULE_LIMITS[$col]; ?>
-        <div class="ru-f"><label for="lim-<?= e($col) ?>"><?= e(t($en, $fil)) ?></label>
-          <input class="p-input-plain" id="lim-<?= e($col) ?>" type="number" name="lim[<?= e($col) ?>]" min="<?= $lo ?>" max="<?= $hi ?>" value="<?= (int) ($ops[$col] ?? $lo) ?>">
-          <small><?= e(t($hen, $hfil)) ?></small></div>
-      <?php endforeach; ?>
-    </div></div>
-    <?php endforeach; ?>
-    <div class="p-card p-card-pad ru-pause<?= !empty($ops['filing_paused']) ? ' ru-pause-on' : '' ?>">
-    <h2 class="cmx-h"><?= e(t('New reports', 'Mga bagong ulat')) ?></h2>
-    <label class="cmx-sw ru-sw"><input type="checkbox" name="filing_paused" value="1" <?= !empty($ops['filing_paused']) ? 'checked' : '' ?>><i aria-hidden="true"></i><span><?= e(t('Pause new reports (a resident who sends one gets the message below, and nothing is filed)', 'Ihinto muna ang mga bagong ulat (makukuha ng residenteng magpapadala ang mensahe sa ibaba, at walang maisasampa)')) ?></span></label>
-    <div class="p-cfield" style="margin-top:8px"><label class="p-flabel" for="ru-msg"><?= e(t('Message while paused', 'Mensahe habang nakahinto')) ?></label>
-      <input class="p-input-plain" id="ru-msg" name="filing_paused_message" maxlength="300" value="<?= e((string) ($ops['filing_paused_message'] ?? '')) ?>" placeholder="<?= e(t('For example: Closed for the holidays; call the hall for emergencies.', 'Halimbawa: Sarado ngayong pista opisyal; tumawag sa hall kung emergency.')) ?>"></div>
-    </div>
-    <div class="ss-posform ru-bar"><span class="cmx-dirty-note" aria-live="polite"><?= e(t('Unsaved changes', 'May hindi pang-save na pagbabago')) ?></span><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save rules', 'I-save ang mga patakaran')) ?></button></div>
-    <script>
-    (function () {   // the bar says so while there is something to save
-      var f = document.getElementById('rules-card'), snap = new URLSearchParams(new FormData(f)).toString();
-      function chk() { f.classList.toggle('cmx-dirty', new URLSearchParams(new FormData(f)).toString() !== snap); }
-      f.addEventListener('input', chk); f.addEventListener('change', chk);
-    })();
-    </script>
-  </form>
-</section>
-<?php endif; ?>
 
 <?php if (st_on('hotlines')): ?>
 <section class="st-pane" data-pane="hotlines" hidden>

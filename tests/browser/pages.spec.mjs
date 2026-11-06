@@ -225,7 +225,7 @@ test('SMART Iteration 3: rules need a reason, can be tested first, and have a hi
 });
 
 test('SMART Iteration 3: planning (forecast, roster, work orders, sharing)', async ({ page }) => {
-  const r = await open(page, 'administrative-services.php#plan');
+  const r = await open(page, 'settings.php#plan');
   await expect(page.locator('#plan-forecast .st-uptime-tile')).toHaveCount(3);
   await expect(page.locator('#plan-forecast')).toContainText('does not guess');
   await expect(page.locator('#plan-roster li')).toHaveCount(2);
@@ -356,15 +356,9 @@ test('0146 catalogue: a super admin edits the complaint categories and options i
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('0147 rules and hotlines: a super admin edits the deadlines, limits and emergency numbers in Settings', async ({ page }) => {
-  const r = await open(page, 'control-room.php#rules');
-  await expect(page.locator('#rules-card .ru-t tbody tr')).toHaveCount(8);
-  await expect(page.locator('#rules-card .ru-grid .ru-f')).toHaveCount(13);   // 0155 adds the two reroute waits, 0158 the five retention periods
-  await expect(page.locator('#lim-max_deadline_extensions')).toHaveValue('2');
-  expect(await axe(page), 'Settings > Rules').toEqual([]);
-  await page.locator('#rules-card button[type="submit"]').click();
-  await expect(page).toHaveURL(/control-room\.php#rules/);
-  await expect(page.locator('section[data-pane="rules"] .p-flash--ok')).toContainText('Rules saved');
+test('0147 hotlines: a super admin edits the emergency numbers in the Control Room', async ({ page }) => {
+  const r = await open(page, 'control-room.php#hotlines');
+  await expect(page.locator('.st-tabs [data-st="rules"]'), 'Rules is no longer a tab (Rose, 7 Nov)').toHaveCount(0);
   await page.locator('.st-tabs [data-st="hotlines"]').click();
   await expect(page.locator('#hotlines-card details.hl-g')).toHaveCount(4);
   await expect(page.locator('#hotlines-card details.hl-sub')).toContainText('Pasay City General Hospital');
@@ -399,7 +393,7 @@ test('0149 wording: a super admin finds a label and rewords it; the portal shows
 
 test('Roles and pages 1a: Administrative Services and the Control Room take their tabs from Settings', async ({ page }) => {
   let r = await open(page, 'settings.php');
-  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['System status', 'Plan and usage', 'SMART', 'Appearance']);
+  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['System status', 'Plan and usage', 'SMART', 'Planning', 'Appearance']);
   await expect(page.locator('.p-sidebar a[href="administrative-services.php"]')).toContainText('Administrative Services');
   await expect(page.locator('.p-sidebar a[href="control-room.php"]')).toContainText('Control Room');
   r = await open(page, 'administrative-services.php');
@@ -407,7 +401,7 @@ test('Roles and pages 1a: Administrative Services and the Control Room take thei
   await expect(page.locator('section[data-pane="access"]')).toBeVisible();
   await expect(page.locator('.st-tabs .st-link')).toHaveText('Retirement requests');
   r = await open(page, 'control-room.php');
-  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['Complaint types', 'Rules', 'Emergency numbers', 'Wording', 'The barangay', 'Parts of the system', 'App updates'])   // the fake's own wording renames Hotlines;
+  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['Complaint types', 'Emergency numbers', 'Wording', 'The barangay', 'Parts of the system', 'App updates'])   // the fake's own wording renames Hotlines;
   await page.locator('.st-tabs [data-st="parts"]').click();
   await expect(page.locator('#acc-switches li')).toHaveCount(3);   // Workspace, Command center, Live preview on a phone
   expect(await axe(page), 'Control Room > Parts of the system').toEqual([]);
@@ -417,6 +411,7 @@ test('Roles and pages 1a: Administrative Services and the Control Room take thei
   const q = await open(page, 'retirement-requests.php');
   await expect(page.locator('h1')).toHaveText('Administrative Services');
   await expect(page.locator('.st-tabs .st-link.p-on')).toHaveText('Retirement requests');
+  await expect(page.locator('.st-tabs a[href="administrative-services.php#ladder"]'), 'Escalation and responders stays in the tab bar (Rose, 7 Nov)').toContainText('Escalation and responders');
   expect(r.errors.concat(q.errors), 'console errors').toEqual([]);
 });
 
@@ -461,19 +456,12 @@ test('Roles and Escalation, peak: the position chooser filters the table, the ba
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
 });
 
-test('Control Room, peak: kinds of complaint are chips with who sees them, rules are sectioned with a save bar, hotlines are cards', async ({ page }) => {
+test('Control Room, peak: kinds of complaint are chips with who sees them, hotlines are cards', async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1000 });
   const r = await open(page, 'control-room.php');
   await expect(page.locator('#types-card details.ty-cat .ty-chip')).toHaveCount(8);
   await expect(page.locator('#types-card .ty-own-none').first(), 'a kind of complaint nobody sees is called out').toBeVisible();
   expect(await page.locator('#types-card .ty-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c).backgroundColor === 'rgba(0, 0, 0, 0)').length), 'each chip is in its colour').toBe(0);
-  await page.locator('.st-tabs [data-st="rules"]').click();
-  await expect(page.locator('#rules-card .ru-group'), 'a card per group of limits').toHaveCount(4);
-  expect(await page.locator('#rules-card .ru-t thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'blue under the heading').toBe('rgb(0, 48, 143)');
-  await expect(page.locator('#rules-card .ru-bar .cmx-dirty-note'), 'nothing changed yet').toBeHidden();
-  await page.locator('#rules-card .ru-f input').first().fill('7');
-  await expect(page.locator('#rules-card .ru-bar .cmx-dirty-note')).toBeVisible();
-  expect(await page.locator('#rules-card .ru-bar').evaluate(e => getComputedStyle(e).position), 'the save bar stays in view').toBe('sticky');
   await page.locator('.st-tabs [data-st="hotlines"]').click();
   expect(await page.locator('#hotlines-card details.hl-g').first().evaluate(e => getComputedStyle(e).borderTopLeftRadius), 'a card each').not.toBe('0px');
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
@@ -505,8 +493,6 @@ test('Control Room: a live phone follows the forms (Report, Emergency, Home, Spl
   await page.locator('.st-tabs [data-st="brgy"]').click();
   await page.locator('#brgy-card input[name="name"]').fill('Barangay 183, Villamor');
   await expect(page.locator('#ed-phone .ed-splash .ed-bn')).toHaveText('Barangay 183, Villamor');
-  await page.locator('.st-tabs [data-st="rules"]').click();
-  await expect(page.locator('#ed-phone'), 'Rules has no screen').toBeHidden();
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
 });
 
@@ -760,16 +746,10 @@ test('Personnel roster: equal rows, duty tiles filter, bulk add to a committee, 
 
 test('Control Room: no tab overflows sideways, the limits share a line, the seal picker is a visible control, counts read right', async ({ page }) => {
   const r = await open(page, 'control-room.php');
-  for (const tab of ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts']) {
+  for (const tab of ['types', 'hotlines', 'wording', 'brgy', 'parts']) {
     await page.locator(`.st-tabs [data-st="${tab}"]`).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), `${tab} overflows sideways`).toBe(false);
   }
-  await page.locator('.st-tabs [data-st="rules"]').click();
-  for (const g of await page.locator('.ru-group').all()) {   // inputs of one group on one line, whatever their labels do
-    const tops = await g.locator('.ru-f input').evaluateAll(is => is.map(i => Math.round(i.getBoundingClientRect().top)));
-    expect(new Set(tops).size, 'limit inputs on one line: ' + tops).toBe(1);
-  }
-  expect(await page.locator('.ru-f input').count(), 'every limit is shown').toBe(13);
   await page.locator('.st-tabs [data-st="brgy"]').click();
   const box = await page.locator('#brgy-card input[type="file"]').boundingBox();
   expect(box && box.width > 100 && box.width < 1200, 'the seal picker is visible: ' + JSON.stringify(box)).toBeTruthy();
@@ -780,7 +760,7 @@ test('Control Room: no tab overflows sideways, the limits share a line, the seal
 
 test('Administrative Services: headers sit over their cells, the committees say who leads them, escalation has its own tab', async ({ page }) => {
   const r = await open(page, 'administrative-services.php');
-  for (const tab of ['access', 'admins', 'ladder', 'plan']) {
+  for (const tab of ['access', 'admins', 'ladder']) {
     await page.locator(`.st-tabs [data-st="${tab}"]`).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), `${tab} overflows sideways`).toBe(false);
   }
@@ -1114,7 +1094,7 @@ test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute qu
   await expect(page.locator('#ib-question button[value="any"]')).toContainText('nearest from any committee');
   expect(await axe(page), 'Inbox, reroute question').toEqual([]);
   const i = await open(page, 'inbox.php');
-  await expect(page.locator('.p-sidebar a[href="inbox.php"]').first()).toBeVisible();
+  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
   await expect(page.locator('.ib-row')).toHaveCount(2);
   await expect(page.locator('.ib-row.ib-unread')).toContainText('Needs your answer');
   const w = await open(page, 'inbox.php?new=1');
@@ -1123,12 +1103,10 @@ test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute qu
   const r = await open(page, 'inbox.php?m=42');
   await page.locator('.ib-act a', { hasText: 'Reply' }).click();
   await expect(page.locator('#ib-subject')).toHaveValue('Re: Pulong bukas');
-  const c = await open(page, 'control-room.php#rules');
-  await expect(page.locator('input[name="lim[reroute_ask_urgent_minutes]"]')).toHaveValue('5');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const m = await open(page, 'inbox.php');
-  await expect(page.locator('.p-sidebar a[href="inbox.php"]').first()).toBeVisible();
-  expect(n.errors.concat(i.errors, w.errors, r.errors, c.errors, m.errors), 'console errors').toEqual([]);
+  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
+  expect(n.errors.concat(i.errors, w.errors, r.errors, m.errors), 'console errors').toEqual([]);
 });
 
 test('Feed rows: notifications about one case fold into a row, and the Inbox shows its countdown and its thread', async ({ page }) => {
