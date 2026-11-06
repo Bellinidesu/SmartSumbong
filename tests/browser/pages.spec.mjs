@@ -1559,6 +1559,48 @@ test('Press flow step 3, Notifications (7 Nov): Unread/All, the chooser and the 
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Speed, step 3 (7 Nov 2026): Activity, the Inbox and Report Summary change view in place; their widgets work after a swap', async ({ page }) => {
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  // Activity: the scopes swap the feed; the address follows
+  const a = await open(page, 'activity.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  let s = settle(); await page.locator('#act-list .ss-seg a').nth(2).click(); await s;
+  expect(page.url()).toMatch(/show=peers/);
+  await expect(page.locator('#act-list .ss-seg a.p-on')).toHaveCount(1);
+  expect(await page.evaluate(() => window.__stay), 'Activity did not reload').toBe(1);
+  // Inbox: Sent, then a message, in place; the case link inside a message stays an ordinary page change
+  const i = await open(page, 'inbox.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  s = settle(); await page.locator('#ib-main .ib-tabs a[href="inbox.php?box=sent"]').click(); await s;
+  expect(page.url()).toMatch(/box=sent/);
+  s = settle(); await page.locator('#ib-main .ib-tabs a[href="inbox.php"]').click(); await s;
+  s = settle(); await page.locator('#ib-main a.ib-row').first().click(); await s;
+  expect(page.url()).toMatch(/[?&]m=\d+/);
+  await expect(page.locator('#ib-main .ib-read')).toHaveCount(1);
+  expect(await page.evaluate(() => window.__stay), 'the Inbox did not reload').toBe(1);
+  expect(await page.locator('#ib-main a[href^="case.php"][hx-boost]').count(), 'a case link is not boosted').toBe(0);
+  // Report Summary: a quick range swaps the report; the tabs, the title and the engine window follow; a pager lands on its tab
+  const r = await open(page, 'summary.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  s = settle(); await page.locator('#rs-main .p-chips-q a.p-chip').nth(3).click(); await s;
+  expect(page.url()).toMatch(/range=quarter/);
+  await expect(page.locator('#rs-main .p-chips-q a.p-chip.p-on')).toHaveText(/90/);
+  await expect(page.locator('#ss-jump .ss-jump-ind'), 'the tabs are set up again on the new report').toHaveCount(1);
+  await page.locator('#ss-jump a[href="#rs-tanod"]').click();
+  await expect(page.locator('#rs-tanod.p-table-card')).not.toHaveClass(/rs-off/);
+  await expect(page.locator('#rs-ledger')).toHaveClass(/rs-off/);
+  expect(await page.evaluate(() => document.getElementById('rs-win-dates').textContent), 'the engine window follows the period').toMatch(/–|-/);
+  // a By committee row: the report swaps to that committee's version in place
+  await page.locator('#ss-jump a[href="#rs-com"]').click();
+  s = settle(); await page.locator('#rs-com tr.p-click').first().click(); await s;
+  expect(page.url()).toMatch(/com=/);
+  await expect(page.locator('#rs-scope-sync .rs-scope')).not.toHaveText('Barangay Overall');
+  expect(await page.evaluate(() => window.__stay), 'Report Summary did not reload').toBe(1);
+  // the spreadsheet stays an ordinary download, never boosted
+  expect(await page.locator('#rs-main a[href*="export=xlsx"]').evaluate(el => !el.closest('[hx-boost]'))).toBe(true);
+  expect(a.errors.concat(i.errors, r.errors), 'console errors').toEqual([]);
+});
+
 test('Press flow step 3, Residents and Personnel (7 Nov): chooser and duty tiles swap in place; the view, the ticks and the put-away banner survive a swap', async ({ page, context }) => {
   const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
   const r = await open(page, 'residents.php');
