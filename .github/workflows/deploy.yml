@@ -44,7 +44,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PROJECT_REF: xmkpokcnjzgxgwysperh
+  PROJECT_REF: vmtzyyyxcmhtqgeeorhg
 
 jobs:
   deploy:
@@ -160,7 +160,7 @@ jobs:
       - name: Identity photos to private storage
         if: ${{ inputs.photos != 'skip' }}
         env:
-          SUPABASE_URL: https://xmkpokcnjzgxgwysperh.supabase.co
+          SUPABASE_URL: https://vmtzyyyxcmhtqgeeorhg.supabase.co
           CLOUDINARY_CLOUD_NAME: nwb2kryl
           PHOTOS: ${{ inputs.photos }}
         run: |

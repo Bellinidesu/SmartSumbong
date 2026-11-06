@@ -5,7 +5,7 @@
 # Any FAIL or BAD line fails the build. Refuses to run against production:
 # everyday checks run locally (supabase/tests/local/run-local.sh).
 set -u
-PRODUCTION=xmkpokcnjzgxgwysperh
+PRODUCTION=vmtzyyyxcmhtqgeeorhg
 ref=${STAGING_PROJECT_REF:-}
 if [ -z "$ref" ] || [ "$ref" = "$PRODUCTION" ]; then
   echo "STAGING_PROJECT_REF must name a staging project, never production ($PRODUCTION)."; exit 1

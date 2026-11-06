@@ -51,7 +51,7 @@ jobs:
           version: 2.121.0
       - name: Dump and encrypt
         run: |
-          supabase link --project-ref xmkpokcnjzgxgwysperh --password "$SUPABASE_DB_PASSWORD" > /dev/null
+          supabase link --project-ref vmtzyyyxcmhtqgeeorhg --password "$SUPABASE_DB_PASSWORD" > /dev/null
           stamp=$(date -u +%Y-%m-%d)
           mkdir -p out
           supabase db dump --linked --role-only -f roles.sql

@@ -12,7 +12,7 @@ The production system today:
 |---|---|---|
 | Admin portal | Render web service, Singapore | `smartsumbong-ph` → https://smartsumbong-ph.onrender.com |
 | Old portal address | Render web service, Ohio | `smartsumbong` (only forwards, `PORTAL_MOVED_TO`) |
-| Database, Auth, Realtime, Edge Functions | Supabase, Mumbai | project `xmkpokcnjzgxgwysperh` |
+| Database, Auth, Realtime, Edge Functions | Supabase, Singapore | project `vmtzyyyxcmhtqgeeorhg` |
 | Photos and video | Cloudinary | cloud `nwb2kryl` |
 | Push, crash reports | Firebase | the project in `mobile/resident/android/app/google-services.json` |
 | SMS | Semaphore | the account whose key is `SEMAPHORE_API_KEY` |

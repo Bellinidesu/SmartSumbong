@@ -8,7 +8,7 @@ when something breaks. Written for whoever maintains it next (October 2026).
 | Part | Where | Notes |
 |---|---|---|
 | Admin portal (`admin/`) | Render web service **smartsumbong-ph**, Singapore, Docker (`Dockerfile`, PHP 8.5 + Apache) | https://smartsumbong-ph.onrender.com. The old Ohio service `smartsumbong.onrender.com` only forwards old links (`PORTAL_MOVED_TO`). |
-| Database, sign-in, realtime, Edge Functions | Supabase project `xmkpokcnjzgxgwysperh` (Mumbai) | Migrations in `supabase/migrations`, functions in `supabase/functions`. |
+| Database, sign-in, realtime, Edge Functions | Supabase project `vmtzyyyxcmhtqgeeorhg` (Singapore) | Migrations in `supabase/migrations`, functions in `supabase/functions`. |
 | Photos and videos | Cloudinary cloud `nwb2kryl` | Presets `smartsumbong_unsigned` (jpg/png/webp) and `smartsumbong_unsigned_video` (mp4); overwrite off. |
 | Push notifications | Firebase Cloud Messaging, sent by the `send-dispatch-push` Edge Function | |
 | Mobile app (`mobile/resident`, residents and tanods) | Android APK | Built locally; see *Releasing the app*. |
@@ -55,7 +55,7 @@ when something breaks. Written for whoever maintains it next (October 2026).
    cleanup (below) and deploys every function. Run Actions → Nightly
    backup first. Each migration is a new numbered file; never edit an
    applied one. By hand, the same is `supabase db push --linked` and
-   `supabase functions deploy <name> --project-ref xmkpokcnjzgxgwysperh --use-api`.
+   `supabase functions deploy <name> --project-ref vmtzyyyxcmhtqgeeorhg --use-api`.
    Each function's logic is in `handler.ts` (tested by `handler.test.ts`
    with every outside call stubbed); `index.ts` only serves it. Locally:
    `deno check supabase/functions/*/index.ts && deno lint supabase/functions
@@ -130,7 +130,7 @@ the function secret and in Vault, so the two always match). By hand, once:
    Cloudinary key and secret are already set for `sign-upload`), then
    deploy `media-cleanup`.
 2. In the SQL editor, store where to call it, in Vault:
-   `select vault.create_secret('https://xmkpokcnjzgxgwysperh.supabase.co/functions/v1/media-cleanup', 'media_cleanup_url');`
+   `select vault.create_secret('https://vmtzyyyxcmhtqgeeorhg.supabase.co/functions/v1/media-cleanup', 'media_cleanup_url');`
    `select vault.create_secret('<the same long random string>', 'media_cleanup_secret');`
 
 The daily `media-cleanup` job does nothing until both are there.
