@@ -264,6 +264,8 @@ function require_admin(): array
         header('Location: change-password.php');
         exit;
     }
+    // a form sent: this person's engine copies go (supabase.php), so what they just did shows on their next page
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') engine_forget_mine(current_admin()['access_token'] ?? null);
     boot_prefetch();   // every cold cache's read in one wait (boot.php), before the page and its readers run
     access_refresh();
     require_page_access();
@@ -284,6 +286,7 @@ function require_admin_api(): array
         echo json_encode(['error' => 'signed_out']);
         exit;
     }
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') engine_forget_mine($admin['access_token'] ?? null);
     if ($admin['expires_at'] < time() + 60) {
         try {
             $fresh = Supabase::refresh($admin['refresh_token']);

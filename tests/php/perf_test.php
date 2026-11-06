@@ -152,5 +152,32 @@ shared_cache('t_empty', fn () => [], true);
 check('an empty answer is never kept', !is_file(shared_cache_file('t_empty')));
 shared_forget('t_list', 't_empty');
 
+// the engine's reads, kept per person for a minute (7 Nov 2026): cold connections made smart_module() cost ~330 ms a page
+$tok = fn (string $sub): string => 'eyJh.' . rtrim(strtr(base64_encode(json_encode(['sub' => $sub, 'role' => 'authenticated'])), '+/', '-_'), '=') . '.sig';
+$ana = $tok('11111111-1111-1111-1111-111111111111'); $ben = $tok('22222222-2222-2222-2222-222222222222');
+engine_forget_mine($ana); engine_forget_mine($ben);
+$rpcs = fn (): int => count(array_filter(requests(), fn ($r) => $r[1] === '/rest/v1/rpc/smart_module'));
+reset_log();
+(new Supabase($ana))->rpc('smart_module');
+Supabase::forgetReads();                                   // a new page: the memo is empty, the person's copy is not
+(new Supabase($ana))->rpc('smart_module');
+check("an engine read is asked once and then served from the person's copy", $rpcs() === 1);
+Supabase::forgetReads();
+(new Supabase($ana))->selectMany(['m' => ['rpc/smart_module', [], true], 'r' => ['reports', ['select' => 'id']]]);
+check("a batch finds the engine read in the person's copy too", $rpcs() === 1);
+Supabase::forgetReads();
+(new Supabase($ben))->rpc('smart_module');
+check("one person's copy is never another's", $rpcs() === 2);
+engine_forget_mine($ana); Supabase::forgetReads();
+(new Supabase($ana))->rpc('smart_module');
+check("a form sent drops the person's copies: the next page asks again", $rpcs() === 3);
+Supabase::forgetReads();
+(new Supabase('fake'))->rpc('smart_module'); Supabase::forgetReads(); (new Supabase('fake'))->rpc('smart_module');
+check('without a real sign-in token nothing is kept', $rpcs() === 5);
+Supabase::forgetReads();
+(new Supabase($ana))->rpc('mark_mail_read', ['p_ids' => '{1}']); Supabase::forgetReads(); (new Supabase($ana))->rpc('mark_mail_read', ['p_ids' => '{1}']);
+check("only the engine's reads are kept, never another function", count(array_filter(requests(), fn ($r) => $r[1] === '/rest/v1/rpc/mark_mail_read')) === 2);
+engine_forget_mine($ana); engine_forget_mine($ben);
+
 echo "\n{$n} checks, {$fails} failed\n";
 exit($fails ? 1 : 0);
