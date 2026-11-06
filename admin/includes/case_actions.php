@@ -249,6 +249,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // a higher official and any tanod on it stands down.
                 case 'hand_up':
                     $official = trim((string) ($_POST['official'] ?? ''));
+                    // 0166: "up the ladder" is an escalation to the next official's own account (escalation_target)
+                    if ($official === 'ladder') {
+                        $note = trim((string) ($_POST['note'] ?? ''));
+                        $flash = op_escalate($db, $id, ['reason' => $note !== '' ? $note : t('The target date cannot be extended again.', 'Hindi na maiuurong ang target na petsa.')]);
+                        break;
+                    }
                     if ($official === 'other') {
                         $official = trim((string) ($_POST['official_other'] ?? ''));
                     }

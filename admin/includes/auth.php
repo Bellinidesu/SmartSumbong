@@ -69,7 +69,7 @@ function establish_session(array $session): void
 
     $client  = new Supabase($token);
     $profile = $client->select('users', [
-        'select' => 'id,full_name,email,role,verification_status,is_suspended,must_change_password,avatar_url,admin_tier,is_dev,committee,is_test',
+        'select' => 'id,full_name,email,role,verification_status,is_suspended,is_retired,must_change_password,avatar_url,admin_tier,is_dev,committee,is_test',
         'id'     => 'eq.' . ($session['user']['id'] ?? ''),
         'limit'  => '1',
     ]);
@@ -85,6 +85,12 @@ function establish_session(array $session): void
     if (!empty($me['is_suspended'])) {
         logout();
         throw new SupabaseError(t('This account has been suspended. Contact the barangay administrator.', 'Na-suspend ang account na ito. Makipag-ugnayan sa administrator ng barangay.'));
+    }
+
+    // 0166: a staff member whose retirement was approved no longer signs in to the portal
+    if (!empty($me['is_retired'])) {
+        logout();
+        throw new SupabaseError(t('This account has retired. Thank you for your service.', 'Nagretiro na ang account na ito. Salamat sa iyong paglilingkod.'));
     }
 
     if (($me['role'] ?? '') !== 'admin') {

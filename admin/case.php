@@ -84,6 +84,7 @@ $handlerLog = [];  // takes, releases and take-overs (0087)
 $extUsed = 0;      // target-date extensions since the last hand-up (0079)
 $extCap = 2;
 $escRequest = null; // a tanod's pending escalation request (0073)
+$escTo = null;      // who an escalation reaches now (0166 escalation_target), null when nobody can take it or before 0166
 $threadMedia = []; // update id => its photos
 
 // Two parallel rounds (branch B) in place of about nine requests one
@@ -156,6 +157,8 @@ try {
         // 0130: the concerns of this report, and the tanods designated for women and children cases.
         'concerns' => ['report_concerns', ['select' => 'id,category,option_id,filed_category_en,filed_category_fil,filed_option_en,filed_option_fil,note,status,resolved_at,remark,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
         'women'    => ['users', ['select' => 'id', 'role' => 'eq.tanod', 'women_responder' => 'is.true'], true],
+        // 0166: who an escalation would reach now, shown before anyone presses Escalate (the same answer the escalation uses)
+        'esc_to'   => ['rpc/escalation_target', ['p_report' => $id], true],
     ]);
     $report = $first['report'][0] ?? null;
 
@@ -168,6 +171,7 @@ try {
         $concerns   = ($first['concerns'] ?? null) instanceof SupabaseError ? [] : (array) ($first['concerns'] ?? []);
         $womenIds   = array_column(($first['women'] ?? null) instanceof SupabaseError ? [] : (array) ($first['women'] ?? []), 'id');
         $smart      = ($first['smart'] ?? null) instanceof SupabaseError ? null : (is_array($first['smart'] ?? null) ? $first['smart'] : null);
+        $escTo      = is_array($first['esc_to'] ?? null) ? ($first['esc_to'][0] ?? null) : null;
     }
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
@@ -1027,23 +1031,35 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     ?>
     <?php if ($sens): ?>
       <div class="ss-sensitive" role="note"><b><?= e(t('Sensitive case', 'Sensitibong kaso')) ?></b>
-        <?= e(t('Elevate it to the Women and Family Kagawad. Do not send it to the nearest tanod; if a tanod is needed, choose a designated women responder.', 'I-elevate sa Kagawad ng Kababaihan at Pamilya. Huwag ipadala sa pinakamalapit na tanod; kung kailangan ng tanod, pumili ng itinalagang responder para sa kababaihan.')) ?></div>
+        <?= e(t('Escalate it to the Chairman; the super admins are told. Do not send it to the nearest tanod; if a tanod is needed, choose a designated women responder.', 'I-escalate sa Punong Barangay; sasabihan ang mga super admin. Huwag ipadala sa pinakamalapit na tanod; kung kailangan ng tanod, pumili ng itinalagang responder para sa kababaihan.')) ?></div>
     <?php endif; ?>
     <ol class="ss-ladder" aria-label="<?= e(t('Where the case is', 'Nasaan ang kaso')) ?>">
       <?php foreach ($steps as $k => $nm): ?><li data-r="<?= ['staff', 'kagawad', 'chair'][$k] ?>" class="<?= $k === $tier ? 'now' : ($k < $tier ? 'past' : '') ?>"<?= $k === $tier ? ' aria-current="step"' : '' ?>><?= e($nm) ?></li><?php endforeach; ?>
     </ol>
-    <?php if ($mine && $openCase && $tier < 2): $cm = committee_labels(); ?>
+    <?php if ($mine && $openCase && $tier < 2): $cm = committee_labels();
+      // 0166: who it reaches, named before anyone presses (escalation_target, the same answer the escalation uses)
+      $escWhy = (string) ($escTo['why'] ?? '');
+      $escToChair = $escTo !== null && (int) ($escTo['to_tier'] ?? 0) === 2; ?>
       <details class="p-fix">
-        <summary><?= e($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay')) ?></summary>
+        <summary><?= e($escTo !== null
+            ? sprintf(t('Escalate to %s', 'I-escalate kay %s'), (string) $escTo['official_name'] . ', ' . ($escToChair ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))
+            : ($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay'))) ?></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="escalate_barangay">
           <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
-          <?php if ($tier === 0): ?>
+          <?php if ($escWhy === 'kagawad'): ?>
+            <p class="p-ctl-note"><?= e(t('A Kagawad\'s escalation goes to the Chairman. The super admins are told.', 'Ang escalation ng Kagawad ay napupunta sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
+          <?php elseif ($escWhy === 'sensitive'): ?>
+            <p class="p-ctl-note"><?= e(t('A sensitive case goes to the Chairman. The super admins are told.', 'Ang sensitibong kaso ay napupunta sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
+          <?php elseif ($tier === 0): ?>
+            <?php if ($escWhy === 'no_kagawad'): ?>
+              <p class="p-ctl-note"><?= e(t('This committee has no Kagawad account yet, so it goes to the Chairman. The super admins are told.', 'Wala pang account ng Kagawad ang komiteng ito, kaya napupunta ito sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
+            <?php endif; ?>
             <div class="p-cfield"><label class="p-flabel" for="eb-comm"><?= e(t('Committee', 'Komite')) ?></label>
               <select class="p-input-plain" id="eb-comm" name="committee">
-                <option value=""><?= e($sens ? t('Women and Family (sensitive case)', 'Kababaihan at Pamilya (sensitibong kaso)') : t('The usual one for this kind of complaint', 'Ang karaniwan para sa ganitong reklamo')) ?></option>
-                <?php foreach ($cm as $ck => $cl): ?><option value="<?= e($ck) ?>"><?= e($cl[0]) ?></option><?php endforeach; ?>
+                <option value=""><?= e(t('The committee the case is with now', 'Ang komiteng may hawak ng kaso ngayon')) ?></option>
+                <?php foreach ($cm as $ck => $cl): if (committees_all() && empty(committees_all()[$ck]['active'])) continue; ?><option value="<?= e($ck) ?>"><?= e($cl[0]) ?></option><?php endforeach; ?>
               </select></div>
           <?php endif; ?>
           <div class="p-cfield"><label class="p-flabel" for="eb-reason"><?= e(t('Why (the official and the resident see it)', 'Bakit (makikita ng opisyal at ng residente)')) ?></label>
@@ -1486,6 +1502,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               <label class="p-flabel" for="hand-official"><?= e(t('Hand to', 'Ipasa kay')) ?></label>
               <select class="p-input-plain" id="hand-official" name="official" required data-office>
                 <option value=""><?= e(t('Choose an official', 'Pumili ng opisyal')) ?></option>
+                <?php // 0166, the hybrid (Ace): the ladder's real account first, who becomes the case's handler and is told; the list below stays for an official with no account
+                if ($escTo !== null && ($mine || empty($report['handler_id']))): ?>
+                <option value="ladder" selected><?= e(sprintf(t('Up the ladder: %s', 'Pataas sa hagdan: %s'), (string) $escTo['official_name'] . ', ' . ((int) ($escTo['to_tier'] ?? 0) === 2 ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))) ?></option>
+                <?php endif; ?>
                 <option value="Punong Barangay"><?= e(t('Punong Barangay', 'Punong Barangay')) ?></option>
                 <option value="Barangay Kagawad (Peace and Order)"><?= e(t('Barangay Kagawad (Peace and Order)', 'Barangay Kagawad (Kapayapaan at Kaayusan)')) ?></option>
                 <option value="Barangay Kagawad"><?= e(t('Barangay Kagawad (another committee)', 'Barangay Kagawad (ibang komite)')) ?></option>

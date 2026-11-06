@@ -1209,6 +1209,24 @@ test('Profile (6 Nov), the Facebook way: edited in popups from the face, the cov
   expect(await axe(page), 'Profile with a popup open').toEqual([]);
 });
 
+test('The ladder (0166): an escalation names who it reaches; staff ask to retire from their profile; a Kagawad sees who is staff', async ({ page, context }) => {
+  // a case the signed-in admin handles, still at the first rung: the Escalate control names the Kagawad it reaches
+  const c = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000003');
+  await expect(page.locator('summary', { hasText: 'Escalate to Dela Cruz Ramon, Kagawad (Peace and Order)' })).toHaveCount(1);
+  await expect(page.locator('#eb-comm option').first()).toHaveText('The committee the case is with now');
+  // staff (moderator): Profile > Account has the Retirement row and its button, behind a confirm
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const s = await open(page, 'profile.php');
+  await expect(page.locator('.ss-pf-row', { hasText: 'Retirement' }).locator('button[data-native-confirm]')).toHaveText('Ask to retire');
+  expect(await axe(page), 'Profile, staff').toEqual([]);
+  // the Kagawad's Retirement requests: tanod and staff, each labelled
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }]);
+  const k = await open(page, 'personnel.php?view=retire');
+  await expect(page.locator('#rt-k tbody tr').nth(1)).toContainText('Staff');
+  await expect(page.locator('#rt-k tbody tr').nth(0)).toContainText('Tanod');
+  expect(c.errors.concat(s.errors, k.errors), 'console errors').toEqual([]);
+});
+
 test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card) and a Kagawad endorsing a retirement', async ({ page, context }) => {
   const p = await open(page, 'profile.php');
   for (const k of ['case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail']) await expect(page.locator(`.ss-al-kinds input[data-kind="${k}"]`)).toHaveCount(1);
