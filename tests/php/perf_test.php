@@ -1,14 +1,14 @@
 <?php
 /**
  * The speed work's own tests (7 Nov 2026): the database client's batch modes and read memo, the Server-Timing header's
- * value, and the shared cache. Run: php tests/php/perf_test.php  (CI runs it too).
+ * value, the shared cache, and the key guard (the portal never runs on a secret key). Run: php tests/php/perf_test.php  (CI runs it too).
  *
  * It never reaches a real project: the portal's includes are copied into a throwaway folder with their own .env pointing at
  * a stand-in for PostgREST (fake_rest.php) on a local port, and every request it receives is logged and counted.
  */
 declare(strict_types=1);
 
-if (($argv[1] ?? '') !== 'child') {
+if (!in_array($argv[1] ?? '', ['child', 'child-key'], true)) {   // the parent; a child never starts another
     // ---- the parent: set the stage, run the checks in a child process, clean up
     $root = dirname(__DIR__, 2);
     $tmp = sys_get_temp_dir() . '/ss-perf-test-' . bin2hex(random_bytes(4));
@@ -21,12 +21,36 @@ if (($argv[1] ?? '') !== 'child') {
     $srv = proc_open([PHP_BINARY, '-S', "127.0.0.1:{$port}", $tmp . '/fake_rest.php'], [['pipe', 'r'], ['file', $tmp . '/srv.out', 'w'], ['file', $tmp . '/srv.err', 'w']], $pipes, $tmp);
     for ($i = 0; $i < 50 && !@fsockopen('127.0.0.1', $port); $i++) usleep(100000);
     passthru(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($tmp . '/perf_test.php') . ' child', $code);
+    // the key guard: a .env whose only key is a secret one must stop the portal, without the key in the message
+    file_put_contents($tmp . '/.env', "SUPABASE_URL=http://127.0.0.1:{$port}
+SUPABASE_ANON_KEY=sb_secret_never_shown_123
+");
+    passthru(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($tmp . '/perf_test.php') . ' child-key', $code2);
+    $code = $code ?: $code2;
     proc_terminate($srv);
     proc_close($srv);
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tmp, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
     foreach ($it as $x) { $x->isDir() ? @rmdir($x->getPathname()) : @unlink($x->getPathname()); }
     @rmdir($tmp);
     exit($code);
+}
+
+// ---- the second child: the portal refuses to run on a secret key
+if (($argv[1] ?? '') === 'child-key') {
+    require __DIR__ . '/admin/includes/config.php';
+    $ok = [];
+    $ok['a secret key is recognised'] = supabase_key_is_secret('sb_secret_x') && !supabase_key_is_secret('sb_publishable_x');
+    $jwt = fn (string $role): string => 'eyJh.' . rtrim(strtr(base64_encode(json_encode(['role' => $role])), '+/', '-_'), '=') . '.sig';
+    $ok['a legacy service_role key is recognised, a legacy anon key is not'] = supabase_key_is_secret($jwt('service_role')) && !supabase_key_is_secret($jwt('anon'));
+    try { supabase_key(); $ok['a .env with only a secret key stops the portal'] = false; }
+    catch (RuntimeException $ex) {
+        $ok['a .env with only a secret key stops the portal'] = str_contains($ex->getMessage(), 'SUPABASE_ANON_KEY holds a secret key');
+        $ok['the message never shows the key'] = !str_contains($ex->getMessage(), 'never_shown');
+    }
+    $f = 0;
+    foreach ($ok as $what => $pass) { echo ($pass ? 'ok    ' : 'FAIL  ') . $what . "
+"; $f += $pass ? 0 : 1; }
+    exit($f ? 1 : 0);
 }
 
 // ---- the child: the checks
