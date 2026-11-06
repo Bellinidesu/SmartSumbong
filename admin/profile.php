@@ -73,6 +73,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // details and, when any password box is filled, the password.
             // The older single-purpose actions still work the same way.
             $action = (string) ($_POST['action'] ?? '');
+            // 0166: a staff member asks to retire; their Kagawad can endorse it, a super admin decides
+            if ($action === 'retire') {
+                if (!is_moderator()) throw new SupabaseError(t('Only staff ask to retire here.', 'Ang kawani lamang ang humihiling magretiro rito.'));
+                $db->rpc('request_retirement');
+                $_SESSION['flash'] = ['text' => t('Your request to retire was sent. Your Kagawad can endorse it; a super admin decides.', 'Naipadala ang iyong kahilingang magretiro. Maaaring i-endorso ito ng iyong Kagawad; ang super admin ang magpapasya.'), 'level' => 'ok'];
+                header('Location: profile.php');
+                exit;
+            }
             if (!in_array($action, ['profile', 'details', 'password'], true)) {
                 throw new SupabaseError(t('Unknown action.', 'Hindi kilalang aksyon.'));
             }
@@ -202,18 +210,24 @@ unset($_SESSION['flash']);
 $error = null;
 $me    = null;
 $browsers = [];
+$retire = null;   // a staff member's latest retirement request (0166)
 
 try {
-    $rows = $db->select('users', [
-        'select' => 'id,full_name,email,mobile_number,role,verification_status,created_at,avatar_url,'
-                  . 'muted_notification_kinds,push_scope,push_quiet_from,push_quiet_to,push_quiet_urgent,'
-                  . 'official_role,committee,admin_tier,banner_preset,banner_colour,banner_url,banner_y',
-        'id'     => 'eq.' . $admin['id'],
-        'limit'  => '1',
-    ]);
-    $me = $rows[0] ?? null;
-    // their browsers with alerts on (0136); row-level security shows only their own
-    $browsers = $db->select('web_push_subscriptions', ['select' => 'id,endpoint,label,created_at,last_ok_at', 'order' => 'created_at.desc']);
+    // one wait: the person, their browsers with alerts on (0136; row-level security shows only their own) and, for staff, their
+    // retirement request (0166)
+    $pg = $db->selectMany([
+        'me' => ['users', [
+            'select' => 'id,full_name,email,mobile_number,role,verification_status,created_at,avatar_url,'
+                      . 'muted_notification_kinds,push_scope,push_quiet_from,push_quiet_to,push_quiet_urgent,'
+                      . 'official_role,committee,admin_tier,banner_preset,banner_colour,banner_url,banner_y',
+            'id'     => 'eq.' . $admin['id'],
+            'limit'  => '1',
+        ]],
+        'browsers' => ['web_push_subscriptions', ['select' => 'id,endpoint,label,created_at,last_ok_at', 'order' => 'created_at.desc']],
+    ] + (is_moderator() ? ['retire' => ['rpc/my_retirement_status', [], true]] : []));
+    $me = $pg['me'][0] ?? null;
+    $browsers = (array) $pg['browsers'];
+    $retire = is_array($pg['retire'] ?? null) ? ($pg['retire'][0] ?? null) : null;
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
 }
@@ -320,6 +334,17 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
   <div class="p-card ss-pf-rows">
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Role', 'Tungkulin')) ?></span><span class="ss-pf-v"><?= e(t('Barangay administrator', 'Administrador ng barangay')) ?></span><span></span></div>
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Account created', 'Ginawa ang account')) ?></span><span class="ss-pf-v"><?= e(long_datetime($me['created_at'])) ?></span><span></span></div>
+    <?php if (is_moderator()):   // 0166: staff ask to retire here; their Kagawad can endorse it, a super admin decides
+      $rs = (string) ($retire['status'] ?? ''); ?>
+      <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Retirement', 'Pagreretiro')) ?></span>
+        <span class="ss-pf-v"><?php if ($rs === 'pending'): ?><?= e(sprintf(t('Asked on %s. Waiting for a super admin.', 'Hiniling noong %s. Hinihintay ang super admin.'), long_datetime((string) $retire['requested_at']))) ?>
+          <?php elseif ($rs === 'denied'): ?><?= e(sprintf(t('Not approved: %s', 'Hindi inaprubahan: %s'), (string) ($retire['denial_reason'] ?? ''))) ?>
+          <?php else: ?><span class="p-sub"><?= e(t('Your Kagawad can endorse it; a super admin decides.', 'Maaaring i-endorso ng iyong Kagawad; ang super admin ang magpapasya.')) ?></span><?php endif; ?></span>
+        <?php if ($rs !== 'pending'): ?>
+          <form method="post" class="ss-pf-act"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="retire">
+            <button type="submit" class="p-btn p-btn-ghost p-btn-sm" data-native-confirm="<?= e(t('Ask to retire? Your Kagawad and the super admins are told. Once a super admin approves it, this account no longer signs in and your cases go back to your committee.', 'Hilingin na magretiro? Sasabihan ang iyong Kagawad at ang mga super admin. Kapag inaprubahan ng super admin, hindi na makakapag-sign in ang account na ito at babalik sa iyong komite ang iyong mga kaso.')) ?>"><?= e(t('Ask to retire', 'Humiling magretiro')) ?></button></form>
+        <?php else: ?><span></span><?php endif; ?></div>
+    <?php endif; ?>
     <?php if ($lastSeen): ?>
       <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Last signed in', 'Huling pag-sign in')) ?></span><span class="ss-pf-v"><?= e(long_datetime($lastSeen)) ?></span><span></span></div>
     <?php endif; ?>

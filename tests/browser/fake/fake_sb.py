@@ -250,10 +250,14 @@ RPC = {
     # 0157: a Kagawad's view of their tanods' retirement requests, and the endorsement
     'retirement_requests_queue': [{'id': 'r0000000-0000-0000-0000-000000000001', 'tanod_id': 'u2', 'full_name': 'Lediac, Ace', 'email': None, 'mobile_number': '+639170000002',
                                    'status': 'pending', 'requested_at': ago(20), 'decided_at': None, 'decided_by': None, 'decided_by_name': None, 'denial_reason': None,
-                                   'endorsed_at': None, 'endorsed_by_name': None, 'endorse_note': None},
+                                   'endorsed_at': None, 'endorsed_by_name': None, 'endorse_note': None, 'role': 'tanod'},
                                   {'id': 'r0000000-0000-0000-0000-000000000002', 'tanod_id': 'u3', 'full_name': 'Arcibal, Kim Justine', 'email': None, 'mobile_number': '+639170000003',
                                    'status': 'pending', 'requested_at': ago(40), 'decided_at': None, 'decided_by': None, 'decided_by_name': None, 'denial_reason': None,
-                                   'endorsed_at': ago(5), 'endorsed_by_name': 'Dela Cruz, Ramon', 'endorse_note': 'Tapos na ang termino'}],
+                                   'endorsed_at': ago(5), 'endorsed_by_name': 'Dela Cruz, Ramon', 'endorse_note': 'Tapos na ang termino', 'role': 'staff'}],
+    # 0166: who an escalation reaches now, and a staff member's own retirement request (none yet)
+    'escalation_target': [{'official': 'k0000000-0000-0000-0000-000000000001', 'official_name': 'Dela Cruz Ramon', 'to_tier': 1, 'label': 'Kagawad (Peace and Order)',
+                           'committee': 'peace_order', 'why': 'next'}],
+    'my_retirement_status': [],
     'endorse_retirement': None, 'set_my_banner': None,
     'forward_case': 1, 'flag_case_for_forward': 6, 'dismiss_forward_flag': None,
     # 0153: tanods in committees and the punch cards

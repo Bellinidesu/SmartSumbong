@@ -9,6 +9,17 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The ladder as Barangay 183 runs it (0166, 7 Nov; Ace's answers to the flow check)**
+- An escalation goes to the Kagawad of the committee the case is with now, not the one its category had before forwarding.
+- A Kagawad's escalation, a sensitive case (183 has no Women and Family committee) and a committee with no Kagawad account go
+  straight to the Chairman; the super admins are told. A return goes back to whoever held the case.
+- The case page names who an escalation will reach before it is sent. When the deadline extensions are used up, *Hand to a
+  higher official* offers that official's own account first and keeps the list of positions.
+- Staff hold the five decisions 0151 kept for the Kagawad (approve and deny escalation requests, escalate, hand up, refer out).
+- Staff ask to retire from their Profile; their Kagawad can endorse it; a super admin decides. Once approved, the account no
+  longer signs in and the cases it held go back to its committee.
+- Test accounts of the development team never receive a real escalation.
+
 **Faster pages (one wait on the database per page, 7 Nov)**
 - Supabase is in Mumbai and the portal in Singapore, so each wait on the database is a full round trip. Pages used to wait
   again and again: Notifications 14 times, Settings 14, Case Reports, Workspace and Control Room 10. They now wait once (the

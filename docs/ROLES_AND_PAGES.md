@@ -26,13 +26,27 @@ for barangays that want one; Barangay 183 does not use it.
 
 Built so far (0151): a staff member (the *moderator* tier) is assigned to a
 committee by a super admin and sees and works that committee's cases like
-its Kagawad, but cannot approve or deny an escalation, escalate up the
-ladder, hand a case to a higher official or refer it outside. Setting a
+its Kagawad. **Decided 7 Nov 2026 (0166, Ace):** staff also hold the five
+decisions 0151 kept for the Kagawad: approving and denying a tanod's
+escalation request, escalating up the ladder, handing a case to a higher
+official and referring it outside. The Kagawad oversees their staff (punch
+cards, endorsing, forwarding; staff still flag a case for forwarding). Setting a
 position sets the tier that goes with it (Chairman super admin, Kagawad
 committee admin, secretary moderator); someone a super admin has raised to
 super admin stays one.
 
-*Open:* the moderator's exact powers (Sir Kiko).
+**The ladder (0166).** An escalation from the first rung goes to the
+Kagawad of the committee the case is with now (forwarded, or its
+category's). It goes straight to the Chairman, with the super admins told,
+when a Kagawad escalates, when the case is sensitive (VAWC, domestic
+violence: Barangay 183 has no Women and Family committee), or when the
+committee has no Kagawad account. The case page names who it will reach
+before anyone presses Escalate (`escalation_target`, the same answer the
+escalation uses). A return goes back to whoever held the case. When a
+case's deadline extensions are used up, *Hand to a higher official* offers
+the ladder first (that official's own account becomes the handler) and
+keeps the list of positions and free text for an official with no account.
+The development team's test accounts never receive a real escalation.
 
 **Seeing every rung (0162).** A member of the development team (DEV) has a real test account for each rung: super admin, captain, Kagawad and staff (the Kagawad and staff in a committee they pick). The DEV switcher in the sidebar signs into one with no password and back; a striped band says whose eyes these are. Because it is a real account of that rung, the database shows exactly what that rung may see and do. Test accounts are marked TEST and are never the Kagawad the system asks to pick a tanod; every switch is recorded.
 
@@ -76,7 +90,7 @@ super admin stays one.
 | Inbox (new) | Yes | Yes | Yes |
 | Residents | Yes | No | No |
 | Personnel | Everyone, by committee | Their staff and their tanods | Their committee's tanods and staff, view only (0164) |
-| Administrative Services (renamed) | Committees, administrators, retirement requests, tanod-to-committee approvals, Planning | Retirement requests: view and review; can endorse a staff member's | No |
+| Administrative Services (renamed) | Committees, administrators, retirement requests, tanod-to-committee approvals, Planning | Retirement requests: view and review their committee's tanods' and staff's; can endorse them | No (asks to retire from their Profile, 0166) |
 | Control Room (new) | Complaint types, rules, hotlines, wording, the barangay's name and seal, parts of the system | No | No |
 | Settings | System status, plan and usage, SMART, appearance | Their own: appearance, their committee (read only), their SMART module | The same, their module without decisions |
 | Edit Profile | Their own | Their own | Their own |
