@@ -190,6 +190,12 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
   (`includes/shared_cache.php`) that Settings drops on a save.
   `tests/php/perf_test.php` (CI) covers the batch modes, the memo and the
   cache. `?_trace=1` on any page lists each wait in the page source.
+  Page links are prefetched when held under the pointer (Speculation Rules
+  in `layout_head`, prefetch only, never prerender); anything that is not
+  only reading when opened is left out (an Inbox message, downloads,
+  sign-out, new-tab links, the press flow's regions), and a link can opt
+  out with `data-no-prefetch`. A page that writes on a plain GET must be
+  added to that list.
   Lighthouse: 100 on performance, accessibility and best practices.
 - **Dependencies** — Dependabot opens weekly update pull requests (Flutter
   packages, GitHub Actions, the Docker base image) and security-fix pull
