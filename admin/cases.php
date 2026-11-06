@@ -936,11 +936,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     const fd = new FormData(); fd.append('csrf', CSRF); fd.append('action', 'read_one'); fd.append('id', a.dataset.nid); fd.append('beacon', '1');
     try { navigator.sendBeacon('notifications.php', fd); } catch (x) { /* it can be marked by hand */ }
   });
-  const sb = createClient(
-    <?= json_encode(supabase_url()) ?>,
-    <?= json_encode(supabase_key()) ?>,
-    { accessToken: window.ssAccessToken(TOKEN) }
-  );
+  const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
   // The view this page loaded with. Realtime keeps re-querying against
   // this exact filter/sort/search, so a new complaint appears live only

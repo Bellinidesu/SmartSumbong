@@ -529,11 +529,7 @@ function render_account_screen(string $role): void
       const COM_F = <?= json_encode($isTanod ? $comF : '') ?>;
       const DUTY_F = <?= json_encode($dutyF ?? '') ?>;
       const NO_COM = <?= json_encode(is_scoped() ? '—' : t('No committee', 'Walang komite')) ?>;
-      const sb = createClient(
-        <?= json_encode(supabase_url()) ?>,
-        <?= json_encode(supabase_key()) ?>,
-        { accessToken: window.ssAccessToken(TOKEN) }
-      );
+      const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
       function escapeHtml(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -1720,11 +1716,7 @@ function render_account_detail(
       const TOKEN = <?= json_encode(access_token()) ?>;
       const ROLE  = <?= json_encode($role) ?>;
       const ACCOUNT_ID = <?= json_encode($p['id']) ?>;
-      const sb = createClient(
-        <?= json_encode(supabase_url()) ?>,
-        <?= json_encode(supabase_key()) ?>,
-        { accessToken: window.ssAccessToken(TOKEN) }
-      );
+      const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
       // Excludes minutes_left/is_overdue on purpose — those already tick
       // on their own via the countdown script above and would otherwise

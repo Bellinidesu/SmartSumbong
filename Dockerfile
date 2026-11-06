@@ -39,7 +39,9 @@ RUN set -eux; \
     [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark > /dev/null; \
     find /usr/local /usr/lib/apache2/modules -type f \( -name '*.so' -o -perm -u+x \) -exec ldd '{}' ';' 2>/dev/null \
       | awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
-      | sort -u | xargs -r dpkg-query --search 2>/dev/null | cut -d: -f1 | sort -u | xargs -r apt-mark manual > /dev/null; \
+      | sort -u | xargs -r dpkg-query --search 2>/dev/null \
+      | awk -F': ' '/^diversion/ { next } { n = split($1, p, ", "); for (i = 1; i <= n; i++) print p[i] }' \
+      | sort -u | xargs -r apt-mark manual > /dev/null; \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     for m in curl mbstring zip; do php -m | grep -qix "$m"; done; \
     if command -v gcc || command -v g++ || command -v make; then echo 'a build tool is still in the image' >&2; exit 1; fi; \

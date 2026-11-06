@@ -143,8 +143,7 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
 // New rows anywhere reload the feed (debounced), the same way Case Reports
 // keeps itself current.
 (function () {
-  const sb = supabase.createClient(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>,
-    { accessToken: window.ssAccessToken(<?= json_encode(access_token()) ?>) });
+  const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, <?= json_encode(access_token()) ?>);
   let t = null;
   // the press flow asks the server for the view on screen and swaps the feed; without it, the page reloads as before
   const refresh = () => { if (window.htmx && window.ssPress && document.getElementById('act-list')) { window.ssPress.refresh('#act-list'); } else { location.reload(); } };

@@ -256,11 +256,7 @@ const { createClient } = supabase;
 // The token is this admin's own session. Everything below is still
 // filtered by row level security; nothing here elevates anything.
 const TOKEN = <?= json_encode(access_token()) ?>;
-const sb = createClient(
-  <?= json_encode(supabase_url()) ?>,
-  <?= json_encode(supabase_key()) ?>,
-  { accessToken: window.ssAccessToken(TOKEN) }
-);
+const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
 // The boundary relation covers the whole barangay, most of which is the
 // airport apron and Villamor Air Base — land with no residents and no

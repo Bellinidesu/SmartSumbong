@@ -405,8 +405,7 @@ $_SESSION['dash_intro'] = true;
   var CATEGORY_COLOUR = <?= json_encode(category_colours()) ?>;
   var COMMITTEES = <?= json_encode(array_map(fn ($c) => ['short' => (string) $c['short_en'], 'colour' => committee_colour((string) $c['key'])], committees_all()), JSON_UNESCAPED_UNICODE) ?>;
   var FROM = <?= json_encode($month->format(DateTimeInterface::ATOM)) ?>, TO = <?= json_encode($next->format(DateTimeInterface::ATOM)) ?>, CAT = <?= json_encode($effCategory ?: null) ?>;
-  var sb = window.supabase ? window.supabase.createClient(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>,
-                                        { accessToken: window.ssAccessToken(<?= json_encode(access_token()) ?>) }) : null;
+  var sb = window.supabase ? window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, <?= json_encode(access_token()) ?>) : null;
 
   function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
   function $(id) { return document.getElementById(id); }
