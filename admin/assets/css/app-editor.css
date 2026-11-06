@@ -38,7 +38,7 @@
 .ed-cn { font: 700 13.5px/1.25 Inter, sans-serif; }
 .ed-cc { color: #6B6B6B; font: 600 11.5px Inter, sans-serif; }
 .ed-opts { margin: 8px 14px 0; padding: 12px 14px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20,27,52,.08); }
-.ed-opts h5 { margin: 0 0 6px; font: 800 12px Inter, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #6B6B6B; }
+.ed-opts h4 { margin: 0 0 6px; font: 800 12px Inter, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #6B6B6B; }
 .ed-opts ul, .ed-hg ul { list-style: none; margin: 0; padding: 0; display: grid; }
 .ed-opt, .ed-hn { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 0; border-top: 1px solid #E3E6EE; font: 600 14px Inter, sans-serif; cursor: pointer; }
 .ed-opt:first-child, .ed-hn:first-child { border-top: 0; }

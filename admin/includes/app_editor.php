@@ -51,7 +51,7 @@ function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hl
         </div>
         <?php foreach ($cats as $ck => $cc): ?>
           <div class="ed-opts<?= (string) $ck === $firstKey ? '' : ' ed-hide' ?>" data-for="<?= e((string) $ck) ?>">
-            <h5><?= e(t('What kind?', 'Anong uri?')) ?></h5>
+            <h4><?= e(t('What kind?', 'Anong uri?')) ?></h4>
             <ul>
               <?php foreach ($catOpts[$ck] ?? [] as $o): ?><li class="ed-opt<?= empty($o['active']) ? ' ed-off' : '' ?>" data-oid="<?= (int) $o['id'] ?>"><span class="ed-ol"><?= e(t((string) $o['label_en'], (string) $o['label_fil'])) ?></span><i class="ed-chev" aria-hidden="true"></i></li><?php endforeach; ?>
               <li class="ed-opt ed-hide ed-new" data-oid="new"><span class="ed-ol"></span><i class="ed-chev" aria-hidden="true"></i></li>

@@ -74,6 +74,7 @@ function dashboard_feed_query(): array
 
 $error   = null;
 $metrics = null;
+$prev = null;   // the month before, for the comparisons; stays null when the database cannot be read
 
 try {
     // This month and the previous one, fetched together (speed, 7 Oct).

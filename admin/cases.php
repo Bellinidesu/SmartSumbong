@@ -224,6 +224,8 @@ function sort_caret(string $col, string $active, string $dir): string
 
 $error = null;
 $reports = [];
+// the figures a page shows even when the database cannot be read (the resilience check, 7 Nov 2026): never undefined
+$notesUnread = 0; $escCount = 0; $regTotal = 0; $notesTotal = 0; $chipN = []; $ncN = []; $openRows = [];
 $notifications = [];
 $escalations = [];
 $adminList = [];

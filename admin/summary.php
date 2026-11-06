@@ -37,7 +37,7 @@ $tz    = new DateTimeZone('Asia/Manila');
 session_start_once();
 
 // The admin who checks this every Monday should not retype the dates.
-if ($_SERVER['QUERY_STRING'] === '' && !empty($_SESSION['summary_period'])) {
+if (($_SERVER['QUERY_STRING'] ?? '') === '' && !empty($_SESSION['summary_period'])) {
     $_GET = $_SESSION['summary_period'];
 }
 

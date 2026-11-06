@@ -160,7 +160,7 @@
 @media (max-width: 900px) { .pd-fig { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pd-fig > div:nth-child(3) { border-left: 0; } .pd-fig > div:nth-child(n+3) { border-top: 1px solid var(--p-line); } }
 .pd-now { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pd-head { background: radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--id-acc, #FF9800) 16%, transparent), transparent 55%), var(--p-surface); }
-.pd-head .p-acc-head h2 { font: 800 30px/1.1 Inter Tight, sans-serif; letter-spacing: -.02em; }
+.pd-head .p-acc-head h1, .pd-head .p-acc-head h2 { font: 800 30px/1.1 Inter Tight, sans-serif; letter-spacing: -.02em; }
 .pd-tc .tc-line { padding: 0; gap: 0; border: 0; margin: 0 0 14px; }
 :root:root .p-body .pd-tc .pd-tcb { margin: 0; border-radius: 14px 14px 0 0; }
 .pd-tc .tc-line > form { padding: 12px; border: 1px solid var(--p-line); border-top: 0; background: var(--p-surface-2); }

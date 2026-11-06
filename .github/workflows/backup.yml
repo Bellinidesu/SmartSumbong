@@ -31,7 +31,7 @@ permissions:
 jobs:
   backup:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -67,6 +67,17 @@ jobs:
           name: smartsumbong-backup
           path: out/
           retention-days: 30
+      # The restore drill (7 Nov 2026): tonight's backup is decrypted and restored into a throwaway PostgreSQL 17, and every
+      # public table must come back with all its rows (tools/restore_drill.sh). A backup that cannot be restored fails the night.
+      - name: PostgreSQL 17 with PostGIS and pg_cron, for the restore drill
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-17 postgresql-17-postgis-3 postgresql-17-cron
+      - name: Restore drill
+        run: bash tools/restore_drill.sh "$(ls out/smartsumbong-*.tgz.gpg | head -1)"
       - name: Tell the backup check how it went
         if: always()
         run: |

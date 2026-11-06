@@ -1244,7 +1244,7 @@ function render_account_detail(
         <div class="p-card p-card-pad pd-head<?= ($fadeCom !== '' || $rsCover) ? ' pd-fade' : '' ?>">
         <?= $fadeCom !== '' ? committee_fade($fadeCom, committee_sd_types(db()), (string) (committees_all()[$fadeCom]['short_en'] ?? $fadeCom)) : '' ?>
         <?php if ($rsCover): ?><div class="cm-chips pd-fadewrap" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="--cc:<?= e($rsCover[0]) ?>;--ct:<?= e($rsCover[2]) ?>;--g1:<?= e($rsCover[0]) ?>;--g2:<?= e($rsCover[1]) ?>;--g3:<?= e($rsCover[1]) ?>"><i class="cm-sym"><svg class="cm-ic" data-ic="handler" viewBox="0 0 24 24" aria-hidden="true"></svg></i></a></div><?= committee_banner_script() ?><?php endif; ?>
-        <div class="p-acc-head"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><div><h2><?= e(formal_name($p['full_name'])) ?></h2><div class="p-acc-flags"><?= account_status_pills($p) ?></div></div></div>
+        <div class="p-acc-head"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><div><h1><?= e(formal_name($p['full_name'])) ?></h1><div class="p-acc-flags"><?= account_status_pills($p) ?></div></div></div>
 
         <?php if ($pending && !empty($p['due_at'])): ?>
           <p class="p-clock verif-clock<?= !empty($p['is_overdue']) ? ' p-late' : '' ?>"
@@ -1490,7 +1490,7 @@ function render_account_detail(
         <?php endif; ?>
       </div>
 
-      <aside class="p-card p-controls">
+      <aside class="p-card p-controls" aria-label="<?= e(t('Account controls', 'Kontrol ng account')) ?>">
         <p class="p-eyebrow" style="margin:0"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
         <?php if (!is_super()): ?>
         <p class="p-ctl-note"><?= e(t('Only a super admin verifies, suspends or changes an account. You can see it, and its committees above.', 'Ang super admin lang ang nagbe-verify, nagsususpinde o nagbabago ng account. Nakikita mo ito, at ang mga komite nito sa itaas.')) ?></p>

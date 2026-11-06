@@ -725,14 +725,22 @@ function st_pick(Supabase $db, string $group, string $key): mixed
     return $db->selectMany([$key => $e])[$key];
 }
 
-/** Every visible tab's reads in one wait, all optional here so one failure cannot stop the others. */
-function st_prefetch(Supabase $db, string $stPage): void
+/**
+ * Every visible tab's reads in one wait, all optional here so one failure cannot stop the others. Returns false when the database
+ * could not be reached at all (every read failed to connect), so the page says so once instead of showing empty tabs.
+ */
+function st_prefetch(Supabase $db, string $stPage): bool
 {
     $all = [];
     foreach (st_reads($stPage) as $gk => $entries) {
         foreach ($entries as $k => $e) { $e[2] = true; $all[$gk . ':' . $k] = $e; }
     }
-    if ($all) { try { $db->selectMany($all); } catch (SupabaseError) { /* each tab asks again for itself */ } }
+    if (!$all) return true;
+    try { $got = $db->selectMany($all); } catch (SupabaseError $ex) { return !str_starts_with($ex->getMessage(), 'Could not reach the database'); }
+    foreach ($got as $v) {
+        if (!($v instanceof SupabaseError) || !str_starts_with($v->getMessage(), 'Could not reach the database')) return true;
+    }
+    return false;
 }
 
 
@@ -766,7 +774,7 @@ $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => 
 $stFlash = $_SESSION['st_flash'] ?? null;
 unset($_SESSION['st_flash']);
 // every visible tab's reads, in one wait (st_reads above); each tab below takes its own from the request's read memo
-st_prefetch($db, $stPage);
+$stReachable = st_prefetch($db, $stPage);
 $places = []; $kinds = [];
 if ($stPage !== 'mine') try {
     $got = $db->selectMany(st_group('places'));
@@ -779,6 +787,7 @@ if ($stPage !== 'mine') try {
     $admins = (array) $got['admins']; $tanods = (array) $got['tanods']; $cmap = (array) $got['cmap'];
 } catch (SupabaseError $e) { $admins = []; $tanods = []; $cmap = []; }
 ?>
+<?php if (!$stReachable): ?><div class="p-flash p-flash--error" role="alert"><?= e(t('The database cannot be reached just now, so these settings could not be loaded. Please try again in a moment.', 'Hindi maabot ang database ngayon, kaya hindi naipakita ang mga setting na ito. Subukan muli maya-maya.')) ?></div><?php endif; ?>
 <?php if (st_on('admins')): ?>
 <section class="st-pane" data-pane="admins" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'ok'): ?>

@@ -28,8 +28,9 @@ async function open(page, path) {
 }
 
 async function axe(page) {
-  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-  return r.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')
+  // every finding, moderate and minor included (7 Nov 2026: the a11y audit, a11y-audit.spec.mjs, found none left on any page)
+  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice']).analyze();
+  return r.violations
     .map(v => `${v.impact} ${v.id}: ${v.help} (${v.nodes.length}× e.g. ${v.nodes[0].target.join(' ')})`);
 }
 
