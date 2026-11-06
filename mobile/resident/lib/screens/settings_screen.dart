@@ -286,7 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: _avatarUrl != null
                         ? null
                         : Text(_initials(_name),
-                            style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 22, color: d.tanod ? const Color(0xFF14181D) : DColors.brandNavy)),
+                            style: TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 22, color: d.tanod ? const Color(0xFF14181D) : DColors.brandNavy)),
                   ),
                 ),
                 Positioned(
@@ -303,9 +303,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_name ?? '—', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white)),
+                  Text(_name ?? '—', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white)),
                   if (_mobile != null)
-                    Text('${_mask(_mobile!)} · ${tanod ? context.tr('Verified tanod', 'Beripikadong tanod') : context.tr('Verified resident', 'Beripikadong residente')}', style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12.5, color: Colors.white.withValues(alpha: .8))),
+                    Text('${_mask(_mobile!)} · ${tanod ? context.tr('Verified tanod', 'Beripikadong tanod') : context.tr('Verified resident', 'Beripikadong residente')}', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 12.5, color: Colors.white.withValues(alpha: .8))),
                 ]),
               ),
               DButton(s.settingsEditProfile, small: true, kind: DButtonKind.white, onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load())),
@@ -505,7 +505,7 @@ class _DeleteButton extends StatelessWidget {
         child: Center(
           child: busy
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2))
-              : Text(label, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFFC62828))),
+              : Text(label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFFC62828))),
         ),
       ),
     );
@@ -597,7 +597,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
             child: Text(
               s.deleteAccountPasswordPrompt,
               style: TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
                 color: c.bg,

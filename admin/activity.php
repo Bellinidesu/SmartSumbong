@@ -108,7 +108,10 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
     <a href="cases.php?who=mine"><?= e(t('See them', 'Tingnan')) ?></a></p>
 </div>
 
-<div class="ss-seg ss-seg-block" role="group">
+<?php // The press flow (7 Nov 2026): the scope, the feed and its pager swap in place; the address follows. New rows refresh the same region. ?>
+<div id="act-list" class="press-region" hx-target="#act-list" hx-select="#act-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#act-list:replace"
+     data-announce="<?= e(t('Activity updated', 'Na-update ang aktibidad')) ?>">
+<div class="ss-seg ss-seg-block" role="group" hx-boost="true">
   <a class="<?= $show === '' ? ' p-on' : '' ?>" href="activity.php"><?= e(t('Everything', 'Lahat')) ?></a>
   <a class="<?= $show === 'mine' ? ' p-on' : '' ?>" href="activity.php?show=mine"><?= e(t('My cases', 'Aking mga kaso')) ?> · <?= (int) $mineCount ?></a>
   <a class="<?= $show === 'peers' ? ' p-on' : '' ?>" href="activity.php?show=peers"><?= e(t("Peers' cases", 'Mga kaso ng iba')) ?></a>
@@ -130,19 +133,21 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
         </li>
       <?php endforeach; ?>
     </ul>
-    <?= pager($total, $page, 'page', 15) ?>
+    <div hx-boost="true" hx-swap="outerHTML show:#act-list:top"><?= pager($total, $page, 'page', 15) ?></div>
   <?php endif; ?>
 </div>
+</div><?php // #act-list ?>
 
 <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
 <script>
 // New rows anywhere reload the feed (debounced), the same way Case Reports
 // keeps itself current.
 (function () {
-  const sb = supabase.createClient(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>,
-    { accessToken: window.ssAccessToken(<?= json_encode(access_token()) ?>) });
+  const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, <?= json_encode(access_token()) ?>);
   let t = null;
-  const later = () => { clearTimeout(t); t = setTimeout(() => location.reload(), 1500); };
+  // the press flow asks the server for the view on screen and swaps the feed; without it, the page reloads as before
+  const refresh = () => { if (window.htmx && window.ssPress && document.getElementById('act-list')) { window.ssPress.refresh('#act-list'); } else { location.reload(); } };
+  const later = () => { clearTimeout(t); t = setTimeout(refresh, 1500); };
   const ch = sb.channel('activity-feed');
   ['status_logs', 'case_handler_log', 'report_messages'].forEach(tb =>
     ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: tb }, later));

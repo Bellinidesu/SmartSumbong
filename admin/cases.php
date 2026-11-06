@@ -16,6 +16,7 @@ require_once __DIR__ . '/includes/issues.php';
 require_once __DIR__ . '/includes/board.php';
 require_once __DIR__ . '/includes/widget_panel.php';
 require_once __DIR__ . '/includes/forwarding.php';
+require_once __DIR__ . '/includes/module_brain.php';   // the brain button answers from the person's SMART module (4 Nov 2026)
 
 $admin = require_admin();
 $db    = db();
@@ -74,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && defined('NOTICES_PAGE') && !defined
         } catch (SupabaseError) { /* the list will still show it */ }
     }
     if (!empty($_POST['beacon'])) { http_response_code(204); exit; }
-    header('Location: notifications.php' . (!empty($_POST['back']) ? '?' . http_build_query(['npage' => (int) $_POST['back']]) : ''), true, 303);
+    header('Location: ' . view_after_post('notifications.php' . (!empty($_POST['back']) ? '?' . http_build_query(['npage' => (int) $_POST['back']]) : '')), true, 303);
     exit;
 }
 
@@ -236,7 +237,9 @@ try {
                   . 'resident:users!reports_resident_id_fkey(full_name),'
                   . 'handler_id,handler:users!reports_handler_id_fkey(full_name,official_role),'
                   . 'triage:report_triage(score,effective_level,override_level,possible_duplicates),'
-                  . 'case_committee,committee,awaiting_placement,forwards:case_forwards(kind,from_committee,to_super,created_at)',
+                  . 'case_committee,committee,awaiting_placement,forwards:case_forwards(kind,from_committee,to_super,created_at),'
+                  . 'concerns:report_concerns(category,status,filed_option_en,created_at)',
+        'concerns.order' => 'created_at.asc',
         'forwards.order' => 'created_at.desc',
         'deleted_at' => 'is.null',
         'order'      => $sort,
@@ -270,7 +273,9 @@ try {
         $query['handler_id'] = 'eq.' . $who;
     }
     if ($category !== '') {
-        $query['category'] = 'eq.' . $category;
+        // 0130: the case's main category is one of its concerns, so one inner join on the concerns finds a case by any of them
+        $query['select'] .= ',cn:report_concerns!inner(category)';
+        $query['cn.category'] = 'eq.' . $category;
     }
     if ($com === 'none') {
         $query['case_committee'] = 'is.null';
@@ -282,7 +287,10 @@ try {
         $query['case_committee'] = 'eq.' . $com;
     }
     if ($issue !== '') {
-        $query['subject'] = 'eq.' . $issue;   // the app writes the issue picked into the subject
+        // 0163: a concern points at its option by id, so a renamed option still finds what was filed under its old name
+        $oid = array_search($issue, array_map(fn ($o) => $o['en'], category_options()[$category] ?? []), true);
+        if ($oid !== false && $category !== '') { $query['cn.option_id'] = 'eq.' . $oid; }
+        else { $query['subject'] = 'eq.' . $issue; }   // the app writes the issue picked into the subject
     }
     if ($month !== '') {
         $mtz   = new DateTimeZone('Asia/Manila');
@@ -330,25 +338,32 @@ try {
     } elseif ($nCom !== '') {
         $nq['notification_committee'] = 'eq.' . $nCom;
     }
-    $selects = [
-        'notes_n' => ['notifications', ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)']],
-        'esc_n'   => ['escalation_requests', ['status' => 'eq.pending']],
+    // One wait for the whole page (speed work, 7 Nov 2026): the sidebar's two counts, the list, the total behind its pager (sent
+    // with the rows), the chips' or banners' counts and the engine module of the brain button all go in a single batch
+    // (the button's own call finds the module in the request's read memo, supabase.php).
+    $sel = [
+        'notes_n' => ['notifications', ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], false, 'count'],
+        'esc_n'   => ['escalation_requests', ['status' => 'eq.pending'], false, 'count'],
+        'module'  => ['rpc/smart_module', [], true],
     ];
-    $counts = $db->selectMany($selects, true);
-    $notesUnread = $counts['notes_n'] instanceof SupabaseError ? 0 : (int) $counts['notes_n'];
-    $escCount    = $counts['esc_n'] instanceof SupabaseError ? 0 : (int) $counts['esc_n'];
-
-    $sel = [];
     if ($tab === 'all') {
-        $sel['reports'] = ['reports', $query];
+        $sel['reports'] = ['reports', $query, false, $view === 'attention' ? '' : 'total'];
         $sel['admins']  = ['users', ['select' => 'id,full_name', 'role' => 'eq.admin', 'order' => 'full_name.asc'], true];
         // the chip counts what needs attention across ALL open cases, not only this page
         $sel['open']    = ['reports', ['select' => 'status,due_at,followed_up_at,resolution_submitted_at,awaiting_unit_since,handler_id,case_committee', 'deleted_at' => 'is.null',
                                        'status' => 'in.(' . implode(',', OPEN_STATES) . ')', 'limit' => '500'], true];
+        // 0152: the chips' counts
+        $sel['chip:all'] = ['reports', ['deleted_at' => 'is.null'], true, 'count'];
+        if (sees_everything()) {
+            foreach (committees_active() as $ck => $cl) { $sel['chip:' . $ck] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'eq.' . $ck], true, 'count']; }
+            $sel['chip:none'] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'is.null'], true, 'count'];
+        } elseif ($myCom !== '') {
+            $sel['chip:fwd'] = ['reports', ['deleted_at' => 'is.null', 'committee' => 'eq.' . $myCom], true, 'count'];
+        }
     } elseif ($tab === 'notes') {
         $nq['limit']  = (string) PER_PAGE;
         $nq['offset'] = (string) (($npage - 1) * PER_PAGE);
-        $sel['notes'] = ['notifications', $nq];
+        $sel['notes'] = ['notifications', $nq, false, 'total'];
         // 0073 — Manage Escalation Request: tanods' requests waiting on an admin.
         $sel['escalations'] = ['escalation_requests', [
             'select' => 'id,reason,suggested_office,created_at,'
@@ -357,51 +372,50 @@ try {
             'status' => 'eq.pending',
             'order'  => 'created_at.asc',
         ], true];
+        // each banner's count: the same rules as the list (Unread or All, the search), under the banner's own committee
+        if (sees_everything()) {
+            $nb = $nq; unset($nb['select'], $nb['order'], $nb['limit'], $nb['offset'], $nb['report_id'], $nb['notification_committee']);
+            $sel['nc:all']    = ['notifications', $nb, true, 'count'];
+            $sel['nc:none']   = ['notifications', $nb + ['report_id' => 'not.is.null', 'notification_committee' => 'is.null'], true, 'count'];
+            $sel['nc:system'] = ['notifications', $nb + ['report_id' => 'is.null'], true, 'count'];
+            foreach (committees_active() as $ck => $cl) { $sel['nc:' . $ck] = ['notifications', $nb + ['notification_committee' => 'eq.' . $ck], true, 'count']; }
+        }
     }
-    $got = $sel ? $db->selectMany($sel) : [];
+    if ($tab === 'next') { $sel['queue'] = ['rpc/smart_queue', ['p_stage' => null, 'p_limit' => 500], true]; }
+    // the parts drawn below read their first wave here too, and find it in the read memo: the Right now strip and the bar
+    // (Notifications, Workspace), and the pins (Notifications)
+    if ($notices) { foreach (briefing_reads() as $k => $e) { $sel['pre:b:' . $k] = $e; } }
+    if ($tab === 'notes') { foreach (forwarding_pins_reads() as $k => $e) { $sel['pre:p:' . $k] = $e; } }
+    if ($workspace && function_exists('widget_panel_reads')) { foreach (widget_panel_reads($admin) as $k => $e) { $sel['pre:w:' . $k] = $e; } }
+    $got = $db->selectMany($sel);
+    $notesUnread   = is_int($got['notes_n'] ?? null) ? $got['notes_n'] : 0;
+    $escCount      = is_int($got['esc_n'] ?? null) ? $got['esc_n'] : 0;
     $reports       = $got['reports'] ?? [];
     $notifications = $got['notes'] ?? [];
     $escalations   = ($got['escalations'] ?? []) instanceof SupabaseError ? [] : ($got['escalations'] ?? []);
     $adminList     = ($got['admins'] ?? []) instanceof SupabaseError ? [] : ($got['admins'] ?? []);
     $openRows      = ($got['open'] ?? []) instanceof SupabaseError ? [] : ($got['open'] ?? []);
-
-    // the total behind the pages (the register by its filters, notifications by their search)
-    $regTotal = 0; $notesTotal = 0;
-    if ($tab === 'all') {
-        $cq = $query; unset($cq['select'], $cq['order'], $cq['limit'], $cq['offset'], $cq['forwards.order']);
-        $regTotal = $view === 'attention' ? 0 : $db->count('reports', $cq);
-        // 0152: the chips' counts, in one round
-        $chipQ = ['all' => ['reports', ['deleted_at' => 'is.null']]];
-        if (sees_everything()) {
-            foreach (committees_active() as $ck => $cl) { $chipQ[$ck] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'eq.' . $ck]]; }
-            $chipQ['none'] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'is.null']];
-        } elseif ($myCom !== '') {
-            $chipQ['fwd'] = ['reports', ['deleted_at' => 'is.null', 'committee' => 'eq.' . $myCom]];
-        }
-        try { $chipN = array_map(fn ($v) => is_int($v) ? $v : 0, $db->selectMany($chipQ, true)); } catch (SupabaseError) { $chipN = []; }
-        if (my_tier() === 'committee') { $chipN['flagged'] = count($flagIds); }
-    } elseif ($tab === 'notes') {
-        $ncq = $nq; unset($ncq['select'], $ncq['order'], $ncq['limit'], $ncq['offset']);
-        $notesTotal = $db->count('notifications', $ncq);
-        // each banner's count: the same rules as the list (Unread or All, the search), under the banner's own committee
-        $ncN = [];
-        if (sees_everything()) {
-            $nb = $nq; unset($nb['select'], $nb['order'], $nb['limit'], $nb['offset'], $nb['report_id'], $nb['notification_committee']);
-            $cq = ['all' => ['notifications', $nb], 'none' => ['notifications', $nb + ['report_id' => 'not.is.null', 'notification_committee' => 'is.null']], 'system' => ['notifications', $nb + ['report_id' => 'is.null']]];
-            foreach (committees_active() as $ck => $cl) { $cq[$ck] = ['notifications', $nb + ['notification_committee' => 'eq.' . $ck]]; }
-            try { $ncN = array_map(fn ($v) => is_int($v) ? $v : 0, $db->selectMany($cq, true)); } catch (SupabaseError) { $ncN = []; }
-        }
+    // the total behind the pages (the register by its filters, notifications by their search), and the chips' and banners' counts
+    $regTotal   = $tab === 'all' && $view !== 'attention' ? (int) ($got['reports:total'] ?? 0) : 0;
+    $notesTotal = $tab === 'notes' ? (int) ($got['notes:total'] ?? 0) : 0;
+    $chipN = []; $ncN = [];
+    foreach ($got as $k => $v) {
+        if (str_starts_with($k, 'chip:')) $chipN[substr($k, 5)] = is_int($v) ? $v : 0;
+        elseif (str_starts_with($k, 'nc:')) $ncN[substr($k, 3)] = is_int($v) ? $v : 0;
     }
+    if ($tab === 'all' && my_tier() === 'committee') { $chipN['flagged'] = count($flagIds); }
 
     // The SMART queue (0129): every open case by priority with its next action. Failure here must not break the page.
     $queue = []; $queueStages = array_fill_keys(QUEUE_STAGES, 0); $queueErr = false;
     if ($tab === 'next') {
-        try {
-            $all = $db->rpc('smart_queue', ['p_stage' => null, 'p_limit' => 500]);
-            $all = is_array($all) ? $all : [];
+        // read with the page's batch above
+        if (($got['queue'] ?? null) instanceof SupabaseError) {
+            $queueErr = true;
+        } else {
+            $all = is_array($got['queue'] ?? null) ? $got['queue'] : [];
             foreach ($all as $q) { if (isset($queueStages[$q['stage']])) { $queueStages[$q['stage']]++; } }
             $queue = $stage === '' ? $all : array_values(array_filter($all, fn($q) => $q['stage'] === $stage));
-        } catch (SupabaseError $qe) { $queueErr = true; }
+        }
     }
     // The work board (Ace's pick): who has each case, and what this person is meant to see first.
     $bmeta = ['owners' => [], 'committee' => [], 'me' => ['official_role' => null, 'committee' => null]]; $bscope = 'all'; $bcount = ['mine' => 0, 'free' => 0, 'all' => 0];
@@ -444,7 +458,8 @@ layout_head($workspace ? t('Workspace', 'Tablero ng Gawain') : ($notices ? t('No
 ?>
 
 <div class="p-topbar"><h1><?= $workspace ? e(t('Workspace', 'Tablero ng Gawain')) : ($notices ? e(t('Notifications', 'Mga Abiso')) : e(t('Case Reports', 'Mga Sumbong'))) ?></h1>
-  <span class="p-live" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
+  <span class="p-live" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span>
+  <span class="p-spacer" style="flex:1"></span><?= module_brain($db) ?></div>
 
 <?php if ($error): ?>
   <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
@@ -489,16 +504,16 @@ $noteBadge = $notesUnread + $escCount;
   $nowHtml = '';
   if ($notices && !$workspace) { ob_start(); render_briefing($db, $admin, 'strip'); $nowHtml = (string) ob_get_clean(); }
   $railOn = $pins || ($nowHtml !== '' && !str_contains($nowHtml, 'ss-calm')); ?>
-<div class="nf-grid<?= $railOn ? '' : ' nf-grid--solo' ?>"><div class="nf-main">
+<div class="nf-grid<?= $railOn ? '' : ' nf-grid--solo' ?>"><?php // the press flow (step 3): the header, the chooser, the list and the pager swap in place ?><div class="nf-main press-region" id="nf-list" hx-target="#nf-list" hx-select="#nf-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#nf-list:replace" data-announce="<?= e(sprintf(t('Showing %d notifications', 'Ipinapakita ang %d abiso'), (int) $notesTotal)) ?>">
 <!-- ---------- notifications ---------- -->
 <?php $nHref = fn(string $v) => '?' . http_build_query(array_filter(['nview' => $v === 'all' ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : ''])); ?>
 <div class="p-band p-band--calm">
   <h2><?= e($nAll || $nSearch !== '' ? t('All notifications', 'Lahat ng abiso') : t('Unread', 'Hindi pa nababasa')) ?><span class="p-badge-n" id="notif-count"><?= (int) $notesTotal ?></span></h2>
-  <div class="p-seg-mini bd-scope" role="group" aria-label="<?= e(t('Which notifications', 'Aling mga abiso')) ?>">
+  <div class="p-seg-mini bd-scope" hx-boost="true" role="group" aria-label="<?= e(t('Which notifications', 'Aling mga abiso')) ?>">
     <a href="<?= e($nHref('unread')) ?>" class="<?= !$nAll ? 'p-on' : '' ?>"><?= e(t('Unread', 'Hindi pa nababasa')) ?></a>
     <a href="<?= e($nHref('all')) ?>" class="<?= $nAll ? 'p-on' : '' ?>"><?= e(t('All', 'Lahat')) ?></a>
   </div>
-  <form class="p-search" method="get" role="search">
+  <form class="p-search" method="get" role="search" hx-boost="true">
     <?= p_icon('i-search', 16) ?>
     <input type="search" name="nq" placeholder="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>" value="<?= e($nSearch) ?>"
            aria-label="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>">
@@ -507,10 +522,10 @@ $noteBadge = $notesUnread + $escCount;
   </form>
   <span class="p-spacer"></span>
   <?php if ($notesUnread > 0): ?>
-  <form method="post"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_all">
+  <form method="post"<?= press_save('nf-list') ?>><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_all">
     <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Mark all as read', 'Markahang nabasa ang lahat')) ?></button></form>
   <?php endif; ?>
-  <form method="get">
+  <form method="get" hx-boost="true">
     <input type="hidden" name="nq" value="<?= e($nSearch) ?>"><?php if ($nAll): ?><input type="hidden" name="nview" value="all"><?php endif; ?>
     <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Sort by', 'Ayusin ayon sa')) ?></span>
@@ -523,7 +538,7 @@ $noteBadge = $notesUnread + $escCount;
 <?php if (sees_everything()):
     $ncHref = fn (string $c) => 'notifications.php?' . http_build_query(array_filter(['nview' => $nAll ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : '', 'ncom' => $c])); ?>
 <?php $sdTypes = committee_sd_types($db); ?>
-<nav class="cm-chips nf-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+<nav class="cm-chips cm-choose nf-chips" hx-boost="true" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
   <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>" data-nc=""><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span><b><?= (int) ($ncN['all'] ?? 0) ?></b></a>
   <?php foreach (committees_active() as $ck => $cl): ?>
     <a class="cm-chip cm-sd<?= $nCom === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>" data-nc="<?= e($ck) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span><b><?= (int) ($ncN[$ck] ?? 0) ?></b></a>
@@ -532,6 +547,7 @@ $noteBadge = $notesUnread + $escCount;
   <a class="cm-chip cm-chip-sys<?= $nCom === 'system' ? ' p-on' : '' ?>" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?> title="<?= e(t('System', 'Sistema')) ?>" data-nc="system"><i class="cm-sym cm-sym-sys">S</i><span class="cm-n"><?= e(t('System', 'Sistema')) ?></span><b><?= (int) ($ncN['system'] ?? 0) ?></b></a>
 </nav>
 <?= committee_banner_script() ?>
+<script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
 <?php endif; ?>
 
 <!-- ---------- escalation requests (0073) ---------- -->
@@ -597,11 +613,11 @@ $noteBadge = $notesUnread + $escCount;
       </summary>
       <div class="nf-body"><ul class="nf-items">
         <?php foreach ($n['group'] as $g): preg_match($waitRe, (string) $g['message'], $gm); ?>
-          <li><?= notification_dot($g) ?><span class="p-mono-id"><?= e($gm[1] ?? '') ?></span> <?= e(sprintf(t('waited %s min', 'naghintay nang %s min'), $gm[2] ?? '?')) ?> <span class="p-when"><?= e(relative_time($g['created_at'])) ?></span>
+          <li><span class="nf-dotc"><?= notification_dot($g) ?></span><span class="p-mono-id"><?= e($gm[1] ?? '') ?></span><span class="nf-wait-t"><?= e(sprintf(t('waited %s min', 'naghintay nang %s min'), $gm[2] ?? '?')) ?></span><span class="p-when"><?= e(relative_time($g['created_at'])) ?></span>
             <?php if (!empty($g['report_id'])): ?><a class="p-btn p-btn-sm p-btn-orange" data-nid="<?= empty($g['is_read']) ? e($g['id']) : '' ?>" href="case.php?id=<?= e($g['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a><?php endif; ?></li>
         <?php endforeach; ?>
       </ul>
-      <?php if ($gUnread): ?><form method="post" class="nf-readall"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="<?= e(implode(',', array_column($gUnread, 'id'))) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+      <?php if ($gUnread): ?><form method="post"<?= press_save('nf-list') ?> class="nf-readall"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="<?= e(implode(',', array_column($gUnread, 'id'))) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
         <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= p_icon('i-check', 15) ?><?= e(t('Mark all of them as read', 'Markahang nabasa ang lahat ng ito')) ?></button></form><?php endif; ?>
       </div>
     </details>
@@ -621,12 +637,12 @@ $noteBadge = $notesUnread + $escCount;
       <div class="nf-body"><ul class="nf-items nf-case-items">
         <?php foreach ($cg as $g): $gu = empty($g['is_read']); $gl = notif_look((string) ($g['kind'] ?? ''), (string) $g['message']); ?>
           <li data-sev="<?= e($gl[0]) ?>"><i class="nf-sev" aria-hidden="true"></i><span class="nf-msg<?= $gu ? ' is-unread' : '' ?>"><?= e($g['message']) ?></span> <span class="p-when"><?= e(relative_time($g['created_at'])) ?></span>
-            <?php if ($gu): ?><form method="post" class="p-n-x"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="<?= e($g['id']) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+            <?php if ($gu): ?><form method="post"<?= press_save('nf-list') ?> class="p-n-x"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="<?= e($g['id']) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
               <button class="p-n-check" type="submit" title="<?= e(t('Mark as read', 'Markahang nabasa')) ?>" aria-label="<?= e(t('Mark as read', 'Markahang nabasa')) ?>"><?= p_icon('i-check', 16) ?></button></form><?php endif; ?></li>
         <?php endforeach; ?>
       </ul>
       <div class="nf-case-act"><a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Open the case', 'Buksan ang kaso')) ?></a>
-        <?php if ($cgUn): ?><form method="post" class="nf-readall"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="<?= e(implode(',', array_map(fn ($g) => $g['id'], $cgUn))) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+        <?php if ($cgUn): ?><form method="post"<?= press_save('nf-list') ?> class="nf-readall"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="<?= e(implode(',', array_map(fn ($g) => $g['id'], $cgUn))) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
           <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= p_icon('i-check', 15) ?><?= e(t('Mark all as read', 'Markahang nabasa ang lahat')) ?></button></form><?php endif; ?></div>
       </div>
     </details>
@@ -643,13 +659,13 @@ $noteBadge = $notesUnread + $escCount;
         <a class="p-btn p-btn-sm p-btn-orange" data-nid="<?= $unread ? e($n['id']) : '' ?>" href="<?= ($n['subject']['role'] ?? '') === 'tanod' ? 'personnel.php' : 'residents.php' ?>?id=<?= e($n['subject_user_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
       <?php endif; ?>
       </div>
-      <form method="post" class="p-n-x"><?php if ($unread): ?><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="<?= e($n['id']) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+      <form method="post"<?= press_save('nf-list') ?> class="p-n-x"><?php if ($unread): ?><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="<?= e($n['id']) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
         <button class="p-n-check" type="submit" title="<?= e(t('Mark as read', 'Markahang nabasa')) ?>" aria-label="<?= e(t('Mark as read', 'Markahang nabasa')) ?>"><?= p_icon('i-check', 16) ?></button><?php endif; ?></form>
     </div>
   <?php endforeach; ?>
 </div></div>
 
-<div id="notes-pager"><?= pager($notesTotal, $npage, 'npage') ?></div>
+<div id="notes-pager" hx-boost="true" hx-swap="outerHTML show:#nf-list:top"><?= pager($notesTotal, $npage, 'npage') ?></div>
 </div>
 <?php if ($railOn): ?>
 <aside class="nf-rail" aria-label="<?= e(t('What needs you now', 'Ang kailangan mo ngayon')) ?>">
@@ -687,7 +703,14 @@ $crOd = [];   // overdue open cases, by committee ('' = none)
 foreach ($openRows ?? [] as $r) { if (!empty($r['due_at']) && strtotime((string) $r['due_at']) < time()) { $k = (string) ($r['case_committee'] ?? ''); $crOd[$k] = ($crOd[$k] ?? 0) + 1; } }
 $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '%d ang lampas') : t('%d overdue', '%d ang lampas'), $n) : t('none overdue', 'walang lampas');
 ?>
-<div class="cr-fig" aria-label="<?= e(t('What needs attention', 'Ang kailangan ng pansin')) ?>">
+<?php $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : ''); ?>
+<?= forward_dialog($fwBack, 'cr-list') ?>
+<?php // The press flow (step 3, 7 Nov 2026): the figures, the filters, the chooser, the list and the pager are one region. A press on a
+      // figure, a filter, a committee, a column or a page fetches this same page and swaps only this region; the address follows, so
+      // Back, Forward and a refresh land on the same view. Row links still open the case. ?>
+<div id="cr-list" class="press-region" hx-target="#cr-list" hx-select="#cr-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#cr-list:replace"
+     data-announce="<?= e(sprintf(t('Showing %d reports', 'Ipinapakita ang %d ulat'), (int) $regTotal)) ?>">
+<div class="cr-fig" hx-boost="true" aria-label="<?= e(t('What needs attention', 'Ang kailangan ng pansin')) ?>">
   <a class="p-card ss-tile<?= $atc > 0 ? ' hot' : '' ?>" href="<?= e($crHref(['view' => 'attention'])) ?>"><span><?= e(t('Needs attention', 'Kailangan ng pansin')) ?></span><b class="p-num"><?= (int) $atc ?></b>
     <small><?= e(t('late, asked again, or waiting for approval', 'huli, muling nagtanong, o naghihintay ng pag-apruba')) ?></small></a>
   <a class="p-card ss-tile<?= $crFree > 0 ? ' hot' : '' ?>" href="<?= e($crHref(['who' => 'unclaimed'])) ?>"><span><?= e(t('Nobody has it', 'Walang may hawak')) ?></span><b class="p-num"><?= (int) $crFree ?></b>
@@ -698,7 +721,7 @@ $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '
     <small><?= e(t('not yet resolved or closed', 'hindi pa nalulutas o naisasara')) ?></small></a>
 </div>
 <?php $vAnyBand = $view === 'attention' || $who !== '' || $filter !== '' || $category !== '' || $issue !== '' || $month !== '' || $tanod !== '' || $search !== ''; ?>
-<div class="p-band ss-cr-band">
+<div class="p-band ss-cr-band" hx-boost="true">
   <h2><?= e(t('Reports', 'Mga Ulat')) ?><span class="p-badge-n p-badge-n--quiet" id="reports-count"><?= (int) $regTotal ?></span></h2>
   <form class="p-search" method="get" role="search">
     <?= p_icon('i-search', 16) ?>
@@ -774,7 +797,7 @@ $comHref = fn (string $c) => 'cases.php?' . http_build_query(array_filter(array_
 $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 ?>
 <?php if ($casesFlash): ?><div class="p-flash p-flash--<?= $casesFlash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($casesFlash['text']) ?></div><?php endif; ?>
-<nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+<nav class="cm-chips cm-choose" hx-boost="true" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
   <a class="cm-chip<?= $com === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $com === '' ? ' aria-current="true"' : '' ?> title="<?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?>"><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?><em class="<?= array_sum($crOd) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) array_sum($crOd))) ?></em></span><b><?= (int) ($chipN['all'] ?? 0) ?></b></a>
   <?php if (sees_everything()): ?>
     <?php foreach (committees_active() as $ck => $cl): ?>
@@ -782,22 +805,21 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     <?php endforeach; ?>
     <a class="cm-chip cm-chip-none<?= $com === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $com === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?><em class="<?= ($crOd[''] ?? 0) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) ($crOd[''] ?? 0))) ?></em></span><b><?= (int) ($chipN['none'] ?? 0) ?></b></a>
   <?php elseif ($myCom !== ''): ?>
-    <a class="cm-chip<?= $com === 'fwd' ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($myCom)) ?>;--ct:<?= e(ink_on(committee_colour($myCom))) ?>" href="<?= e($comHref('fwd')) ?>"<?= $com === 'fwd' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&rarr;</i><span class="cm-n"><?= e(t('Forwarded to us', 'Ipinasa sa amin')) ?></span><b><?= (int) ($chipN['fwd'] ?? 0) ?></b></a>
-    <?php if (my_tier() === 'committee'): ?><a class="cm-chip cm-chip-flag<?= $com === 'flagged' ? ' p-on' : '' ?>" href="<?= e($comHref('flagged')) ?>"<?= $com === 'flagged' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&#9873;</i><span class="cm-n"><?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?></span><b><?= (int) ($chipN['flagged'] ?? 0) ?></b></a><?php endif; ?>
+    <a class="cm-chip<?= $com === 'fwd' ? ' p-on' : '' ?>" title="<?= e(t('Forwarded to us', 'Ipinasa sa amin')) ?>" style="--cc:<?= e(committee_colour($myCom)) ?>;--ct:<?= e(ink_on(committee_colour($myCom))) ?>" href="<?= e($comHref('fwd')) ?>"<?= $com === 'fwd' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&rarr;</i><span class="cm-n"><?= e(t('Forwarded to us', 'Ipinasa sa amin')) ?></span><b><?= (int) ($chipN['fwd'] ?? 0) ?></b></a>
+    <?php if (my_tier() === 'committee'): ?><a class="cm-chip cm-chip-flag<?= $com === 'flagged' ? ' p-on' : '' ?>" title="<?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?>" href="<?= e($comHref('flagged')) ?>"<?= $com === 'flagged' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&#9873;</i><span class="cm-n"><?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?></span><b><?= (int) ($chipN['flagged'] ?? 0) ?></b></a><?php endif; ?>
   <?php endif; ?>
 </nav>
 <?= committee_banner_script() ?>
+<script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
 <?php if (is_super()): ?>
 <div class="fw-bulk" id="fw-bulk" hidden><span id="fw-bulk-n"></span><button type="button" class="p-btn p-btn-primary p-btn-sm" data-fw-open="bulk"><?= e(t('Forward the selected cases', 'Ipasa ang mga napili')) ?></button></div>
 <?php endif; ?>
-<?= forward_dialog($fwBack) ?>
-
 <div class="p-card p-table-card"><div class="p-tscroll">
   <?php // 0159: column widths by name, so the optional columns (select, committee) never push the rest out of place
   $cw = ['sel' => is_super() ? 3 : 0, 'id' => 12, 'cat' => 14, 'com' => sees_everything() ? 14 : 0, 'st' => 13, 'fil' => 7, 'smart' => 9, 'hnd' => 12, 'act' => 16];
   $cwSum = array_sum($cw); ?>
   <table class="p-t ss-cases-t<?= sees_everything() ? ' ss-cases-wide' : '' ?>">
-    <thead><tr>
+    <thead hx-boost="true"><tr>
       <?php if (is_super()): ?><th scope="col" style="width:<?= round($cw['sel'] / $cwSum * 100, 2) ?>%" class="ss-c fw-selc"><input type="checkbox" id="fw-all" aria-label="<?= e(t('Select every case on this page', 'Piliin ang bawat kaso sa pahinang ito')) ?>"></th><?php endif; ?>
       <th scope="col" style="width:<?= round($cw['id'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Case', 'Kaso')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
       <th scope="col" style="width:<?= round($cw['cat'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>"><?= e(t('Category', 'Kategorya')) ?><?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
@@ -826,7 +848,10 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
               <div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true"><?= e(admin_initials($r['resident']['full_name'] ?? '')) ?></span><span><?= e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></span></div>
             <?php endif; ?></div>
           </td>
-          <td><?= e(category_label($r['category'])) ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?><?= forwarded_tag((array) ($r['forwards'] ?? [])) ?></td>
+          <td><span class="cat-n" title="<?= e(category_label($r['category'])) ?>"><?= e(category_label($r['category'])) ?></span><?php
+              // every concern but the report's own (the first of its main category)
+              $more = (array) ($r['concerns'] ?? []); $mi = array_search($r['category'], array_column($more, 'category'), true); if ($mi !== false) array_splice($more, (int) $mi, 1);
+              if ($more): $tip = t('Also in this report', 'Kasama rin sa ulat na ito') . ': ' . implode(', ', array_map(fn ($c) => category_label((string) $c['category']) . (!empty($c['filed_option_en']) ? ': ' . $c['filed_option_en'] : '') . ' (' . (($c['status'] ?? '') === 'resolved' ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) . ')', $more)); ?> <span class="cr-more" title="<?= e($tip) ?>">+<?= count($more) ?></span><?php endif; ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?><?= forwarded_tag((array) ($r['forwards'] ?? [])) ?></td>
           <?php if (sees_everything()): ?><td><?= committee_pill($r['case_committee'] ?? null, !empty($r['awaiting_placement'])) ?></td><?php endif; ?>
           <td><div class="p-badges">
             <?= sensitive_badge($r) ?>
@@ -849,7 +874,8 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     </tbody>
   </table>
 </div></div>
-<div id="reports-pager"><?= pager((int) $regTotal, $page) ?></div>
+<div id="reports-pager" hx-boost="true" hx-swap="outerHTML show:#cr-list:top"><?= pager((int) $regTotal, $page) ?></div>
+</div><?php // #cr-list ?>
 
 <?php endif; ?>
 
@@ -857,9 +883,9 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 // 0152: the Forward / Flag dialog, for one case (its row's button) or for the cases ticked (super admins)
 (function () {
   var dlg = document.getElementById('fw-dlg'); if (!dlg) return;
-  var ids = document.getElementById('fw-ids'), what = document.getElementById('fw-what'), bulk = document.getElementById('fw-bulk');
+  var ids = document.getElementById('fw-ids'), what = document.getElementById('fw-what');
   function picked() { return Array.prototype.slice.call(document.querySelectorAll('.fw-sel:checked')); }
-  function paintBulk() { if (!bulk) return; var n = picked().length; bulk.hidden = n === 0; document.getElementById('fw-bulk-n').textContent = n + ' ' + T('selected', 'ang napili'); }
+  function paintBulk() { var bulk = document.getElementById('fw-bulk'); if (!bulk) return; var n = picked().length; bulk.hidden = n === 0; document.getElementById('fw-bulk-n').textContent = n + ' ' + T('selected', 'ang napili'); }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-fw-open]');
     if (b) {
@@ -876,6 +902,14 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     if (e.target.id === 'fw-all') { document.querySelectorAll('.fw-sel').forEach(function (x) { x.checked = e.target.checked; }); }
     if (e.target.id === 'fw-all' || e.target.classList.contains('fw-sel')) paintBulk();
   });
+  document.addEventListener('htmx:afterSettle', function () {
+    paintBulk();
+    var back = dlg.querySelector('input[name="back"]'); if (back) back.value = location.pathname.split('/').pop() + location.search;
+  });
+  // the live refresh waits while cases are ticked or the dialog is open, so it never takes a selection away
+  window.ssCasesBusy = function () { return picked().length > 0 || dlg.open; };
+  // a forward sent in place closes the dialog when its answer has come
+  dlg.addEventListener('htmx:afterRequest', function (e) { if (e.detail && e.detail.successful) dlg.close(); });
 })();
 </script>
 <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
@@ -902,11 +936,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     const fd = new FormData(); fd.append('csrf', CSRF); fd.append('action', 'read_one'); fd.append('id', a.dataset.nid); fd.append('beacon', '1');
     try { navigator.sendBeacon('notifications.php', fd); } catch (x) { /* it can be marked by hand */ }
   });
-  const sb = createClient(
-    <?= json_encode(supabase_url()) ?>,
-    <?= json_encode(supabase_key()) ?>,
-    { accessToken: window.ssAccessToken(TOKEN) }
-  );
+  const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
   // The view this page loaded with. Realtime keeps re-querying against
   // this exact filter/sort/search, so a new complaint appears live only
@@ -1316,8 +1346,28 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     timerRef.id = setTimeout(fn, 250);
   };
   // only the part of the page that is on screen is refreshed
-  const kickReports = debounced(TAB === 'all' ? loadReports : TAB === 'next' ? refreshBoard : () => {}, { id: null });
-  const kickNotifs  = debounced(TAB === 'notes' ? loadNotifications : () => {}, { id: null });
+  // With the press flow on, the list is drawn by the server only: a change asks for the view on screen now (its address), so a view
+  // chosen in place is never redrawn with the filters this page first loaded with. Without htmx, the old in-page redraw runs.
+  let liveWaiting = false;
+  function liveList() {
+    if (!(window.htmx && window.ssPress && document.getElementById('cr-list'))) return loadReports();
+    if (window.ssCasesBusy && window.ssCasesBusy()) { liveWaiting = true; return; }
+    liveWaiting = false; window.ssPress.refresh('#cr-list');
+  }
+  document.addEventListener('change', function () { if (liveWaiting && !(window.ssCasesBusy && window.ssCasesBusy())) liveList(); });
+  document.addEventListener('close', function (e) { if (e.target && e.target.id === 'fw-dlg' && liveWaiting) liveList(); }, true);
+  window.ssLive = window.ssLive || {}; window.ssLive.cases = liveList;
+  const kickReports = debounced(TAB === 'all' ? liveList : TAB === 'next' ? refreshBoard : () => {}, { id: null });
+  // Notifications with the press flow: the server draws the list for the address on screen; a refresh waits while a folded group is open
+  let notesWaiting = false;
+  function liveNotes() {
+    if (!(window.htmx && window.ssPress && document.getElementById('nf-list'))) return loadNotifications();
+    if (document.querySelector('#nf-list details[open]')) { notesWaiting = true; return; }
+    notesWaiting = false; window.ssPress.refresh('#nf-list');
+  }
+  document.addEventListener('toggle', function () { if (notesWaiting && !document.querySelector('#nf-list details[open]')) liveNotes(); }, true);
+  window.ssLive = window.ssLive || {}; window.ssLive.notes = liveNotes;
+  const kickNotifs  = debounced(TAB === 'notes' ? liveNotes : () => {}, { id: null });
 
   let wasDown = false;
   sb.channel('cases-list')

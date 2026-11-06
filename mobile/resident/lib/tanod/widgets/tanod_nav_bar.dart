@@ -129,7 +129,7 @@ class _StatusButtonState extends State<_StatusButton> {
                         // Tab labels stay one size, so five fit evenly at any phone text size.
                         textScaler: TextScaler.noScaling,
                         // B1: the label in the status colour too.
-                        style: TextStyle(fontFamily: 'Urbanist', fontSize: 12.5, height: 1.2, fontWeight: FontWeight.w800, color: Color.lerp(c, d.barFg, d.bar.computeLuminance() > .5 ? .25 : 0))),
+                        style: TextStyle(fontFamily: 'Inter', fontSize: 12.5, height: 1.2, fontWeight: FontWeight.w800, color: Color.lerp(c, d.barFg, d.bar.computeLuminance() > .5 ? .25 : 0))),
                   ),
                   const SizedBox(height: 12),
                 ]),

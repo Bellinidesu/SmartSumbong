@@ -24,12 +24,30 @@ FROM composer:2.10.3 AS composer
 # cannot, and Dependabot raises it with each new patch.
 FROM php:8.5.12-apache
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev \
-    && docker-php-ext-install curl mbstring zip \
-    && a2enmod rewrite expires headers deflate \
-    && sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf \
-    && rm -rf /var/lib/apt/lists/*
+# apt-get upgrade (4 Nov 2026): Debian's security fixes that are newer than the PHP base image.
+# No build tools in the running image (7 Nov 2026): the compilers and headers that building the zip extension needs (gcc, g++,
+# the libc and kernel headers, the -dev packages; the base image keeps them as $PHPIZE_DEPS) were shipped to production and were
+# most of the image scan's findings. The docker-library way: build, keep only the libraries PHP, its extensions and Apache link
+# to (found with ldd), purge the rest, then prove the extensions still load and no compiler is left.
+RUN set -eux; \
+    apt-get update; \
+    apt-get upgrade -y --no-install-recommends; \
+    savedAptMark="$(apt-mark showmanual | grep -vxF "$(printf '%s\n' $PHPIZE_DEPS libc6-dev)" || true)"; \
+    apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev; \
+    docker-php-ext-install curl mbstring zip; \
+    apt-mark auto '.*' > /dev/null; \
+    [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark > /dev/null; \
+    find /usr/local /usr/lib/apache2/modules -type f \( -name '*.so' -o -perm -u+x \) -exec ldd '{}' ';' 2>/dev/null \
+      | awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
+      | sort -u | xargs -r dpkg-query --search 2>/dev/null \
+      | awk -F': ' '/^diversion/ { next } { n = split($1, p, ", "); for (i = 1; i <= n; i++) print p[i] }' \
+      | sort -u | xargs -r apt-mark manual > /dev/null; \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+    for m in curl mbstring zip; do php -m | grep -qix "$m"; done; \
+    if command -v gcc || command -v g++ || command -v make; then echo 'a build tool is still in the image' >&2; exit 1; fi; \
+    a2enmod rewrite expires headers deflate; \
+    sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf; \
+    rm -rf /var/lib/apt/lists/*
 
 # The image ships no php.ini, and PHP's built-in default prints errors
 # into the page — a fatal on request-access.php showed visitors the
@@ -39,6 +57,16 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 # Speed (7 Oct 2026): OPcache (built into PHP 8.5) keeps compiled PHP in memory. The image never
 # changes after it is built, so there is no need to re-check files on disk.
 RUN { echo 'opcache.enable=1'; echo 'opcache.memory_consumption=64'; echo 'opcache.max_accelerated_files=4000';       echo 'opcache.validate_timestamps=0'; echo 'opcache.interned_strings_buffer=8'; echo 'expose_php=Off'; } > "$PHP_INI_DIR/conf.d/zz-opcache.ini"
+
+# Speed (7 Nov 2026): fewer, longer-lived PHP workers. Each Apache worker keeps its own open connection to Supabase (in Mumbai);
+# Debian's defaults keep 5 to 10 idle workers and spread a few people's clicks across all of them, so a worker's connection had
+# usually gone cold by its next turn and the page paid a fresh TCP and TLS handshake (two or three round trips) before its one
+# database wait. Two to start and one to three spare keep the same workers busy and their connections open; Apache still adds
+# workers under load, up to twelve (about 35 MB each, within the 512 MB of a small instance; Debian's 150 could never fit).
+# Server-Timing's "conn" says how many new connections a page had to open.
+RUN printf '%s\n' '<IfModule mpm_prefork_module>' '    StartServers 2' '    MinSpareServers 1' '    MaxSpareServers 3' \
+      '    MaxRequestWorkers 12' '    MaxConnectionsPerChild 0' '</IfModule>' > /etc/apache2/conf-available/zz-workers.conf \
+    && a2enconf zz-workers
 
 WORKDIR /var/www/html
 

@@ -28,7 +28,7 @@ function features_read(): array
     if ($memo !== null) return $memo;
     // the table is for administrators: a signed-out visitor would read an empty list, and that must never be cached for everyone
     if (access_token() === null) return $memo = [];
-    $ttl = (int) env('FEATURE_CACHE_TTL', '20');
+    $ttl = cache_ttl();
     $file = feature_cache_file();
     if ($ttl > 0 && is_file($file) && filemtime($file) > time() - $ttl) {
         $hit = json_decode((string) @file_get_contents($file), true);
@@ -36,7 +36,8 @@ function features_read(): array
     }
     $out = null;
     try {
-        $rows = db()->select('feature_switches', ['select' => 'key,enabled']);
+        [, $fq] = features_read_entry();
+        $rows = db()->select('feature_switches', $fq);
         $out = [];
         foreach ((array) $rows as $r) { $out[(string) $r['key']] = (bool) $r['enabled']; }
         if ($ttl > 0) @file_put_contents($file, json_encode($out), LOCK_EX);
@@ -46,6 +47,12 @@ function features_read(): array
         $out = is_array($old) ? $old : [];
     }
     return $memo = $out;
+}
+
+/** The feature switches' read, for the request's boot batch (boot.php) and for features_read() alike. */
+function features_read_entry(): array
+{
+    return ['feature_switches', ['select' => 'key,enabled'], true];
 }
 
 function feature_on(string $key): bool

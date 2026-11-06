@@ -33,6 +33,7 @@ def report(i, **kw):
     r.update(kw); return r
 
 REPORTS = [report(i) for i in range(1, 20)]
+REPORTS[0]['concerns'] = [{'category': REPORTS[0]['category'], 'status': 'open'}, {'category': 'public_safety_infrastructure', 'status': 'resolved'}, {'category': 'barangay_service', 'status': 'open'}]
 for r in REPORTS:
     if r['handler_id']: r['handler'] = {'id': ADMIN['id'], 'full_name': ADMIN['full_name'], 'official_role': 'secretary', 'committee': None}
 REPORTS[0].update(is_anonymous=True, status='validated', tier=1, handler_id=KAG['id'], handler={'id': KAG['id'], 'full_name': KAG['full_name'], 'official_role': 'kagawad', 'committee': 'peace_order'}, subject='Live wire sparking near the school', is_sensitive=False)
@@ -49,7 +50,8 @@ TABLES = {
     'users': [ADMIN, KAG, CHAIR, tanod(1, 'Bautista, Jose'), tanod(2, 'Mendoza, Liza', True), tanod(3, 'Cruz, Ben')],
     'reports': REPORTS,
     'report_concerns': [
-        {'id': 'e1', 'report_id': REPORTS[0]['id'], 'category': 'public_safety_infrastructure', 'note': 'Wire is on the ground', 'status': 'resolved', 'resolved_at': ago(2), 'remark': 'Meralco crew cut the power', 'created_at': ago(30)},
+        {'id': 'e1', 'report_id': REPORTS[0]['id'], 'category': 'public_safety_infrastructure', 'option_id': 4, 'filed_category_en': 'Public Safety and Infrastructure', 'filed_category_fil': 'Kaligtasan at Imprastraktura', 'filed_option_en': 'Live wire on the ground', 'filed_option_fil': 'Kawad sa lupa', 'note': 'Wire is on the ground', 'status': 'resolved', 'resolved_at': ago(2), 'remark': 'Meralco crew cut the power', 'created_at': ago(30)},
+        {'id': 'e3', 'report_id': REPORTS[0]['id'], 'category': 'animal_welfare', 'option_id': 6, 'filed_category_en': 'Animal Welfare', 'filed_category_fil': 'Kapakanan ng Hayop', 'filed_option_en': 'Neglected Pets', 'filed_option_fil': 'Pinabayaang alaga', 'note': None, 'status': 'open', 'resolved_at': None, 'remark': None, 'created_at': ago(28)},
         {'id': 'e2', 'report_id': REPORTS[0]['id'], 'category': 'barangay_service', 'note': 'Nobody answered the hotline', 'status': 'open', 'resolved_at': None, 'remark': None, 'created_at': ago(29)}],
     'committee_for_category': [{'category': c, 'committee': 'peace_order'} for c in CATS],
     'smart_rules': [{'id': 1, 'storm_mode': True, 'storm_until': ahead(8), 'storm_reason': 'PAGASA orange rainfall warning', 'category_points': {'public_safety_infrastructure': 35, 'peace_order_nuisance': 30, 'environmental_waste_hazard': 25, 'traffic_violation': 20,
@@ -64,7 +66,8 @@ TABLES = {
         {'id': 41, 'batch': 'b1', 'sender': None, 'recipient': ADMIN['id'], 'kind': 'system', 'subject': 'Pick a tanod for SS-2610-1001',
          'body': 'No Peace and Order tanod is free for case SS-2610-1001. Pick a tanod within 5 minutes, or the nearest tanod from any committee is sent.',
          'created_at': ago(0.05), 'read_at': None, 'report_id': REPORTS[0]['id'], 'question_id': 7, 'from': None, 'to': {'full_name': ADMIN['full_name']},
-         'report': {'id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'subject': REPORTS[0]['subject']}},
+         'report': {'id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'subject': REPORTS[0]['subject']},
+         'q': {'id': 7, 'state': 'open', 'due_at': ahead(0.08)}},   # the reroute question, embedded as the Inbox list reads it (7 Nov 2026)
         {'id': 42, 'batch': 'b2', 'sender': 'a0000000-0000-0000-0000-000000000009', 'recipient': ADMIN['id'], 'kind': 'mail', 'subject': 'Pulong bukas',
          'body': 'Bukas ng alas-diyes sa bulwagan.', 'created_at': ago(3), 'read_at': ago(2), 'report_id': None, 'question_id': None,
          'from': {'full_name': 'Santos, Ben'}, 'to': {'full_name': ADMIN['full_name']}, 'report': None, 'reply_to': None},
@@ -126,6 +129,12 @@ TABLES = {
 # 0150: each committee's colour, as the migration starts them
 for _c in TABLES['committees']:
     _c['colour'] = {'peace_order': '#D32F2F', 'environment': '#00838F', 'health_sanitation': '#1E9E4A', 'anti_drug': '#5C6BC0', 'women_family': '#D81B60'}.get(_c['key'], '#78909C')
+    # 0164: one committee has a logo uploaded (a drawn one, so the tests need no network); the others show their symbol
+    _c['logo_url'] = None
+TABLES['committees'][1]['logo_url'] = ('data:image/svg+xml,' + __import__('urllib.parse').parse.quote(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="#F3FFF8" stroke="#00838F" stroke-width="4"/>'
+    '<circle cx="48" cy="48" r="36" fill="#00838F"/><path d="M48 24c14 8 18 22 10 34-4 6-10 9-10 14 0-5-6-8-10-14-8-12-4-26 10-34z" fill="#C8F5D8"/>'
+    '<path d="M48 34v38" stroke="#00838F" stroke-width="3" stroke-linecap="round"/></svg>'))
 
 # The command center (0143): a small memory of which mode is on, so a test can turn one on, hand over and turn it off.
 CMD = {'active': None}
@@ -211,6 +220,16 @@ TANOD_EXTRA = [
 ]
 
 RPC = {
+    # 0165: the caller's module of the engine (the fake cannot tell rungs apart, so it answers as a Kagawad of Peace and Order)
+    'smart_module': {'module': 'committee', 'committee': 'peace_order', 'categories': ['peace_order_nuisance', 'traffic_violation'],
+                     'counts': {'open': 9, 'urgent_waiting': 1, 'high_waiting': 2, 'overdue': 2, 'due_24h': 3, 'untaken': 4, 'mine': 2},
+                     'decisions': {'escalations': 1, 'reroute': 1, 'forwarded': 2, 'flags': 1, 'to_place': None, 'tanods_proposed': None},
+                     'deadline_risk': [{'report_id': 'c0000000-0000-0000-0000-000000000001', 'tracking_id': 'SS-2610-1001', 'hours_left': 3.5, 'risk': 'high', 'reasons': []},
+                                       {'report_id': 'c0000000-0000-0000-0000-000000000002', 'tracking_id': 'SS-2610-1002', 'hours_left': 11.0, 'risk': 'medium', 'reasons': []}],
+                     'quiet': [{'report_id': 'c0000000-0000-0000-0000-000000000003', 'tracking_id': 'SS-2610-1003', 'status': 'assigned', 'days_quiet': 4, 'last_activity': 'Tanod accepted'}],
+                     'spikes': [{'category': 'peace_order_nuisance', 'this_week': 6, 'usual': 2.1, 'times_usual': 2.9, 'place': 'Sampaguita Street'}],
+                     'patterns': [{'pattern_key': 'p1', 'category': 'peace_order_nuisance', 'reports': 5, 'weeks': 4, 'residents': 4, 'still_open': 2, 'hazard': None, 'last_at': ago(600), 'tracking_ids': ['SS-2610-1001']}],
+                     'tanods': {'total': 4, 'on_duty': 1, 'busy': 2, 'lunch': 1, 'break': 0, 'offline': 0}, 'at': ago(0)},
     'command_hall': lambda p: None if (p.get('p_token') != 'f' * 48 or not FEAT['command_center']) else {
         'as_of': ago(0), 'barangay': 'Barangay 183, Zone 20', 'today': {'filed': 7, 'resolved': 3, 'open': 19}, 'tanods_on_duty': 4,
         'mode': {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha', 'since': ago(40), 'reports': 3, 'open': 2, 'resolved': 1,
@@ -232,10 +251,14 @@ RPC = {
     # 0157: a Kagawad's view of their tanods' retirement requests, and the endorsement
     'retirement_requests_queue': [{'id': 'r0000000-0000-0000-0000-000000000001', 'tanod_id': 'u2', 'full_name': 'Lediac, Ace', 'email': None, 'mobile_number': '+639170000002',
                                    'status': 'pending', 'requested_at': ago(20), 'decided_at': None, 'decided_by': None, 'decided_by_name': None, 'denial_reason': None,
-                                   'endorsed_at': None, 'endorsed_by_name': None, 'endorse_note': None},
+                                   'endorsed_at': None, 'endorsed_by_name': None, 'endorse_note': None, 'role': 'tanod'},
                                   {'id': 'r0000000-0000-0000-0000-000000000002', 'tanod_id': 'u3', 'full_name': 'Arcibal, Kim Justine', 'email': None, 'mobile_number': '+639170000003',
                                    'status': 'pending', 'requested_at': ago(40), 'decided_at': None, 'decided_by': None, 'decided_by_name': None, 'denial_reason': None,
-                                   'endorsed_at': ago(5), 'endorsed_by_name': 'Dela Cruz, Ramon', 'endorse_note': 'Tapos na ang termino'}],
+                                   'endorsed_at': ago(5), 'endorsed_by_name': 'Dela Cruz, Ramon', 'endorse_note': 'Tapos na ang termino', 'role': 'staff'}],
+    # 0166: who an escalation reaches now, and a staff member's own retirement request (none yet)
+    'escalation_target': [{'official': 'k0000000-0000-0000-0000-000000000001', 'official_name': 'Dela Cruz Ramon', 'to_tier': 1, 'label': 'Kagawad (Peace and Order)',
+                           'committee': 'peace_order', 'why': 'next'}],
+    'my_retirement_status': [],
     'endorse_retirement': None, 'set_my_banner': None,
     'forward_case': 1, 'flag_case_for_forward': 6, 'dismiss_forward_flag': None,
     # 0153: tanods in committees and the punch cards
@@ -325,6 +348,8 @@ def apply_filters(rows, qs):
     for k, vs in qs.items():
         if k in ('select', 'order', 'limit', 'offset'): continue
         v = vs[0]
+        if k == 'cn.category' and v.startswith('eq.'):   # an inner join on the concerns: the main category or any concern
+            w = v[3:]; out = [r for r in out if r.get('category') == w or any(c.get('category') == w for c in r.get('concerns', []))]; continue
         if v.startswith('eq.'):
             want = v[3:]
             if any(k in r for r in out): out = [r for r in out if (str(r.get(k)).lower() if isinstance(r.get(k), bool) else str(r.get(k))) == want]

@@ -6,7 +6,7 @@ stands. Migration 0130 and the portal work of 14 October answer most of them.
 Check new work against this list: these are the conditions for the final
 defense.
 
-Status as of 22 October 2026.
+Status as of 7 November 2026.
 
 | # | The panel asked | Status | Where |
 |---|---|---|---|
@@ -17,9 +17,9 @@ Status as of 22 October 2026.
 | 3b | …and the resident seeing each concern's own status in the app | Done | the report screen's *Concerns in this report* card, when a report has two or more (residents already could read their own concerns, 0130) |
 | 4 | **Anonymous reports**: the resident stays identifiable to the barangay, and the barangay can still talk to them | Done | the case page shows the name, tagged *Anonymous to others*, and the barangay can write to them (`report_messages`). Tanods never receive a resident's name; lists, the map and the printouts still say Anonymous |
 | 5 | **Name changes by request only** (anti-tampering), and a **feedback form after completion** | Done (both existed) | `profile_requests` (0086); `feedback` |
-| 6 | **Layered escalation**: Tanod → Kagawad (by committee) → Chairman, with the organisational structure defined first; the secretary operates the portal (the barangay has no IT admin); Kagawad and Chairman have accounts | Done | official roles and committees, `escalate_in_barangay` and `return_from_official` (0130); Settings → Administrators |
+| 6 | **Layered escalation**: Tanod → Kagawad (by committee) → Chairman, with the organisational structure defined first; the secretary operates the portal (the barangay has no IT admin); Kagawad and Chairman have accounts | Done | official roles and committees, `escalate_in_barangay` and `return_from_official` (0130); since 0166 an escalation follows the committee the case is with now, and a Kagawad's goes to the Chairman; Administrative Services → Roles |
 | 6a | Dispatch optional, never automatic | Done | every dispatch is the admin's (0070) |
-| 6b | Sensitive cases (VAWC, domestic violence) need elevation and a female tanod option | Done | `set_case_sensitive`, designated women responders (0130) |
+| 6b | Sensitive cases (VAWC, domestic violence) need elevation and a female tanod option | Done | `set_case_sensitive`, designated women responders (0130); since 0166 a sensitive case escalates straight to the Chairman, with the super admins told (Barangay 183 has no Women and Family committee) |
 | 7 | Notify residents from the heat map? (today only the admin sees it) | To ask the barangay | |
 | 8 | Meet the barangay captain after the defense | To schedule | |
 
