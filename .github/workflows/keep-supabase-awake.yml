@@ -6,11 +6,14 @@
 # break, the days before a defense) is exactly when nobody notices.
 #
 # Once a day this makes one real, harmless database request as an
-# anonymous visitor: reading one report id, which the row-level security
-# rules answer with an empty list. It needs two repository secrets
+# anonymous visitor: reading one complaint type, which is public by design
+# (the app reads the list before anyone signs in). Reports are not readable
+# by an anonymous visitor at all, so pinging them only works with a secret
+# key, and a secret key has no business here (7 Nov 2026). It needs two
+# repository secrets
 # (Settings -> Secrets and variables -> Actions):
 #   SUPABASE_URL       the project URL (as in the apps' dart_defines.json)
-#   SUPABASE_ANON_KEY  the public anon key (the same one shipped in the apps)
+#   SUPABASE_ANON_KEY  the publishable (anon) key, the same one shipped in the apps; never a secret key
 #
 # Scheduled workflows only run from the default branch, so this lives on
 # main. "Run workflow" on the Actions tab runs it by hand to test it.
@@ -41,7 +44,7 @@ jobs:
           fi
           for attempt in 1 2 3; do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
-              "$SUPABASE_URL/rest/v1/reports?select=id&limit=1" \
+              "$SUPABASE_URL/rest/v1/complaint_categories?select=key&limit=1" \
               -H "apikey: $SUPABASE_ANON_KEY" \
               -H "Authorization: Bearer $SUPABASE_ANON_KEY")
             echo "Attempt $attempt: HTTP $code"

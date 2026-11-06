@@ -145,7 +145,7 @@ Render:
 | Variable | Needed for | Without it |
 |---|---|---|
 | `SUPABASE_URL` | everything | the portal does not start |
-| `SUPABASE_PUBLISHABLE_KEY` (or `SUPABASE_ANON_KEY`) | everything; public by design | the portal does not start |
+| `SUPABASE_PUBLISHABLE_KEY` (or `SUPABASE_ANON_KEY`) | everything; public by design. Only the publishable (anon) key: a secret key under either name is refused | the portal does not start |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET` | showing and uploading photos | photos do not show |
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | signed uploads, private ID photo links, Plan and usage | uploads use the fallback preset; ID photos and credits missing |
 | `MAPILLARY_TOKEN` | street view: "Look around" and the case map's snapshot | no street view |
