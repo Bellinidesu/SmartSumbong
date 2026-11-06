@@ -41,8 +41,9 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 400 18px/1.35 Inter, system-ui, sans-serif; display: grid; grid-template-rows: auto 1fr auto; padding: clamp(16px, 3vw, 40px); gap: clamp(16px, 2.4vw, 32px); }
   header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-  header b, .band b, .tile b { font-family: Inter Tight, system-ui, sans-serif; }
-  header b { font-size: clamp(22px, 2.6vw, 40px); letter-spacing: .01em; }
+  header h1 { margin: 0; font-weight: 800; }
+  header b, header h1, .band b, .tile b { font-family: Inter Tight, system-ui, sans-serif; }
+  header b, header h1 { font-size: clamp(22px, 2.6vw, 40px); letter-spacing: .01em; }
   header span { color: var(--muted); font-size: clamp(16px, 1.6vw, 24px); font-variant-numeric: tabular-nums; }
   .band { display: flex; align-items: center; gap: 18px; padding: clamp(14px, 2vw, 26px) clamp(16px, 2.4vw, 32px); border-radius: 22px; background: var(--cc); color: #fff; }
   .band b { font-size: clamp(28px, 4vw, 64px); text-transform: uppercase; letter-spacing: .03em; line-height: 1; }
@@ -67,7 +68,7 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
 </head>
 <body>
 <?php if (!is_array($h)): ?>
-  <header><b>SmartSumbong</b><span></span></header>
+  <header><h1>SmartSumbong</h1><span></span></header>
   <main class="gone">
     <?php if ($h === false): ?>
       <p><b><?= $e(t('The display could not be read just now.', 'Hindi mabasa ang display ngayon.')) ?></b><?= $e(t('It tries again by itself every 30 seconds.', 'Susubukan itong muli kada 30 segundo.')) ?></p>
@@ -77,7 +78,7 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
   </main>
   <footer><span>SmartSumbong · SMART</span></footer>
 <?php else: $today = (array) ($h['today'] ?? []); ?>
-  <header><b><?= $e($h['barangay'] ?? 'Barangay 183') ?></b><span><?= $e(t('As of', 'As of')) ?> <?= $e($at($h['as_of'] ?? null)) ?></span></header>
+  <header><h1><?= $e($h['barangay'] ?? 'Barangay 183') ?></h1><span><?= $e(t('As of', 'As of')) ?> <?= $e($at($h['as_of'] ?? null)) ?></span></header>
   <main>
     <?php if ($mode): ?>
       <div class="band"><b><?= $e(t((string) $mode['en'], (string) $mode['fil'])) ?></b><span><?= $e(t('On since', 'Naka-on mula')) ?> <?= $e($at($mode['since'] ?? null)) ?></span></div>

@@ -93,7 +93,7 @@ function render_board(array $queue, array $meta, array $admin, string $scope, bo
   <div class="bd-cols">
     <?php foreach ($cols as $key => [$label, $ok, $verb, $hash, $hint]): ?>
       <section class="bd-col<?= $ok ? '' : ' is-locked' ?>" data-stage="<?= e($key) ?>" data-ok="<?= $ok ?>" data-verb="<?= e($verb) ?>" data-hash="<?= e($hash) ?>" data-hint="<?= e($hint) ?>" aria-label="<?= e($label) ?>">
-        <header><h4><?= e($label) ?></h4><span><?= count($by[$key]) ?></span></header>
+        <header><h3><?= e($label) ?></h3><span><?= count($by[$key]) ?></span></header>
         <div class="bd-list">
           <?php if (!$by[$key]): ?><p class="bd-none"><?= e($ok ? t('Nothing here', 'Walang laman') : t('Filled by tanods', 'Pinupuno ng mga tanod')) ?></p><?php endif; ?>
           <?php foreach ($by[$key] as $q):

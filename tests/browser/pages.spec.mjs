@@ -1076,7 +1076,7 @@ test('Account pages, peak: the tanod page leads with figures and banners, and a 
   await open(page, 'personnel.php?view=staff');
   await page.locator('.pc-name').first().click();
   await expect(page).toHaveURL(/staff=s1/);
-  await expect(page.locator('.pd-head h2')).toContainText('Santos');
+  await expect(page.locator('.pd-head h1')).toContainText('Santos');
   await expect(page.locator('.pd-fig > div')).toHaveCount(4);
   await expect(page.locator('.pd-head .pd-fadewrap'), 'the committee is the cover of the name card, not a card of its own').toHaveCount(1);
   await expect(page.locator('.pd-head .cm-pill')).toContainText('Peace and Order');

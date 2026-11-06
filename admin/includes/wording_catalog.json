@@ -2139,6 +2139,8 @@
 {"en":"The committees","fil":"Ang mga komite","in":["portal"]},
 {"en":"The conversation","fil":"Ang usapan","in":["portal"]},
 {"en":"The database asks the portal for a tiny page every 10 minutes, which also keeps the free server from going to sleep.","fil":"Tuwing 10 minuto, humihingi ang database ng maliit na pahina sa portal; pinipigilan din nito ang pagtulog ng libreng server.","in":["portal"]},
+{"en":"The database cannot be reached just now, so these settings could not be loaded. Please try again in a moment.","fil":"Hindi maabot ang database ngayon, kaya hindi naipakita ang mga setting na ito. Subukan muli maya-maya.","in":["portal"]},
+{"en":"The database cannot be reached just now. Please try again in a moment.","fil":"Hindi maabot ang database ngayon. Subukan muli maya-maya.","in":["portal"]},
 {"en":"The day ahead","fil":"Ang araw sa unahan","in":["portal"]},
 {"en":"The day in review","fil":"Balik-tanaw sa araw","in":["portal"]},
 {"en":"The device's battery and connection.","fil":"Baterya at koneksyon ng device.","in":["portal"]},

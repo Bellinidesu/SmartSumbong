@@ -393,7 +393,7 @@ $engineDot = $overdueN > 0 || ($noCom > 0 && $com === '') || $lowAcc > 0;
 $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short_date($from->format('c')), short_date($to->format('c')));
 ?>
 <div class="ss-win-scrim" id="ss-win-scrim"></div>
-<aside class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
+<div class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
   <header class="ss-win-head">
     <?= smart_logo(40) ?>
     <div class="ss-win-ttl"><b id="ss-win-title"><?= e(t('What the engine sees in this report', 'Ang nakikita ng engine sa ulat na ito')) ?></b>
@@ -428,7 +428,7 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
     </section>
     <?php endif; ?>
   </div></div>
-</aside>
+</div>
 <div class="p-topbar"><h1><?= e(t('Report Summary', 'Buod ng mga Ulat')) ?></h1>
   <?php // Report Summary | Barangay Overall: the scope is plain words after a hairline, with its colour as a small bar, not a pill (Ace, 6 Nov 2026)
         if ($scopeCom !== '' && isset(committees_all()[$scopeCom])) { $scopeLabel = (string) committees_all()[$scopeCom]['short_en']; $scopeCc = committee_colour($scopeCom); }

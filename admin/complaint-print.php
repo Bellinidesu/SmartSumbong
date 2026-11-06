@@ -242,5 +242,6 @@ doc_head('Barangay Complaint ' . ($report['tracking_id'] ?? ''), true);
   requestAnimationFrame(function () { $('cd-zw').click(); });
 })();
 </script>
+</main>
 </body>
 </html>

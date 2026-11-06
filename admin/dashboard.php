@@ -212,7 +212,7 @@ $flair = greeting_flair($now, $first);
     }
 ?>
 <div class="ss-win-scrim" id="ss-win-scrim"></div>
-<aside class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
+<div class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
   <header class="ss-win-head">
     <?= smart_logo(40) ?>
     <div class="ss-win-ttl"><b id="ss-win-title"><?= e(t('What the engine sees', 'Ang nakikita ng engine')) ?></b>
@@ -311,7 +311,7 @@ $flair = greeting_flair($now, $first);
   <p class="p-eyebrow"><?= e(t('Resolution efficiency', 'Bilis ng paglutas')) ?></p><div class="dq-notes" id="notes-efficiency"><p class="p-hint"><?= e(t('Reading the month…', 'Binabasa ang buwan…')) ?></p></div>
 </section>
   </div></div>
-</aside>
+</div>
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php endif; ?>
 

@@ -345,7 +345,7 @@ function render_staff_profile(Supabase $db, string $id): void
       <div class="p-grid pd-grid">
         <div class="p-card p-card-pad pd-head<?= $ck !== '' ? ' pd-fade' : '' ?>">
           <?= $ck !== '' ? committee_fade($ck, $sdTypes, $label) . committee_banner_script() : '' ?>
-          <div class="p-acc-head"><?= account_avatar_html(null, (string) $c['name'], 'lg') ?><div><h2><?= e(formal_name((string) $c['name'])) ?></h2>
+          <div class="p-acc-head"><?= account_avatar_html(null, (string) $c['name'], 'lg') ?><div><h1><?= e(formal_name((string) $c['name'])) ?></h1>
             <div class="p-acc-flags"><?= rank_chip(($c['tier'] ?? '') === 'committee' ? 'kagawad' : ($c['position'] ?? null)) ?><?= $ck !== '' ? committee_pill($ck) : '' ?>
               <span class="pc-st pc-st-<?= e($state) ?>"><i aria-hidden="true"></i><?= e($state === 'in' ? t('In now', 'Pasok ngayon') : ($state === 'out' ? t('Signed out', 'Nag-sign out') : t('Not in today', 'Hindi pumasok'))) ?></span></div></div></div>
         </div>

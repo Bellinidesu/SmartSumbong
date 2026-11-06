@@ -34,7 +34,7 @@ function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hl
       </div>
     <?php }; ?>
 <aside class="ed-phone" id="ed-phone" data-screen="report" aria-label="<?= e(t('Live view of the app', 'Live na tanaw ng app')) ?>">
-  <div class="ed-bar"><b><?= e(t('Live view of the app', 'Live na tanaw ng app')) ?></b><small><?= e(t('Changes show here as you type. Saving publishes them.', 'Lumalabas dito ang mga pagbabago habang nagta-type. Ang pag-save ang naglalathala.')) ?></small></div>
+  <div class="ed-bar"><h2 class="ed-bar-t"><?= e(t('Live view of the app', 'Live na tanaw ng app')) ?></h2><small><?= e(t('Changes show here as you type. Saving publishes them.', 'Lumalabas dito ang mga pagbabago habang nagta-type. Ang pag-save ang naglalathala.')) ?></small></div>
   <div class="ed-dev">
     <div class="ed-notch" aria-hidden="true"></div>
     <div class="ed-screen">
