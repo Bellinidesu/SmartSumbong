@@ -224,10 +224,15 @@ try {
             'limit'  => '1',
         ]],
         'browsers' => ['web_push_subscriptions', ['select' => 'id,endpoint,label,created_at,last_ok_at', 'order' => 'created_at.desc']],
-    ] + (is_moderator() ? ['retire' => ['rpc/my_retirement_status', [], true]] : []));
+        // GoTrue's record (when the account last signed in, and whether it signs in by phone): read with the rest, found by
+        // auth_user_once() in the request's read memo (speed work, 7 Nov 2026)
+        'auth' => ['auth/user', [], true],
+    ] + (is_moderator() ? ['retire' => ['rpc/my_retirement_status', [], true]] : [])
+      + (is_scoped() ? ['punch' => ['rpc/punch_cards', ['p_days' => 1, 'p_user' => $admin['id']], true]] : []));
     $me = $pg['me'][0] ?? null;
     $browsers = (array) $pg['browsers'];
     $retire = is_array($pg['retire'] ?? null) ? ($pg['retire'][0] ?? null) : null;
+    $punchRows = is_array($pg['punch'] ?? null) ? $pg['punch'] : null;
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
 }
@@ -247,7 +252,8 @@ $editing = isset($_GET['edit']);
 // 0157: today's punch card, for a Kagawad or a staff member
 $punchToday = null;
 if (is_scoped()) {
-    try { $pc = (array) $db->rpc('punch_cards', ['p_days' => 1, 'p_user' => $admin['id']]); $punchToday = $pc[0]['days'][0] ?? null; } catch (SupabaseError) {}
+    if (isset($punchRows)) { $punchToday = $punchRows[0]['days'][0] ?? null; }   // from the batch above
+    else { try { $pc = (array) $db->rpc('punch_cards', ['p_days' => 1, 'p_user' => $admin['id']]); $punchToday = $pc[0]['days'][0] ?? null; } catch (SupabaseError) {} }
 }
 
 /** The profile banner's look: the sidebar colour (default), the contour pattern, a solid colour, the committee's, or a picture. */

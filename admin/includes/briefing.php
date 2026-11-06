@@ -47,7 +47,10 @@ function briefing_reads(): array
     $today = $now->setTime(0, 0);
     $iso   = fn(DateTimeImmutable $d): string => $d->format('Y-m-d\TH:i:sP');
     $open  = 'in.(pending_review,validated,assigned,in_progress,offline_investigation)';
-    return [
+    // a Kagawad's or staff member's strip keeps only the engine's cases they can see: the cases they can see (row-level
+    // security decides) come with the rest, so no second wait after the engine's lists (7 Nov 2026)
+    $mine = is_scoped() ? ['mine' => ['reports', ['select' => 'id', 'deleted_at' => 'is.null', 'status' => 'not.in.(rejected,cancelled,closed)', 'limit' => '5000'], true]] : [];
+    return $mine + [
         'summary' => ['rpc/smart_summary', [], true],
         'risk'    => ['rpc/smart_deadline_risk', [], true],
         'spikes'  => ['rpc/smart_spikes', [], true],
@@ -102,7 +105,8 @@ function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
             $spikes = array_values(array_filter($spikes, fn ($r) => in_array($r['category'] ?? '', $myCats, true)));
             $recur  = array_values(array_filter($recur, fn ($r) => in_array($r['category'] ?? '', $myCats, true)));
             $ids = array_values(array_unique(array_filter(array_merge(array_column($risk, 'report_id'), array_column($stuck, 'report_id')))));
-            $seen = $ids ? array_flip(array_column((array) $db->select('reports', ['select' => 'id', 'id' => 'in.(' . implode(',', $ids) . ')']), 'id')) : [];
+            $seen = !$ids ? [] : (is_array($got['mine'] ?? null) ? array_flip(array_column($got['mine'], 'id'))
+                : array_flip(array_column((array) $db->select('reports', ['select' => 'id', 'id' => 'in.(' . implode(',', $ids) . ')']), 'id')));
             $risk  = array_values(array_filter($risk, fn ($r) => isset($seen[$r['report_id'] ?? ''])));
             $stuck = array_values(array_filter($stuck, fn ($r) => isset($seen[$r['report_id'] ?? ''])));
         } catch (SupabaseError) { $spikes = $recur = $risk = $stuck = []; }

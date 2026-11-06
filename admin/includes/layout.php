@@ -567,10 +567,15 @@ window.ssSupabase = function (url, key, initial) {
       // those itself). A link can opt out with data-no-prefetch.
       // Nor any link to the page already open (7 Nov 2026): those change the view, and the press flow fetches them itself. The browser
       // matches a prefetch by address, not by link, so a chip in a region was still fetched twice when a plain link elsewhere on the
-      // page (a tile, an alert's "Show them") had the same address: once as a whole page, once by the press. ?>
+      // page (a tile, an alert's "Show them") had the same address: once as a whole page, once by the press.
+      // The sidebar's pages are prerendered (7 Nov 2026): while the pointer rests on one, the browser builds the whole page out of
+      // sight, so the click shows it at once. Measured on a laptop-speed CPU, building one of these pages (its HTML, styles, layout,
+      // paint and scripts) costs the browser 0.6 to 1 s on every page change, about as much as the server's answer. A page opened
+      // from the sidebar only reads (every write is a form), so building it early changes nothing; the Inbox message link, which
+      // marks a message read, is not in the sidebar. Everything else keeps the plain prefetch. ?>
 <?php $sameUrl = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
       $sameRule = preg_match('~^/[A-Za-z0-9_./-]+\.php$~', $sameUrl) ? '{"not":{"href_matches":' . json_encode($sameUrl . '*', JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '}},' : ''; ?>
-<script type="speculationrules">{"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-boost=\"true\"], a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
+<script type="speculationrules">{"prerender":[{"source":"document","eagerness":"moderate","where":{"and":[{"selector_matches":"#side-nav a[href]"},{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"]"}}]}}],"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-boost=\"true\"], a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>

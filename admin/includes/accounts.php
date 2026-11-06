@@ -99,6 +99,8 @@ function render_account_screen(string $role): void
         ], true];
         // 0153: each tanod's committees, and the committee of the case they are on
         $batch['tc'] = ['rpc/personnel_committees', [], true];
+        // a Kagawad's "Propose a tanod" list (personnel_committees.php) finds it in the read memo: no wait of its own (7 Nov 2026)
+        if (is_committee()) { $batch['pick'] = ['rpc/tanod_pick_list', [], true]; }
     }
     $got = [];
     try {

@@ -120,13 +120,15 @@ function forwarding_pins_reads(): array
     }
     // 0155: a reroute waiting on this Kagawad (or, for a super admin, on any): pick a tanod before the wait runs out
     if ($tier === 'super' || $isCom) {
-        $rq = ['select' => 'id,report_id,due_at,report:reports!reroute_questions_report_id_fkey(tracking_id)', 'state' => 'eq.open', 'order' => 'due_at.asc', 'limit' => '20'];
+        // with the Inbox message that asks it of this person, embedded (7 Nov 2026: was a second wait)
+        $rq = ['select' => 'id,report_id,due_at,report:reports!reroute_questions_report_id_fkey(tracking_id),msgs:inbox_messages!inbox_messages_question_id_fkey(id)',
+               'msgs.recipient' => 'eq.' . ($me['id'] ?? '0'), 'msgs.order' => 'id.asc', 'state' => 'eq.open', 'order' => 'due_at.asc', 'limit' => '20'];
         if ($isCom) { $rq['committee'] = 'eq.' . $me['committee']; }
         $first['reroute'] = ['reroute_questions', $rq, true];
     }
     if ($isCom) {
-        $first['flags'] = ['case_forward_flags', ['select' => 'id,report_id,note,created_at', 'from_committee' => 'eq.' . $me['committee'], 'order' => 'created_at.asc', 'limit' => '20'], true];
-        $first['fwd'] = ['notifications', ['select' => 'report_id,message,created_at', 'user_id' => 'eq.' . $me['id'], 'kind' => 'eq.case_forwarded', 'is_read' => 'is.false', 'order' => 'created_at.asc', 'limit' => '20'], true];
+        $first['flags'] = ['case_forward_flags', ['select' => 'id,report_id,note,created_at,report:reports!report_id(tracking_id)', 'from_committee' => 'eq.' . $me['committee'], 'order' => 'created_at.asc', 'limit' => '20'], true];
+        $first['fwd'] = ['notifications', ['select' => 'report_id,message,created_at,report:reports!notifications_report_id_fkey(tracking_id)', 'user_id' => 'eq.' . $me['id'], 'kind' => 'eq.case_forwarded', 'is_read' => 'is.false', 'order' => 'created_at.asc', 'limit' => '20'], true];
     }
     return $first;
 }
@@ -143,26 +145,30 @@ function forwarding_pins(Supabase $db): array
     $pins = [];
     $me = current_admin() ?? [];
     $first = forwarding_pins_reads();
-    // Two waits at most (speed work, 7 Nov 2026): every list in one batch, then the inbox links and the tracking numbers in one
-    // more. A part that cannot be read is left out; the others still show.
+    // One wait (speed work, 7 Nov 2026): every list in one batch, each with its tracking number and Inbox link embedded; the page
+    // puts these reads in its own first batch, so here they come from the read memo. A row read without its embed (an older
+    // shape) is looked up in a second wave. A part that cannot be read is left out; the others still show.
     if (!$first) return [];
     try { $got = $db->selectMany($first); } catch (SupabaseError) { return []; }
     $list = static fn (string $k): array => isset($got[$k]) && is_array($got[$k]) ? $got[$k] : [];
     $places = $list('place'); $questions = $list('reroute'); $flags = $list('flags'); $fwd = $list('fwd');
 
     $second = [];
-    $qids = array_values(array_filter(array_map(fn ($q) => (int) ($q['id'] ?? 0), $questions)));
+    $msgOf = [];
+    $track = [];
+    foreach ($questions as $q) { if (array_key_exists('msgs', $q)) { foreach ((array) $q['msgs'] as $mm) { $msgOf[(int) $q['id']] ??= (int) $mm['id']; } } }
+    foreach (array_merge($flags, $fwd) as $r) { if (is_array($r['report'] ?? null) && isset($r['report']['tracking_id'])) { $track[(string) $r['report_id']] = (string) $r['report']['tracking_id']; } }
+    $qids = array_values(array_filter(array_map(fn ($q) => array_key_exists('msgs', $q) ? 0 : (int) ($q['id'] ?? 0), $questions)));
     if ($qids) {
         $second['msgs'] = ['inbox_messages', ['select' => 'id,question_id', 'question_id' => 'in.(' . implode(',', $qids) . ')', 'recipient' => 'eq.' . ($me['id'] ?? '0'), 'order' => 'id.asc'], true];
     }
-    $ids = array_values(array_unique(array_filter(array_merge(array_column($flags, 'report_id'), array_column($fwd, 'report_id')))));
+    // tracking numbers still to look up: rows that came without the embedded case
+    $ids = array_values(array_unique(array_filter(array_map(fn ($r) => array_key_exists('report', $r) ? null : ($r['report_id'] ?? null), array_merge($flags, $fwd)))));
     if ($ids) {
         $second['track'] = ['reports', ['select' => 'id,tracking_id', 'id' => 'in.(' . implode(',', $ids) . ')'], true];
     }
     try { $more = $second ? $db->selectMany($second) : []; } catch (SupabaseError) { $more = []; }
-    $msgOf = [];
     foreach (isset($more['msgs']) && is_array($more['msgs']) ? $more['msgs'] : [] as $m) { $msgOf[(int) $m['question_id']] ??= (int) $m['id']; }
-    $track = [];
     foreach (isset($more['track']) && is_array($more['track']) ? $more['track'] : [] as $r) { $track[(string) $r['id']] = (string) $r['tracking_id']; }
 
     foreach ($places as $r) {

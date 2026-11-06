@@ -67,7 +67,7 @@ TABLES = {
          'body': 'No Peace and Order tanod is free for case SS-2610-1001. Pick a tanod within 5 minutes, or the nearest tanod from any committee is sent.',
          'created_at': ago(0.05), 'read_at': None, 'report_id': REPORTS[0]['id'], 'question_id': 7, 'from': None, 'to': {'full_name': ADMIN['full_name']},
          'report': {'id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'subject': REPORTS[0]['subject']},
-         'q': {'id': 7, 'state': 'open', 'due_at': ahead(0.08)}},   # the reroute question, embedded as the Inbox list reads it (7 Nov 2026)
+         'q': {'id': 7, 'state': 'open', 'due_at': ahead(0.08), 'committee': 'peace_order', 'report_id': REPORTS[0]['id'], 'answered_at': None, 'by': None}},   # the reroute question, embedded as the Inbox reads it (7 Nov 2026)
         {'id': 42, 'batch': 'b2', 'sender': 'a0000000-0000-0000-0000-000000000009', 'recipient': ADMIN['id'], 'kind': 'mail', 'subject': 'Pulong bukas',
          'body': 'Bukas ng alas-diyes sa bulwagan.', 'created_at': ago(3), 'read_at': ago(2), 'report_id': None, 'question_id': None,
          'from': {'full_name': 'Santos, Ben'}, 'to': {'full_name': ADMIN['full_name']}, 'report': None, 'reply_to': None},
@@ -75,9 +75,9 @@ TABLES = {
          'body': 'Sige po, darating ako.', 'created_at': ago(2.5), 'read_at': None, 'report_id': None, 'question_id': None,
          'from': {'full_name': ADMIN['full_name']}, 'to': {'full_name': 'Santos, Ben'}, 'report': None, 'reply_to': 42}],
     'reroute_questions': [{'id': 7, 'report_id': REPORTS[0]['id'], 'committee': 'peace_order', 'state': 'open', 'due_at': ahead(0.08), 'answered_at': None, 'by': None,
-                           'report': {'tracking_id': 'SS-2610-1001'}}],
+                           'report': {'tracking_id': 'SS-2610-1001'}, 'msgs': [{'id': 41}]}],   # the pin's Inbox link, embedded (7 Nov 2026)
     'case_forwards': [{'report_id': REPORTS[2]['id'], 'kind': 'forward', 'from_committee': 'peace_order', 'to_committee': 'environment', 'to_super': False, 'note': 'Basura ang ugat nito', 'created_at': ago(1), 'by': {'full_name': 'Dela Cruz, Ramon'}}],
-    'case_forward_flags': [{'id': 5, 'report_id': REPORTS[0]['id'], 'from_committee': 'peace_order', 'to_committee': 'health_sanitation', 'note': 'Mukhang sa kalusugan ito', 'actor': 'a0000000-0000-0000-0000-000000000009', 'created_at': ago(0.5)}],
+    'case_forward_flags': [{'id': 5, 'report_id': REPORTS[0]['id'], 'from_committee': 'peace_order', 'to_committee': 'health_sanitation', 'note': 'Mukhang sa kalusugan ito', 'actor': 'a0000000-0000-0000-0000-000000000009', 'created_at': ago(0.5), 'report': {'tracking_id': 'SS-2610-1001'}}],
     'notifications': [{'id':'n1','kind':'sla_warning','message':'SMART: Urgent report SS-2610-1001 has waited 42 min without a tanod.','created_at':ago(2),'is_read':False,'report_id':REPORTS[0]['id'],'notification_committee':'peace_order'},
                       {'id':'n3','kind':'sla_warning','message':'SMART: High report SS-2610-1004 has waited 25 min without a tanod.','created_at':ago(2.5),'is_read':False,'report_id':REPORTS[3]['id'],'notification_committee':None},
                       {'id':'n2','kind':'status_change','message':'A tanod filed a resolution','created_at':ago(30),'is_read':False,'report_id':REPORTS[1]['id'],'notification_committee':'environment'},
