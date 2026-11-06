@@ -196,6 +196,10 @@ asks the Kagawad; `answer_reroute_question` and the every-minute
   view only).
 - When a tanod is on a case, other committees see only that committee's pill,
   never the case.
+- **Sending a tanod by hand (0167, 7 Nov 2026):** the dispatch list puts the
+  tanods of the committee the case is with first, marked with the
+  committee's name, among those who can take it; every other tanod stays
+  listed below, so a case is never left with nobody to send.
 - **Automatic reroute** (a tanod did not accept in time) picks from the
   case's committee's tanods first. If none is free, it **asks the Kagawad**
   (pinned notification, web push, Inbox) with a countdown; if nobody answers

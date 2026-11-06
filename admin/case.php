@@ -1170,8 +1170,15 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           $recId = null;
           if ($rankOf) {
               usort($roster, fn($a, $b) => ($rankOf[$a['tanod_id']]['place'] ?? 999) <=> ($rankOf[$b['tanod_id']]['place'] ?? 999));
+          }
+          // 0167 (Ace, 7 Nov 2026): among those who can take it, the tanods of the committee the case is with come first; everyone else
+          // stays listed below, so a case is never left with nobody to send. The engine's order holds within each group (usort is stable).
+          usort($roster, fn($a, $b) => [empty($b['assignable']) ? 0 : 1, empty($b['in_committee']) ? 0 : 1] <=> [empty($a['assignable']) ? 0 : 1, empty($a['in_committee']) ? 0 : 1]);
+          if ($rankOf) {
               foreach ($roster as $r0) { if (!empty($r0['assignable']) && !empty($r0['location_fresh']) && isset($rankOf[$r0['tanod_id']])) { $recId = $r0['tanod_id']; break; } }
           }
+          $rosterCom = (string) ($report['case_committee'] ?? $report['committee'] ?? '');
+          $rosterComName = $rosterCom !== '' ? (string) (committees_all()[$rosterCom]['short_en'] ?? '') : '';
         ?>
         <?php if (!empty($report['is_sensitive'])): usort($roster, fn($a, $b) => (int) in_array($b['tanod_id'], $womenIds, true) <=> (int) in_array($a['tanod_id'], $womenIds, true)); ?>
           <p class="ss-sensitive" role="note"><b><?= e(t('Sensitive case', 'Sensitibong kaso')) ?></b> <?= e(t('Consider elevating it first. If a tanod is needed, the designated women responders are listed first.', 'Isaalang-alang munang i-elevate. Kung kailangan ng tanod, nasa unahan ang mga itinalagang responder para sa kababaihan.')) ?></p>
@@ -1183,7 +1190,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               <input type="radio" name="tanod" value="<?= e($t['tanod_id']) ?>"
                      <?= $ok ? '' : 'disabled' ?>>
               <span class="p-who">
-                <?= e(formal_name($t['full_name'])) ?><?php if (in_array($t['tanod_id'], $womenIds, true)): ?> <span class="p-badge p-b-violet ss-wr"><?= e(t('Women responder', 'Responder para sa kababaihan')) ?></span><?php endif; ?>
+                <?= e(formal_name($t['full_name'])) ?><?php if (!empty($t['in_committee']) && $rosterComName !== ''): ?> <span class="p-badge p-b-progress ss-incom"><?= e($rosterComName) ?></span><?php endif; ?><?php if (in_array($t['tanod_id'], $womenIds, true)): ?> <span class="p-badge p-b-violet ss-wr"><?= e(t('Women responder', 'Responder para sa kababaihan')) ?></span><?php endif; ?>
                 <?php if ($recId !== null && $t['tanod_id'] === $recId && empty($report['is_sensitive'])): ?> <span class="p-badge p-b-done ss-rec"><?= e(t('Recommended', 'Inirerekomenda')) ?></span><?php endif; ?>
                 <?php if ($ok && isset($rankOf[$t['tanod_id']])): $rk = $rankOf[$t['tanod_id']]['row']; ?>
                   <small class="ss-why"><?= e(implode(' · ', array_filter([

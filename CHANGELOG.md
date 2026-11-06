@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Who is sent, and who prints (0167, 7 Nov; the flow check)**
+- Sending a tanod by hand: the committee's tanods come first, with the committee's name on them; everyone else is still listed.
+- The Certification of Lack of Jurisdiction opens for anyone who may refer the case (Kagawad and staff too), not only super admins.
+
 **The ladder as Barangay 183 runs it (0166, 7 Nov; Ace's answers to the flow check)**
 - An escalation goes to the Kagawad of the committee the case is with now, not the one its category had before forwarding.
 - A Kagawad's escalation, a sensitive case (183 has no Women and Family committee) and a committee with no Kagawad account go
