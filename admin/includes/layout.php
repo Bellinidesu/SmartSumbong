@@ -552,6 +552,12 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/press.css?v=<?= e(asset_version('press.css')) ?>" rel="stylesheet">
 <script src="assets/vendor/htmx/htmx.min.js?v=2.0.11" defer></script>
 <script src="assets/js/press.js?v=<?= e(asset_version('../js/press.js')) ?>" defer></script>
+<?php // Speed work, step 4 (7 Nov 2026): a page link held under the pointer (or pressed) is fetched a moment early, so the next page
+      // is often already here when the click lands (Speculation Rules, prefetch only, never prerender: no page runs before it is
+      // opened). Browsers without it ignore this. Left out, because opening them is not only reading: an Inbox message (opening it
+      // marks it read), downloads, sign-out, new-tab links, the DEV pill, and links inside the press flow's regions (htmx fetches
+      // those itself). A link can opt out with data-no-prefetch. ?>
+<script type="speculationrules">{"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>

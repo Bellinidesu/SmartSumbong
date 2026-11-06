@@ -69,6 +69,23 @@ test('speed (7 Nov 2026): Server-Timing for administrators only, and a page read
   expect(await batchWith('settings.php', ['places', 'rpc/portal_uptime_summary', 'users']), 'Settings: every tab in one batch').toBe(true);
 });
 
+test('speed, step 4 (7 Nov 2026): a page link held under the pointer is prefetched and used; an Inbox message link never is', async ({ page }) => {
+  const pre = [];
+  page.on('request', r => { const h = r.headers(); if ((h['sec-purpose'] || '').includes('prefetch')) pre.push(r.url().split('/').pop()); });
+  await page.goto('dashboard.php'); await page.waitForLoadState('networkidle');
+  const link = page.locator('a[href="cases.php"]').first();
+  await link.hover();
+  await expect.poll(() => pre.includes('cases.php'), { timeout: 5000 }).toBe(true);
+  await link.click(); await page.waitForURL(/cases\.php/);
+  expect(await page.evaluate(() => performance.getEntriesByType('navigation')[0].deliveryType), 'served from the prefetch').toBe('navigational-prefetch');
+  // opening an Inbox message marks it read, so hovering one must not fetch it
+  await page.goto('inbox.php'); await page.waitForLoadState('networkidle'); pre.length = 0;
+  const m = page.locator('a[href^="inbox.php?m="]').first();
+  await expect(m).toHaveCount(1);
+  await m.hover(); await page.waitForTimeout(1200);
+  expect(pre, 'an Inbox message was prefetched').toEqual([]);
+});
+
 test('Report Summary downloads as a spreadsheet', async ({ request }) => {
   const r = await request.get('summary.php?from=2026-01-01&to=2026-12-31&export=xlsx');
   expect(r.status()).toBe(200);
