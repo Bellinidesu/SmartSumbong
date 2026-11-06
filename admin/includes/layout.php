@@ -618,15 +618,27 @@ window.ssAccessToken = function (initial) {
  * for a minute so no page pays for it twice; Settings clears it the moment storm mode is switched. Null when it is off,
  * has ended, or the read failed: a missing banner must never stop a page.
  */
+/** The storm banner's read and whether it is due (every minute), for the request's boot batch (boot.php) and storm_state(). */
+function storm_read_entry(): array
+{
+    return ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true];
+}
+
+function storm_cold(): bool
+{
+    session_start_once();
+    $c = $_SESSION['ss_storm'] ?? null;
+    return !(is_array($c) && ($c['at'] ?? 0) > time() - 60);
+}
+
 function storm_state(): ?array
 {
     static $memo = false;
     if ($memo !== false) return $memo;
-    $c = $_SESSION['ss_storm'] ?? null;
-    if (is_array($c) && ($c['at'] ?? 0) > time() - 60) { return $memo = $c['row']; }
+    if (!storm_cold()) { return $memo = $_SESSION['ss_storm']['row']; }
     $row = null;
     try {
-        $r = db()->select('smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'])[0] ?? null;
+        $r = db()->select('smart_rules', storm_read_entry()[1])[0] ?? null;
         if ($r && !empty($r['storm_mode']) && !empty($r['storm_until']) && strtotime((string) $r['storm_until']) > time()) { $row = $r; }
     } catch (Throwable) { /* no banner this minute */ }
     $_SESSION['ss_storm'] = ['at' => time(), 'row' => $row];
@@ -753,7 +765,27 @@ function nav_counts(): array
     // All four in one batch (speed, 7 Oct 2026): they used to be four calls
     // one after another, the open-complaint count on every single page.
     try {
-        $memo = db()->selectMany([
+        $memo = db()->selectMany(nav_counts_entries(), true);
+        $memo = array_map(fn($v) => is_int($v) ? $v : 0, $memo);
+    } catch (Throwable) {
+        $memo = [];
+    }
+    $_SESSION['nav_counts'] = ['at' => time(), 'n' => $memo];
+    return $memo;
+}
+
+/** True when the sidebar's counts are due to be read again (every minute). */
+function nav_counts_cold(): bool
+{
+    session_start_once();
+    $cached = $_SESSION['nav_counts'] ?? null;
+    return !(is_array($cached) && ($cached['at'] ?? 0) > time() - 60);
+}
+
+/** The sidebar's counts, as one batch of counted entries (nav_counts(), and the request's boot batch, boot.php). */
+function nav_counts_entries(): array
+{
+    return [
             'cases.php'               => ['reports', ['deleted_at' => 'is.null', 'status' => 'eq.pending_review'], true],
             // the engine's recurring, spike and quiet-case notes are the Notifications page's "Right now" cards, not unread items
             'notifications.php'       => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
@@ -763,13 +795,7 @@ function nav_counts(): array
             'administrative-services.php' => ['retirement_requests', ['status' => 'eq.pending'], true],
             'spatial.php'             => ['reports', ['deleted_at' => 'is.null',
                                            'status' => 'in.(pending_review,validated,assigned,in_progress,offline_investigation)'], true],
-        ], true);
-        $memo = array_map(fn($v) => is_int($v) ? $v : 0, $memo);
-    } catch (Throwable) {
-        $memo = [];
-    }
-    $_SESSION['nav_counts'] = ['at' => time(), 'n' => $memo];
-    return $memo;
+    ];
 }
 
 function layout_foot(): void
@@ -1028,6 +1054,12 @@ function status_class(string $s): string
  * The complaint categories (0146: a table a super admin edits in Settings > Complaint types), read once per request:
  * key => [en, fil, colour, icon, active]. The list below is only the fallback when the table cannot be read.
  */
+/** The complaint types' read, for the request's boot batch (boot.php) and for categories_all() alike. */
+function categories_read_entry(): array
+{
+    return ['complaint_categories', ['select' => 'key,label_en,label_fil,colour,icon,active,sort', 'order' => 'sort.asc,key.asc'], true];
+}
+
 function categories_all(): array
 {
     static $memo = null;
@@ -1035,7 +1067,7 @@ function categories_all(): array
     $memo = [];
     // from the shared cache most of the time (shared_cache.php); Settings drops the copy when a type is saved
     $rows = access_token() === null ? [] : shared_cache('complaint_categories',
-        static fn (): array => (array) db()->select('complaint_categories', ['select' => 'key,label_en,label_fil,colour,icon,active,sort', 'order' => 'sort.asc,key.asc']), true);
+        static fn (): array => (array) db()->select('complaint_categories', categories_read_entry()[1]), true);
     foreach ($rows as $c) {
         $memo[(string) $c['key']] = ['en' => (string) $c['label_en'], 'fil' => (string) $c['label_fil'], 'colour' => (string) $c['colour'],
                                      'icon' => (string) $c['icon'], 'active' => !empty($c['active'])];
@@ -1331,16 +1363,28 @@ function admin_colour(string $id): string
  * Every administrator's rung (staff, kagawad, chair), id => rung, for the ring round a face. One small read,
  * kept in the session for five minutes so it costs nothing on most pages; a failure only means no rings.
  */
+/** The avatar rings' read and whether it is due (every five minutes), for the request's boot batch (boot.php) and admin_ranks(). */
+function ranks_read_entry(): array
+{
+    return ['users', ['select' => 'id,official_role', 'role' => 'eq.admin'], true];
+}
+
+function ranks_cold(): bool
+{
+    session_start_once();
+    $c = $_SESSION['ss_ranks'] ?? null;
+    return !(is_array($c) && time() - (int) ($c['t'] ?? 0) < 300);
+}
+
 function admin_ranks(): array
 {
     static $map = null;
     if ($map !== null) { return $map; }
     session_start_once();
-    $c = $_SESSION['ss_ranks'] ?? null;
-    if (is_array($c) && time() - (int) ($c['t'] ?? 0) < 300) { return $map = (array) $c['m']; }
+    if (!ranks_cold()) { return $map = (array) $_SESSION['ss_ranks']['m']; }
     $map = [];
     try {
-        foreach (db()->select('users', ['select' => 'id,official_role', 'role' => 'eq.admin']) as $u) { $map[(string) $u['id']] = rank_of($u['official_role'] ?? null); }
+        foreach (db()->select('users', ranks_read_entry()[1]) as $u) { $map[(string) $u['id']] = rank_of($u['official_role'] ?? null); }
         $_SESSION['ss_ranks'] = ['t' => time(), 'm' => $map];
     } catch (Throwable $e) { /* no rings this time */ }
     return $map;

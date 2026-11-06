@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Warm connections (7 Nov)**
+- Measured on the live portal: one database wait took ~376 ms, far more than the ~65 ms round trip to Mumbai. Server-Timing now
+  also says how many new connections a page had to open (`conn`), and the image keeps fewer, longer-lived workers so their
+  connections to Supabase stay open between clicks.
+- A page opened after a pause waited 13 times (~4 s): every small cache that had expired refilled itself with its own wait. They
+  now all refill in one batch before the page runs (`includes/boot.php`), and the shared ones last 5 minutes instead of 20 s
+  (a save in the portal still clears its copy at once). A page waits once, twice after a pause.
+
 **Pages that are already there (7 Nov)**
 - A page link held under the pointer is fetched a moment early, so the next page is often there when the click lands (Chrome and
   Edge; other browsers load as before). An Inbox message, downloads, sign-out and new-tab links are never fetched early.

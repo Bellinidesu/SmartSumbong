@@ -53,7 +53,7 @@ test('login.php, signed out', async ({ browser }) => {
 
 test('speed (7 Nov 2026): Server-Timing for administrators only, and a page reads in one batch', async ({ request, browser }) => {
   const st = (await request.get('cases.php')).headers()['server-timing'] || '';
-  expect(st).toMatch(/^app;dur=[\d.]+, db;dur=[\d.]+;desc="\d+ waits, \d+ calls"$/);
+  expect(st).toMatch(/^app;dur=[\d.]+, db;dur=[\d.]+;desc="\d+ waits, \d+ calls", conn;dur=[\d.]+;desc="\d+ new connections \(longest handshake\)"$/);
   const out = await (await browser.newContext()).request.get('login.php');
   expect(out.headers()['server-timing'], 'no timings on the sign-in page').toBeUndefined();
   // the trace lists each wait: the parts drawn later read with the page's first batch
@@ -67,6 +67,14 @@ test('speed (7 Nov 2026): Server-Timing for administrators only, and a page read
   expect(await batchWith('summary.php', ['dispatches', 'attendance', 'rpc/smart_module']), 'Report Summary: one batch').toBe(true);
   expect(await batchWith('dashboard.php', ['rpc/dashboard_metrics', 'rpc/smart_summary', 'status_logs']), 'Dashboard: one batch').toBe(true);
   expect(await batchWith('settings.php', ['places', 'rpc/portal_uptime_summary', 'users']), 'Settings: every tab in one batch').toBe(true);
+  // the boot batch (7 Nov 2026): this test server keeps no caches, so every small cache is cold on every request; even so a page
+  // waits at most twice (the boot batch, then its own), Notifications three times (its pins have a second step)
+  for (const [url, most] of [['cases.php', 2], ['case.php?id=c0000000-0000-0000-0000-000000000003', 2], ['summary.php', 2], ['dashboard.php', 2],
+                             ['residents.php', 2], ['settings.php', 2], ['inbox.php', 2], ['activity.php', 2], ['notifications.php', 3]]) {
+    const h = (await request.get(url)).headers()['server-timing'] || '';
+    const waits = +((h.match(/"(\d+) waits/) || [])[1] ?? 99);
+    expect(waits, `${url} waited ${waits} times on the database`).toBeLessThanOrEqual(most);
+  }
 });
 
 test('speed, step 4 (7 Nov 2026): a page link held under the pointer is prefetched and used; an Inbox message link never is', async ({ page }) => {

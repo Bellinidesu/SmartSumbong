@@ -24,9 +24,14 @@ function complaint_options_rows(): array
 {
     static $memo = null;
     if ($memo !== null) return $memo;
-    return $memo = shared_cache('complaint_options',
-        static fn (): array => (array) db()->select('complaint_options', ['select' => 'id,category,label_en,label_fil,active', 'order' => 'category.asc,sort.asc,id.asc']),
+    return $memo = shared_cache('complaint_options', static fn (): array => (array) db()->select('complaint_options', complaint_options_read_entry()[1]),
         access_token() !== null);
+}
+
+/** The options' read, for the request's boot batch (boot.php) and for complaint_options_rows() alike. */
+function complaint_options_read_entry(): array
+{
+    return ['complaint_options', ['select' => 'id,category,label_en,label_fil,active', 'order' => 'category.asc,sort.asc,id.asc'], true];
 }
 
 /**

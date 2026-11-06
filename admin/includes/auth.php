@@ -14,6 +14,7 @@ require_once __DIR__ . '/supabase.php';
 require_once __DIR__ . '/features.php';
 require_once __DIR__ . '/barangay.php';
 require_once __DIR__ . '/access.php';
+require_once __DIR__ . '/boot.php';
 
 function session_start_once(): void
 {
@@ -188,6 +189,7 @@ function require_admin(): array
         header('Location: change-password.php');
         exit;
     }
+    boot_prefetch();   // every cold cache's read in one wait (boot.php), before the page and its readers run
     access_refresh();
     require_page_access();
     return current_admin() ?? $admin;
