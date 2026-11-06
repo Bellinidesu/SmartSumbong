@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Faster pages (one wait on the database per page, 7 Nov)**
+- Supabase is in Mumbai and the portal in Singapore, so each wait on the database is a full round trip. Pages used to wait
+  again and again: Notifications 14 times, Settings 14, Case Reports, Workspace and Control Room 10. They now wait once (the
+  case page and the Inbox twice: their second read needs the first).
+- Every portal response to a signed-in administrator carries a `Server-Timing` header (server time, database time, waits and
+  calls) for the browser's Network panel.
+- How: a page's parts declare their reads and the page asks for them in its first batch; the database client keeps what the
+  request read (emptied by any write); a page of a list comes with the total behind its pager; the committees, complaint types
+  and options come from a 20-second shared cache that Settings drops on a save. `tests/php/perf_test.php` runs in CI.
+
 **New (the system's type: Inter Tight over Inter, 5 Nov; app 1.0.4)**
 - The portal and the app change from Urbanist, which read curvy, to the Apple pairing: Inter Tight for headings and big figures,
   Inter for everything else. Apple's San Francisco cannot ship on Android or the web, and Inter is built on the same ideas.

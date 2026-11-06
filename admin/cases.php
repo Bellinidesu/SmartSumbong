@@ -338,25 +338,32 @@ try {
     } elseif ($nCom !== '') {
         $nq['notification_committee'] = 'eq.' . $nCom;
     }
-    $selects = [
-        'notes_n' => ['notifications', ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)']],
-        'esc_n'   => ['escalation_requests', ['status' => 'eq.pending']],
+    // One wait for the whole page (speed work, 7 Nov 2026): the sidebar's two counts, the list, the total behind its pager (sent
+    // with the rows), the chips' or banners' counts and the engine module of the brain button all go in a single batch
+    // (the button's own call finds the module in the request's read memo, supabase.php).
+    $sel = [
+        'notes_n' => ['notifications', ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], false, 'count'],
+        'esc_n'   => ['escalation_requests', ['status' => 'eq.pending'], false, 'count'],
+        'module'  => ['rpc/smart_module', [], true],
     ];
-    $counts = $db->selectMany($selects, true);
-    $notesUnread = $counts['notes_n'] instanceof SupabaseError ? 0 : (int) $counts['notes_n'];
-    $escCount    = $counts['esc_n'] instanceof SupabaseError ? 0 : (int) $counts['esc_n'];
-
-    $sel = [];
     if ($tab === 'all') {
-        $sel['reports'] = ['reports', $query];
+        $sel['reports'] = ['reports', $query, false, $view === 'attention' ? '' : 'total'];
         $sel['admins']  = ['users', ['select' => 'id,full_name', 'role' => 'eq.admin', 'order' => 'full_name.asc'], true];
         // the chip counts what needs attention across ALL open cases, not only this page
         $sel['open']    = ['reports', ['select' => 'status,due_at,followed_up_at,resolution_submitted_at,awaiting_unit_since,handler_id,case_committee', 'deleted_at' => 'is.null',
                                        'status' => 'in.(' . implode(',', OPEN_STATES) . ')', 'limit' => '500'], true];
+        // 0152: the chips' counts
+        $sel['chip:all'] = ['reports', ['deleted_at' => 'is.null'], true, 'count'];
+        if (sees_everything()) {
+            foreach (committees_active() as $ck => $cl) { $sel['chip:' . $ck] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'eq.' . $ck], true, 'count']; }
+            $sel['chip:none'] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'is.null'], true, 'count'];
+        } elseif ($myCom !== '') {
+            $sel['chip:fwd'] = ['reports', ['deleted_at' => 'is.null', 'committee' => 'eq.' . $myCom], true, 'count'];
+        }
     } elseif ($tab === 'notes') {
         $nq['limit']  = (string) PER_PAGE;
         $nq['offset'] = (string) (($npage - 1) * PER_PAGE);
-        $sel['notes'] = ['notifications', $nq];
+        $sel['notes'] = ['notifications', $nq, false, 'total'];
         // 0073 — Manage Escalation Request: tanods' requests waiting on an admin.
         $sel['escalations'] = ['escalation_requests', [
             'select' => 'id,reason,suggested_office,created_at,'
@@ -365,52 +372,50 @@ try {
             'status' => 'eq.pending',
             'order'  => 'created_at.asc',
         ], true];
+        // each banner's count: the same rules as the list (Unread or All, the search), under the banner's own committee
+        if (sees_everything()) {
+            $nb = $nq; unset($nb['select'], $nb['order'], $nb['limit'], $nb['offset'], $nb['report_id'], $nb['notification_committee']);
+            $sel['nc:all']    = ['notifications', $nb, true, 'count'];
+            $sel['nc:none']   = ['notifications', $nb + ['report_id' => 'not.is.null', 'notification_committee' => 'is.null'], true, 'count'];
+            $sel['nc:system'] = ['notifications', $nb + ['report_id' => 'is.null'], true, 'count'];
+            foreach (committees_active() as $ck => $cl) { $sel['nc:' . $ck] = ['notifications', $nb + ['notification_committee' => 'eq.' . $ck], true, 'count']; }
+        }
     }
-    $got = $sel ? $db->selectMany($sel) : [];
+    if ($tab === 'next') { $sel['queue'] = ['rpc/smart_queue', ['p_stage' => null, 'p_limit' => 500], true]; }
+    // the parts drawn below read their first wave here too, and find it in the read memo: the Right now strip and the bar
+    // (Notifications, Workspace), and the pins (Notifications)
+    if ($notices) { foreach (briefing_reads() as $k => $e) { $sel['pre:b:' . $k] = $e; } }
+    if ($tab === 'notes') { foreach (forwarding_pins_reads() as $k => $e) { $sel['pre:p:' . $k] = $e; } }
+    if ($workspace && function_exists('widget_panel_reads')) { foreach (widget_panel_reads($admin) as $k => $e) { $sel['pre:w:' . $k] = $e; } }
+    $got = $db->selectMany($sel);
+    $notesUnread   = is_int($got['notes_n'] ?? null) ? $got['notes_n'] : 0;
+    $escCount      = is_int($got['esc_n'] ?? null) ? $got['esc_n'] : 0;
     $reports       = $got['reports'] ?? [];
     $notifications = $got['notes'] ?? [];
     $escalations   = ($got['escalations'] ?? []) instanceof SupabaseError ? [] : ($got['escalations'] ?? []);
     $adminList     = ($got['admins'] ?? []) instanceof SupabaseError ? [] : ($got['admins'] ?? []);
     $openRows      = ($got['open'] ?? []) instanceof SupabaseError ? [] : ($got['open'] ?? []);
-
-    // the total behind the pages (the register by its filters, notifications by their search)
-    $regTotal = 0; $notesTotal = 0;
-    if ($tab === 'all') {
-        $cq = $query; unset($cq['select'], $cq['order'], $cq['limit'], $cq['offset'], $cq['forwards.order'], $cq['concerns.order']);
-        if ($category !== '') { $cq['select'] = 'id,cn:report_concerns!inner(category)'; }
-        $regTotal = $view === 'attention' ? 0 : $db->count('reports', $cq);
-        // 0152: the chips' counts, in one round
-        $chipQ = ['all' => ['reports', ['deleted_at' => 'is.null']]];
-        if (sees_everything()) {
-            foreach (committees_active() as $ck => $cl) { $chipQ[$ck] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'eq.' . $ck]]; }
-            $chipQ['none'] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'is.null']];
-        } elseif ($myCom !== '') {
-            $chipQ['fwd'] = ['reports', ['deleted_at' => 'is.null', 'committee' => 'eq.' . $myCom]];
-        }
-        try { $chipN = array_map(fn ($v) => is_int($v) ? $v : 0, $db->selectMany($chipQ, true)); } catch (SupabaseError) { $chipN = []; }
-        if (my_tier() === 'committee') { $chipN['flagged'] = count($flagIds); }
-    } elseif ($tab === 'notes') {
-        $ncq = $nq; unset($ncq['select'], $ncq['order'], $ncq['limit'], $ncq['offset']);
-        $notesTotal = $db->count('notifications', $ncq);
-        // each banner's count: the same rules as the list (Unread or All, the search), under the banner's own committee
-        $ncN = [];
-        if (sees_everything()) {
-            $nb = $nq; unset($nb['select'], $nb['order'], $nb['limit'], $nb['offset'], $nb['report_id'], $nb['notification_committee']);
-            $cq = ['all' => ['notifications', $nb], 'none' => ['notifications', $nb + ['report_id' => 'not.is.null', 'notification_committee' => 'is.null']], 'system' => ['notifications', $nb + ['report_id' => 'is.null']]];
-            foreach (committees_active() as $ck => $cl) { $cq[$ck] = ['notifications', $nb + ['notification_committee' => 'eq.' . $ck]]; }
-            try { $ncN = array_map(fn ($v) => is_int($v) ? $v : 0, $db->selectMany($cq, true)); } catch (SupabaseError) { $ncN = []; }
-        }
+    // the total behind the pages (the register by its filters, notifications by their search), and the chips' and banners' counts
+    $regTotal   = $tab === 'all' && $view !== 'attention' ? (int) ($got['reports:total'] ?? 0) : 0;
+    $notesTotal = $tab === 'notes' ? (int) ($got['notes:total'] ?? 0) : 0;
+    $chipN = []; $ncN = [];
+    foreach ($got as $k => $v) {
+        if (str_starts_with($k, 'chip:')) $chipN[substr($k, 5)] = is_int($v) ? $v : 0;
+        elseif (str_starts_with($k, 'nc:')) $ncN[substr($k, 3)] = is_int($v) ? $v : 0;
     }
+    if ($tab === 'all' && my_tier() === 'committee') { $chipN['flagged'] = count($flagIds); }
 
     // The SMART queue (0129): every open case by priority with its next action. Failure here must not break the page.
     $queue = []; $queueStages = array_fill_keys(QUEUE_STAGES, 0); $queueErr = false;
     if ($tab === 'next') {
-        try {
-            $all = $db->rpc('smart_queue', ['p_stage' => null, 'p_limit' => 500]);
-            $all = is_array($all) ? $all : [];
+        // read with the page's batch above
+        if (($got['queue'] ?? null) instanceof SupabaseError) {
+            $queueErr = true;
+        } else {
+            $all = is_array($got['queue'] ?? null) ? $got['queue'] : [];
             foreach ($all as $q) { if (isset($queueStages[$q['stage']])) { $queueStages[$q['stage']]++; } }
             $queue = $stage === '' ? $all : array_values(array_filter($all, fn($q) => $q['stage'] === $stage));
-        } catch (SupabaseError $qe) { $queueErr = true; }
+        }
     }
     // The work board (Ace's pick): who has each case, and what this person is meant to see first.
     $bmeta = ['owners' => [], 'committee' => [], 'me' => ['official_role' => null, 'committee' => null]]; $bscope = 'all'; $bcount = ['mine' => 0, 'free' => 0, 'all' => 0];

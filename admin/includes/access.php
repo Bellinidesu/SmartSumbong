@@ -88,21 +88,35 @@ function require_page_access(): void
     }
 }
 
-/** The barangay's committees (0145), read once per request: key => [name_en, name_fil, short_en, active, sort, colour, logo_url]. */
+/**
+ * The barangay's committees (0145): key => [name_en, name_fil, short_en, active, sort, colour, logo_url]. Read once per request,
+ * from the shared cache (shared_cache.php) most of the time; Settings drops the copy when a committee is saved.
+ */
 function committees_all(): array
 {
     static $memo = null;
     if ($memo !== null) return $memo;
+    $rows = shared_cache('committees', static function (): ?array {
+        // logo_url arrives with 0164; until it is applied the committees are read without it
+        foreach (['key,name_en,name_fil,short_en,active,sort,colour,logo_url', 'key,name_en,name_fil,short_en,active,sort,colour'] as $cols) {
+            try { return (array) db()->select('committees', ['select' => $cols, 'order' => 'sort.asc,key.asc']); } catch (Throwable) {}
+        }
+        return null;
+    }, access_token() !== null);
     $memo = [];
-    // logo_url arrives with 0164; until it is applied the committees are read without it
-    foreach (['key,name_en,name_fil,short_en,active,sort,colour,logo_url', 'key,name_en,name_fil,short_en,active,sort,colour'] as $cols) {
-        try {
-            foreach ((array) db()->select('committees', ['select' => $cols, 'order' => 'sort.asc,key.asc']) as $c) {
-                $memo[(string) $c['key']] = $c + ['logo_url' => null];
-            }
-            break;
-        } catch (Throwable) {}
-    }
+    foreach ($rows as $c) { $memo[(string) $c['key']] = $c + ['logo_url' => null]; }
+    return $memo;
+}
+
+/** Which complaint types each committee sees (0145, committee_categories): committee key => list of category keys. Shared cache. */
+function committee_categories_all(): array
+{
+    static $memo = null;
+    if ($memo !== null) return $memo;
+    $rows = shared_cache('committee_categories', static fn (): array => (array) db()->select('committee_categories', ['select' => 'committee,category']),
+                         access_token() !== null);
+    $memo = [];
+    foreach ($rows as $r) { $memo[(string) $r['committee']][] = (string) $r['category']; }
     return $memo;
 }
 

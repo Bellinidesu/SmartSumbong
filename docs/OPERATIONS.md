@@ -175,9 +175,22 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
   (app-size job, size in each run's summary); and the most-run queries
   within their time at 50,000 complaints (`supabase/tests/perf`). Raise a
   budget on purpose, in the pull request that needs it.
-- **Speed and quality** — `?_trace=1` on any portal page lists each database
-  call's time in the page source. Lighthouse: 100 on performance,
-  accessibility and best practices.
+- **Speed and quality** — every portal response carries a `Server-Timing`
+  header: `app` is the server's whole time, `db` the time spent waiting on
+  Supabase, with how many waits and how many calls (a batch of parallel
+  calls is one wait). Read it in the browser's Network panel → Timing.
+  Supabase is in Mumbai and the portal in Singapore, so each wait is a full
+  round trip: the number of waits is what makes a page slow. The rule (7 Nov
+  2026): a page reads in one batch. Its parts declare their reads
+  (`briefing_reads()`, `forwarding_pins_reads()`, `st_reads()` and others)
+  and the page puts them in its first batch; the parts' own calls then find
+  them in the request's read memo (`Supabase::$seen`, emptied by any write).
+  The reference lists (committees, complaint types and options, which
+  committee sees which type) come from a 20-second shared cache
+  (`includes/shared_cache.php`) that Settings drops on a save.
+  `tests/php/perf_test.php` (CI) covers the batch modes, the memo and the
+  cache. `?_trace=1` on any page lists each wait in the page source.
+  Lighthouse: 100 on performance, accessibility and best practices.
 - **Dependencies** — Dependabot opens weekly update pull requests (Flutter
   packages, GitHub Actions, the Docker base image) and security-fix pull
   requests when an advisory lands. Merge them through CI like any change;

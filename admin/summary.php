@@ -125,33 +125,53 @@ const SUMMARY_MAX  = 25000;
 $truncated = [];
 
 /**
- * @param array<string, array{0:string, 1:array<string,string>}> $tables
- * @return array<string, list<array>>
+ * Every row of each table, a page at a time, all tables together. Speed work (7 Nov 2026): the first page of each comes with the
+ * total behind it (one request, PostgREST's exact count), so a period that fits on one page costs a single wait; only a bigger
+ * one asks for its other pages, together, in a second. An optional entry (a third element, true) that fails comes back as the
+ * SupabaseError instead of stopping the page, and never marks the export as cut short. $extra entries (a function the page
+ * reads anyway, such as the engine module) ride along in the first batch and are found later in the read memo.
+ *
+ * @param array<string, array{0:string, 1:array<string,string>, 2?:bool}> $tables
+ * @return array<string, list<array>|SupabaseError>
  */
-function select_all_many(Supabase $db, array $tables, array &$truncated): array
+function select_all_many(Supabase $db, array $tables, array &$truncated, array $extra = []): array
 {
-    $counts = $db->selectMany($tables, true);
+    $first = [];
+    foreach ($tables as $key => $t) {
+        $q = $t[1];
+        $q['limit']  = (string) SUMMARY_PAGE;
+        $q['offset'] = '0';
+        $first[$key] = [$t[0], $q, !empty($t[2]), 'total'];
+    }
+    foreach ($extra as $k => $e) { $first['extra:' . $k] = $e; }
+    $got = $db->selectMany($first);
+
     $pages = [];
-    foreach ($tables as $key => [$table, $query]) {
-        $n = min((int) ($counts[$key] ?? 0), SUMMARY_MAX);
-        if ((int) ($counts[$key] ?? 0) > SUMMARY_MAX) { $truncated[$table] = true; }
-        // At least one page, so an empty count still asks (and a count
-        // that failed to parse cannot hide rows).
-        for ($offset = 0; $offset < max($n, 1); $offset += SUMMARY_PAGE) {
-            $q = $query;
+    $rows = [];
+    foreach ($tables as $key => $t) {
+        if (($got[$key] ?? null) instanceof SupabaseError) { $rows[$key] = $got[$key]; continue; }
+        $rows[$key] = is_array($got[$key] ?? null) ? $got[$key] : [];
+        // the total, or at least what came back (a count that failed to arrive cannot hide rows)
+        $all = max((int) ($got[$key . ':total'] ?? 0), count($rows[$key]));
+        if ($all > SUMMARY_MAX && empty($t[2])) { $truncated[$t[0]] = true; }
+        for ($offset = SUMMARY_PAGE; $offset < min($all, SUMMARY_MAX); $offset += SUMMARY_PAGE) {
+            $q = $t[1];
             $q['limit']  = (string) SUMMARY_PAGE;
             $q['offset'] = (string) $offset;
-            $pages["{$key}#{$offset}"] = [$table, $q];
+            $pages["{$key}#{$offset}"] = [$t[0], $q, !empty($t[2])];
         }
     }
-    $got = $db->selectMany($pages);
+    $more = $pages ? $db->selectMany($pages) : [];
     $out = [];
     foreach ($tables as $key => $_) {
-        $rows = [];
+        if ($rows[$key] instanceof SupabaseError) { $out[$key] = $rows[$key]; continue; }
+        $r = $rows[$key];
         foreach ($pages as $pk => $_p) {
-            if (str_starts_with($pk, "{$key}#")) { array_push($rows, ...($got[$pk] ?? [])); }
+            if (!str_starts_with($pk, "{$key}#")) continue;
+            if ($more[$pk] instanceof SupabaseError) { $r = $more[$pk]; break; }
+            array_push($r, ...($more[$pk] ?? []));
         }
-        $out[$key] = array_slice($rows, 0, SUMMARY_MAX);
+        $out[$key] = $r instanceof SupabaseError ? $r : array_slice($r, 0, SUMMARY_MAX);
     }
     return $out;
 }
@@ -178,6 +198,15 @@ try {
         $reportsQuery['case_committee'] = 'eq.' . $com;
     }
 
+    // the period before, of the same length, for the figures' comparison: read with the rest (optional, so a failure only drops it)
+    $pDays    = max(1, (int) $from->diff($to)->days + 1);
+    $prevTo   = $from->modify('-1 second');
+    $prevFrom = $prevTo->modify('-' . ($pDays - 1) . ' days')->setTime(0, 0);
+    $pq = ['select' => 'id,status,created_at,resolved_at,closed_at', 'deleted_at' => 'is.null',
+           'and' => '(created_at.gte.' . $prevFrom->format(DateTimeInterface::ATOM) . ',created_at.lte.' . $prevTo->format(DateTimeInterface::ATOM) . ')',
+           'order' => 'created_at.asc,id.asc'];
+    if ($category !== '') { $pq['category'] = 'eq.' . $category; }
+    if ($com === 'none') { $pq['case_committee'] = 'is.null'; } elseif ($com !== '') { $pq['case_committee'] = 'eq.' . $com; }
     $all = select_all_many($db, [
         'reports'    => ['reports', $reportsQuery],
         'dispatches' => ['dispatches', [
@@ -199,7 +228,9 @@ try {
             'and'    => "(logged_at.gte.{$fromISO},logged_at.lte.{$toISO})",
             'order'  => 'id.asc',
         ]],
-    ], $truncated);
+        'prev'       => ['reports', $pq, true],
+    ], $truncated, ['module' => ['rpc/smart_module', [], true]]);
+    foreach (['reports', 'dispatches', 'logs', 'attendance'] as $k0) { if ($all[$k0] instanceof SupabaseError) throw $all[$k0]; }
     $reports    = $all['reports'];
     $dispatches = $all['dispatches'];
     $attendance = $all['attendance'];
@@ -269,13 +300,8 @@ $prevTo   = $from->modify('-1 second');
 $prevFrom = $prevTo->modify('-' . ($days - 1) . ' days')->setTime(0, 0);
 $prev     = null;   // null: the period before could not be read, so no change is drawn
 try {
-    $pq = ['select' => 'id,status,created_at,resolved_at,closed_at', 'deleted_at' => 'is.null',
-           'and' => '(created_at.gte.' . $prevFrom->format(DateTimeInterface::ATOM) . ',created_at.lte.' . $prevTo->format(DateTimeInterface::ATOM) . ')',
-           'order' => 'created_at.asc,id.asc'];
-    if ($category !== '') { $pq['category'] = 'eq.' . $category; }
-    if ($com === 'none') { $pq['case_committee'] = 'is.null'; } elseif ($com !== '') { $pq['case_committee'] = 'eq.' . $com; }
-    $pt = [];
-    $pr = select_all_many($db, ['prev' => ['reports', $pq]], $pt)['prev'];
+    $pr = $all['prev'] ?? null;
+    if (!is_array($pr)) throw new RuntimeException('the period before was not read');
     $ph = [];
     foreach ($pr as $r) { $e = $r['resolved_at'] ?? $r['closed_at'] ?? null; if ($e && in_array($r['status'], ['resolved', 'closed', 'archived'], true)) { $ph[] = (strtotime($e) - strtotime($r['created_at'])) / 3600; } }
     $prev = ['total' => count($pr), 'resolved' => count(array_filter($pr, fn ($r) => in_array($r['status'], $doneSt, true))),
