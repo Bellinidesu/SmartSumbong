@@ -23,7 +23,10 @@ import 'complaint_catalogue.dart';
 
 /// One option residents pick under a category.
 class ComplaintOption {
-  const ComplaintOption(this.en, [String? fil]) : fil = fil ?? en;
+  const ComplaintOption(this.en, [String? fil, this.id]) : fil = fil ?? en;
+
+  /// The option's row in complaint_options (0163: a concern points at it), when the barangay's list was read.
+  final int? id;
 
   /// The name stored in reports.subject.
   final String en;
@@ -135,7 +138,10 @@ class ComplaintCategory {
 
 /// What the picker hands to the details screen.
 class CategoryChoice {
-  const CategoryChoice({required this.category, this.issue, this.issueFil});
+  const CategoryChoice({required this.category, this.issue, this.issueFil, this.optionId});
+
+  /// The option's id (0163), sent with the report so the case keeps it whatever it is renamed to later.
+  final int? optionId;
 
   final ComplaintCategory category;
 

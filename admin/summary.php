@@ -28,6 +28,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/forwarding.php';
+require_once __DIR__ . '/includes/module_brain.php';   // the person's SMART module, at the top of the engine's window
 
 $admin = require_admin();
 $db    = db();
@@ -124,33 +125,53 @@ const SUMMARY_MAX  = 25000;
 $truncated = [];
 
 /**
- * @param array<string, array{0:string, 1:array<string,string>}> $tables
- * @return array<string, list<array>>
+ * Every row of each table, a page at a time, all tables together. Speed work (7 Nov 2026): the first page of each comes with the
+ * total behind it (one request, PostgREST's exact count), so a period that fits on one page costs a single wait; only a bigger
+ * one asks for its other pages, together, in a second. An optional entry (a third element, true) that fails comes back as the
+ * SupabaseError instead of stopping the page, and never marks the export as cut short. $extra entries (a function the page
+ * reads anyway, such as the engine module) ride along in the first batch and are found later in the read memo.
+ *
+ * @param array<string, array{0:string, 1:array<string,string>, 2?:bool}> $tables
+ * @return array<string, list<array>|SupabaseError>
  */
-function select_all_many(Supabase $db, array $tables, array &$truncated): array
+function select_all_many(Supabase $db, array $tables, array &$truncated, array $extra = []): array
 {
-    $counts = $db->selectMany($tables, true);
+    $first = [];
+    foreach ($tables as $key => $t) {
+        $q = $t[1];
+        $q['limit']  = (string) SUMMARY_PAGE;
+        $q['offset'] = '0';
+        $first[$key] = [$t[0], $q, !empty($t[2]), 'total'];
+    }
+    foreach ($extra as $k => $e) { $first['extra:' . $k] = $e; }
+    $got = $db->selectMany($first);
+
     $pages = [];
-    foreach ($tables as $key => [$table, $query]) {
-        $n = min((int) ($counts[$key] ?? 0), SUMMARY_MAX);
-        if ((int) ($counts[$key] ?? 0) > SUMMARY_MAX) { $truncated[$table] = true; }
-        // At least one page, so an empty count still asks (and a count
-        // that failed to parse cannot hide rows).
-        for ($offset = 0; $offset < max($n, 1); $offset += SUMMARY_PAGE) {
-            $q = $query;
+    $rows = [];
+    foreach ($tables as $key => $t) {
+        if (($got[$key] ?? null) instanceof SupabaseError) { $rows[$key] = $got[$key]; continue; }
+        $rows[$key] = is_array($got[$key] ?? null) ? $got[$key] : [];
+        // the total, or at least what came back (a count that failed to arrive cannot hide rows)
+        $all = max((int) ($got[$key . ':total'] ?? 0), count($rows[$key]));
+        if ($all > SUMMARY_MAX && empty($t[2])) { $truncated[$t[0]] = true; }
+        for ($offset = SUMMARY_PAGE; $offset < min($all, SUMMARY_MAX); $offset += SUMMARY_PAGE) {
+            $q = $t[1];
             $q['limit']  = (string) SUMMARY_PAGE;
             $q['offset'] = (string) $offset;
-            $pages["{$key}#{$offset}"] = [$table, $q];
+            $pages["{$key}#{$offset}"] = [$t[0], $q, !empty($t[2])];
         }
     }
-    $got = $db->selectMany($pages);
+    $more = $pages ? $db->selectMany($pages) : [];
     $out = [];
     foreach ($tables as $key => $_) {
-        $rows = [];
+        if ($rows[$key] instanceof SupabaseError) { $out[$key] = $rows[$key]; continue; }
+        $r = $rows[$key];
         foreach ($pages as $pk => $_p) {
-            if (str_starts_with($pk, "{$key}#")) { array_push($rows, ...($got[$pk] ?? [])); }
+            if (!str_starts_with($pk, "{$key}#")) continue;
+            if ($more[$pk] instanceof SupabaseError) { $r = $more[$pk]; break; }
+            array_push($r, ...($more[$pk] ?? []));
         }
-        $out[$key] = array_slice($rows, 0, SUMMARY_MAX);
+        $out[$key] = $r instanceof SupabaseError ? $r : array_slice($r, 0, SUMMARY_MAX);
     }
     return $out;
 }
@@ -177,6 +198,15 @@ try {
         $reportsQuery['case_committee'] = 'eq.' . $com;
     }
 
+    // the period before, of the same length, for the figures' comparison: read with the rest (optional, so a failure only drops it)
+    $pDays    = max(1, (int) $from->diff($to)->days + 1);
+    $prevTo   = $from->modify('-1 second');
+    $prevFrom = $prevTo->modify('-' . ($pDays - 1) . ' days')->setTime(0, 0);
+    $pq = ['select' => 'id,status,created_at,resolved_at,closed_at', 'deleted_at' => 'is.null',
+           'and' => '(created_at.gte.' . $prevFrom->format(DateTimeInterface::ATOM) . ',created_at.lte.' . $prevTo->format(DateTimeInterface::ATOM) . ')',
+           'order' => 'created_at.asc,id.asc'];
+    if ($category !== '') { $pq['category'] = 'eq.' . $category; }
+    if ($com === 'none') { $pq['case_committee'] = 'is.null'; } elseif ($com !== '') { $pq['case_committee'] = 'eq.' . $com; }
     $all = select_all_many($db, [
         'reports'    => ['reports', $reportsQuery],
         'dispatches' => ['dispatches', [
@@ -198,7 +228,9 @@ try {
             'and'    => "(logged_at.gte.{$fromISO},logged_at.lte.{$toISO})",
             'order'  => 'id.asc',
         ]],
-    ], $truncated);
+        'prev'       => ['reports', $pq, true],
+    ], $truncated, ['module' => ['rpc/smart_module', [], true]]);
+    foreach (['reports', 'dispatches', 'logs', 'attendance'] as $k0) { if ($all[$k0] instanceof SupabaseError) throw $all[$k0]; }
     $reports    = $all['reports'];
     $dispatches = $all['dispatches'];
     $attendance = $all['attendance'];
@@ -268,13 +300,8 @@ $prevTo   = $from->modify('-1 second');
 $prevFrom = $prevTo->modify('-' . ($days - 1) . ' days')->setTime(0, 0);
 $prev     = null;   // null: the period before could not be read, so no change is drawn
 try {
-    $pq = ['select' => 'id,status,created_at,resolved_at,closed_at', 'deleted_at' => 'is.null',
-           'and' => '(created_at.gte.' . $prevFrom->format(DateTimeInterface::ATOM) . ',created_at.lte.' . $prevTo->format(DateTimeInterface::ATOM) . ')',
-           'order' => 'created_at.asc,id.asc'];
-    if ($category !== '') { $pq['category'] = 'eq.' . $category; }
-    if ($com === 'none') { $pq['case_committee'] = 'is.null'; } elseif ($com !== '') { $pq['case_committee'] = 'eq.' . $com; }
-    $pt = [];
-    $pr = select_all_many($db, ['prev' => ['reports', $pq]], $pt)['prev'];
+    $pr = $all['prev'] ?? null;
+    if (!is_array($pr)) throw new RuntimeException('the period before was not read');
     $ph = [];
     foreach ($pr as $r) { $e = $r['resolved_at'] ?? $r['closed_at'] ?? null; if ($e && in_array($r['status'], ['resolved', 'closed', 'archived'], true)) { $ph[] = (strtotime($e) - strtotime($r['created_at'])) / 3600; } }
     $prev = ['total' => count($pr), 'resolved' => count(array_filter($pr, fn ($r) => in_array($r['status'], $doneSt, true))),
@@ -370,10 +397,11 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
   <header class="ss-win-head">
     <?= smart_logo(40) ?>
     <div class="ss-win-ttl"><b id="ss-win-title"><?= e(t('What the engine sees in this report', 'Ang nakikita ng engine sa ulat na ito')) ?></b>
-      <small><?= e(short_date($from->format('c'))) ?> &ndash; <?= e(short_date($to->format('c'))) ?></small></div>
+      <small id="rs-win-dates" data-press-sync><?= e(short_date($from->format('c'))) ?> &ndash; <?= e(short_date($to->format('c'))) ?></small></div>
     <button type="button" class="ss-win-x" id="ss-win-close" aria-label="<?= e(t('Close', 'Isara')) ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </header>
-  <div class="ss-win-body"><div class="ss-panel-in">
+  <div class="ss-win-body"><div class="ss-panel-in" id="rs-win-body" data-press-sync>
+    <?= module_brain_section($db) ?>
     <section class="p-card p-card-pad rs-w-card"><p class="p-eyebrow"><?= e(t('In short', 'Sa madaling salita')) ?></p>
       <?php if ($story): ?><ul class="rs-w-list"><?php foreach ($story as $line): ?><li><?= e($line) ?></li><?php endforeach; ?></ul>
       <?php else: ?><p class="p-hint"><?= e(t('Nothing was filed in this period.', 'Walang naisampa sa panahong ito.')) ?></p><?php endif; ?>
@@ -402,11 +430,20 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
   </div></div>
 </aside>
 <div class="p-topbar"><h1><?= e(t('Report Summary', 'Buod ng mga Ulat')) ?></h1>
-  <span class="rs-scope"><?= $scopeCom !== '' ? committee_pill($scopeCom) : ($com === 'none' ? committee_pill(null) : '<span class="cm-pill" style="--cc:' . e(barangay()['super_colour'] ?? SUPER_BLUE) . '"><i></i>' . e(t('Whole barangay', 'Buong barangay')) . '</span>') ?></span>
+  <?php // Report Summary | Barangay Overall: the scope is plain words after a hairline, with its colour as a small bar, not a pill (Ace, 6 Nov 2026)
+        if ($scopeCom !== '' && isset(committees_all()[$scopeCom])) { $scopeLabel = (string) committees_all()[$scopeCom]['short_en']; $scopeCc = committee_colour($scopeCom); }
+        elseif ($com === 'none') { $scopeLabel = t('No committee yet', 'Wala pang komite'); $scopeCc = 'var(--p-red)'; }
+        else { $scopeLabel = t('Barangay Overall', 'Barangay sa Kabuuan'); $scopeCc = (string) (barangay()['super_colour'] ?? SUPER_BLUE); } ?>
+  <span id="rs-scope-sync" data-press-sync><span class="rs-scope" style="--cc:<?= e($scopeCc) ?>"><i aria-hidden="true"></i><?= e($scopeLabel) ?></span></span>
   <span class="p-spacer" style="flex:1"></span>
-  <button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($engineDot): ?><i class="ss-brain-dot" aria-hidden="true"></i><?php endif; ?></button></div>
+  <button type="button" class="ss-brain-btn" id="ss-win-open" data-press-sync aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($engineDot): ?><i class="ss-brain-dot" aria-hidden="true"></i><?php endif; ?></button></div>
 
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
+<?php // The press flow (7 Nov 2026): a range, Apply, a pager, the update banner's Refresh and a By committee row fetch this same page
+      // and swap only the report; the address follows, the title's scope and the engine window follow it (data-press-sync). The
+      // spreadsheet and the PDF stay ordinary downloads. ?>
+<div id="rs-main" class="press-region" hx-target="#rs-main" hx-select="#rs-main" hx-swap="outerHTML" hx-push-url="true" hx-sync="#rs-main:replace"
+     data-announce="<?= e(t('Report updated', 'Na-update ang ulat')) ?>">
 <?php if ($error): ?>
   <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
 <?php endif; ?>
@@ -426,7 +463,7 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
       <span class="p-watching" id="live-badge" title="<?= e(t('This period is still open — watching for new activity', 'Bukas pa ang panahong ito — binabantayan ang bagong aktibidad')) ?>"><i></i><span id="live-badge-text"><?= e(t('Watching', 'Nagbabantay')) ?></span></span>
     <?php endif; ?>
   </h2>
-  <form method="get" class="p-period-form" id="period-form">
+  <form method="get" class="p-period-form" id="period-form" hx-boost="true">
     <label class="p-pill-select"><span class="p-sr"><?= e(t('From', 'Mula')) ?></span><input type="date" id="from" name="from" value="<?= e($from->format('Y-m-d')) ?>"></label>
     <span class="p-to"><?= e(t('to', 'hanggang')) ?></span>
     <label class="p-pill-select"><span class="p-sr"><?= e(t('To', 'Hanggang')) ?></span><input type="date" id="to" name="to" value="<?= e($to->format('Y-m-d')) ?>"></label>
@@ -447,9 +484,9 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
         <option value="none" <?= $com === 'none' ? 'selected' : '' ?>><?= e(t('No committee yet', 'Wala pang komite')) ?></option>
       </select></label>
     <?php endif; ?>
-    <button class="p-btn p-btn-primary p-btn-sm" style="height:36px" type="submit"><?= e(t('Apply', 'Ilapat')) ?></button>
+    <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Apply', 'Ilapat')) ?></button>
   </form>
-  <span class="p-chips-q">
+  <span class="p-chips-q" hx-boost="true">
     <?php foreach ($RANGES as $key => [$lbl, $a, $b]): ?>
       <a class="p-chip<?= $range === $key ? ' p-on' : '' ?>" href="?range=<?= e($key) ?>&amp;category=<?= e($category) ?>&amp;com=<?= e($com) ?>"><?= e($lbl) ?></a>
     <?php endforeach; ?>
@@ -467,7 +504,7 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
        new activity is announced, and included only on an explicit refresh. -->
   <div class="p-fresh p-upd" id="update-banner" role="status"><?= p_icon('i-bell', 16) ?>
     <span><?= e(t('New activity has been recorded for this period.', 'May bagong aktibidad na naitala sa panahong ito.')) ?></span>
-    <a class="p-btn p-btn-ghost p-btn-sm" href="summary.php?<?= e(http_build_query(array_filter(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'category' => $category, 'com' => $com, 'range' => $range]))) ?>"><?= e(t('Refresh to include it', 'I-refresh para maisama')) ?></a>
+    <a hx-boost="true" class="p-btn p-btn-ghost p-btn-sm" href="summary.php?<?= e(http_build_query(array_filter(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'category' => $category, 'com' => $com, 'range' => $range]))) ?>"><?= e(t('Refresh to include it', 'I-refresh para maisama')) ?></a>
   </div>
 <?php endif; ?>
 
@@ -518,7 +555,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
           <td><?= !empty($r['is_anonymous'])
                   ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
                   : e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></td>
-          <td><?= e(category_label($r['category'])) ?></td>
+          <td><span class="cat-n" title="<?= e(category_label($r['category'])) ?>"><?= e(category_label($r['category'])) ?></span></td>
           <?php if ($overall): ?><td><?= committee_pill($r['case_committee'] ?? null) ?></td><?php endif; ?>
           <td><?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to']) ?></span>
               <?php else: ?><?= sensitive_badge($r) ?><span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?><?= report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '' ?></span><?php endif; ?></td>
@@ -540,7 +577,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
       <?php endforeach; ?>
     </tbody>
   </table></div>
-  <?= pager(count($reports), $lp, 'lp', 15, 'rs-ledger') ?>
+  <div hx-boost="true" hx-swap="outerHTML show:#rs-ledger:top"><?= pager(count($reports), $lp, 'lp', 15, 'rs-ledger') ?></div>
 </div>
 
 <!-- ---------- Referrals (0072) ---------- -->
@@ -564,7 +601,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
       <?php foreach ($referralRows as $r): ?>
         <tr>
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
-          <td><?= e(category_label($r['category'])) ?></td>
+          <td><span class="cat-n" title="<?= e(category_label($r['category'])) ?>"><?= e(category_label($r['category'])) ?></span></td>
           <?php if ($overall): ?><td><?= committee_pill($r['case_committee'] ?? null) ?></td><?php endif; ?>
           <td><b><?= e($r['referred_to']) ?></b></td>
           <td class="p-num"><?= e(short_date($r['referred_at'] ?? null)) ?: '—' ?></td>
@@ -573,7 +610,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
       <?php endforeach; ?>
     </tbody>
   </table></div>
-  <?= pager(count($referrals), $rp, 'rp', 15, 'rs-esc') ?>
+  <div hx-boost="true" hx-swap="outerHTML show:#rs-esc:top"><?= pager(count($referrals), $rp, 'rp', 15, 'rs-esc') ?></div>
 </div>
 <?php endif; ?>
 
@@ -601,7 +638,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
       <?php endforeach; ?>
     </tbody>
   </table></div>
-  <?= pager(count($dispatches), $tp, 'tp', 15, 'rs-tanod') ?>
+  <div hx-boost="true" hx-swap="outerHTML show:#rs-tanod:top"><?= pager(count($dispatches), $tp, 'tp', 15, 'rs-tanod') ?></div>
 </div>
 <?php endif; ?>
 
@@ -643,7 +680,7 @@ $tlTone = function (array $l): string {
           <?php $i++; endforeach; ?>
         </tbody>
       </table>
-      <?= pager($byReportAll, $cp, 'cp', 10, 'rs-tl') ?>
+      <div hx-boost="true" hx-swap="outerHTML show:#rs-tl:top"><?= pager($byReportAll, $cp, 'cp', 10, 'rs-tl') ?></div>
     </div>
     <div class="rs-tl-view">
       <?php $i = 0; foreach ($byReport as $tid => $list): $rp0 = $repBy[(string) $tid] ?? null; ?>
@@ -710,37 +747,60 @@ $tlTone = function (array $l): string {
 </div>
 <?php endif; ?>
 
+</div><?php // #rs-main ?>
+
 <script>
 // The chips are tabs: one section at a time (without this script every section shows, as it always did). A pager link reloads the
-// page with its own parameter (lp, rp, tp) and lands on the section it pages; summary.php#rs-com opens that section.
+// report with its own parameter (lp, rp, tp) and lands on the section it pages; summary.php#rs-com opens that section.
+// The press flow swaps the report in place, so the tabs are set up again on whatever report is on screen.
 (function () {
-  var nav = document.getElementById('ss-jump'); if (!nav) return;
-  var links = [].slice.call(nav.querySelectorAll('a')), panes = {};
-  links.forEach(function (a) { var el = document.getElementById(a.getAttribute('href').slice(1)); if (el) panes[el.id] = el; });
-  var ids = Object.keys(panes); if (ids.length < 2) return;
+  var nav = null, links = [], panes = {}, ids = [], ind = null;
+  function slide(instant) {
+    if (!nav || !ind) return;
+    var on = nav.querySelector('a.on'); if (!on) return;
+    if (instant) ind.style.transition = 'none';
+    ind.style.width = on.offsetWidth + 'px'; ind.style.height = on.offsetHeight + 'px'; ind.style.transform = 'translate(' + on.offsetLeft + 'px,' + on.offsetTop + 'px)';
+    if (instant) { void ind.offsetWidth; ind.style.transition = ''; }
+    nav.classList.add('has-ind');
+  }
   function show(id, keepHash) {
     if (!panes[id]) id = ids[0];
     ids.forEach(function (k) { panes[k].classList.toggle('rs-off', k !== id); });
     links.forEach(function (a) { var on = a.getAttribute('href') === '#' + id; a.classList.toggle('on', on); a.setAttribute('aria-selected', String(on)); });
-    if (!keepHash && location.hash !== '#' + id && history.replaceState) history.replaceState(null, '', '#' + id);
+    if (!keepHash && location.hash !== '#' + id && history.replaceState) history.replaceState(history.state, '', '#' + id);
+    slide(!nav.classList.contains('has-ind'));
   }
-  nav.setAttribute('role', 'tablist'); links.forEach(function (a) { a.setAttribute('role', 'tab'); });
-  nav.addEventListener('click', function (e) { var a = e.target.closest('a'); if (!a) return; e.preventDefault(); show(a.getAttribute('href').slice(1)); });
-  var q = location.search, want = location.hash.slice(1);
-  if (!panes[want]) want = /[?&]lp=/.test(q) ? 'rs-ledger' : /[?&]rp=/.test(q) ? 'rs-esc' : /[?&]tp=/.test(q) ? 'rs-tanod' : ids[0];
-  show(want, true);
-  window.addEventListener('hashchange', function () { var h = location.hash.slice(1); if (panes[h]) show(h, true); });
+  function setUp() {
+    var n = document.getElementById('ss-jump');
+    if (!n || n.dataset.tabs === '1') return;
+    nav = n; nav.dataset.tabs = '1';
+    links = [].slice.call(nav.querySelectorAll('a')); panes = {};
+    links.forEach(function (a) { var el = document.getElementById(a.getAttribute('href').slice(1)); if (el) panes[el.id] = el; });
+    ids = Object.keys(panes); if (ids.length < 2) { nav = null; return; }
+    nav.setAttribute('role', 'tablist'); links.forEach(function (a) { a.setAttribute('role', 'tab'); });
+    // the chosen tab is a pill that slides to the next one (and the page's sections swap under it)
+    ind = document.createElement('span'); ind.className = 'ss-jump-ind'; ind.setAttribute('aria-hidden', 'true'); nav.insertBefore(ind, nav.firstChild);
+    nav.addEventListener('click', function (e) { var a = e.target.closest('a'); if (!a) return; e.preventDefault(); show(a.getAttribute('href').slice(1)); });
+    var q = location.search, want = location.hash.slice(1);
+    if (!panes[want]) want = /[?&]lp=/.test(q) ? 'rs-ledger' : /[?&]rp=/.test(q) ? 'rs-esc' : /[?&]tp=/.test(q) ? 'rs-tanod' : /[?&]cp=/.test(q) ? 'rs-tl' : ids[0];
+    show(want, true);
+  }
+  setUp();
+  document.addEventListener('htmx:afterSettle', setUp);
+  window.addEventListener('resize', function () { slide(true); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { slide(true); });
+  window.addEventListener('hashchange', function () { var h = location.hash.slice(1); if (nav && panes[h]) show(h, true); });
 })();
 </script>
 <script>
+// the case timeline's picker: one case's entries at a time (page-wide, so a swapped-in report works too)
 (function () {
-  var pick = document.getElementById('tl-pick'); if (!pick) return;
-  function show(i) {
+  function show(pick, i) {
     pick.querySelectorAll('tr').forEach(function (tr) { tr.classList.toggle('p-sel', tr.dataset.tl === i); });
     document.querySelectorAll('.p-tl-group').forEach(function (g) { g.hidden = g.dataset.tl !== i; });
   }
-  pick.addEventListener('click', function (e) { var tr = e.target.closest('tr[data-tl]'); if (tr) show(tr.dataset.tl); });
-  pick.addEventListener('keydown', function (e) { var tr = e.target.closest('tr[data-tl]'); if (tr && e.key === 'Enter') show(tr.dataset.tl); });
+  document.addEventListener('click', function (e) { var tr = e.target.closest('#tl-pick tr[data-tl]'); if (tr) show(tr.closest('#tl-pick'), tr.dataset.tl); });
+  document.addEventListener('keydown', function (e) { var tr = e.target.closest('#tl-pick tr[data-tl]'); if (tr && e.key === 'Enter') show(tr.closest('#tl-pick'), tr.dataset.tl); });
 })();
 </script>
 
@@ -759,11 +819,7 @@ $tlTone = function (array $l): string {
     if (!window.supabase) { return; }
     const { createClient } = supabase;
     const TOKEN = <?= json_encode(access_token()) ?>;
-    const sb = createClient(
-      <?= json_encode(supabase_url()) ?>,
-      <?= json_encode(supabase_key()) ?>,
-      { accessToken: window.ssAccessToken(TOKEN) }
-    );
+    const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
     sb.channel('summary-period')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' },
@@ -787,19 +843,25 @@ $tlTone = function (array $l): string {
   <script src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
   <script>
   // From and to are one calendar: the two native date boxes stay underneath, and the page reloads when a range is applied.
+  // Set up again on the form a swap brings in (the press flow); Apply then sends the form in place.
   (function () {
-    var f = document.getElementById('period-form'), a = document.getElementById('from'), b = document.getElementById('to');
-    if (!f || !a || !b || !window.sdPickers) return;
-    var lb = b.closest('label'), to = f.querySelector('.p-to'); if (lb) lb.hidden = true; if (to) to.hidden = true;
-    sdPickers.range(a, { from: a, to: b, onApply: function () { f.requestSubmit ? f.requestSubmit() : f.submit(); } });
-    sdPickers.select(document.getElementById('category'));
+    function setUp() {
+      var f = document.getElementById('period-form'), a = document.getElementById('from'), b = document.getElementById('to');
+      if (!f || !a || !b || !window.sdPickers || f.dataset.cal === '1') return;
+      f.dataset.cal = '1';
+      var lb = b.closest('label'), to = f.querySelector('.p-to'); if (lb) lb.hidden = true; if (to) to.hidden = true;
+      sdPickers.range(a, { from: a, to: b, onApply: function () { f.requestSubmit ? f.requestSubmit() : f.submit(); } });
+      sdPickers.select(document.getElementById('category'));
+    }
+    setUp();
+    document.addEventListener('htmx:afterSettle', setUp);
   })();
   </script>
   <script>
   // The Download PDF tile: a ring pulses while the report builds, then it turns green for a moment.
   (function () {
-    var b = document.querySelector('.p-btn-pdf2'); if (!b) return;
-    b.addEventListener('click', function () {
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('.p-btn-pdf2'); if (!b) return;
       if (b.classList.contains('is-building')) return;
       b.classList.add('is-building'); b.classList.remove('is-done');
       setTimeout(function () { b.classList.remove('is-building'); b.classList.add('is-done'); setTimeout(function () { b.classList.remove('is-done'); }, 1800); }, 1300);

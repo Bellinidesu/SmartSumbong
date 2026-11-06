@@ -72,7 +72,7 @@ class _ConnectivityBannerState extends State<ConnectivityBanner> {
                     Text(
                       widget.message,
                       style: const TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                         fontSize: 12,

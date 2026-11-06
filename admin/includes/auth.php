@@ -14,16 +14,22 @@ require_once __DIR__ . '/supabase.php';
 require_once __DIR__ . '/features.php';
 require_once __DIR__ . '/barangay.php';
 require_once __DIR__ . '/access.php';
+require_once __DIR__ . '/boot.php';
 
 function session_start_once(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
+        // Over HTTPS the cookie carries the __Host- prefix (7 Nov 2026): a browser then accepts it only when it is Secure, for the
+        // whole site (path /) and set by this host alone, so no other site under a shared domain (onrender.com) can plant or
+        // overwrite it. Plain HTTP (the local test site) keeps PHP's own name, since the prefix needs Secure.
+        if (request_is_https()) session_name('__Host-ssid');
         session_set_cookie_params([
             'httponly' => true,
             'samesite' => 'Lax',
             // Render terminates HTTPS at its proxy, so PHP itself sees plain
             // HTTP; the proxy says so in X-Forwarded-Proto.
-            'secure'   => !empty($_SERVER['HTTPS']) || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https',
+            'secure'   => request_is_https(),
+            'path'     => '/',
         ]);
         session_start();
     }
@@ -51,7 +57,17 @@ function db(): Supabase
  */
 function attempt_login(string $email, string $password): void
 {
-    $session = Supabase::signIn($email, $password);
+    establish_session(Supabase::signIn($email, $password));
+}
+
+/**
+ * Makes a GoTrue session the portal's signed-in administrator: the profile, the suspension and administrator checks, and the
+ * session itself. Used by the password sign-in and by a developer's switch into a test account (view-as.php, 0162).
+ *
+ * @throws SupabaseError when the session is not an active administrator's
+ */
+function establish_session(array $session): void
+{
     $token   = $session['access_token'] ?? null;
     if (!$token) {
         throw new SupabaseError(t('Sign in failed. Please try again.', 'Hindi nakapag-sign in. Subukan muli.'));
@@ -59,7 +75,7 @@ function attempt_login(string $email, string $password): void
 
     $client  = new Supabase($token);
     $profile = $client->select('users', [
-        'select' => 'id,full_name,email,role,verification_status,is_suspended,must_change_password,avatar_url,admin_tier,is_dev,committee',
+        'select' => 'id,full_name,email,role,verification_status,is_suspended,is_retired,must_change_password,avatar_url,admin_tier,is_dev,committee,is_test',
         'id'     => 'eq.' . ($session['user']['id'] ?? ''),
         'limit'  => '1',
     ]);
@@ -75,6 +91,12 @@ function attempt_login(string $email, string $password): void
     if (!empty($me['is_suspended'])) {
         logout();
         throw new SupabaseError(t('This account has been suspended. Contact the barangay administrator.', 'Na-suspend ang account na ito. Makipag-ugnayan sa administrator ng barangay.'));
+    }
+
+    // 0166: a staff member whose retirement was approved no longer signs in to the portal
+    if (!empty($me['is_retired'])) {
+        logout();
+        throw new SupabaseError(t('This account has retired. Thank you for your service.', 'Nagretiro na ang account na ito. Salamat sa iyong paglilingkod.'));
     }
 
     if (($me['role'] ?? '') !== 'admin') {
@@ -100,6 +122,7 @@ function attempt_login(string $email, string $password): void
         // 0145: what this administrator may see and do (refreshed every two minutes by access_refresh)
         'admin_tier'    => $me['admin_tier'] ?? null,
         'is_dev'        => !empty($me['is_dev']),
+        'is_test'       => !empty($me['is_test']),
         'committee'     => $me['committee'] ?? null,
         'access_at'     => time(),
     ];
@@ -171,6 +194,7 @@ function require_admin(): array
         header('Location: change-password.php');
         exit;
     }
+    boot_prefetch();   // every cold cache's read in one wait (boot.php), before the page and its readers run
     access_refresh();
     require_page_access();
     return current_admin() ?? $admin;

@@ -26,13 +26,29 @@ for barangays that want one; Barangay 183 does not use it.
 
 Built so far (0151): a staff member (the *moderator* tier) is assigned to a
 committee by a super admin and sees and works that committee's cases like
-its Kagawad, but cannot approve or deny an escalation, escalate up the
-ladder, hand a case to a higher official or refer it outside. Setting a
+its Kagawad. **Decided 7 Nov 2026 (0166, Ace):** staff also hold the five
+decisions 0151 kept for the Kagawad: approving and denying a tanod's
+escalation request, escalating up the ladder, handing a case to a higher
+official and referring it outside. The Kagawad oversees their staff (punch
+cards, endorsing, forwarding; staff still flag a case for forwarding). Setting a
 position sets the tier that goes with it (Chairman super admin, Kagawad
 committee admin, secretary moderator); someone a super admin has raised to
 super admin stays one.
 
-*Open:* the moderator's exact powers (Sir Kiko).
+**The ladder (0166).** An escalation from the first rung goes to the
+Kagawad of the committee the case is with now (forwarded, or its
+category's). It goes straight to the Chairman, with the super admins told,
+when a Kagawad escalates, when the case is sensitive (VAWC, domestic
+violence: Barangay 183 has no Women and Family committee), or when the
+committee has no Kagawad account. The case page names who it will reach
+before anyone presses Escalate (`escalation_target`, the same answer the
+escalation uses). A return goes back to whoever held the case. When a
+case's deadline extensions are used up, *Hand to a higher official* offers
+the ladder first (that official's own account becomes the handler) and
+keeps the list of positions and free text for an official with no account.
+The development team's test accounts never receive a real escalation.
+
+**Seeing every rung (0162).** A member of the development team (DEV) has a real test account for each rung: super admin, captain, Kagawad and staff (the Kagawad and staff in a committee they pick). The DEV switcher in the sidebar signs into one with no password and back; a striped band says whose eyes these are. Because it is a real account of that rung, the database shows exactly what that rung may see and do. Test accounts are marked TEST and are never the Kagawad the system asks to pick a tanod; every switch is recorded.
 
 ## 2. Committees and colour (locked)
 
@@ -50,6 +66,11 @@ super admin stays one.
 - A committee admin's **sidebar wears the committee's colour**, with a banner
   naming the committee, so a screenshot says which committee it came from.
   Super admins keep the super admin colour.
+- **The top of the sidebar (0164).** A super admin sees the barangay seal
+  alone. A Kagawad or staff member sees their committee's logo beside the
+  seal; the super admin uploads it on the committee's card (Administrative
+  Services > Committees), and until then the committee's first symbol in its
+  colour stands in. The SmartSumbong wordmark is on the sign-in pages only.
 - **The ladder colours** are vivid and locked: Staff cyan (#00A3C4 light,
   #00E5FF dark), Tanod green (#00A651 / #1DF08A), Kagawad violet
   (#8A2BE2 / #B66CFF), Chairman red (#FF1744 / #FF3D6E) with a gold ring
@@ -61,16 +82,17 @@ super admin stays one.
 | Page | Super admin | Kagawad | Staff |
 |---|---|---|---|
 | Dashboard | Yes | No | No |
+| Home (4 Nov 2026) | No (the Dashboard) | Their landing page: their decisions, their committee right now, the engine's lists | Their landing page: their cases, the ones nobody has taken, the engine's lists |
 | Report Summary | Overall, plus a Committee filter and a By committee tab | Their committee's version | Their committee's version |
 | Spatial Distribution | Yes (plan *open*, discussed later) | Yes | Yes |
 | Case Reports | All, committee chips, forwarding | Their committee's, forwarding | Their committee's, can flag for forwarding |
 | Notifications | All, system alerts included | Their committee's; forwarded and flagged cases pinned on top | Their committee's |
 | Inbox (new) | Yes | Yes | Yes |
 | Residents | Yes | No | No |
-| Personnel | Everyone, by committee | Their staff and their tanods | Their committee's |
-| Administrative Services (renamed) | Committees, administrators, retirement requests, tanod-to-committee approvals, Planning | Retirement requests: view and review; can endorse a staff member's | No |
+| Personnel | Everyone, by committee | Their staff and their tanods | Their committee's tanods and staff, view only (0164) |
+| Administrative Services (renamed) | Committees, administrators, retirement requests, tanod-to-committee approvals, Planning | Retirement requests: view and review their committee's tanods' and staff's; can endorse them | No (asks to retire from their Profile, 0166) |
 | Control Room (new) | Complaint types, rules, hotlines, wording, the barangay's name and seal, parts of the system | No | No |
-| Settings | System status, plan and usage, SMART, appearance | No | No |
+| Settings | System status, plan and usage, SMART, appearance | Their own: appearance, their committee (read only), their SMART module | The same, their module without decisions |
 | Edit Profile | Their own | Their own | Their own |
 
 ### Dashboard (super admins)
@@ -169,9 +191,15 @@ asks the Kagawad; `answer_reroute_question` and the every-minute
 - Tanods keep their four statuses (On Duty, Lunch, Break, Offline).
 - Kagawads and staff get an **automatic punch card**: when they signed in
   and out and the cases they touched, built from the sign-ins and the case
-  history. Super admins see every card; a Kagawad sees their staff's.
+  history. Super admins see every card; a Kagawad sees their staff's; a
+  staff member sees their committee's other staff, not their Kagawad (0164,
+  view only).
 - When a tanod is on a case, other committees see only that committee's pill,
   never the case.
+- **Sending a tanod by hand (0167, 7 Nov 2026):** the dispatch list puts the
+  tanods of the committee the case is with first, marked with the
+  committee's name, among those who can take it; every other tanod stays
+  listed below, so a case is never left with nobody to send.
 - **Automatic reroute** (a tanod did not accept in time) picks from the
   case's committee's tanods first. If none is free, it **asks the Kagawad**
   (pinned notification, web push, Inbox) with a countdown; if nobody answers
@@ -224,5 +252,24 @@ a trigger on `inbox_messages`. The Kagawad's endorsement is
 | 5 | Inbox and the reroute question | Built (0155) |
 | 6 | Dashboard, Report Summary and Notifications changes | Built (0156) |
 | 7 | Edit Profile banner, retirement endorsement | Built (0157) |
+| P2.1 | Each rung's sidebar: seal, committee logo; staff in Personnel, view only | Built (0164) |
+| P2.2 | Each rung's SMART engine module (`smart_module()`); a Kagawad's and staff's own Settings | Built (0165) |
+| P2.3 | Home for Kagawad and staff, read from their module; where they land after signing in | Built |
+| P2.4 | The brain button answers from the person's module: Case Reports, Notifications, Report Summary (above the report's own notes), Home | Built |
 
 Spatial Distribution is discussed later.
+
+## SMART engine modules (0165)
+
+Every rung's pages are powered by its own module of the engine. `smart_module()` answers for whoever calls it:
+
+| Module | Who | What it reads |
+|---|---|---|
+| Barangay | Super admin (and captain, without decisions) | Every case; decisions waiting on the super admins: cases to place, tanods proposed, escalations, reroute questions, flags sent to them |
+| Committee | Kagawad | Their committee's cases only; decisions waiting on them: escalations to approve, tanods to pick, cases forwarded to them, their staff's flags |
+| Staff | Staff (moderator) | Their committee's cases only, no decisions: their own cases and the ones nobody has taken |
+
+Each module carries the counts (open, urgent with no tanod, overdue, due in 24 hours, nobody has taken, yours), deadline risk,
+quiet cases, spikes and recurring problems (kept to the kinds of complaint the committee sees) and the tanods (free, on a
+case, lunch, break, off). Lists are kept to the cases the person may open, by the same rule row level security uses.
+

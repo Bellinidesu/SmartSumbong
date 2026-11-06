@@ -544,7 +544,7 @@ class _NoahChip extends StatelessWidget {
                   decoration: BoxDecoration(color: on ? Colors.white : null, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white.withValues(alpha: .8), width: 2)),
                 ),
                 const SizedBox(width: 7),
-                Text(label, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 12.5, color: Colors.white)),
+                Text(label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12.5, color: Colors.white)),
               ]),
             ]),
           ),

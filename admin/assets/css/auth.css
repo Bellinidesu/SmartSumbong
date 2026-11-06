@@ -38,12 +38,10 @@
   /* The frame's 279 at 1440, narrowing on smaller screens. */
   --sidebar-w:   clamp(224px, calc(19.4vw / var(--z, 1)), 279px);
 
-  /* Type: Urbanist (the free stand-in for the design's Visby CF, the
-     same choice the mobile apps made) for everything; Inter where the
-     design itself sets Inter (search fields, small labels). Swap
-     --font-display/--font-body here if the barangay licenses Visby CF. */
-  --font-display: 'Urbanist', 'Visby CF', system-ui, sans-serif;
-  --font-body:    'Urbanist', system-ui, sans-serif;
+  /* Type (5 Nov 2026): Inter Tight for headings and display, Inter for everything else, as the mobile app now does.
+     Before this it was Urbanist, the free stand-in for the design's Visby CF. */
+  --font-display: 'Inter Tight', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
   --font-ui:      'Inter', system-ui, sans-serif;
 }
 h1, h2, h3, h4, h5, h6, .display { font-family: var(--font-display); }
@@ -372,7 +370,7 @@ a { text-decoration: none; color: inherit; }
 .access-lead { margin: 0 0 18px; font-size: 13.5px; color: var(--ink-soft); }
 .access-sub {
   margin: 16px 0 4px;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .12em;

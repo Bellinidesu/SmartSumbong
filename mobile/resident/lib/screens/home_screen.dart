@@ -381,9 +381,9 @@ class _CardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(title, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 19, height: 1.25, color: Colors.white)),
+      Text(title, style: const TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 19, height: 1.25, color: Colors.white)),
       const SizedBox(height: 8),
-      Text(body, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 13, height: 1.4, color: Colors.white.withValues(alpha: .85))),
+      Text(body, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 13, height: 1.4, color: Colors.white.withValues(alpha: .85))),
       const SizedBox(height: 14),
       Wrap(spacing: 8, runSpacing: 8, children: actions),
     ]);

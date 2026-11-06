@@ -32,7 +32,8 @@ const GEOCODE_BATCH = 3;
 
 function street_label(float $lat, float $lng): ?string
 {
-    $url = 'https://nominatim.openstreetmap.org/reverse?' . http_build_query([
+    // the address service; NOMINATIM_URL points it elsewhere (the browser tests' fake server, so a slow outside call never holds them up)
+    $url = rtrim(env('NOMINATIM_URL', 'https://nominatim.openstreetmap.org'), '/') . '/reverse?' . http_build_query([
         'format' => 'jsonv2', 'lat' => $lat, 'lon' => $lng, 'zoom' => 17, 'addressdetails' => 1,
     ]);
     $ch = curl_init($url);

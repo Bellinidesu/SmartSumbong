@@ -317,7 +317,7 @@ class _LaunchGateState extends State<LaunchGate> {
                           const Text(
                             'Tanod',
                             style: TextStyle(
-                              fontFamily: 'Urbanist',
+                              fontFamily: 'Inter Tight',
                               fontWeight: FontWeight.w800,
                               fontStyle: FontStyle.italic,
                               fontSize: 28,
@@ -330,7 +330,7 @@ class _LaunchGateState extends State<LaunchGate> {
                           'Sumbong na may resibo,\naksyong garantisado!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontFamily: 'Urbanist',
+                            fontFamily: 'Inter Tight',
                             fontWeight: FontWeight.w800,
                             fontSize: 20,
                             height: 1.15,
@@ -360,7 +360,7 @@ class _LaunchGateState extends State<LaunchGate> {
                       s.launchGateSigningIn,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                         color: onBlue,
@@ -371,7 +371,7 @@ class _LaunchGateState extends State<LaunchGate> {
                       _error!,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          fontFamily: 'Urbanist',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
                           fontSize: 14,
                           height: 1.4,

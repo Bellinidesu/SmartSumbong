@@ -89,6 +89,7 @@ import '../d/d_categories.dart';
 import '../d/d_theme.dart';
 import '../d/flood_watch.dart';
 import '../d/d_ui.dart';
+import '../models/complaint_catalogue.dart';
 import '../models/complaint_category.dart';
 import '../i18n.dart';
 import '../theme.dart';
@@ -409,7 +410,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         try {
           final rows = await client
               .from('report_concerns')
-              .select('category, note, status, resolved_at, remark')
+              .select('category, option_id, filed_category_en, filed_category_fil, filed_option_en, filed_option_fil, note, status, resolved_at, remark')
               .eq('report_id', widget.reportId)
               .order('created_at', ascending: true);
           if (mounted) setState(() => _concerns = List<Map<String, dynamic>>.from(rows));
@@ -924,7 +925,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         backgroundColor: ctx.colors.bg,
         title: Text(s.followUpTitle,
             style: TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter Tight',
                 fontWeight: FontWeight.w800,
                 color: ctx.colors.navy)),
         content: Column(
@@ -933,7 +934,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           children: [
             Text(s.followUpBody,
                 style: TextStyle(
-                    fontFamily: 'Urbanist', fontSize: 13.5, color: ctx.colors.navy)),
+                    fontFamily: 'Inter', fontSize: 13.5, color: ctx.colors.navy)),
             const SizedBox(height: 12),
             TextField(
               controller: note,
@@ -1115,11 +1116,8 @@ class _ConcernsCard extends StatelessWidget {
       for (var i = 0; i < concerns.length; i++)
         DRow(
           icon: concerns[i]['status'] == 'resolved' ? Icons.check_circle_outline : Icons.radio_button_unchecked,
-          title: () {
-            final c = ComplaintCategory.parse(concerns[i]['category'] as String?);
-            return context.tr(c.label, c.labelFil);
-          }(),
-          sub: _sub(context, concerns[i]),
+          title: concernTitle(concerns[i], filipino: AppLocaleScope.of(context) == AppLocale.fil),
+          sub: [_sub(context, concerns[i]), ?concernFiledAs(concerns[i], filipino: AppLocaleScope.of(context) == AppLocale.fil)].join('\n'),
           divider: i < concerns.length - 1,
         ),
     ]);
@@ -1249,7 +1247,7 @@ class _SubmittedStepRow extends StatelessWidget {
           Text(
             s.reportViewSubmittedStep,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: context.colors.navy,
@@ -1315,7 +1313,7 @@ class _TimelineRow extends StatelessWidget {
           Text(
             s.reportStatusLabel(status.wire),
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: context.colors.navy,
@@ -1376,7 +1374,7 @@ class _UpcomingStepRow extends StatelessWidget {
           Text(
             s.reportStatusLabel(wire),
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: context.colors.muted,
@@ -1606,7 +1604,7 @@ class _ActionDialog extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter Tight',
                 fontWeight: FontWeight.w700,
                 fontSize: 24,
                 height: 21 / 24,
@@ -1619,7 +1617,7 @@ class _ActionDialog extends StatelessWidget {
                 body!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   fontSize: 16,
                   height: 15 / 16,
@@ -1668,7 +1666,7 @@ class _DialogPill extends StatelessWidget {
     );
     const size = Size(106, 40);
     const text = TextStyle(
-      fontFamily: 'Urbanist',
+      fontFamily: 'Inter',
       fontWeight: FontWeight.w700,
       fontSize: 16,
     );
@@ -1807,7 +1805,7 @@ class _PhotoViewerState extends State<_PhotoViewer> {
                       child: Text(
                         '${_index + 1} / ${items.length}',
                         style: const TextStyle(
-                          fontFamily: 'Urbanist',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                           color: Colors.white,
@@ -1951,7 +1949,7 @@ class _FeedbackCard extends StatelessWidget {
           given == null ? s.reportViewHowDidWeDo : s.reportViewYourFeedback,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'Urbanist',
+            fontFamily: 'Inter',
             fontWeight: FontWeight.w700,
             fontSize: 14,
             color: context.colors.navy,
@@ -2106,7 +2104,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                 s.reportViewFeedbackTitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter Tight',
                   fontWeight: FontWeight.w800,
                   fontSize: 28,
                   height: 25 / 28,
@@ -2155,7 +2153,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                   child: Text(
                     s.reportViewProvideFeedback,
                     style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       height: 22 / 14,
@@ -2175,7 +2173,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                     maxLength: 300,
                     textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                       fontSize: 13,
                       color: c.navy,
@@ -2183,7 +2181,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                     decoration: InputDecoration(
                       hintText: s.reportViewCommentHint,
                       hintStyle: TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w400,
                         fontSize: 12,
                         color: c.navy,
@@ -2212,7 +2210,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                       builder: (context, v, _) => Text(
                         '${v.text.characters.length}/300',
                         style: TextStyle(
-                          fontFamily: 'Urbanist',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w300,
                           fontSize: 10,
                           color: c.navy,
@@ -2563,4 +2561,37 @@ String? bylineFor(Map row) {
   if (role == 'admin' || name == 'Barangay') return 'BARANGAY';
   if (name == null || name.isEmpty) return null;
   return 'TANOD ${casualName(name).toUpperCase()}';
+}
+
+/// A concern's name today: its category and, when it has one, its option (0163), from the barangay's list as the phone last read it.
+String concernTitle(Map<String, dynamic> c, {required bool filipino}) {
+  final cat = ComplaintCategory.parse(c['category'] as String?);
+  final id = (c['option_id'] as num?)?.toInt();
+  final opt = id == null ? null : cat.options.where((o) => o.id == id).firstOrNull;
+  final catName = filipino ? cat.labelFil : cat.label;
+  final optName = opt != null
+      ? (filipino ? opt.fil : opt.en)
+      : ((filipino ? c['filed_option_fil'] : c['filed_option_en']) as String?);
+  return optName == null || optName.isEmpty ? catName : '$catName: $optName';
+}
+
+/// "Filed as ..." when the category or the option was renamed or switched off after this concern was raised (0163); null when not.
+String? concernFiledAs(Map<String, dynamic> c, {required bool filipino}) {
+  final wire = c['category'] as String?;
+  final filedCat = (c['filed_category_en'] as String?) ?? '';
+  final filedOpt = (c['filed_option_en'] as String?) ?? '';
+  final offered = ComplaintCatalogue.current.where((x) => x.wire == wire).firstOrNull;
+  final id = (c['option_id'] as num?)?.toInt();
+  final opt = offered == null || id == null ? null : offered.options.where((o) => o.id == id).firstOrNull;
+  final off = offered == null || (filedOpt.isNotEmpty && opt == null);
+  final renamed = (offered != null && filedCat.isNotEmpty && filedCat != offered.label) || (opt != null && filedOpt.isNotEmpty && filedOpt != opt.en);
+  if (!off && !renamed) return null;
+  final was = [
+    filipino ? ((c['filed_category_fil'] as String?) ?? filedCat) : filedCat,
+    if (filedOpt.isNotEmpty) filipino ? ((c['filed_option_fil'] as String?) ?? filedOpt) : filedOpt,
+  ].where((x) => x.isNotEmpty).join(': ');
+  if (was.isEmpty) return null;
+  return filipino
+      ? 'Isinampa bilang "$was" (${off ? 'hindi na inaalok' : 'pinalitan ang pangalan mula noon'})'
+      : 'Filed as "$was" (${off ? 'no longer offered' : 'renamed since'})';
 }

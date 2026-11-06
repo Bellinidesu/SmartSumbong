@@ -1088,7 +1088,7 @@ class _PhotoRow extends StatelessWidget {
                                   children: [
                                     Text(s.reportDetailsAttachMedia,
                                         style: TextStyle(
-                                          fontFamily: 'Urbanist',
+                                          fontFamily: 'Inter',
                                           fontWeight: FontWeight.w700,
                                           fontSize: 12,
                                           height: 14 / 12,
@@ -1096,7 +1096,7 @@ class _PhotoRow extends StatelessWidget {
                                         )),
                                     Text(s.reportDetailsMaxPhotoSize,
                                         style: TextStyle(
-                                          fontFamily: 'Urbanist',
+                                          fontFamily: 'Inter',
                                           fontWeight: FontWeight.w400,
                                           fontSize: 10,
                                           height: 1,
@@ -1199,7 +1199,7 @@ class _ReviewRow extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
                 color: context.colors.muted,
@@ -1228,7 +1228,7 @@ class _ReviewPhoto extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 11,
               color: context.colors.muted,
@@ -1280,23 +1280,23 @@ class _Agreement extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: enabled ? () => onChanged(!value) : null,
+                  // The sign-in screen's box (5 Nov 2026): 20 square, rounded, orange with a navy tick when ticked.
                   child: SizedBox(
-                    width: 20,
+                    width: 28,
                     height: 36,
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Container(
-                        width: 11,
-                        height: 11,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        width: 20,
+                        height: 20,
                         decoration: BoxDecoration(
-                          color: context.colors.field,
-                          border: Border.all(color: context.colors.navy),
+                          borderRadius: BorderRadius.circular(6),
+                          color: value ? const Color(0xFFFF9800) : context.colors.field,
+                          border: Border.all(color: value ? const Color(0xFFFF9800) : context.colors.navy, width: 2),
                         ),
                         alignment: Alignment.center,
-                        child: value
-                            ? Icon(Icons.check,
-                                size: 10, color: context.colors.navy)
-                            : null,
+                        child: value ? const Icon(Icons.check_rounded, size: 14, color: Color(0xFF141B34)) : null,
                       ),
                     ),
                   ),
