@@ -124,10 +124,14 @@ $unreadRead = ['inbox_messages', ['recipient' => 'eq.' . $me, 'read_at' => 'is.n
 layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 ?>
 <div class="p-topbar"><h1><?= e(t('Inbox', 'Mga Liham')) ?></h1></div>
+<?php // The press flow (7 Nov 2026): the tabs, the list, opening a message and the pager swap in place; the address follows. Only the
+      // Inbox's own links are boosted (a link to a case stays an ordinary page change); the forms post as before. ?>
+<div id="ib-main" class="press-region" hx-target="#ib-main" hx-select="#ib-main" hx-swap="outerHTML" hx-push-url="true" hx-sync="#ib-main:replace"
+     data-announce="<?= e(t('Inbox updated', 'Na-update ang mga liham')) ?>">
 <nav class="st-tabs ib-tabs" aria-label="<?= e(t('Inbox', 'Mga Liham')) ?>">
-  <a class="st-link<?= $box === 'in' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php"><?= e(t('Inbox', 'Mga Liham')) ?><?php if ($unread): ?> <span class="p-badge-n"><?= (int) $unread ?></span><?php endif; ?></a>
-  <a class="st-link<?= $box === 'sent' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php?box=sent"><?= e(t('Sent', 'Naipadala')) ?></a>
-  <a class="st-link<?= $new ? ' p-on' : '' ?>" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a>
+  <a hx-boost="true" class="st-link<?= $box === 'in' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php"><?= e(t('Inbox', 'Mga Liham')) ?><?php if ($unread): ?> <span class="p-badge-n"><?= (int) $unread ?></span><?php endif; ?></a>
+  <a hx-boost="true" class="st-link<?= $box === 'sent' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php?box=sent"><?= e(t('Sent', 'Naipadala')) ?></a>
+  <a hx-boost="true" class="st-link<?= $new ? ' p-on' : '' ?>" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a>
 </nav>
 <?php if ($flash && $flash['text']): ?><div class="p-flash p-flash--<?= $flash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($flash['text']) ?></div><?php endif; ?>
 
@@ -142,7 +146,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
         $isSys = $box === 'in' && $r['kind'] === 'system';
         $who = $box === 'in' ? inbox_from($r) : (implode(', ', array_slice($r['names'], 0, 3)) . (count($r['names']) > 3 ? ' +' . (count($r['names']) - 3) : ''));
         $needs = !empty($r['question_id']) && $unreadRow; ?>
-      <a class="fr ib-row<?= $unreadRow ? ' ib-unread is-unread' : '' ?><?= $needs ? ' ib-needs' : '' ?><?= $open === (int) $r['id'] ? ' ib-sel' : '' ?>" data-sev="<?= $needs ? 'high' : ($isSys ? 'info' : ($unreadRow ? 'act' : 'info')) ?>" href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>">
+      <a hx-boost="true" class="fr ib-row<?= $unreadRow ? ' ib-unread is-unread' : '' ?><?= $needs ? ' ib-needs' : '' ?><?= $open === (int) $r['id'] ? ' ib-sel' : '' ?>" data-sev="<?= $needs ? 'high' : ($isSys ? 'info' : ($unreadRow ? 'act' : 'info')) ?>" href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>">
         <span class="ib-av<?= $isSys ? ' is-sys' : '' ?>" aria-hidden="true"><?= $isSys ? smart_brain(18) : e(admin_initials($box === 'in' ? (string) ($r['from']['full_name'] ?? '') : (string) ($r['names'][0] ?? ''))) ?></span>
         <span class="ib-top"><b class="ib-name"><?= e($who) ?></b><span class="ib-when"><?= e(relative_time((string) $r['created_at'])) ?></span></span>
         <span class="ib-line"><span class="ib-subj"><?= e((string) $r['subject']) ?></span><?php if (!empty($r['question_id'])): ?><span class="p-badge p-b-pending"><?= e(t('Needs your answer', 'Kailangan ng sagot mo')) ?></span><?php endif; ?><?php if (!empty($dueByQ[(int) ($r['question_id'] ?? 0)])): ?><span class="ib-due" data-due="<?= e($dueByQ[(int) $r['question_id']]) ?>"><?= p_icon('i-clock', 13) ?><b></b></span><?php endif; ?><?php if (!empty($r['report']['tracking_id'])): ?><span class="p-mono-id ib-case"><?= e($r['report']['tracking_id']) ?></span><?php endif; ?></span>
@@ -150,7 +154,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
     <?php endforeach; ?>
     </nav>
   </div>
-  <?= pager($total, $page, 'page', $per) ?>
+  <div hx-boost="true" hx-swap="outerHTML show:#ib-main:top"><?= pager($total, $page, 'page', $per) ?></div>
 </section>
 <div class="ib-pane">
 <?php if ($new):
@@ -194,7 +198,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
       <textarea class="p-input-plain" id="ib-body" name="body" rows="7" maxlength="4000" required><?= e((string) ($draft['body'] ?? '')) ?></textarea></div>
     <div class="p-cfield"><label class="p-flabel" for="ib-case"><?= e(t('About a case (tracking ID, optional)', 'Tungkol sa kaso (tracking ID, opsyonal)')) ?></label>
       <input class="p-input-plain" id="ib-case" name="case" maxlength="20" placeholder="SS-2610-1001" value="<?= e((string) ($draft['case'] ?? '')) ?>"></div>
-    <div class="ib-act"><a class="p-btn p-btn-ghost p-btn-sm" href="inbox.php"><?= e(t('Cancel', 'Kanselahin')) ?></a>
+    <div class="ib-act"><a hx-boost="true" class="p-btn p-btn-ghost p-btn-sm" href="inbox.php"><?= e(t('Cancel', 'Kanselahin')) ?></a>
       <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= p_icon('i-send', 15) ?><?= e(t('Send', 'Ipadala')) ?></button></div>
   </form>
 
@@ -212,7 +216,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
   <?php if (!$m): ?><div class="p-card p-empty"><?= e(t('That message is not yours to read.', 'Hindi para sa iyo ang mensaheng iyan.')) ?></div>
   <?php else: ?>
   <article class="p-card p-card-pad ib-read">
-    <a class="p-back" href="inbox.php<?= $m['sender'] === $me ? '?box=sent' : '' ?>"><?= p_icon('i-back', 18) ?><?= e($m['sender'] === $me ? t('Sent', 'Naipadala') : t('Inbox', 'Mga Liham')) ?></a>
+    <a hx-boost="true" class="p-back" href="inbox.php<?= $m['sender'] === $me ? '?box=sent' : '' ?>"><?= p_icon('i-back', 18) ?><?= e($m['sender'] === $me ? t('Sent', 'Naipadala') : t('Inbox', 'Mga Liham')) ?></a>
     <h2><?= e((string) $m['subject']) ?></h2>
     <div class="ib-head"><span class="ib-av<?= $m['kind'] === 'system' ? ' is-sys' : '' ?>" aria-hidden="true"><?= $m['kind'] === 'system' ? smart_brain(18) : e(admin_initials((string) ($m['from']['full_name'] ?? ''))) ?></span>
       <p class="ib-meta"><?php if ($m['kind'] === 'system'): ?><span class="p-badge p-b-grey"><?= e(t('System', 'Sistema')) ?></span> <?php endif; ?>
@@ -236,7 +240,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
       <section class="ib-thread" aria-label="<?= e(t('The conversation', 'Ang usapan')) ?>">
         <p class="p-eyebrow"><?= e(t('The conversation', 'Ang usapan')) ?></p>
         <?php foreach ($thread as $tm): $mine = ($tm['sender'] ?? '') === $me; ?>
-          <a class="ib-msg<?= $mine ? ' is-mine' : '' ?>" href="inbox.php?m=<?= (int) $tm['id'] ?>">
+          <a hx-boost="true" class="ib-msg<?= $mine ? ' is-mine' : '' ?>" href="inbox.php?m=<?= (int) $tm['id'] ?>">
             <span class="ib-av" aria-hidden="true"><?= e(admin_initials((string) ($tm['from']['full_name'] ?? ''))) ?></span>
             <span class="ib-msg-top"><b><?= e($mine ? t('You', 'Ikaw') : inbox_from($tm)) ?></b><span class="ib-when"><?= e(($tm['dir'] === 'before' ? t('Earlier', 'Nauna') : t('Reply', 'Sagot')) . ' · ' . relative_time((string) $tm['created_at'])) ?></span></span>
             <span class="ib-msg-body"><?= e(mb_strimwidth((string) $tm['body'], 0, 220, '…')) ?></span>
@@ -282,7 +286,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
     <?php endif; ?>
 
     <?php if ($m['kind'] === 'mail' && $m['recipient'] === $me): ?>
-      <div class="ib-act"><a class="p-btn p-btn-primary p-btn-sm" href="inbox.php?reply=<?= (int) $m['id'] ?>"><?= e(t('Reply', 'Sumagot')) ?></a></div>
+      <div class="ib-act"><a hx-boost="true" class="p-btn p-btn-primary p-btn-sm" href="inbox.php?reply=<?= (int) $m['id'] ?>"><?= e(t('Reply', 'Sumagot')) ?></a></div>
     <?php endif; ?>
   </article>
   <?php endif; ?>
@@ -290,16 +294,17 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 <?php else: ?>
   <div class="p-card ib-none"><span class="ib-none-ic" aria-hidden="true"><?= p_icon('i-send', 22) ?></span><?php if ($rows): ?><b><?= e(t('Pick a message to read it here', 'Pumili ng mensahe para mabasa rito')) ?></b>
     <span><?= e(t('Or write a new one.', 'O sumulat ng bago.')) ?></span><?php else: ?><b><?= e(t('No messages yet', 'Wala pang mensahe')) ?></b>
-    <span><?= e(t('Replies from your team, forwards and questions from the system land here.', 'Dito lalabas ang mga sagot ng koponan, ipinasa at tanong ng sistema.')) ?></span><?php endif; ?><a class="p-btn p-btn-primary p-btn-sm" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a></div>
+    <span><?= e(t('Replies from your team, forwards and questions from the system land here.', 'Dito lalabas ang mga sagot ng koponan, ipinasa at tanong ng sistema.')) ?></span><?php endif; ?><a hx-boost="true" class="p-btn p-btn-primary p-btn-sm" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a></div>
 <?php endif; ?>
 </div>
 </div>
+</div><?php // #ib-main ?>
 <script>
 // the countdown on messages that wait for an answer
 (function () {
-  var els = document.querySelectorAll('.ib-due[data-due]'); if (!els.length) return;
+  // the clocks are looked up on each tick, so a message opened in place (the press flow) keeps counting
   function tick() {
-    els.forEach(function (el) {
+    document.querySelectorAll('.ib-due[data-due]').forEach(function (el) {
       var left = Math.floor((new Date(el.getAttribute('data-due')).getTime() - Date.now()) / 1000), b = el.querySelector('b');
       el.classList.toggle('is-late', left <= 0);
       b.textContent = left <= 0 ? <?= json_encode(t('time is up', 'tapos na ang oras')) ?> : Math.floor(left / 60) + ':' + ('0' + (left % 60)).slice(-2) + ' <?= e(t('left', 'natitira')) ?>';

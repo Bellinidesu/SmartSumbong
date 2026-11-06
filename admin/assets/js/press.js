@@ -144,13 +144,18 @@
 
   // a save sent in place: the message the server put on the page (its green or red line) comes as a toast, unless the region that is
   // swapped in already shows it; the save's region is announced
-  var saveNote = null, sideNav = null;
+  var saveNote = null, sideNav = null, synced = null;
   document.addEventListener('htmx:beforeSwap', function (e) {
-    var c = e.detail && e.detail.requestConfig; saveNote = null; sideNav = null;
+    var c = e.detail && e.detail.requestConfig; saveNote = null; sideNav = null; synced = null;
     if (!c || !e.detail.serverResponse) return;
     var doc; try { doc = new DOMParser().parseFromString(e.detail.serverResponse, 'text/html'); } catch (x) { return; }
     // the sidebar's counts (unread notifications, cases waiting) follow every answer, saves and live refreshes alike
     var nav = doc.getElementById('side-nav'); if (nav) sideNav = nav.innerHTML;
+    // anything outside the region that shows the same view (data-press-sync with an id: a page's title line, its engine window)
+    // follows the answer too, so the parts that stay put never contradict the part that changed
+    document.querySelectorAll('[data-press-sync][id]').forEach(function (el) {
+      var fresh = doc.getElementById(el.id); if (fresh) { synced = synced || []; synced.push([el.id, fresh.innerHTML]); }
+    });
     if (String(c.verb).toLowerCase() === 'get') return;
     var sel = c.elt && c.elt.closest && c.elt.closest('[hx-select]'), region = sel ? doc.querySelector(sel.getAttribute('hx-select')) : null;
     var f = doc.querySelector('.p-flash[role="status"], .p-flash[role="alert"], .p-flash');
@@ -158,6 +163,7 @@
   });
   document.addEventListener('htmx:afterSettle', function () {
     if (sideNav !== null) { var cur = document.getElementById('side-nav'); if (cur && cur.innerHTML !== sideNav) cur.innerHTML = sideNav; sideNav = null; }
+    if (synced) { synced.forEach(function (p) { var el = document.getElementById(p[0]); if (el && el.innerHTML !== p[1]) el.innerHTML = p[1]; }); synced = null; }
   });
   document.addEventListener('htmx:afterSettle', function () { if (saveNote) { if (window.pToast) pToast(saveNote); saveNote = null; } });
 
