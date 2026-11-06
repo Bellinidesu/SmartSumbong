@@ -55,6 +55,8 @@ begin
   -- 3. the lists say what the live analyses say
   begin
     perform public._smart_snapshot_refresh(true);
+    update public.smart_snapshot set at = now() + interval '1 second';   -- current: the readers use the lists, not the live analysis
+    if not public._smart_snapshot_current() then raise exception 'the lists are not current after a refresh'; end if;
     select count(*) into n from public._snap_patterns(); select count(*) into m from public._smart_patterns(null);
     if n <> m then raise exception 'patterns % vs %', n, m; end if;
     select count(*) into n from public._snap_stuck(); select count(*) into m from public._smart_stuck();
@@ -66,23 +68,28 @@ begin
     v_log := v_log || E'\n' || 'ok  each list matches its live analysis';
   exception when others then v_log := v_log || E'\n' || 'FAIL match: ' || sqlerrm; end;
 
-  -- 4. a fresh list is read (hours left counted from now); a list older than ten minutes is never used
+  -- 4. a current list is read (hours left counted from now); a list made before a change, an old one or a missing one is not
+  --    (one transaction: the lists are dated a second after this transaction's reports to count as made after them)
   begin
+    perform public._smart_snapshot_refresh(true);
+    update public.smart_snapshot set at = now() + interval '1 second';
     update public.smart_snapshot
        set data = jsonb_build_array(jsonb_build_object('report_id', gen_random_uuid(), 'tracking_id', 'BRG-TEST-0001', 'due_at', now() + interval '2 hours',
-                                                       'hours_left', 99, 'typical_hours', 1, 'slow_hours', 2, 'tanod_jobs', 0, 'risk', 'high', 'reasons', '[]'::jsonb)),
-           at = now()
+                                                       'hours_left', 99, 'typical_hours', 1, 'slow_hours', 2, 'tanod_jobs', 0, 'risk', 'high', 'reasons', '[]'::jsonb))
      where key = 'deadline_risk';
     select hours_left into h from public._snap_deadline_risk() where tracking_id = 'BRG-TEST-0001';
-    if h is null then raise exception 'the fresh list was not read'; end if;
+    if h is null then raise exception 'the current list was not read'; end if;
     if abs(h - 2) > 0.01 then raise exception 'hours left %, expected 2 (counted from now)', h; end if;
-    update public.smart_snapshot set at = now() - interval '11 minutes' where key = 'deadline_risk';
+    update public.smart_snapshot set at = now() - interval '1 minute';            -- made before this transaction's reports
     select count(*) into n from public._snap_deadline_risk() where tracking_id = 'BRG-TEST-0001';
-    if n <> 0 then raise exception 'a stale list was used'; end if;
+    if n <> 0 then raise exception 'a list made before a change was used'; end if;
+    update public.smart_snapshot set at = now() - interval '11 minutes';
+    select count(*) into n from public._snap_deadline_risk() where tracking_id = 'BRG-TEST-0001';
+    if n <> 0 then raise exception 'an old list was used'; end if;
     delete from public.smart_snapshot;
     select count(*) into n from public._snap_patterns(); select count(*) into m from public._smart_patterns(null);
     if n <> m then raise exception 'with no list the analysis did not run live'; end if;
-    v_log := v_log || E'\n' || 'ok  a fresh list is read, hours left from now; a stale or missing list means the live analysis';
+    v_log := v_log || E'\n' || 'ok  a current list is read, hours left from now; one made before a change, old or missing means the live analysis';
   exception when others then v_log := v_log || E'\n' || 'FAIL freshness: ' || sqlerrm; end;
 
   -- 5. nobody signed in reads the lists themselves; only the engine's functions do
@@ -93,7 +100,9 @@ begin
        or has_function_privilege('authenticated', 'public._snap_stuck()', 'execute')
        or has_function_privilege('authenticated', 'public._snap_spikes()', 'execute')
        or has_function_privilege('authenticated', 'public._snap_patterns()', 'execute')
-       or has_function_privilege('authenticated', 'public._smart_snapshot_refresh(boolean)', 'execute') then
+       or has_function_privilege('authenticated', 'public._smart_snapshot_refresh(boolean)', 'execute')
+       or has_function_privilege('authenticated', 'public._smart_changed_since(timestamptz)', 'execute')
+       or has_function_privilege('authenticated', 'public._smart_snapshot_current()', 'execute') then
       raise exception 'a signed-in user may call one of the snapshot''s functions';
     end if;
     v_log := v_log || E'\n' || 'ok  the lists and their readers are the engine''s own';

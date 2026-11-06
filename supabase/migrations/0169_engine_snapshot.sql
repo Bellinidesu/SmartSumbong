@@ -13,7 +13,9 @@
 -- engine functions read the lists and keep only the person's own part live (what they may see, their counts, their tanods).
 --   - The job runs every minute and does the work only when something could have changed it: a report filed or changed, a
 --     status change, a dispatch, or five minutes passed (deadline risk moves with the clock).
---   - A list older than ten minutes, or missing (a new database, a restore), is never used: the analysis runs live, as before.
+--   - A list is used only while nothing has changed since it was made (a report, a status change, a dispatch) and it is under
+--     ten minutes old; otherwise the analysis runs live, as before. So the engine is never behind: in the minute between a
+--     change and the next run it is simply worked out live. A new database or a restore has no lists, and runs live.
 --   - Hours left on a deadline are counted from now, not from when the list was made.
 --   - A case that is resolved or closed drops out at once: the module still joins the lists to the person's open cases.
 -- What each function returns is unchanged.
@@ -28,6 +30,25 @@ alter table public.smart_snapshot enable row level security;
 revoke all on public.smart_snapshot from public, anon, authenticated;
 comment on table public.smart_snapshot is 'The engine''s barangay-wide analyses, worked out once a minute when anything changed (0169). Read only through the engine''s functions.';
 
+-- anything that can move an analysis since a moment: a report filed or changed, a status change, a dispatch taken or closed
+create or replace function public._smart_changed_since(p_at timestamptz)
+returns boolean
+language sql stable security definer set search_path = public, extensions as $$
+  select coalesce((select max(greatest(rp.created_at, coalesce(rp.updated_at, rp.created_at))) from public.reports rp), 'epoch'::timestamptz) >= p_at
+      or coalesce((select max(sl.created_at) from public.status_logs sl), 'epoch'::timestamptz) >= p_at
+      or coalesce((select max(greatest(d.assigned_at, coalesce(d.accepted_at, d.assigned_at), coalesce(d.resolved_at, d.assigned_at))) from public.dispatches d), 'epoch'::timestamptz) >= p_at
+$$;
+revoke all on function public._smart_changed_since(timestamptz) from public, anon, authenticated;
+
+-- the lists, when they still say what a live analysis would: all four there, under ten minutes old, nothing changed since
+create or replace function public._smart_snapshot_current()
+returns boolean
+language sql stable security definer set search_path = public, extensions as $$
+  select count(*) = 4 and min(s.at) > now() - interval '10 minutes' and not public._smart_changed_since(min(s.at))
+    from public.smart_snapshot s
+$$;
+revoke all on function public._smart_snapshot_current() from public, anon, authenticated;
+
 create or replace function public._smart_snapshot_refresh(p_force boolean default false)
 returns boolean
 language plpgsql volatile security definer
@@ -39,10 +60,7 @@ declare
   v_n  integer;
 begin
   select min(s.at), count(*) into v_at, v_n from public.smart_snapshot s;
-  if not p_force and v_n = 4 and v_at > now() - interval '5 minutes'
-     and coalesce((select max(greatest(rp.created_at, coalesce(rp.updated_at, rp.created_at))) from public.reports rp), 'epoch'::timestamptz) < v_at
-     and coalesce((select max(sl.created_at) from public.status_logs sl), 'epoch'::timestamptz) < v_at
-     and coalesce((select max(greatest(d.assigned_at, coalesce(d.accepted_at, d.assigned_at), coalesce(d.resolved_at, d.assigned_at))) from public.dispatches d), 'epoch'::timestamptz) < v_at then
+  if not p_force and v_n = 4 and v_at > now() - interval '5 minutes' and not public._smart_changed_since(v_at) then
     return false;   -- nothing that could change an analysis happened since the lists were made
   end if;
   insert into public.smart_snapshot (key, data, at) values
@@ -56,14 +74,14 @@ end $$;
 revoke all on function public._smart_snapshot_refresh(boolean) from public, anon, authenticated;
 comment on function public._smart_snapshot_refresh(boolean) is '0169: works out the engine''s four analyses into smart_snapshot when anything could have changed them (or every five minutes). Run by the smart-snapshot job.';
 
--- ---------- 2. reading the lists (a list older than ten minutes, or missing, means the analysis runs live) ----------
+-- ---------- 2. reading the lists (when they are not current, the analysis runs live) ----------
 create or replace function public._snap_deadline_risk()
 returns table (report_id uuid, tracking_id text, due_at timestamptz, hours_left numeric, typical_hours numeric, slow_hours numeric,
                tanod_jobs integer, risk text, reasons jsonb)
 language plpgsql stable security definer set search_path = public, extensions as $$
 declare d jsonb;
 begin
-  select s.data into d from public.smart_snapshot s where s.key = 'deadline_risk' and s.at > now() - interval '10 minutes';
+  if public._smart_snapshot_current() then select s.data into d from public.smart_snapshot s where s.key = 'deadline_risk'; end if;
   if d is null then return query select * from public._smart_deadline_risk(); return; end if;
   return query
     select x.report_id, x.tracking_id, x.due_at,
@@ -78,7 +96,7 @@ returns table (report_id uuid, tracking_id text, status public.report_status, da
 language plpgsql stable security definer set search_path = public, extensions as $$
 declare d jsonb;
 begin
-  select s.data into d from public.smart_snapshot s where s.key = 'stuck' and s.at > now() - interval '10 minutes';
+  if public._smart_snapshot_current() then select s.data into d from public.smart_snapshot s where s.key = 'stuck'; end if;
   if d is null then return query select * from public._smart_stuck(); return; end if;
   return query
     select x.report_id, x.tracking_id, x.status, x.days_quiet, x.last_activity, x.last_activity_at
@@ -91,7 +109,7 @@ returns table (category public.complaint_category, this_week integer, usual nume
 language plpgsql stable security definer set search_path = public, extensions as $$
 declare d jsonb;
 begin
-  select s.data into d from public.smart_snapshot s where s.key = 'spikes' and s.at > now() - interval '10 minutes';
+  if public._smart_snapshot_current() then select s.data into d from public.smart_snapshot s where s.key = 'spikes'; end if;
   if d is null then return query select * from public._smart_spikes(); return; end if;
   return query
     select x.category, x.this_week, x.usual, x.times_usual, x.place
@@ -104,7 +122,7 @@ returns table (pattern_key text, category public.complaint_category, lat double 
 language plpgsql stable security definer set search_path = public, extensions as $$
 declare d jsonb;
 begin
-  select s.data into d from public.smart_snapshot s where s.key = 'patterns' and s.at > now() - interval '10 minutes';
+  if public._smart_snapshot_current() then select s.data into d from public.smart_snapshot s where s.key = 'patterns'; end if;
   if d is null then return query select * from public._smart_patterns(null); return; end if;
   return query
     select x.pattern_key, x.category, x.lat, x.lng, x.reports, x.weeks, x.residents, x.still_open, x.first_at, x.last_at, x.hazard, x.tracking_ids
