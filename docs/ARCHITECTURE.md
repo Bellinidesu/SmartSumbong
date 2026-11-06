@@ -255,7 +255,7 @@ purpose (0083), and the database refuses media addresses outside them.
 | Part | Where | Deployed by |
 |---|---|---|
 | Portal | Render web service `smartsumbong-ph`, Singapore | Manual Deploy on Render after a merge |
-| Database, Auth, Realtime | Supabase `xmkpokcnjzgxgwysperh`, Mumbai | Actions → Deploy (`supabase db push`) |
+| Database, Auth, Realtime | Supabase `vmtzyyyxcmhtqgeeorhg`, Singapore | Actions → Deploy (`supabase db push`) |
 | Edge Functions | the same Supabase project | Actions → Deploy |
 | App | testers' and staff phones | an APK built from `mobile/resident` |
 | CI, security scans, nightly backup | GitHub Actions | on push, pull request and schedule |

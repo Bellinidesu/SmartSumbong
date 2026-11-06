@@ -2,7 +2,7 @@
 # CLI fills in its defaults for the rest. Do not run `supabase config push`
 # from this file: it would overwrite the live project's Auth settings
 # (redirect URLs, rate limits) with those defaults.
-project_id = "xmkpokcnjzgxgwysperh"
+project_id = "vmtzyyyxcmhtqgeeorhg"
 
 # Whether Supabase checks the caller's JWT before the function runs.
 # Kept here so a redeploy cannot quietly change it.

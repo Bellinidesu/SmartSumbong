@@ -512,12 +512,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 const PLAN_TIERS = ['supabase' => 'Free', 'cloudinary' => 'Free', 'render' => 'Free'];
 
 // Where each service runs, as looked up on 3 Oct 2026: Supabase from the
-// project's settings (ap-south-1), the others from where their addresses
+// project's settings (ap-southeast-1 since 7 Nov 2026, Mumbai before), the others from where their addresses
 // answer. Render's region is set in its dashboard and not visible outside.
 const SERVICE_PLACES = [
-    'db'    => ['IN',  'Mumbai, India'],
-    'auth'  => ['IN',  'Mumbai, India'],
-    'live'  => ['IN',  'Mumbai, India'],
+    'db'    => ['SG',  'Singapore'],
+    'auth'  => ['SG',  'Singapore'],
+    'live'  => ['SG',  'Singapore'],
     'media' => ['CDN', 'Nearest Cloudflare edge'],
     'push'  => ['CDN', 'Nearest Google edge'],
     'tiles' => ['CDN', 'Nearest Cloudflare edge'],
