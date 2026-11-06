@@ -12,7 +12,6 @@
 (function () {
   'use strict';
   var htmx = window.htmx;
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var lang = (document.documentElement.lang || 'en').slice(0, 2) === 'fi' ? 'fil' : 'en';
   var TXT = lang === 'en'
     ? { fail: 'That did not load. Opening it the usual way…', offline: 'You seem to be offline. Try again when you are back online.', updated: 'Updated' }
@@ -66,7 +65,9 @@
   document.body.appendChild(live);
   function announce(msg) { live.textContent = ''; setTimeout(function () { live.textContent = msg; }, 30); }
 
-  // ---- the progress bar: it shows only for a request that takes longer than a blink, and finishes cleanly
+  // ---- the progress bar: it shows only for a request that takes longer than half a second (Hotwire Turbo's own default), and
+  // finishes cleanly. Every press goes to the server (the Philippines to Singapore to Mumbai), so a bar after 120 ms showed on
+  // every press; the pressed control and the chooser's pill already answer at once (7 Nov 2026).
   var bar = document.createElement('div');
   bar.className = 'ss-progress'; bar.setAttribute('aria-hidden', 'true');
   document.body.appendChild(bar);
@@ -75,10 +76,12 @@
   var inflight = new Map(), showT = null;
   function paintBar() {
     if (inflight.size) {
-      if (!bar.classList.contains('is-on') && !showT) showT = setTimeout(function () { showT = null; if (inflight.size) bar.className = 'ss-progress is-on'; }, 120);
-      document.documentElement.setAttribute('aria-busy', 'true'); return;
+      if (!bar.classList.contains('is-on') && !showT) showT = setTimeout(function () { showT = null; if (inflight.size) bar.className = 'ss-progress is-on'; }, 500);
+      return;
     }
-    clearTimeout(showT); showT = null; document.documentElement.removeAttribute('aria-busy');
+    // (the page itself is not marked busy: an attribute on <html> that changes an inherited style made the browser restyle every
+    // element twice per press, about 130 ms on a laptop-speed CPU)
+    clearTimeout(showT); showT = null;
     if (bar.classList.contains('is-on')) { bar.className = 'ss-progress is-on is-done'; setTimeout(function () { if (!inflight.size) bar.className = 'ss-progress'; }, 380); }
   }
   function start(key) { inflight.set(key, Date.now()); paintBar(); }
@@ -120,7 +123,9 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) document.querySelectorAll('form[data-press-sending]').forEach(release); });
 
   if (!htmx) return;
-  htmx.config.globalViewTransitions = !reduce && typeof document.startViewTransition === 'function';
+  // no view transition on a swap (7 Nov 2026): the browser froze the page, took a picture of it and cross-faded, about 120 ms on
+  // every press at laptop speed; the region's own short fade (press.css) stays
+  htmx.config.globalViewTransitions = false;
 
   function xkey(e) { return (e.detail && (e.detail.xhr || (e.detail.requestConfig && e.detail.requestConfig.xhr))) || null; }
   document.addEventListener('htmx:beforeRequest', function (e) { var k = xkey(e); if (k && !quietReq(e)) start(k); });
