@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Pages that are already there (7 Nov)**
+- A page link held under the pointer is fetched a moment early, so the next page is often there when the click lands (Chrome and
+  Edge; other browsers load as before). An Inbox message, downloads, sign-out and new-tab links are never fetched early.
+
 **Who is sent, and who prints (0167, 7 Nov; the flow check)**
 - Sending a tanod by hand: the committee's tanods come first, with the committee's name on them; everyone else is still listed.
 - The Certification of Lack of Jurisdiction opens for anyone who may refer the case (Kagawad and staff too), not only super admins.
