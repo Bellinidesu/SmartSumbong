@@ -213,7 +213,7 @@ function render_retirement_queue(): void
       <a class="st-link" href="administrative-services.php#access"><?= e(t('Committees', 'Mga komite')) ?></a>
       <a class="st-link" href="administrative-services.php#admins"><?= e(t('Roles', 'Mga Tungkulin')) ?></a>
       <a class="st-link p-on" href="retirement-requests.php" aria-current="page"><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?></a>
-      <a class="st-link" href="administrative-services.php#plan"><?= e(t('Planning', 'Pagpaplano')) ?></a>
+      <a class="st-link" href="administrative-services.php#ladder"><?= e(t('Escalation and responders', 'Eskalasyon at mga responder')) ?></a>
     </nav>
 
     <?php if ($flash): ?>

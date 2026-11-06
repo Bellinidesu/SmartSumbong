@@ -90,7 +90,7 @@ The development team's test accounts never receive a real escalation.
 | Inbox (new) | Yes | Yes | Yes |
 | Residents | Yes | No | No |
 | Personnel | Everyone, by committee | Their staff and their tanods | Their committee's tanods and staff, view only (0164) |
-| Administrative Services (renamed) | Committees, administrators, retirement requests, tanod-to-committee approvals, Planning | Retirement requests: view and review their committee's tanods' and staff's; can endorse them | No (asks to retire from their Profile, 0166) |
+| Administrative Services (renamed) | Committees, administrators, retirement requests, tanod-to-committee approvals | Retirement requests: view and review their committee's tanods' and staff's; can endorse them | No (asks to retire from their Profile, 0166) |
 | Control Room (new) | Complaint types, rules, hotlines, wording, the barangay's name and seal, parts of the system | No | No |
 | Settings | System status, plan and usage, SMART, appearance | Their own: appearance, their committee (read only), their SMART module | The same, their module without decisions |
 | Edit Profile | Their own | Their own | Their own |
@@ -218,7 +218,7 @@ asks the Kagawad; `answer_reroute_question` and the every-minute
 
 - *Administrative Services* (renamed from Extra Administrative Services):
   committees and who sees what, administrator accounts, retirement requests,
-  tanod-to-committee approvals, Planning. A Kagawad views and reviews
+  tanod-to-committee approvals. A Kagawad views and reviews
   retirement requests and can endorse a staff member's to a super admin.
 - *Control Room* (new): complaint types and options, urgency levels,
   deadlines and limits, hotlines, wording, the barangay's name, place and
