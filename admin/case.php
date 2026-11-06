@@ -91,10 +91,19 @@ $threadMedia = []; // update id => its photos
 // needs the first round's answers (its category, its dispatches, whether
 // it is still to be judged or assigned). With the database in Mumbai
 // every sequential round trip was a visible part of opening a case.
+/** The Admin Controls' forwarding log and flags (0152), read with the page's first batch and found later in the read memo (speed work, 7 Nov 2026). */
+function case_forward_reads(string $id): array
+{
+    return [
+        'fw_log'   => ['case_forwards', ['select' => 'kind,from_committee,to_committee,to_super,note,created_at,by:users!case_forwards_actor_fkey(full_name)', 'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '6'], true],
+        'fw_flags' => ['case_forward_flags', ['select' => 'id,from_committee,to_committee,note,actor,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+    ];
+}
+
 $trail = [];
 $abuseHistory = [];
 try {
-    $first = $db->selectMany([
+    $first = $db->selectMany(case_forward_reads($id) + [
         'report' => ['reports', [
             'select' => 'id,tracking_id,subject,description,category,status,is_anonymous,'
                       . 'latitude,longitude,location_label,due_at,reopened_count,'
@@ -933,8 +942,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php // 0152: the committee this case is with, how it got there, and forwarding it
     $fwLog = []; $fwFlags = [];
     try {
-        $fwLog = (array) $db->select('case_forwards', ['select' => 'kind,from_committee,to_committee,to_super,note,created_at,by:users!case_forwards_actor_fkey(full_name)', 'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '6']);
-        $fwFlags = (array) $db->select('case_forward_flags', ['select' => 'id,from_committee,to_committee,note,actor,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc']);
+        $fwLog = (array) $db->select('case_forwards', case_forward_reads($id)['fw_log'][1]);
+        $fwFlags = (array) $db->select('case_forward_flags', case_forward_reads($id)['fw_flags'][1]);
     } catch (SupabaseError) {}
     $myC = (string) (current_admin()['committee'] ?? '');
     $lastFwd = null; foreach ($fwLog as $fl) { if (($fl['kind'] ?? '') === 'forward') { $lastFwd = $fl; break; } }

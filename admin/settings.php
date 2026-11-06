@@ -272,6 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                     'p_colour' => preg_match('/^#[0-9a-fA-F]{6}$/', $p('colour')) ? $p('colour') : null, 'p_icon' => preg_match('/^[a-z_]+$/', $p('icon')) ? $p('icon') : null,
                     'p_active' => $isNew ? true : !empty($_POST['active']), 'p_sort' => null]);
                 if ($isNew && $madeKey) $db->rpc('catalogue_fill');
+                shared_forget('complaint_categories', 'complaint_options', 'committee_categories');   // catalogue_fill may add options and ticks
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $isNew
                     ? t('Category made. Residents can pick it once the app refreshes its list.', 'Nagawa ang kategorya. Mapipili ito ng mga residente kapag na-refresh ng app ang listahan.')
                     : t('Category saved.', 'Nai-save ang kategorya.')];
@@ -279,6 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                 $isNew = $p('id') === '';
                 $db->rpc('option_save', ['p_id' => $isNew ? null : (int) $p('id'), 'p_category' => $p('category'), 'p_label_en' => $p('label_en'),
                     'p_label_fil' => $p('label_fil') ?: null, 'p_active' => $isNew ? true : !empty($_POST['active']), 'p_sort' => null]);
+                shared_forget('complaint_options');
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $isNew ? t('Option added.', 'Naidagdag ang opsyon.') : t('Option saved.', 'Nai-save ang opsyon.')];
             }
         } catch (SupabaseError $ex) {
@@ -319,6 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                 } elseif (is_string($saved) && ($pic = cloudinary_upload_files('logo', 1, 'committees'))) {
                     $db->rpc('committee_set_logo', ['p_key' => $saved, 'p_url' => $pic[0]['media_url']]);
                 }
+                shared_forget('committees', 'committee_categories');
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $key === '' ? t('Committee made.', 'Nagawa ang komite.') : t('Committee saved.', 'Nai-save ang komite.')];
             } elseif ($_POST['action'] === 'super_colour') {
                 // 0150: the one colour of every super admin; the database refuses one near an active committee's
@@ -615,15 +618,123 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     header('Location: ' . st_url('places'));
     exit;
 }
-$places = []; $kinds = [];
-if ($stPage !== 'mine') try {   // the barangay's places are a super admin's to keep
-    $got = $db->selectMany([
-        'places' => ['places', ['select' => 'id,name,grp,aliases,lat,lng', 'source' => 'eq.barangay', 'active' => 'eq.true', 'order' => 'name.asc', 'limit' => '200'], true],
-        'kinds'  => ['place_kinds', ['select' => 'grp,label', 'order' => 'label.asc'], true],
-    ]);
-    $places = is_array($got['places'] ?? null) ? $got['places'] : [];
-    $kinds  = is_array($got['kinds'] ?? null) ? $got['kinds'] : [];
-} catch (SupabaseError $ex) { /* the card says so below */ }
+/**
+ * Every read the tabs on this page make, by tab (speed work, 7 Nov 2026). The three pages this file draws (Settings,
+ * Administrative Services, Control Room) used to read tab by tab, one wait after another: up to fourteen. Now the reads of the
+ * tabs the page shows are declared here once, fetched together in one batch just below the header (st_prefetch), and each tab
+ * takes its own group again from the request's read memo (supabase.php) without a wait. A tab's own error handling is
+ * unchanged: a read that failed in the batch is not kept, so the tab's own call asks again and fails or succeeds as before.
+ *
+ * @return array<string, array<string, array>> group => selectMany entries
+ */
+function st_reads(string $stPage): array
+{
+    $g = [];
+    if ($stPage !== 'mine') {
+        // the barangay's places are a super admin's to keep
+        $g['places'] = [
+            'places' => ['places', ['select' => 'id,name,grp,aliases,lat,lng', 'source' => 'eq.barangay', 'active' => 'eq.true', 'order' => 'name.asc', 'limit' => '200'], true],
+            'kinds'  => ['place_kinds', ['select' => 'grp,label', 'order' => 'label.asc'], true],
+        ];
+        // the administrators, tanods and committee map are for the super admins' tabs
+        $g['people'] = [
+            'admins' => ['users', ['select' => 'id,full_name,email,must_change_password,is_suspended,created_at,official_role,committee,admin_tier,is_dev,is_test',
+                                   'role' => 'eq.admin', 'order' => 'created_at.asc']],
+            'tanods' => ['users', ['select' => 'id,full_name,women_responder', 'role' => 'eq.tanod', 'is_suspended' => 'is.false', 'order' => 'full_name.asc']],
+            'cmap'   => ['committee_for_category', ['select' => 'category,committee', 'order' => 'category.asc']],
+        ];
+    }
+    if (st_on('status')) {
+        $g['status'] = [
+            'up'     => ['rpc/portal_uptime_summary', [], true],   // 0096: the database pings the portal every 10 minutes
+            'eng'    => ['rpc/engine_status', [], true],           // 0137: the engine that reads ID photos on the server
+            'smh'    => ['rpc/smart_engine_health', [], true],     // 0140: is SMART running, and how often its advice was taken
+            'smp'    => ['rpc/smart_pick_stats', ['p_days' => 90], true],
+            'smf'    => ['rpc/smart_fix_stats', ['p_days' => 90], true],
+            'errs'   => ['portal_errors', ['select' => 'source,page,message,count,last_seen', 'order' => 'last_seen.desc', 'limit' => '5'], true],
+            'alerts' => ['system_alerts', ['select' => 'key,message,raised_at', 'cleared_at' => 'is.null', 'order' => 'raised_at.desc'], true],   // 0119
+        ];
+    }
+    if (st_on('access')) {
+        $g['access'] = [
+            'cc'   => ['committee_categories', ['select' => 'committee,category'], true],
+            'fs'   => ['feature_switches', ['select' => 'key,label_en,label_fil,enabled,note', 'order' => 'key.asc'], true],
+            'pcom' => ['rpc/personnel_committees', []],
+        ];
+    }
+    if (st_on('updates')) {
+        $g['updates'] = ['releases' => ['app_releases', ['select' => 'id,version,build,apk_url,sha256,notes_en,notes_fil,mandatory,active,created_at', 'order' => 'build.desc'], true]];
+    }
+    if (st_on('parts')) {
+        $g['parts'] = ['switches' => ['feature_switches', ['select' => 'key,label_en,label_fil,enabled,note', 'order' => 'key.asc'], true]];
+    }
+    if (st_on('types')) {
+        $g['types'] = [
+            'opts'  => ['complaint_options', ['select' => 'id,category,label_en,label_fil,active,sort', 'order' => 'category.asc,sort.asc,id.asc'], true],
+            'ccats' => ['committee_categories', ['select' => 'committee,category'], true],
+        ];
+    }
+    if (st_on('rules') || st_on('hotlines')) {
+        $g['rules'] = [
+            'ops' => ['operational_settings', ['select' => '*', 'id' => 'eq.1']],
+            'sla' => ['sla_policies', ['select' => 'category,resolution_hours,accept_minutes']],
+            'hg'  => ['hotline_groups', ['select' => 'id,parent_id,name,display,sort_order,is_active', 'order' => 'sort_order.asc,name.asc']],
+            'hn'  => ['hotline_numbers', ['select' => 'id,group_id,label,number,carrier,sort_order,is_active', 'order' => 'sort_order.asc']],
+        ];
+    }
+    if (st_on('wording')) {
+        $g['wording'] = ['wording' => ['wording', ['select' => 'source,en,fil,updated_at', 'order' => 'updated_at.desc'], true]];
+    }
+    if (st_on('smart') || st_on('plan')) {
+        // 0142: planning. Each part may fail on its own; the card then says so.
+        $g['plan'] = [
+            'roster'   => ['rpc/smart_roster_suggestion', ['p_days' => 90], true],
+            'forecast' => ['rpc/smart_forecast', ['p_days' => 28], true],
+            'fair'     => ['rpc/smart_fairness', ['p_days' => 14], true],
+            'patterns' => ['rpc/smart_patterns', ['p_days' => 90], true],
+            'orders'   => ['smart_work_orders', ['select' => 'id,pattern_key,title,category,status,note,evidence,created_at', 'order' => 'created_at.desc', 'limit' => '40'], true],
+        ];
+        $g['hist'] = ['hist' => ['rpc/smart_rule_history', ['p_limit' => 12]]];
+        $g['smart'] = [
+            'rules'  => ['smart_rules', ['select' => '*', 'id' => 'eq.1', 'limit' => '1'], true],
+            'cal'    => ['rpc/smart_calibration', ['p_days' => 90], true],
+            'fac'    => ['rpc/smart_factor_stats', ['p_days' => 90], true],
+            'digest' => ['rpc/smart_digest_preview', [], true],
+            'words'  => ['rpc/smart_word_suggestions', ['p_days' => 30], true],
+            'cmd'    => ['command_state', ['select' => 'auto_switch', 'id' => 'eq.1', 'limit' => '1'], true],
+            'links'  => ['command_display_links', ['select' => 'id,label,created_at,revoked_at,last_seen_at', 'order' => 'created_at.desc', 'limit' => '8'], true],
+            'runs'   => ['command_sessions', ['select' => 'id,mode,how,reason,started_at,ended_at,end_note,starter:users!command_sessions_started_by_fkey(full_name)', 'order' => 'started_at.desc', 'limit' => '5'], true],
+        ];
+    }
+    return $g;
+}
+
+/** One tab's reads, as declared in st_reads(). */
+function st_group(string $group): array
+{
+    global $stPage;
+    return st_reads((string) $stPage)[$group] ?? [];
+}
+
+/** One read of a tab: its value (rows, or what the function returned); a failure is thrown, as the tab's own call always did. */
+function st_pick(Supabase $db, string $group, string $key): mixed
+{
+    $e = st_group($group)[$key] ?? null;
+    if ($e === null) return null;
+    $e[2] = false;
+    return $db->selectMany([$key => $e])[$key];
+}
+
+/** Every visible tab's reads in one wait, all optional here so one failure cannot stop the others. */
+function st_prefetch(Supabase $db, string $stPage): void
+{
+    $all = [];
+    foreach (st_reads($stPage) as $gk => $entries) {
+        foreach ($entries as $k => $e) { $e[2] = true; $all[$gk . ':' . $k] = $e; }
+    }
+    if ($all) { try { $db->selectMany($all); } catch (SupabaseError) { /* each tab asks again for itself */ } }
+}
+
 
 $stTitle = ['settings' => t('Settings', 'Mga Setting'), 'mine' => t('Settings', 'Mga Setting'), 'admin' => t('Administrative Services', 'Mga Serbisyong Pang-admin'),
             'control' => t('Control Room', 'Silid-Kontrol')][$stPage];
@@ -654,15 +765,18 @@ $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => 
 // temporary password. Adding one from here comes with the account service.
 $stFlash = $_SESSION['st_flash'] ?? null;
 unset($_SESSION['st_flash']);
+// every visible tab's reads, in one wait (st_reads above); each tab below takes its own from the request's read memo
+st_prefetch($db, $stPage);
+$places = []; $kinds = [];
+if ($stPage !== 'mine') try {
+    $got = $db->selectMany(st_group('places'));
+    $places = is_array($got['places'] ?? null) ? $got['places'] : [];
+    $kinds  = is_array($got['kinds'] ?? null) ? $got['kinds'] : [];
+} catch (SupabaseError $ex) { /* the card says so below */ }
 $admins = []; $tanods = []; $cmap = [];
-if ($stPage !== 'mine') try {   // the administrators, tanods and committee map are for the super admins' tabs
-    $admins = $db->select('users', [
-        'select' => 'id,full_name,email,must_change_password,is_suspended,created_at,official_role,committee,admin_tier,is_dev,is_test',
-        'role'   => 'eq.admin',
-        'order'  => 'created_at.asc',
-    ]);
-    $tanods  = $db->select('users', ['select' => 'id,full_name,women_responder', 'role' => 'eq.tanod', 'is_suspended' => 'is.false', 'order' => 'full_name.asc']);
-    $cmap    = $db->select('committee_for_category', ['select' => 'category,committee', 'order' => 'category.asc']);
+if ($stPage !== 'mine') try {
+    $got = $db->selectMany(st_group('people'));
+    $admins = (array) $got['admins']; $tanods = (array) $got['tanods']; $cmap = (array) $got['cmap'];
 } catch (SupabaseError $e) { $admins = []; $tanods = []; $cmap = []; }
 ?>
 <?php if (st_on('admins')): ?>
@@ -904,20 +1018,13 @@ if ($stPage !== 'mine') try {   // the administrators, tanods and committee map 
 <?php if (st_on('status')):
 // 0096 (industry pass 5): the database pings the portal every 10 minutes
 // and keeps score.
-$up = null;
-try { $up = $db->rpc('portal_uptime_summary'); } catch (SupabaseError) {}
-$eng = null;   // the engine (0137): reads ID photos on the server
-try { $eng = $db->rpc('engine_status'); } catch (SupabaseError) {}
-// 0140: is SMART running, and how often was its advice taken and its fixes confirmed
-$smh = $smp = $smf = null;
-try { $smh = $db->rpc('smart_engine_health'); } catch (SupabaseError) {}
-try { $smp = $db->rpc('smart_pick_stats', ['p_days' => 90]); } catch (SupabaseError) {}
-try { $smf = $db->rpc('smart_fix_stats', ['p_days' => 90]); } catch (SupabaseError) {}
-$errs = null;
-try { $errs = $db->select('portal_errors', ['select' => 'source,page,message,count,last_seen', 'order' => 'last_seen.desc', 'limit' => '5']); } catch (SupabaseError) {}
-// 0119: what the hourly health check found and has not seen clear yet.
-$alerts = [];
-try { $alerts = $db->select('system_alerts', ['select' => 'key,message,raised_at', 'cleared_at' => 'is.null', 'order' => 'raised_at.desc']); } catch (SupabaseError) {}
+$up = $eng = $smh = $smp = $smf = $errs = null; $alerts = [];
+try {
+    $got = $db->selectMany(st_group('status'));
+    $ok = static fn (string $k) => ($got[$k] ?? null) instanceof SupabaseError ? null : ($got[$k] ?? null);
+    $up = $ok('up'); $eng = $ok('eng'); $smh = $ok('smh'); $smp = $ok('smp'); $smf = $ok('smf'); $errs = $ok('errs');
+    $alerts = $ok('alerts') ?? [];   // 0119: what the hourly health check found and has not seen clear yet
+} catch (SupabaseError) {}
 $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 100, 2), '0'), '.') . '%' : '—';
 endif;
 ?>
@@ -926,10 +1033,8 @@ endif;
 $cmCats = [];
 $switches = [];
 try {
-    $got = $db->selectMany([
-        'cc' => ['committee_categories', ['select' => 'committee,category'], true],
-        'fs' => ['feature_switches', ['select' => 'key,label_en,label_fil,enabled,note', 'order' => 'key.asc'], true],
-    ]);
+    $acc = st_group('access'); unset($acc['pcom']);
+    $got = $db->selectMany($acc);
     foreach ((array) (($got['cc'] ?? null) instanceof SupabaseError ? [] : $got['cc']) as $r) { $cmCats[$r['committee']][] = $r['category']; }
     $switches = ($got['fs'] ?? null) instanceof SupabaseError ? [] : (array) $got['fs'];
 } catch (SupabaseError) {}
@@ -945,7 +1050,7 @@ endif;
   $cmLead = []; $cmTanods = [];
   foreach ($admins as $x) { if (($x['official_role'] ?? '') === 'kagawad' && !empty($x['committee'])) $cmLead[(string) $x['committee']][] = formal_name((string) $x['full_name']); }
   try {
-      foreach ((array) $db->rpc('personnel_committees') as $r) {
+      foreach ((array) st_pick($db, 'access', 'pcom') as $r) {
           foreach ((array) ($r['committees'] ?? []) as $c) { if (($c['status'] ?? '') === 'approved') $cmTanods[(string) $c['key']] = ($cmTanods[(string) $c['key']] ?? 0) + 1; }
       }
   } catch (SupabaseError) {}
@@ -1102,7 +1207,7 @@ endif;
 <?php if (st_on('updates')):
 // ---------- App updates (0161) ----------
 $releases = [];
-try { $releases = (array) $db->select('app_releases', ['select' => 'id,version,build,apk_url,sha256,notes_en,notes_fil,mandatory,active,created_at', 'order' => 'build.desc']); } catch (SupabaseError) {}
+try { $releases = (array) st_pick($db, 'updates', 'releases'); } catch (SupabaseError) {}
 $relMax = $releases ? max(array_map(fn ($r) => (int) $r['build'], $releases)) : 0;
 $relNow = null; foreach ($releases as $r0) { if (!empty($r0['active'])) { $relNow = (int) $r0['build']; break; } }
 ?>
@@ -1145,7 +1250,7 @@ $relNow = null; foreach ($releases as $r0) { if (!empty($r0['active'])) { $relNo
 <?php if (st_on('parts')):
 // ---------- Parts of the system (0144) ----------
 $switches = [];
-try { $switches = (array) $db->select('feature_switches', ['select' => 'key,label_en,label_fil,enabled,note', 'order' => 'key.asc']); } catch (SupabaseError) {}
+try { $switches = (array) st_pick($db, 'parts', 'switches'); } catch (SupabaseError) {}
 ?>
 <section class="st-pane" data-pane="parts" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
@@ -1166,7 +1271,7 @@ try { $switches = (array) $db->select('feature_switches', ['select' => 'key,labe
 // ---------- Complaint types (0146) ----------
 $catOpts = [];
 try {
-    foreach ((array) $db->select('complaint_options', ['select' => 'id,category,label_en,label_fil,active,sort', 'order' => 'category.asc,sort.asc,id.asc']) as $o) {
+    foreach ((array) st_pick($db, 'types', 'opts') as $o) {
         $catOpts[(string) $o['category']][] = $o;
     }
 } catch (SupabaseError) {}
@@ -1182,7 +1287,7 @@ endif;
   <?php
   // who sees each kind of complaint: the active committees it is connected to
   $tyOwn = [];
-  try { foreach ((array) $db->select('committee_categories', ['select' => 'committee,category']) as $r0) { if (!empty(committees_all()[$r0['committee']]['active'])) $tyOwn[(string) $r0['category']][] = (string) (committees_all()[$r0['committee']]['short_en'] ?? $r0['committee']); } } catch (SupabaseError) {}
+  try { foreach ((array) st_pick($db, 'types', 'ccats') as $r0) { if (!empty(committees_all()[$r0['committee']]['active'])) $tyOwn[(string) $r0['category']][] = (string) (committees_all()[$r0['committee']]['short_en'] ?? $r0['committee']); } } catch (SupabaseError) {}
   ?>
   <div class="p-card p-card-pad cmx-page" id="types-card">
     <h2 class="cmx-h"><?= e(t('Complaint types', 'Mga uri ng reklamo')) ?></h2>
@@ -1238,12 +1343,7 @@ endif;
 // ---------- Rules and Hotlines (0147) ----------
 $ops = []; $slas = []; $hlGroups = []; $hlNums = [];
 try {
-    $got = $db->selectMany([
-        'ops' => ['operational_settings', ['select' => '*', 'id' => 'eq.1']],
-        'sla' => ['sla_policies', ['select' => 'category,resolution_hours,accept_minutes']],
-        'hg'  => ['hotline_groups', ['select' => 'id,parent_id,name,display,sort_order,is_active', 'order' => 'sort_order.asc,name.asc']],
-        'hn'  => ['hotline_numbers', ['select' => 'id,group_id,label,number,carrier,sort_order,is_active', 'order' => 'sort_order.asc']],
-    ]);
+    $got = $db->selectMany(st_group('rules'));
     $rows = static fn (string $k): array => is_array($got[$k] ?? null) ? $got[$k] : [];
     $ops = (array) ($rows('ops')[0] ?? []);
     foreach ($rows('sla') as $x) $slas[(string) $x['category']] = $x;
@@ -1368,7 +1468,7 @@ endif;
 // ---------- Wording (0149) ----------
 $wq = trim((string) ($_GET['wq'] ?? ''));
 $wOwn = [];
-try { foreach ((array) $db->select('wording', ['select' => 'source,en,fil,updated_at', 'order' => 'updated_at.desc']) as $x) $wOwn[(string) $x['source']] = $x; } catch (SupabaseError) {}
+try { foreach ((array) st_pick($db, 'wording', 'wording') as $x) $wOwn[(string) $x['source']] = $x; } catch (SupabaseError) {}
 $wHits = [];
 if (mb_strlen($wq) >= 2) {
     foreach (wording_catalog() as $src => $c) {
@@ -1514,28 +1614,13 @@ $replay = $_SESSION['smart_replay'] ?? null; unset($_SESSION['smart_replay']);  
 // 0142: planning, one parallel round. Each part may fail on its own; the card then says so.
 $plan = ['roster' => null, 'forecast' => null, 'fair' => null, 'patterns' => null, 'orders' => null];
 try {
-    $pg = $db->selectMany([
-        'roster'   => ['rpc/smart_roster_suggestion', ['p_days' => 90], true],
-        'forecast' => ['rpc/smart_forecast', ['p_days' => 28], true],
-        'fair'     => ['rpc/smart_fairness', ['p_days' => 14], true],
-        'patterns' => ['rpc/smart_patterns', ['p_days' => 90], true],
-        'orders'   => ['smart_work_orders', ['select' => 'id,pattern_key,title,category,status,note,evidence,created_at', 'order' => 'created_at.desc', 'limit' => '40'], true],
-    ]);
+    $pg = $db->selectMany(st_group('plan'));
     foreach ($plan as $pk => $_) { $plan[$pk] = ($pg[$pk] ?? null) instanceof SupabaseError ? null : ($pg[$pk] ?? null); }
 } catch (SupabaseError) {}
 $hist = [];
-try { $hist = $db->rpc('smart_rule_history', ['p_limit' => 12]); $hist = is_array($hist) ? $hist : []; } catch (SupabaseError) {}
+try { $hist = st_pick($db, 'hist', 'hist'); $hist = is_array($hist) ? $hist : []; } catch (SupabaseError) {}
 try {
-    $got = $db->selectMany([
-        'rules'  => ['smart_rules', ['select' => '*', 'id' => 'eq.1', 'limit' => '1'], true],
-        'cal'    => ['rpc/smart_calibration', ['p_days' => 90], true],
-        'fac'    => ['rpc/smart_factor_stats', ['p_days' => 90], true],
-        'digest' => ['rpc/smart_digest_preview', [], true],
-        'words'  => ['rpc/smart_word_suggestions', ['p_days' => 30], true],
-        'cmd'    => ['command_state', ['select' => 'auto_switch', 'id' => 'eq.1', 'limit' => '1'], true],
-        'links'  => ['command_display_links', ['select' => 'id,label,created_at,revoked_at,last_seen_at', 'order' => 'created_at.desc', 'limit' => '8'], true],
-        'runs'   => ['command_sessions', ['select' => 'id,mode,how,reason,started_at,ended_at,end_note,starter:users!command_sessions_started_by_fkey(full_name)', 'order' => 'started_at.desc', 'limit' => '5'], true],
-    ]);
+    $got = $db->selectMany(st_group('smart'));
     $sr     = !($got['rules'] instanceof SupabaseError) ? ($got['rules'][0] ?? null) : null;
     $cal    = !($got['cal'] instanceof SupabaseError) ? (array) $got['cal'] : [];
     $fac    = !($got['fac'] instanceof SupabaseError) ? array_slice((array) $got['fac'], 0, 12) : [];

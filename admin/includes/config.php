@@ -181,6 +181,11 @@ function send_security_policy(): void
     header('Content-Security-Policy: ' . implode('; ', $policy));
     // Stamp the nonce on every <script> of an HTML page as it goes out.
     ob_start(function (string $out) use ($nonce): string {
+        // the page is held until it is complete, so its timing can still go in a header (speed work, 7 Nov 2026). Only for a
+        // signed-in administrator: timings on the sign-in page could help someone guess which accounts exist.
+        if (!headers_sent() && function_exists('server_timing_value') && isset($_SESSION) && !empty($_SESSION[SESSION_KEY])) {
+            header('Server-Timing: ' . server_timing_value());
+        }
         foreach (headers_list() as $h) {
             if (stripos($h, 'content-type:') === 0 && stripos($h, 'text/html') === false) return $out;
         }

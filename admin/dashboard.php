@@ -48,6 +48,30 @@ $next  = $month->modify('+1 month');
 $effCategory = (string) ($_GET['eff_category'] ?? '');
 if (!in_array($effCategory, category_keys(), true)) { $effCategory = ''; }
 
+/** What SMART sees today (0124, 0127, 0128), as selectMany entries; each is optional. */
+function dashboard_smart_reads(DateTimeImmutable $month): array
+{
+    return [
+        'summary' => ['rpc/smart_summary', [], true],
+        'risk'    => ['rpc/smart_deadline_risk', [], true],
+        'spikes'  => ['rpc/smart_spikes', [], true],
+        'score'   => ['rpc/smart_sla_scorecard', [], true],
+        'quiet'   => ['rpc/smart_stuck_cases', [], true],
+        'times'   => ['rpc/smart_time_patterns', ['p_days' => 90], true],
+        'storm'   => ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true],
+        // 0156: the super admin module: what waits on a super admin, and each committee's load
+        'coms'    => ['rpc/dashboard_committees', ['p_month_from' => $month->format(DateTimeInterface::ATOM)], true],
+        // who leads each committee, for the committees card
+        'leads'   => ['users', ['select' => 'full_name,committee', 'role' => 'eq.admin', 'official_role' => 'eq.kagawad', 'order' => 'full_name.asc'], true],
+    ];
+}
+
+/** Layout 3's live feed: the last seven changes. */
+function dashboard_feed_query(): array
+{
+    return ['select' => 'id,new_status,remark,is_system,created_at,report:reports!status_logs_report_id_fkey(tracking_id)', 'order' => 'created_at.desc', 'limit' => '7'];
+}
+
 $error   = null;
 $metrics = null;
 
@@ -56,7 +80,8 @@ try {
     // A number on its own says nothing — "31 complaints" is either a quiet
     // month or a crisis depending on what last month was. The comparison
     // is what a kapitan reads.
-    $both = $db->selectMany([
+    // the SMART tiles and the live feed below ride in the same batch and are found there in the read memo (speed work, 7 Nov 2026)
+    $both = $db->selectMany(dashboard_smart_reads($month) + ['feed' => ['status_logs', dashboard_feed_query(), true]] + [
         'now'  => ['rpc/dashboard_metrics', [
             'p_from'     => $month->format(DateTimeInterface::ATOM),
             'p_to'       => $next->format(DateTimeInterface::ATOM),
@@ -124,25 +149,13 @@ function delta_html(?array $d): string
 $sm = ['summary' => null, 'risk' => [], 'spikes' => [], 'score' => [], 'quiet' => [], 'storm' => null, 'times' => [], 'coms' => null, 'leads' => []];
 if (!$error) {
     try {
-        $got = $db->selectMany([
-            'summary' => ['rpc/smart_summary', [], true],
-            'risk'    => ['rpc/smart_deadline_risk', [], true],
-            'spikes'  => ['rpc/smart_spikes', [], true],
-            'score'   => ['rpc/smart_sla_scorecard', [], true],
-            'quiet'   => ['rpc/smart_stuck_cases', [], true],
-            'times'   => ['rpc/smart_time_patterns', ['p_days' => 90], true],
-            'storm'   => ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true],
-            // 0156: the super admin module: what waits on a super admin, and each committee's load
-            'coms'    => ['rpc/dashboard_committees', ['p_month_from' => $month->format(DateTimeInterface::ATOM)], true],
-            // who leads each committee, for the committees card
-            'leads'   => ['users', ['select' => 'full_name,committee', 'role' => 'eq.admin', 'official_role' => 'eq.kagawad', 'order' => 'full_name.asc'], true],
-        ]);
+        $got = $db->selectMany(dashboard_smart_reads($month));
         foreach ($got as $k => $v) { if (!($v instanceof SupabaseError)) { $sm[$k] = $v; } }
     } catch (SupabaseError) { /* the tiles stay empty */ }
 }
 // Layout 3, "Trend hero" (Ace, 30 Oct): the live feed beside the committees. Optional, like the SMART calls.
 $feed = [];
-try { $feed = (array) $db->select('status_logs', ['select' => 'id,new_status,remark,is_system,created_at,report:reports!status_logs_report_id_fkey(tracking_id)', 'order' => 'created_at.desc', 'limit' => '7']); } catch (SupabaseError) {}
+try { $feed = (array) $db->select('status_logs', dashboard_feed_query()); } catch (SupabaseError) {}
 $smSum   = is_array($sm['summary']) ? $sm['summary'] : null;
 $smRisk  = count(array_filter((array) $sm['risk'], fn($r) => ($r['risk'] ?? '') === 'high'));
 $smStorm = (is_array($sm['storm']) && !empty($sm['storm'][0]['storm_mode'])) ? $sm['storm'][0] : null;

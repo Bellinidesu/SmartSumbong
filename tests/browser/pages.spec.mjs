@@ -51,6 +51,24 @@ test('login.php, signed out', async ({ browser }) => {
   expect(await axe(page), 'serious or critical accessibility problems').toEqual([]);
 });
 
+test('speed (7 Nov 2026): Server-Timing for administrators only, and a page reads in one batch', async ({ request, browser }) => {
+  const st = (await request.get('cases.php')).headers()['server-timing'] || '';
+  expect(st).toMatch(/^app;dur=[\d.]+, db;dur=[\d.]+;desc="\d+ waits, \d+ calls"$/);
+  const out = await (await browser.newContext()).request.get('login.php');
+  expect(out.headers()['server-timing'], 'no timings on the sign-in page').toBeUndefined();
+  // the trace lists each wait: the parts drawn later read with the page's first batch
+  const batchWith = async (url, names) => {
+    const html = await (await request.get(url + (url.includes('?') ? '&' : '?') + '_trace=1')).text();
+    const lines = (html.match(/<!-- trace:[\s\S]*?-->/) || [''])[0].split('\n').filter(l => / batch of \d+:/.test(l));
+    return lines.some(l => names.every(n => l.includes(n)));
+  };
+  expect(await batchWith('notifications.php', ['notifications', 'rpc/smart_module', 'rpc/smart_summary', 'reroute_questions']), 'Notifications: the list, the brain, the strip and the pins together').toBe(true);
+  expect(await batchWith('cases.php', ['rpc/smart_module', 'reports', 'escalation_requests']), 'Case Reports: one batch').toBe(true);
+  expect(await batchWith('summary.php', ['dispatches', 'attendance', 'rpc/smart_module']), 'Report Summary: one batch').toBe(true);
+  expect(await batchWith('dashboard.php', ['rpc/dashboard_metrics', 'rpc/smart_summary', 'status_logs']), 'Dashboard: one batch').toBe(true);
+  expect(await batchWith('settings.php', ['places', 'rpc/portal_uptime_summary', 'users']), 'Settings: every tab in one batch').toBe(true);
+});
+
 test('Report Summary downloads as a spreadsheet', async ({ request }) => {
   const r = await request.get('summary.php?from=2026-01-01&to=2026-12-31&export=xlsx');
   expect(r.status()).toBe(200);

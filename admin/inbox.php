@@ -83,22 +83,27 @@ function inbox_from(array $m): string
 }
 
 $unread = 0;
-try { $unread = $db->count('inbox_messages', ['recipient' => 'eq.' . $me, 'read_at' => 'is.null']); } catch (SupabaseError) {}
+$unreadRead = ['inbox_messages', ['recipient' => 'eq.' . $me, 'read_at' => 'is.null'], true, 'count'];
 
 // the list on the left runs for every view of the page
     $per = 20;
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $rows = []; $total = 0; $listError = null; $dueByQ = [];
     try {
+        // one wait (speed work, 7 Nov 2026): the unread count, and the page of the list with the total behind its pager
         if ($box === 'in') {
-            $q = ['recipient' => 'eq.' . $me];
-            $total = $db->count('inbox_messages', $q);
-            $rows = (array) $db->select('inbox_messages', $q + ['select' => 'id,kind,subject,created_at,read_at,question_id,from:users!inbox_messages_sender_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
-                'order' => 'created_at.desc', 'limit' => (string) $per, 'offset' => (string) (($page - 1) * $per)]);
+            $got = $db->selectMany(['unread' => $unreadRead, 'rows' => ['inbox_messages', ['recipient' => 'eq.' . $me,
+                'select' => 'id,kind,subject,created_at,read_at,question_id,from:users!inbox_messages_sender_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
+                'order' => 'created_at.desc', 'limit' => (string) $per, 'offset' => (string) (($page - 1) * $per)], false, 'total']]);
+            $unread = is_int($got['unread'] ?? null) ? $got['unread'] : 0;
+            $total = (int) ($got['rows:total'] ?? 0);
+            $rows = (array) $got['rows'];
         } else {
             // one row per message sent, with everyone it went to
-            $sent = (array) $db->select('inbox_messages', ['sender' => 'eq.' . $me, 'select' => 'id,batch,subject,created_at,to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
-                'order' => 'created_at.desc', 'limit' => '600']);
+            $got = $db->selectMany(['unread' => $unreadRead, 'sent' => ['inbox_messages', ['sender' => 'eq.' . $me, 'select' => 'id,batch,subject,created_at,to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
+                'order' => 'created_at.desc', 'limit' => '600']]]);
+            $unread = is_int($got['unread'] ?? null) ? $got['unread'] : 0;
+            $sent = (array) $got['sent'];
             $byBatch = [];
             foreach ($sent as $s) {
                 $byBatch[$s['batch']] ??= $s + ['names' => []];

@@ -15,12 +15,18 @@ function category_issues(): array
     static $memo = null;
     if ($memo !== null) return $memo;
     $memo = [];
-    try {
-        foreach ((array) db()->select('complaint_options', ['select' => 'category,label_en', 'order' => 'category.asc,sort.asc,id.asc']) as $o) {
-            $memo[(string) $o['category']][] = (string) $o['label_en'];
-        }
-    } catch (Throwable) {}
+    foreach (complaint_options_rows() as $o) { $memo[(string) $o['category']][] = (string) $o['label_en']; }
     return $memo;
+}
+
+/** Every complaint option's row, in order (category, sort, id), from the shared cache (shared_cache.php); Settings drops it on a save. */
+function complaint_options_rows(): array
+{
+    static $memo = null;
+    if ($memo !== null) return $memo;
+    return $memo = shared_cache('complaint_options',
+        static fn (): array => (array) db()->select('complaint_options', ['select' => 'id,category,label_en,label_fil,active', 'order' => 'category.asc,sort.asc,id.asc']),
+        access_token() !== null);
 }
 
 /**
@@ -32,11 +38,9 @@ function category_options(): array
     static $memo = null;
     if ($memo !== null) return $memo;
     $memo = [];
-    try {
-        foreach ((array) db()->select('complaint_options', ['select' => 'id,category,label_en,label_fil,active', 'order' => 'category.asc,sort.asc,id.asc']) as $o) {
-            $memo[(string) $o['category']][(int) $o['id']] = ['en' => (string) $o['label_en'], 'fil' => (string) $o['label_fil'], 'active' => !empty($o['active'])];
-        }
-    } catch (Throwable) {}
+    foreach (complaint_options_rows() as $o) {
+        $memo[(string) $o['category']][(int) $o['id']] = ['en' => (string) $o['label_en'], 'fil' => (string) $o['label_fil'], 'active' => !empty($o['active'])];
+    }
     return $memo;
 }
 

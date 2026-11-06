@@ -311,7 +311,7 @@ function committee_first_symbol(string $ck): string
     if (is_array($memo) && ($memo['key'] ?? null) === $ck && ($memo['at'] ?? 0) > time() - 120) return (string) $memo['ic'];
     $ic = 'other';
     try {
-        $mine = array_column((array) db()->select('committee_categories', ['select' => 'category', 'committee' => 'eq.' . $ck]), 'category');
+        $mine = committee_categories_all()[$ck] ?? [];
         foreach (categories_all() as $catKey => $cat) {
             if (in_array($catKey, $mine, true) && !empty($cat['active'])) { $ic = sd_icon_for_category((string) $catKey, (array) $cat); break; }
         }
@@ -403,7 +403,14 @@ function dev_switcher(): string
     $me = current_admin();
     if (!is_array($origin) && empty($me['is_dev'])) return '';
     $levels = [];
-    try { $levels = (array) (new Supabase((string) (is_array($origin) ? $origin['access_token'] : access_token())))->rpc('dev_levels'); } catch (Throwable) {}
+    // the test accounts change rarely: kept in the session for a minute, so the pill costs no wait on most pages (speed work, 7 Nov 2026)
+    $tok = (string) (is_array($origin) ? $origin['access_token'] : access_token());
+    $lc = $_SESSION['ss_dev_levels'] ?? null;
+    if (is_array($lc) && ($lc['k'] ?? '') === hash('sha256', $tok) && ($lc['at'] ?? 0) > time() - 60) {
+        $levels = (array) $lc['v'];
+    } else {
+        try { $levels = (array) (new Supabase($tok))->rpc('dev_levels'); $_SESSION['ss_dev_levels'] = ['k' => hash('sha256', $tok), 'at' => time(), 'v' => $levels]; } catch (Throwable) {}
+    }
     $now = (string) ($_SESSION['dev_view'] ?? '');
     $name = ['super' => t('Super admin', 'Pangunahing admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Councilor (Kagawad)', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')];
     $from = basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
@@ -1020,14 +1027,13 @@ function categories_all(): array
     static $memo = null;
     if ($memo !== null) return $memo;
     $memo = [];
-    try {
-        if (access_token() !== null) {
-            foreach ((array) db()->select('complaint_categories', ['select' => 'key,label_en,label_fil,colour,icon,active,sort', 'order' => 'sort.asc,key.asc']) as $c) {
-                $memo[(string) $c['key']] = ['en' => (string) $c['label_en'], 'fil' => (string) $c['label_fil'], 'colour' => (string) $c['colour'],
-                                             'icon' => (string) $c['icon'], 'active' => !empty($c['active'])];
-            }
-        }
-    } catch (Throwable) {}
+    // from the shared cache most of the time (shared_cache.php); Settings drops the copy when a type is saved
+    $rows = access_token() === null ? [] : shared_cache('complaint_categories',
+        static fn (): array => (array) db()->select('complaint_categories', ['select' => 'key,label_en,label_fil,colour,icon,active,sort', 'order' => 'sort.asc,key.asc']), true);
+    foreach ($rows as $c) {
+        $memo[(string) $c['key']] = ['en' => (string) $c['label_en'], 'fil' => (string) $c['label_fil'], 'colour' => (string) $c['colour'],
+                                     'icon' => (string) $c['icon'], 'active' => !empty($c['active'])];
+    }
     if (!$memo) {
         foreach ([
             'street_obstruction'           => ['Street Obstruction', 'Sagabal sa Kalsada', '#F93535'],
