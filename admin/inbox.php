@@ -84,6 +84,19 @@ function inbox_from(array $m): string
 
 $unread = 0;
 $unreadRead = ['inbox_messages', ['recipient' => 'eq.' . $me, 'read_at' => 'is.null'], true, 'count'];
+// Opening a message (speed work, 7 Nov 2026): the message with its reroute question, the replies to it and marking it read all
+// ride the list's own batch, so a message opens in one wait (two when it answers an earlier message or asks for a tanod: that
+// message and the roster come together in a second). Marking read touches only the reader's own unread mail (mark_mail_read).
+$msgSel = 'id,batch,sender,recipient,kind,subject,body,created_at,read_at,report_id,question_id,reply_to,'
+        . 'from:users!inbox_messages_sender_fkey(full_name),to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(id,tracking_id,subject),'
+        . 'q:reroute_questions!inbox_messages_question_id_fkey(id,state,due_at,committee,report_id,answered_at,by:users!reroute_questions_answered_by_fkey(full_name))';
+$tsel = 'id,batch,sender,kind,subject,body,created_at,reply_to,from:users!inbox_messages_sender_fkey(full_name)';
+$openReads = $open ? [
+    'om:msg'     => ['inbox_messages', ['select' => $msgSel, 'id' => 'eq.' . $open, 'limit' => '1'], true],
+    'om:replies' => ['inbox_messages', ['select' => $tsel, 'reply_to' => 'eq.' . $open, 'order' => 'created_at.asc', 'limit' => '20'], true],
+    'om:mark'    => ['rpc/mark_mail_read', ['p_ids' => '{' . $open . '}'], true],
+] : [];
+$openGot = [];
 
 // the list on the left runs for every view of the page
     $per = 20;
@@ -92,17 +105,19 @@ $unreadRead = ['inbox_messages', ['recipient' => 'eq.' . $me, 'read_at' => 'is.n
     try {
         // one wait (speed work, 7 Nov 2026): the unread count, and the page of the list with the total behind its pager
         if ($box === 'in') {
-            $got = $db->selectMany(['unread' => $unreadRead, 'rows' => ['inbox_messages', ['recipient' => 'eq.' . $me,
+            $got = $db->selectMany($openReads + ['unread' => $unreadRead, 'rows' => ['inbox_messages', ['recipient' => 'eq.' . $me,
                 'select' => 'id,kind,subject,created_at,read_at,question_id,from:users!inbox_messages_sender_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id),q:reroute_questions!inbox_messages_question_id_fkey(id,state,due_at)',
                 'order' => 'created_at.desc', 'limit' => (string) $per, 'offset' => (string) (($page - 1) * $per)], false, 'total']]);
             $unread = is_int($got['unread'] ?? null) ? $got['unread'] : 0;
+            $openGot = $got;
             $total = (int) ($got['rows:total'] ?? 0);
             $rows = (array) $got['rows'];
         } else {
             // one row per message sent, with everyone it went to
-            $got = $db->selectMany(['unread' => $unreadRead, 'sent' => ['inbox_messages', ['sender' => 'eq.' . $me, 'select' => 'id,batch,subject,created_at,to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
+            $got = $db->selectMany($openReads + ['unread' => $unreadRead, 'sent' => ['inbox_messages', ['sender' => 'eq.' . $me, 'select' => 'id,batch,subject,created_at,to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
                 'order' => 'created_at.desc', 'limit' => '600']]]);
             $unread = is_int($got['unread'] ?? null) ? $got['unread'] : 0;
+            $openGot = $got;
             $sent = (array) $got['sent'];
             $byBatch = [];
             foreach ($sent as $s) {
@@ -205,13 +220,46 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 
 <?php elseif ($open):
     // ---------- one message ----------
-    $m = null;
+    $m = null; $q = null; $roster = []; $thread = [];
     try {
-        $rows = (array) $db->select('inbox_messages', ['select' => 'id,batch,sender,recipient,kind,subject,body,created_at,read_at,report_id,question_id,reply_to,'
-            . 'from:users!inbox_messages_sender_fkey(full_name),to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(id,tracking_id,subject)',
-            'id' => 'eq.' . $open, 'limit' => '1']);
-        $m = $rows[0] ?? null;
-        if ($m && $m['recipient'] === $me && empty($m['read_at'])) { $db->rpc('mark_mail_read', ['p_ids' => '{' . (int) $m['id'] . '}']); unset($_SESSION['nav_counts']); }
+        // from the list's batch above; read here only when that batch could not run
+        $inBatch = array_key_exists('om:msg', $openGot) && is_array($openGot['om:msg']);
+        $rowsM = $inBatch ? $openGot['om:msg'] : (array) $db->select('inbox_messages', ['select' => $msgSel, 'id' => 'eq.' . $open, 'limit' => '1']);
+        $m = $rowsM[0] ?? null;
+        if ($m && $m['recipient'] === $me) {
+            $marked = $inBatch ? ($openGot['om:mark'] ?? null) : (empty($m['read_at']) ? $db->rpc('mark_mail_read', ['p_ids' => '{' . (int) $m['id'] . '}']) : 0);
+            if (empty($m['read_at']) || (is_int($marked) && $marked > 0)) { unset($_SESSION['nav_counts']); }
+        }
+        if ($m) {
+            // the question this message asks came embedded with it; a row without the embed reads it on its own
+            $q = is_array($m['q'] ?? null) && array_key_exists('report_id', $m['q']) ? $m['q'] : null;
+            $second = [];
+            if (!empty($m['question_id']) && $q === null) {
+                $second['q'] = ['reroute_questions', ['select' => 'id,state,due_at,committee,report_id,answered_at,by:users!reroute_questions_answered_by_fkey(full_name)', 'id' => 'eq.' . (int) $m['question_id'], 'limit' => '1'], true];
+            }
+            if (!empty($m['reply_to'])) {
+                $second['parent'] = ['inbox_messages', ['select' => $tsel, 'id' => 'eq.' . (int) $m['reply_to'], 'limit' => '1'], true];
+            }
+            if ($q && ($q['state'] ?? '') === 'open') {
+                $second['roster'] = ['rpc/tanod_roster', ['p_report' => $q['report_id']], true];
+            }
+            $more = $second ? $db->selectMany($second) : [];
+            if (isset($second['q'])) {
+                $q = is_array($more['q'] ?? null) ? ($more['q'][0] ?? null) : null;
+                if ($q && ($q['state'] ?? '') === 'open') { try { $roster = (array) $db->rpc('tanod_roster', ['p_report' => $q['report_id']]); } catch (SupabaseError) { $roster = []; } }
+            } elseif (isset($second['roster'])) {
+                $roster = is_array($more['roster'] ?? null) ? $more['roster'] : [];
+            }
+            // the conversation: the message this one answers, and every reply to it (what the database lets this person read)
+            foreach (is_array($more['parent'] ?? null) ? $more['parent'] : [] as $tm) { if ((int) $tm['id'] === (int) $m['reply_to']) { $tm['dir'] = 'before'; $thread[] = $tm; } }
+            $replies = $inBatch ? (is_array($openGot['om:replies'] ?? null) ? $openGot['om:replies'] : [])
+                : (array) $db->select('inbox_messages', ['select' => $tsel, 'reply_to' => 'eq.' . (int) $m['id'], 'order' => 'created_at.asc', 'limit' => '20']);
+            $seenB = [];
+            foreach ($replies as $tm) {
+                if ((int) ($tm['reply_to'] ?? 0) !== (int) $m['id'] || isset($seenB[$tm['batch']])) { continue; }
+                $seenB[$tm['batch']] = true; $tm['dir'] = 'after'; $thread[] = $tm;
+            }
+        }
     } catch (SupabaseError $ex) { $error = safe_error($ex); } ?>
   <?php if ($error): ?><div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div><?php endif; ?>
   <?php if (!$m): ?><div class="p-card p-empty"><?= e(t('That message is not yours to read.', 'Hindi para sa iyo ang mensaheng iyan.')) ?></div>
@@ -223,21 +271,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
       <p class="ib-meta"><?php if ($m['kind'] === 'system'): ?><span class="p-badge p-b-grey"><?= e(t('System', 'Sistema')) ?></span> <?php endif; ?>
         <?= e(t('From', 'Mula kay')) ?> <b><?= e(inbox_from($m)) ?></b> &middot; <?= e(t('to', 'para kay')) ?> <?= e(formal_name((string) ($m['to']['full_name'] ?? ''))) ?><br><span class="ib-date"><?= e(long_datetime((string) $m['created_at'])) ?></span></p></div>
     <div class="ib-body"><?= nl2br(e((string) $m['body'])) ?></div>
-    <?php
-    // the conversation: the message this one answers, and every reply to it (what the database lets this person read)
-    $thread = [];
-    try {
-        $tsel = 'id,batch,sender,kind,subject,body,created_at,reply_to,from:users!inbox_messages_sender_fkey(full_name)';
-        if (!empty($m['reply_to'])) {
-            foreach ((array) $db->select('inbox_messages', ['select' => $tsel, 'id' => 'eq.' . (int) $m['reply_to'], 'limit' => '1']) as $tm) { if ((int) $tm['id'] === (int) $m['reply_to']) { $tm['dir'] = 'before'; $thread[] = $tm; } }
-        }
-        $seen = [];
-        foreach ((array) $db->select('inbox_messages', ['select' => $tsel, 'reply_to' => 'eq.' . (int) $m['id'], 'order' => 'created_at.asc', 'limit' => '20']) as $tm) {
-            if ((int) ($tm['reply_to'] ?? 0) !== (int) $m['id'] || isset($seen[$tm['batch']])) { continue; }
-            $seen[$tm['batch']] = true; $tm['dir'] = 'after'; $thread[] = $tm;
-        }
-    } catch (SupabaseError) { $thread = []; }
-    if ($thread): ?>
+    <?php if ($thread): ?>
       <section class="ib-thread" aria-label="<?= e(t('The conversation', 'Ang usapan')) ?>">
         <p class="p-eyebrow"><?= e(t('The conversation', 'Ang usapan')) ?></p>
         <?php foreach ($thread as $tm): $mine = ($tm['sender'] ?? '') === $me; ?>
@@ -255,10 +289,8 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
       <p class="p-hint"><?= e(t('This message is about a case you can no longer see (it may have been forwarded).', 'Tungkol ito sa kasong hindi mo na nakikita (maaaring naipasa na).')) ?></p>
     <?php endif; ?>
 
-    <?php if (!empty($m['question_id'])):
-        $q = ((array) $db->select('reroute_questions', ['select' => 'id,state,due_at,committee,report_id,answered_at,by:users!reroute_questions_answered_by_fkey(full_name)', 'id' => 'eq.' . (int) $m['question_id'], 'limit' => '1']))[0] ?? null; ?>
+    <?php if (!empty($m['question_id'])): ?>
       <?php if ($q && $q['state'] === 'open'):
-          try { $roster = (array) $db->rpc('tanod_roster', ['p_report' => $q['report_id']]); } catch (SupabaseError) { $roster = []; }
           usort($roster, fn ($a, $b) => [!$a['assignable'], $a['metres'] ?? 1e9] <=> [!$b['assignable'], $b['metres'] ?? 1e9]); ?>
         <form method="post" class="ib-q" id="ib-question">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="answer">

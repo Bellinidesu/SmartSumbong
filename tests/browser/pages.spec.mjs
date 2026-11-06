@@ -54,7 +54,8 @@ test('login.php, signed out', async ({ browser }) => {
 
 test('speed (7 Nov 2026): Server-Timing for administrators only, and a page reads in one batch', async ({ request, browser }) => {
   const st = (await request.get('cases.php')).headers()['server-timing'] || '';
-  expect(st).toMatch(/^app;dur=[\d.]+, db;dur=[\d.]+;desc="\d+ waits, \d+ calls", conn;dur=[\d.]+;desc="\d+ new connections \(longest handshake\)"$/);
+  expect(st).toMatch(/^app;dur=[\d.]+, db;dur=[\d.]+;desc="\d+ waits, \d+ calls", conn;dur=[\d.]+;desc="\d+ new connections \(longest handshake\)"(, cpu;dur=[\d.]+;desc="CPU used")?(, held;dur=[\d.]+;desc="held back by the CPU quota")?$/);
+  expect(st, 'the CPU the request used').toContain('cpu;dur=');
   const out = await (await browser.newContext()).request.get('login.php');
   expect(out.headers()['server-timing'], 'no timings on the sign-in page').toBeUndefined();
   // the trace lists each wait: the parts drawn later read with the page's first batch

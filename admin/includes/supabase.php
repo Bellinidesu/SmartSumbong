@@ -110,14 +110,44 @@ function server_timing_conn(?CurlHandle $ch = null): array
     return $t;
 }
 
-/** The Server-Timing header's value: app = the whole of the server's work so far, db = the waits on Supabase, conn = new connections. */
+/**
+ * The machine's own account of this request (7 Nov 2026): the CPU time it used (this process, the TLS of its calls included), and
+ * how long the container was held back by its CPU quota while it ran (Render's free plan gives about a tenth of a CPU; a request
+ * that needs 20 ms of CPU can then take 200 ms). Read once when this file loads and again for the header. Returns [cpu ms, held
+ * back ms]; null where the system does not say.
+ */
+function server_timing_machine(): array
+{
+    static $start = null;
+    $cpu = static function (): ?float {
+        $u = function_exists('getrusage') ? @getrusage() : false;
+        return is_array($u) ? ($u['ru_utime.tv_sec'] + $u['ru_stime.tv_sec']) * 1000 + ($u['ru_utime.tv_usec'] + $u['ru_stime.tv_usec']) / 1000 : null;
+    };
+    $held = static function (): ?float {
+        $s = @file_get_contents('/sys/fs/cgroup/cpu.stat');                                     // cgroup v2: microseconds
+        if (is_string($s) && preg_match('/^throttled_usec (\d+)/m', $s, $m)) return (int) $m[1] / 1000;
+        $s = @file_get_contents('/sys/fs/cgroup/cpu/cpu.stat');                                 // cgroup v1: nanoseconds
+        if (is_string($s) && preg_match('/^throttled_time (\d+)/m', $s, $m)) return (int) $m[1] / 1e6;
+        return null;
+    };
+    if ($start === null) { $start = [$cpu(), $held()]; return [null, null]; }
+    $c = $cpu(); $h = $held();
+    return [$c !== null && $start[0] !== null ? $c - $start[0] : null, $h !== null && $start[1] !== null ? $h - $start[1] : null];
+}
+server_timing_machine();
+
+/** The Server-Timing header's value: app = the whole of the server's work so far, db = the waits on Supabase, conn = new connections,
+ *  cpu = the CPU this request used, held = time the container was held back by its CPU quota meanwhile (when the system says). */
 function server_timing_value(): string
 {
     [$waits, $calls, $ms] = server_timing_db();
     [$conns, $hand] = server_timing_conn();
+    [$cpu, $held] = server_timing_machine();
     $start = (float) ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true));
     $app = (microtime(true) - $start) * 1000;
-    return sprintf('app;dur=%.1f, db;dur=%.1f;desc="%d waits, %d calls", conn;dur=%.1f;desc="%d new connections (longest handshake)"', $app, $ms, $waits, $calls, $hand, $conns);
+    return sprintf('app;dur=%.1f, db;dur=%.1f;desc="%d waits, %d calls", conn;dur=%.1f;desc="%d new connections (longest handshake)"', $app, $ms, $waits, $calls, $hand, $conns)
+        . ($cpu !== null ? sprintf(', cpu;dur=%.1f;desc="CPU used"', $cpu) : '')
+        . ($held !== null ? sprintf(', held;dur=%.1f;desc="held back by the CPU quota"', $held) : '');
 }
 
 class SupabaseError extends RuntimeException
@@ -291,6 +321,9 @@ final class Supabase
     /** GoTrue's own record of the signed-in user (profile.php's "Last signed in"). */
     public function authUser(): array
     {
+        // a page that put ['auth/user', []] in its batch finds it here, without a wait of its own
+        $k = $this->seenKey('', 'auth/user', []);
+        if (array_key_exists($k, self::$seen) && is_array(self::$seen[$k])) return self::$seen[$k];
         $user = $this->request('GET', '/auth/v1/user');
         return is_array($user) ? $user : [];
     }
@@ -373,13 +406,14 @@ final class Supabase
             [$table, $query] = $queue[$key];
             unset($queue[$key]);
             $isRpc = str_starts_with($table, 'rpc/');
+            $isAuth = str_starts_with($table, 'auth/');   // GoTrue's own record of the signed-in user ('auth/user'), read with the rest
             $m = $mode[$key];
             $h = $headers;
             // a whole batch of counts counts ids, as it always has; one counted entry keeps its own select (an inner join narrows it)
             if ($m === 'count') { $query['select'] = $count ? 'id' : (($query['select'] ?? '') !== '' ? $query['select'] : 'id'); $h[] = 'Prefer: count=exact'; $h[] = 'Range: 0-0'; }
             elseif ($m === 'total') { $h[] = 'Prefer: count=exact'; }
             $qs = ($query && !$isRpc) ? '?' . http_build_query($query) : '';
-            $ch = curl_init(supabase_url() . "/rest/v1/{$table}{$qs}");
+            $ch = curl_init(supabase_url() . ($isAuth ? '/auth/v1/' . substr($table, 5) : "/rest/v1/{$table}") . $qs);
             curl_setopt_array($ch, supabase_curl_opts());
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
