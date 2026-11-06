@@ -39,6 +39,10 @@ function supabase_curl_opts(): array
         CURLOPT_HTTP_VERSION  => CURL_HTTP_VERSION_2TLS,
         CURLOPT_TCP_KEEPALIVE => 1,
         CURLOPT_ENCODING      => '',
+        // A batch's calls wait to ride the one open HTTP/2 connection instead of each opening a new one (7 Nov 2026). Without it,
+        // calls that start together found no connection ready and opened their own: two more round trips to Mumbai for each.
+        // Measured from Manila on the live database: a 16-call batch went from 222-700 ms (typically ~440) to 168-443 (~300).
+        CURLOPT_PIPEWAIT      => 1,
     ];
 }
 

@@ -93,7 +93,7 @@ $unreadRead = ['inbox_messages', ['recipient' => 'eq.' . $me, 'read_at' => 'is.n
         // one wait (speed work, 7 Nov 2026): the unread count, and the page of the list with the total behind its pager
         if ($box === 'in') {
             $got = $db->selectMany(['unread' => $unreadRead, 'rows' => ['inbox_messages', ['recipient' => 'eq.' . $me,
-                'select' => 'id,kind,subject,created_at,read_at,question_id,from:users!inbox_messages_sender_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
+                'select' => 'id,kind,subject,created_at,read_at,question_id,from:users!inbox_messages_sender_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id),q:reroute_questions!inbox_messages_question_id_fkey(id,state,due_at)',
                 'order' => 'created_at.desc', 'limit' => (string) $per, 'offset' => (string) (($page - 1) * $per)], false, 'total']]);
             $unread = is_int($got['unread'] ?? null) ? $got['unread'] : 0;
             $total = (int) ($got['rows:total'] ?? 0);
@@ -113,10 +113,11 @@ $unreadRead = ['inbox_messages', ['recipient' => 'eq.' . $me, 'read_at' => 'is.n
             $rows = array_slice(array_values($byBatch), ($page - 1) * $per, $per);
         }
         // the questions that still wait for an answer carry their clock into the list
-        $qids = array_values(array_filter(array_map(fn ($r) => (int) ($r['question_id'] ?? 0), $rows)));
-        if ($box === 'in' && $qids) {
-            foreach ((array) $db->select('reroute_questions', ['select' => 'id,state,due_at', 'id' => 'in.(' . implode(',', $qids) . ')']) as $qq) {
-                if (($qq['state'] ?? '') === 'open') { $dueByQ[(int) $qq['id']] = (string) $qq['due_at']; }
+        // (read with the list itself, embedded through question_id: no second wait, 7 Nov 2026)
+        if ($box === 'in') {
+            foreach ($rows as $r) {
+                $qq = $r['q'] ?? null;
+                if (is_array($qq) && ($qq['state'] ?? '') === 'open') { $dueByQ[(int) $qq['id']] = (string) $qq['due_at']; }
             }
         }
     } catch (SupabaseError $ex) { $listError = safe_error($ex); }

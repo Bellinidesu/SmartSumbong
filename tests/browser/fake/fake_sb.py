@@ -66,7 +66,8 @@ TABLES = {
         {'id': 41, 'batch': 'b1', 'sender': None, 'recipient': ADMIN['id'], 'kind': 'system', 'subject': 'Pick a tanod for SS-2610-1001',
          'body': 'No Peace and Order tanod is free for case SS-2610-1001. Pick a tanod within 5 minutes, or the nearest tanod from any committee is sent.',
          'created_at': ago(0.05), 'read_at': None, 'report_id': REPORTS[0]['id'], 'question_id': 7, 'from': None, 'to': {'full_name': ADMIN['full_name']},
-         'report': {'id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'subject': REPORTS[0]['subject']}},
+         'report': {'id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'subject': REPORTS[0]['subject']},
+         'q': {'id': 7, 'state': 'open', 'due_at': ahead(0.08)}},   # the reroute question, embedded as the Inbox list reads it (7 Nov 2026)
         {'id': 42, 'batch': 'b2', 'sender': 'a0000000-0000-0000-0000-000000000009', 'recipient': ADMIN['id'], 'kind': 'mail', 'subject': 'Pulong bukas',
          'body': 'Bukas ng alas-diyes sa bulwagan.', 'created_at': ago(3), 'read_at': ago(2), 'report_id': None, 'question_id': None,
          'from': {'full_name': 'Santos, Ben'}, 'to': {'full_name': ADMIN['full_name']}, 'report': None, 'reply_to': None},

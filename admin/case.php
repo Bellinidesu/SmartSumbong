@@ -92,6 +92,33 @@ $threadMedia = []; // update id => its photos
 // needs the first round's answers (its category, its dispatches, whether
 // it is still to be judged or assigned). With the database in Mumbai
 // every sequential round trip was a visible part of opening a case.
+/**
+ * The case page's second round, asked for in the first (speed work, 7 Nov 2026): everything here needs only the case's id, so the
+ * page waits on the database once; the second round's own code then finds each answer in the request's read memo (supabase.php).
+ * The deadline policy is read for every kind (eight rows) and picked by the case's kind; the field photos and the dispatch thread
+ * are read through their dispatch's case, not by dispatch ids. The tanod ranking is read whatever the case's state: it costs no wait.
+ */
+function case_page_reads(string $id): array
+{
+    return [
+        'sla_all'    => ['sla_policies', ['select' => 'category,resolution_hours,accept_minutes,auto_dispatch_on_file'], true],
+        'proof'      => ['dispatch_media', ['select' => 'dispatch_id,update_id,media_url,mime_type,bytes,uploaded_at,d:dispatches!inner(report_id)',
+                                            'd.report_id' => 'eq.' . $id, 'order' => 'uploaded_at.asc'], true],
+        'messages'   => ['report_messages', ['select' => 'id,from_barangay,body,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+        'escalation' => ['escalation_requests', ['select' => 'id,reason,suggested_office,created_at,requester:users!escalation_requests_requested_by_fkey(full_name)',
+                                                 'report_id' => 'eq.' . $id, 'status' => 'eq.pending', 'limit' => '1'], true],
+        'thread'     => ['dispatch_updates', ['select' => 'id,dispatch_id,author_id,kind,step,body,created_at,d:dispatches!inner(report_id)',
+                                              'd.report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+        'evidence'   => ['report_evidence', ['select' => 'id,kind,media_url,bytes,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+        'ext'        => ['rpc/extensions_used', ['p_report' => $id], true],
+        'handlers'   => ['case_handler_log', ['select' => 'action,reason,created_at,admin:users!case_handler_log_admin_id_fkey(id,full_name),prev:users!case_handler_log_previous_id_fkey(full_name)',
+                                              'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '4'], true],
+        'ops'        => ['operational_settings', ['select' => 'max_deadline_extensions', 'limit' => '1'], true],
+        'roster'     => ['rpc/tanod_roster', ['p_report' => $id], true],
+        'rank'       => ['rpc/smart_tanod_ranking', ['p_report' => $id], true],
+    ];
+}
+
 /** The Admin Controls' forwarding log and flags (0152), read with the page's first batch and found later in the read memo (speed work, 7 Nov 2026). */
 function case_forward_reads(string $id): array
 {
@@ -104,7 +131,7 @@ function case_forward_reads(string $id): array
 $trail = [];
 $abuseHistory = [];
 try {
-    $first = $db->selectMany(case_forward_reads($id) + [
+    $first = $db->selectMany(case_forward_reads($id) + array_combine(array_map(fn ($k) => 'pre:' . $k, array_keys(case_page_reads($id))), case_page_reads($id)) + [
         'report' => ['reports', [
             'select' => 'id,tracking_id,subject,description,category,status,is_anonymous,'
                       . 'latitude,longitude,location_label,due_at,reopened_count,'
@@ -215,13 +242,8 @@ $canAssign = in_array($status, ['validated', 'in_progress', 'offline_investigati
              && $active === null;
 
 if ($report && !$error) {
-    $second = [
-        'sla' => ['sla_policies', [
-            'select'   => 'resolution_hours,accept_minutes,auto_dispatch_on_file',
-            'category' => 'eq.' . $report['category'],
-            'limit'    => '1',
-        ]],
-    ];
+    $pre = case_page_reads($id);   // the same reads as the first round's, so the read memo answers them without a wait
+    $second = ['sla_all' => $pre['sla_all']];
 
     // Field proof. dispatch_media is keyed to the dispatch rather
     // than the report, so it needs the ids from above — and it is
@@ -234,36 +256,19 @@ if ($report && !$error) {
         $dispatches
     )));
     if ($liveIds) {
-        $second['proof'] = ['dispatch_media', [
-            'select'      => 'dispatch_id,update_id,media_url,mime_type,bytes,uploaded_at',
-            'dispatch_id' => 'in.(' . implode(',', $liveIds) . ')',
-            'order'       => 'uploaded_at.asc',
-        ]];
+        $second['proof'] = $pre['proof'];
     }
 
     // The resident's questions and the barangay's answers (0072), for
     // every case: Rose (7 Oct 2026) found them missing on cases with no
     // tanod on them, where they were never loaded.
-    $second['messages'] = ['report_messages', [
-        'select'    => 'id,from_barangay,body,created_at',
-        'report_id' => 'eq.' . $id,
-        'order'     => 'created_at.asc',
-    ], true];
+    $second['messages'] = $pre['messages'];
 
     // The dispatch window's thread (0069): the tanod's updates and
     // steps, and admin replies. Optional — the page stands without it.
     if ($liveIds) {
-        $second['escalation'] = ['escalation_requests', [
-            'select'    => 'id,reason,suggested_office,created_at,requester:users!escalation_requests_requested_by_fkey(full_name)',
-            'report_id' => 'eq.' . $id,
-            'status'    => 'eq.pending',
-            'limit'     => '1',
-        ], true];
-        $second['thread'] = ['dispatch_updates', [
-            'select'      => 'id,dispatch_id,author_id,kind,step,body,created_at',
-            'dispatch_id' => 'in.(' . implode(',', $liveIds) . ')',
-            'order'       => 'created_at.asc',
-        ], true];
+        $second['escalation'] = $pre['escalation'];
+        $second['thread'] = $pre['thread'];
     }
 
     // Context for the Deny panel: has this resident been flagged abusive
@@ -277,29 +282,23 @@ if ($report && !$error) {
     }
 
     // 0079: the barangay's photos, and how many extensions are left.
-    $second['evidence'] = ['report_evidence', [
-        'select'    => 'id,kind,media_url,bytes,created_at',
-        'report_id' => 'eq.' . $id,
-        'order'     => 'created_at.asc',
-    ], true];
-    $second['ext'] = ['rpc/extensions_used', ['p_report' => $id], true];
-    $second['handlers'] = ['case_handler_log', [
-        'select'    => 'action,reason,created_at,admin:users!case_handler_log_admin_id_fkey(id,full_name),prev:users!case_handler_log_previous_id_fkey(full_name)',
-        'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '4',
-    ], true];
-    $second['ops'] = ['operational_settings', ['select' => 'max_deadline_extensions', 'limit' => '1'], true];
+    $second['evidence'] = $pre['evidence'];
+    $second['ext'] = $pre['ext'];
+    $second['handlers'] = $pre['handlers'];
+    $second['ops'] = $pre['ops'];
 
     // Only when nobody is on the case already. One round trip saved on
     // every screen that will not show it.
     if ($canAssign || $active) {
-        $second['roster'] = ['rpc/tanod_roster', ['p_report' => $id], true];
+        $second['roster'] = $pre['roster'];
         // SMART's order for who to send (0128): near, free, knows the area, a fresh reading.
-        if ($canAssign) { $second['rank'] = ['rpc/smart_tanod_ranking', ['p_report' => $id], true]; }
+        if ($canAssign) { $second['rank'] = $pre['rank']; }
     }
 
     try {
         $got = $db->selectMany($second);
-        $policy = $got['sla'][0] ?? null;
+        $policy = null;
+        foreach (is_array($got['sla_all'] ?? null) ? $got['sla_all'] : [] as $pr) { if (($pr['category'] ?? '') === $report['category']) { $policy = $pr; break; } }
         foreach ($got['proof'] ?? [] as $r) {
             $proofCount++;
             // An update's photos belong to the thread; untagged rows are
