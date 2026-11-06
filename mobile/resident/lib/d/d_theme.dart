@@ -241,16 +241,16 @@ extension DContext on BuildContext {
       isDark ? Brightness.dark : Brightness.light, AppRole.resident);
 }
 
-/// Type helpers: Urbanist for words, Inter for numbers and small caps.
+/// Type helpers: Inter Tight for headings, Inter for words, numbers and small caps (5 Nov 2026; the app was Urbanist before).
 abstract final class DType {
   static TextStyle h1(Color c) => TextStyle(
-      fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 26, height: 1.15, letterSpacing: -.26, color: c);
+      fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 26, height: 1.15, letterSpacing: -.26, color: c);
   static TextStyle h2(Color c) => TextStyle(
-      fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 20, height: 1.2, color: c);
+      fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 20, height: 1.2, color: c);
   static TextStyle h3(Color c) => TextStyle(
-      fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 17, height: 1.25, color: c);
+      fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 17, height: 1.25, color: c);
   static TextStyle body(Color c, {double size = 14, FontWeight w = FontWeight.w500}) =>
-      TextStyle(fontFamily: 'Urbanist', fontWeight: w, fontSize: size, height: 1.45, color: c);
+      TextStyle(fontFamily: 'Inter', fontWeight: w, fontSize: size, height: 1.45, color: c);
   static TextStyle label(Color c) => TextStyle(
       fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.1, color: c);
   static TextStyle mono(Color c, {double size = 12}) => TextStyle(

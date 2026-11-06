@@ -61,21 +61,45 @@ function cloudinary_cloud(): string { return env('CLOUDINARY_CLOUD_NAME', 'nwb2k
 function cloudinary_preset(): string { return env('CLOUDINARY_UPLOAD_PRESET', 'smartsumbong_unsigned'); }
 /**
  * Supabase renamed the client-side key from "anon" to "publishable".
- * Accept either name so an older .env keeps working — the portal never
- * uses the secret key, whichever name it is stored under.
+ * Accept either name so an older .env keeps working. The portal never
+ * uses a secret key, whichever name it is stored under (7 Nov 2026): the
+ * key goes out with every request, and reset-password.php hands it to the
+ * browser, so a secret one would bypass row level security for everyone
+ * and be readable by any visitor. A value that is a secret key is skipped;
+ * with no public key left the portal stops, naming the variable, never the
+ * value.
  */
 function supabase_key(): string
 {
+    static $key = null;
+    if ($key !== null) return $key;
+    $refused = [];
     foreach (['SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_ANON_KEY'] as $name) {
         try {
-            return env($name);
+            $v = env($name);
         } catch (RuntimeException) {
             continue;
         }
+        if (supabase_key_is_secret($v)) { $refused[] = $name; continue; }
+        return $key = $v;
     }
-    throw new RuntimeException(
-        'Missing configuration: set SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) in .env'
-    );
+    throw new RuntimeException($refused
+        ? 'Refused configuration: ' . implode(' and ', $refused) . ' holds a secret key. The portal only uses the publishable (anon) key; put the publishable key there and keep secret keys out of the portal .env.'
+        : 'Missing configuration: set SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) in .env');
+}
+
+/** True for a key that must never reach a browser: a new-style secret key, or a legacy JWT key whose role is anything but anon. */
+function supabase_key_is_secret(string $k): bool
+{
+    $k = trim($k);
+    if (str_starts_with($k, 'sb_secret_')) return true;
+    if (str_starts_with($k, 'sb_publishable_')) return false;
+    $parts = explode('.', $k);
+    if (count($parts) === 3 && str_starts_with($k, 'eyJ')) {
+        $payload = json_decode((string) base64_decode(strtr($parts[1], '-_', '+/') . str_repeat('=', (4 - strlen($parts[1]) % 4) % 4), true), true);
+        return !is_array($payload) || ($payload['role'] ?? '') !== 'anon';
+    }
+    return false;
 }
 
 require_once __DIR__ . '/i18n.php';
@@ -142,6 +166,17 @@ function turnstile_tags(): string
          . '<script src="assets/js/turnstile.js?v=' . htmlspecialchars(asset_version('../js/turnstile.js'), ENT_QUOTES) . '" defer></script>';
 }
 
+/**
+ * Whether this request reached the portal over HTTPS: directly, or through Render's proxy, which ends TLS and says so in
+ * X-Forwarded-Proto. Used for the CSP's upgrade-insecure-requests (meaningless over plain http, where it would send the
+ * browser to an https address nothing answers, as on a developer's machine) and for the session cookie's secure flag.
+ */
+function request_is_https(): bool
+{
+    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+}
+
 function send_security_policy(): void
 {
     if (PHP_SAPI === 'cli' || headers_sent()) return;
@@ -165,11 +200,18 @@ function send_security_policy(): void
         "base-uri 'self'",
         "form-action 'self'",
         "object-src 'none'",
-        "upgrade-insecure-requests",
     ];
+    if (request_is_https()) $policy[] = "upgrade-insecure-requests";
     header('Content-Security-Policy: ' . implode('; ', $policy));
+    // the portal's own answers are for the portal's own pages: another site cannot embed them as an image, a script or a frame source
+    header('Cross-Origin-Resource-Policy: same-origin');
     // Stamp the nonce on every <script> of an HTML page as it goes out.
     ob_start(function (string $out) use ($nonce): string {
+        // the page is held until it is complete, so its timing can still go in a header (speed work, 7 Nov 2026). Only for a
+        // signed-in administrator: timings on the sign-in page could help someone guess which accounts exist.
+        if (!headers_sent() && function_exists('server_timing_value') && isset($_SESSION) && !empty($_SESSION[SESSION_KEY])) {
+            header('Server-Timing: ' . server_timing_value());
+        }
         foreach (headers_list() as $h) {
             if (stripos($h, 'content-type:') === 0 && stripos($h, 'text/html') === false) return $out;
         }

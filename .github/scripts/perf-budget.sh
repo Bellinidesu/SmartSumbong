@@ -33,8 +33,8 @@ for a in $(grep -oE '(src|href)="assets/[^"]+"' /tmp/login.html | sed -E 's/^(sr
 done
 # The font files the sign-in page renders with (a browser downloads only
 # the weights a page uses, not every one fonts.css declares).
-for w in regular semibold bold; do
-  total=$((total + $(size "admin/assets/vendor/fonts/urbanist-$w.woff2")))
+for f in inter-regular inter-semibold inter-tight-bold; do
+  total=$((total + $(size "admin/assets/vendor/fonts/$f.woff2")))
 done
 if [ "$total" -le 344064 ]; then echo "ok   sign-in page: $total bytes of 344064"; else over "sign-in page" "$total" 344064; fi
 [ $fail = 0 ] && echo "ok   every script, stylesheet and photo within budget"

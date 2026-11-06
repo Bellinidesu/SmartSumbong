@@ -33,6 +33,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../i18n.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
+import '../dev/live_preview.dart';
 import '../widgets/resident_nav_bar.dart';
 
 const _cacheKey = 'hotlines_v1';
@@ -149,6 +150,26 @@ Future<List<HotlineGroup>> _fetchHotlines() async {
   return build(null);
 }
 
+/// The Control Room's draft of the numbers (live preview, 0160), as the forms say them right now. Switched-off groups and numbers do not show.
+List<HotlineGroup> hotlineGroupsFromDraft(Object? list) {
+  List<HotlineGroup> build(Object? gs) => [
+        for (final g in (gs as List? ?? const []))
+          if (g is Map && g['active'] != false && (g['name'] as String? ?? '').isNotEmpty)
+            HotlineGroup(
+              id: '${g['id']}',
+              name: g['name'] as String,
+              display: g['display'] as String? ?? 'inline',
+              numbers: [
+                for (final n in (g['numbers'] as List? ?? const []))
+                  if (n is Map && n['active'] != false && (n['number'] as String? ?? '').trim().isNotEmpty)
+                    HotlineNumber(number: n['number'] as String, label: (n['label'] as String?)?.isEmpty == true ? null : n['label'] as String?, carrier: (n['carrier'] as String?)?.isEmpty == true ? null : n['carrier'] as String?),
+              ],
+              children: build(g['groups']),
+            ),
+      ];
+  return build(list);
+}
+
 // ---------- screen -------------------------------------------
 
 class EmergencyScreen extends StatefulWidget {
@@ -225,7 +246,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       child: RefreshIndicator(
         onRefresh: _load,
         color: context.d.accent,
-        child: _HotlineList(groups: _groups, error: _error, stale: _stale),
+        child: ValueListenableBuilder<Map<String, dynamic>?>(
+          valueListenable: LivePreview.draft,
+          builder: (context, d, _) => _HotlineList(groups: d == null ? _groups : hotlineGroupsFromDraft(d['hotlines']), error: _error, stale: _stale),
+        ),
       ),
     );
   }
@@ -468,7 +492,7 @@ class _NumberRow extends StatelessWidget {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
             Text(number.number, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: .16, color: fg)),
-            if (number.carrier != null) Text(number.carrier!, style: TextStyle(fontFamily: 'Urbanist', fontSize: 11.5, color: dark ? const Color(0xFF9096AB) : const Color(0xFF6E7489))),
+            if (number.carrier != null) Text(number.carrier!, style: TextStyle(fontFamily: 'Inter', fontSize: 11.5, color: dark ? const Color(0xFF9096AB) : const Color(0xFF6E7489))),
           ]),
         ),
         Semantics(
@@ -524,12 +548,12 @@ class _SlideCard extends StatelessWidget {
           Row(children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(number.label!, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white)),
+                Text(number.label!, style: const TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white)),
                 // 911 is its own number: an empty line keeps both cards the same height.
                 Text(number.number.trim() != number.label!.trim()
                         ? number.number
                         : (number.label!.trim() == '911' ? context.tr('National emergency · police, fire, medical', 'Pambansang emergency · pulis, bumbero, medikal') : ' '),
-                    style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white.withValues(alpha: .85))),
+                    style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white.withValues(alpha: .85))),
               ]),
             ),
             Semantics(
@@ -636,7 +660,7 @@ class _SlideToCallState extends State<_SlideToCall> with SingleTickerProviderSta
                 child: Opacity(
                   opacity: 1 - progress,
                   child: Text.rich(TextSpan(children: [
-                    TextSpan(text: s.emergencySlideToCall, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: .28, color: txt)),
+                    TextSpan(text: s.emergencySlideToCall, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: .28, color: txt)),
                     TextSpan(text: '  ›››', style: TextStyle(fontSize: 14, letterSpacing: 2, color: txt.withValues(alpha: .5))),
                   ])),
                 ),
@@ -686,7 +710,7 @@ class _LinkRow extends StatelessWidget {
       child: Row(children: [
         Icon(police ? Icons.local_police_outlined : Icons.phone_in_talk_outlined, color: Colors.white, size: 22),
         const SizedBox(width: 12),
-        Expanded(child: Text(group.name, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 15.5, color: Colors.white))),
+        Expanded(child: Text(group.name, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 15.5, color: Colors.white))),
         const Text('›', style: TextStyle(fontSize: 22, height: 1, color: Colors.white)),
       ]),
     );

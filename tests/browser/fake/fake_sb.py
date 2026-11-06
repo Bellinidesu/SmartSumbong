@@ -33,6 +33,7 @@ def report(i, **kw):
     r.update(kw); return r
 
 REPORTS = [report(i) for i in range(1, 20)]
+REPORTS[0]['concerns'] = [{'category': REPORTS[0]['category'], 'status': 'open'}, {'category': 'public_safety_infrastructure', 'status': 'resolved'}, {'category': 'barangay_service', 'status': 'open'}]
 for r in REPORTS:
     if r['handler_id']: r['handler'] = {'id': ADMIN['id'], 'full_name': ADMIN['full_name'], 'official_role': 'secretary', 'committee': None}
 REPORTS[0].update(is_anonymous=True, status='validated', tier=1, handler_id=KAG['id'], handler={'id': KAG['id'], 'full_name': KAG['full_name'], 'official_role': 'kagawad', 'committee': 'peace_order'}, subject='Live wire sparking near the school', is_sensitive=False)
@@ -49,7 +50,8 @@ TABLES = {
     'users': [ADMIN, KAG, CHAIR, tanod(1, 'Bautista, Jose'), tanod(2, 'Mendoza, Liza', True), tanod(3, 'Cruz, Ben')],
     'reports': REPORTS,
     'report_concerns': [
-        {'id': 'e1', 'report_id': REPORTS[0]['id'], 'category': 'public_safety_infrastructure', 'note': 'Wire is on the ground', 'status': 'resolved', 'resolved_at': ago(2), 'remark': 'Meralco crew cut the power', 'created_at': ago(30)},
+        {'id': 'e1', 'report_id': REPORTS[0]['id'], 'category': 'public_safety_infrastructure', 'option_id': 4, 'filed_category_en': 'Public Safety and Infrastructure', 'filed_category_fil': 'Kaligtasan at Imprastraktura', 'filed_option_en': 'Live wire on the ground', 'filed_option_fil': 'Kawad sa lupa', 'note': 'Wire is on the ground', 'status': 'resolved', 'resolved_at': ago(2), 'remark': 'Meralco crew cut the power', 'created_at': ago(30)},
+        {'id': 'e3', 'report_id': REPORTS[0]['id'], 'category': 'animal_welfare', 'option_id': 6, 'filed_category_en': 'Animal Welfare', 'filed_category_fil': 'Kapakanan ng Hayop', 'filed_option_en': 'Neglected Pets', 'filed_option_fil': 'Pinabayaang alaga', 'note': None, 'status': 'open', 'resolved_at': None, 'remark': None, 'created_at': ago(28)},
         {'id': 'e2', 'report_id': REPORTS[0]['id'], 'category': 'barangay_service', 'note': 'Nobody answered the hotline', 'status': 'open', 'resolved_at': None, 'remark': None, 'created_at': ago(29)}],
     'committee_for_category': [{'category': c, 'committee': 'peace_order'} for c in CATS],
     'smart_rules': [{'id': 1, 'storm_mode': True, 'storm_until': ahead(8), 'storm_reason': 'PAGASA orange rainfall warning', 'category_points': {'public_safety_infrastructure': 35, 'peace_order_nuisance': 30, 'environmental_waste_hazard': 25, 'traffic_violation': 20,
@@ -64,7 +66,8 @@ TABLES = {
         {'id': 41, 'batch': 'b1', 'sender': None, 'recipient': ADMIN['id'], 'kind': 'system', 'subject': 'Pick a tanod for SS-2610-1001',
          'body': 'No Peace and Order tanod is free for case SS-2610-1001. Pick a tanod within 5 minutes, or the nearest tanod from any committee is sent.',
          'created_at': ago(0.05), 'read_at': None, 'report_id': REPORTS[0]['id'], 'question_id': 7, 'from': None, 'to': {'full_name': ADMIN['full_name']},
-         'report': {'id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'subject': REPORTS[0]['subject']}},
+         'report': {'id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'subject': REPORTS[0]['subject']},
+         'q': {'id': 7, 'state': 'open', 'due_at': ahead(0.08)}},   # the reroute question, embedded as the Inbox list reads it (7 Nov 2026)
         {'id': 42, 'batch': 'b2', 'sender': 'a0000000-0000-0000-0000-000000000009', 'recipient': ADMIN['id'], 'kind': 'mail', 'subject': 'Pulong bukas',
          'body': 'Bukas ng alas-diyes sa bulwagan.', 'created_at': ago(3), 'read_at': ago(2), 'report_id': None, 'question_id': None,
          'from': {'full_name': 'Santos, Ben'}, 'to': {'full_name': ADMIN['full_name']}, 'report': None, 'reply_to': None},
@@ -105,6 +108,8 @@ TABLES = {
                               {'id': 'd0000000-0000-0000-0000-000000000002', 'label': 'Old tablet', 'created_at': ago(9000), 'revoked_at': ago(4000), 'last_seen_at': ago(4100)}],
     'command_sessions': [{'id': 'c0000000-0000-0000-0000-000000000009', 'mode': 'flood', 'how': 'suggested', 'reason': '3 reports in the last 3 hours mention flood water, from 3 residents.',
                           'started_at': ago(1500), 'ended_at': ago(1320), 'end_note': 'Humupa na ang baha; sarado na ang evacuation center', 'starter': {'full_name': 'Reyes, Marites'}}],
+    'app_releases': [{'id': 'e1000000-0000-0000-0000-000000000002', 'version': '1.1.0', 'build': 5, 'apk_url': 'https://example.org/releases/smartsumbong-1.1.0.apk', 'sha256': 'b2' * 32, 'notes_en': 'Faster map and a fix for the Emergency screen', 'notes_fil': 'Mas mabilis na mapa', 'mandatory': True, 'active': True, 'created_at': ago(30)},
+                     {'id': 'e1000000-0000-0000-0000-000000000001', 'version': '1.0.1', 'build': 2, 'apk_url': 'https://example.org/releases/smartsumbong-1.0.1.apk', 'sha256': 'a1' * 32, 'notes_en': None, 'notes_fil': None, 'mandatory': False, 'active': False, 'created_at': ago(300)}],
     'smart_work_orders': [{'id': 'f0000000-0000-0000-0000-000000000001', 'pattern_key': 'zzz', 'title': 'Replace the drain on 13th Street', 'category': 'environmental_waste_hazard', 'status': 'planned', 'note': None, 'evidence': {'reports': 5, 'tracking_ids': ['SS-2610-1003', 'SS-2610-1011']}, 'created_at': ago(30)}],
     'places': [{'id': 1, 'name': 'Barangay 183 Hall', 'grp': 'hall', 'aliases': ['brgy hall'], 'lat': 14.525104, 'lng': 121.012596, 'source': 'barangay'},
                {'id': 2, 'name': 'Harvard Street', 'grp': 'street', 'aliases': [], 'lat': 14.5236, 'lng': 121.0129, 'source': 'barangay'}],
@@ -124,10 +129,16 @@ TABLES = {
 # 0150: each committee's colour, as the migration starts them
 for _c in TABLES['committees']:
     _c['colour'] = {'peace_order': '#D32F2F', 'environment': '#00838F', 'health_sanitation': '#1E9E4A', 'anti_drug': '#5C6BC0', 'women_family': '#D81B60'}.get(_c['key'], '#78909C')
+    # 0164: one committee has a logo uploaded (a drawn one, so the tests need no network); the others show their symbol
+    _c['logo_url'] = None
+TABLES['committees'][1]['logo_url'] = ('data:image/svg+xml,' + __import__('urllib.parse').parse.quote(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="#F3FFF8" stroke="#00838F" stroke-width="4"/>'
+    '<circle cx="48" cy="48" r="36" fill="#00838F"/><path d="M48 24c14 8 18 22 10 34-4 6-10 9-10 14 0-5-6-8-10-14-8-12-4-26 10-34z" fill="#C8F5D8"/>'
+    '<path d="M48 34v38" stroke="#00838F" stroke-width="3" stroke-linecap="round"/></svg>'))
 
 # The command center (0143): a small memory of which mode is on, so a test can turn one on, hand over and turn it off.
 CMD = {'active': None}
-FEAT = {'workspace': True, 'command_center': True}   # 0144: the real database ships both off; the tests flip them with /__feat
+FEAT = {'workspace': True, 'command_center': True, 'live_preview': False}   # 0144: the real database ships both off; the tests flip them with /__feat
 CMD_MODES = [{'mode': 'fire', 'en': 'Fire Surroundings', 'fil': 'Paligid ng Sunog'}, {'mode': 'quake', 'en': 'Quake Check', 'fil': 'Suri sa Lindol'},
              {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha'}, {'mode': 'typhoon', 'en': 'Typhoon Board', 'fil': 'Pisara ng Bagyo'}]
 
@@ -209,6 +220,16 @@ TANOD_EXTRA = [
 ]
 
 RPC = {
+    # 0165: the caller's module of the engine (the fake cannot tell rungs apart, so it answers as a Kagawad of Peace and Order)
+    'smart_module': {'module': 'committee', 'committee': 'peace_order', 'categories': ['peace_order_nuisance', 'traffic_violation'],
+                     'counts': {'open': 9, 'urgent_waiting': 1, 'high_waiting': 2, 'overdue': 2, 'due_24h': 3, 'untaken': 4, 'mine': 2},
+                     'decisions': {'escalations': 1, 'reroute': 1, 'forwarded': 2, 'flags': 1, 'to_place': None, 'tanods_proposed': None},
+                     'deadline_risk': [{'report_id': 'c0000000-0000-0000-0000-000000000001', 'tracking_id': 'SS-2610-1001', 'hours_left': 3.5, 'risk': 'high', 'reasons': []},
+                                       {'report_id': 'c0000000-0000-0000-0000-000000000002', 'tracking_id': 'SS-2610-1002', 'hours_left': 11.0, 'risk': 'medium', 'reasons': []}],
+                     'quiet': [{'report_id': 'c0000000-0000-0000-0000-000000000003', 'tracking_id': 'SS-2610-1003', 'status': 'assigned', 'days_quiet': 4, 'last_activity': 'Tanod accepted'}],
+                     'spikes': [{'category': 'peace_order_nuisance', 'this_week': 6, 'usual': 2.1, 'times_usual': 2.9, 'place': 'Sampaguita Street'}],
+                     'patterns': [{'pattern_key': 'p1', 'category': 'peace_order_nuisance', 'reports': 5, 'weeks': 4, 'residents': 4, 'still_open': 2, 'hazard': None, 'last_at': ago(600), 'tracking_ids': ['SS-2610-1001']}],
+                     'tanods': {'total': 4, 'on_duty': 1, 'busy': 2, 'lunch': 1, 'break': 0, 'offline': 0}, 'at': ago(0)},
     'command_hall': lambda p: None if (p.get('p_token') != 'f' * 48 or not FEAT['command_center']) else {
         'as_of': ago(0), 'barangay': 'Barangay 183, Zone 20', 'today': {'filed': 7, 'resolved': 3, 'open': 19}, 'tanods_on_duty': 4,
         'mode': {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha', 'since': ago(40), 'reports': 3, 'open': 2, 'resolved': 1,
@@ -230,10 +251,14 @@ RPC = {
     # 0157: a Kagawad's view of their tanods' retirement requests, and the endorsement
     'retirement_requests_queue': [{'id': 'r0000000-0000-0000-0000-000000000001', 'tanod_id': 'u2', 'full_name': 'Lediac, Ace', 'email': None, 'mobile_number': '+639170000002',
                                    'status': 'pending', 'requested_at': ago(20), 'decided_at': None, 'decided_by': None, 'decided_by_name': None, 'denial_reason': None,
-                                   'endorsed_at': None, 'endorsed_by_name': None, 'endorse_note': None},
+                                   'endorsed_at': None, 'endorsed_by_name': None, 'endorse_note': None, 'role': 'tanod'},
                                   {'id': 'r0000000-0000-0000-0000-000000000002', 'tanod_id': 'u3', 'full_name': 'Arcibal, Kim Justine', 'email': None, 'mobile_number': '+639170000003',
                                    'status': 'pending', 'requested_at': ago(40), 'decided_at': None, 'decided_by': None, 'decided_by_name': None, 'denial_reason': None,
-                                   'endorsed_at': ago(5), 'endorsed_by_name': 'Dela Cruz, Ramon', 'endorse_note': 'Tapos na ang termino'}],
+                                   'endorsed_at': ago(5), 'endorsed_by_name': 'Dela Cruz, Ramon', 'endorse_note': 'Tapos na ang termino', 'role': 'staff'}],
+    # 0166: who an escalation reaches now, and a staff member's own retirement request (none yet)
+    'escalation_target': [{'official': 'k0000000-0000-0000-0000-000000000001', 'official_name': 'Dela Cruz Ramon', 'to_tier': 1, 'label': 'Kagawad (Peace and Order)',
+                           'committee': 'peace_order', 'why': 'next'}],
+    'my_retirement_status': [],
     'endorse_retirement': None, 'set_my_banner': None,
     'forward_case': 1, 'flag_case_for_forward': 6, 'dismiss_forward_flag': None,
     # 0153: tanods in committees and the punch cards
@@ -243,6 +268,14 @@ RPC = {
                              {'tanod_id': 'u9', 'committees': [{'key': 'peace_order', 'status': 'approved', 'role': None}, {'key': 'environment', 'status': 'approved', 'role': None}, {'key': 'health_sanitation', 'status': 'approved', 'role': None}], 'busy_committee': None}],
     'tanod_pick_list': [{'id': 'u5', 'full_name': 'Martin, Jericho Troy'}],
     'propose_tanod_committee': 'proposed', 'decide_tanod_committee': None, 'remove_tanod_committee': None, 'punch': None,
+    'app_release_publish': 'e1000000-0000-0000-0000-000000000009', 'app_release_set_active': None,
+
+    'preview_start': lambda p: {'id': 'e0000000-0000-0000-0000-000000000001', 'code': 'ABCD2345', 'channel': 'c' * 36, 'expires_at': ahead(0.5)}, 'preview_end': None,
+    'dev_levels': [{'level': 'super', 'account': 't-super', 'name': 'Test Super admin, Marites', 'committee': None},
+                   {'level': 'captain', 'account': 't-captain', 'name': 'Test Captain, Marites', 'committee': None},
+                   {'level': 'committee', 'account': 't-committee', 'name': 'Test Kagawad, Marites', 'committee': 'peace_order'},
+                   {'level': 'moderator', 'account': 't-moderator', 'name': 'Test Staff, Marites', 'committee': 'peace_order'}],
+    'dev_test_accounts_ensure': {'made': 0, 'committee': 'peace_order'},
     'punch_cards': [{'id': 's1', 'name': 'Santos, Ben', 'tier': 'moderator', 'committee': 'peace_order', 'position': 'secretary',
                      'days': [{'day': (NOW - dt.timedelta(days=d)).date().isoformat(), 'first_in': ago(5 + d * 24), 'last_out': None if d == 0 else ago(d * 24 - 3),
                                'touched': 2 - min(d, 2), 'cases': ['SS-2610-1001', 'SS-2610-1002'][:2 - min(d, 2)]} for d in range(7)]},
@@ -315,6 +348,8 @@ def apply_filters(rows, qs):
     for k, vs in qs.items():
         if k in ('select', 'order', 'limit', 'offset'): continue
         v = vs[0]
+        if k == 'cn.category' and v.startswith('eq.'):   # an inner join on the concerns: the main category or any concern
+            w = v[3:]; out = [r for r in out if r.get('category') == w or any(c.get('category') == w for c in r.get('concerns', []))]; continue
         if v.startswith('eq.'):
             want = v[3:]
             if any(k in r for r in out): out = [r for r in out if (str(r.get(k)).lower() if isinstance(r.get(k), bool) else str(r.get(k))) == want]
@@ -345,10 +380,12 @@ class H(BaseHTTPRequestHandler):
         n = int(self.headers.get('Content-Length') or 0)
         body = self.rfile.read(n) if n else b''
         if u.path == '/__feat':   # ?ws=0&cc=0
-            FEAT['workspace'] = qs.get('ws', ['1'])[0] == '1'; FEAT['command_center'] = qs.get('cc', ['1'])[0] == '1'
+            FEAT['workspace'] = qs.get('ws', ['1'])[0] == '1'; FEAT['command_center'] = qs.get('cc', ['1'])[0] == '1'; FEAT['live_preview'] = qs.get('lp', ['0'])[0] == '1'
             return self.send(200, {})
         if u.path == '/__cmd_reset':   # the command-center test starts with nothing on
             CMD['active'] = None; return self.send(200, {})
+        if u.path == '/functions/v1/level-switch':   # 0162: a test account's session (the fake keeps everyone the demo administrator)
+            return self.send(200, {'access_token': 'fake', 'refresh_token': 'fake', 'expires_in': 3600, 'user': {'id': ADMIN['id']}})
         if u.path.startswith('/auth/v1/'):
             if 'token' in u.path:
                 return self.send(200, {'access_token': 'fake', 'refresh_token': 'fake', 'expires_in': 3600, 'user': {'id': ADMIN['id']}})
@@ -363,7 +400,7 @@ class H(BaseHTTPRequestHandler):
         if u.path.startswith('/rest/v1/'):
             t = u.path.split('/')[-1]
             rows = TABLES.get(t)
-            if t == 'feature_switches': rows = [{'key': k, 'enabled': v, 'label_en': {'workspace': 'Workspace', 'command_center': 'Command center'}.get(k, k), 'label_fil': {'workspace': 'Workspace', 'command_center': 'Command center'}.get(k, k), 'note': 'Off until after the defense' if k == 'command_center' else None} for k, v in FEAT.items()]
+            if t == 'feature_switches': rows = [{'key': k, 'enabled': v, 'label_en': {'workspace': 'Workspace', 'command_center': 'Command center', 'live_preview': 'Live preview on a phone'}.get(k, k), 'label_fil': {'workspace': 'Workspace', 'command_center': 'Command center', 'live_preview': 'Live preview on a phone'}.get(k, k), 'note': 'Off until after the defense' if k == 'command_center' else None} for k, v in FEAT.items()]
             if rows is None:
                 print('TABLE missing', t, file=sys.stderr, flush=True); rows = []
             if m != 'GET': return self.send(200, rows[:1])

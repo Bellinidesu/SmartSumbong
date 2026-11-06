@@ -5,7 +5,8 @@
  *
  *   super      every page                      (at 183: Sir Kiko, Chairperson Zuniga, the development team)
  *   captain    the overview pages, read-only    (no Dashboard, no Settings)
- *   committee  the case pages, its categories   (no Dashboard, no Settings, no residents or personnel)
+ *   committee  the case pages, its categories   (no Dashboard, no residents); Personnel: its tanods and staff; its own Settings
+ *   moderator  the case pages, its categories   as a Kagawad, but Personnel is view only (0164); its own Settings
  *
  * The tier, the developer mark and the committee are read at sign-in and again every two minutes, so a change a super
  * admin makes reaches the person's next page without signing them out.
@@ -15,14 +16,15 @@ declare(strict_types=1);
 /** Pages each tier may open. A page not listed (the small JSON doors) is open to every administrator. */
 const PAGE_TIERS = [
     'dashboard.php'           => ['super'],
-    'settings.php'            => ['super'],
+    'home.php'                => ['committee', 'moderator'],   // their Home, from their SMART module (0165); the Dashboard stays the super admins'
+    'settings.php'            => ['super', 'committee', 'moderator'],   // a Kagawad's and staff's own: look, their committee, their SMART module (4 Nov 2026)
     'retirement-requests.php' => ['super'],
     'administrative-services.php' => ['super'],
     'control-room.php'        => ['super'],
-    'certificate.php'         => ['super'],
+    'certificate.php'         => ['super', 'captain', 'committee', 'moderator'],   // the referral certificate: whoever may refer a case prints it (7 Nov 2026); row level security keeps it to the cases they see
     'workspace.php'           => ['super'],
     'residents.php'           => ['super', 'captain'],
-    'personnel.php'           => ['super', 'captain', 'committee'],   // a Kagawad: their tanods, their staff, their tanods' retirement requests
+    'personnel.php'           => ['super', 'captain', 'committee', 'moderator'],   // a Kagawad: their tanods, their staff, their tanods' retirement requests; staff: the same tanods and staff, view only (0164)
     'activity.php'            => ['super', 'captain'],
     'summary.php'             => ['super', 'captain', 'committee', 'moderator'],
     'spatial.php'             => ['super', 'captain', 'committee', 'moderator'],
@@ -51,19 +53,32 @@ function page_allowed(string $page): bool
     return !isset(PAGE_TIERS[$page]) || in_array(my_tier(), PAGE_TIERS[$page], true);
 }
 
-/** Where a person lands when a page is not for them: the notifications page is for everyone. */
+/** Where a person lands after signing in, or when a page is not for them: a Kagawad or staff member their Home, everyone else Notifications. */
 function landing_page(): string
 {
-    return 'notifications.php';
+    return is_scoped() ? 'home.php' : 'notifications.php';
+}
+
+/** True when the person's access is due to be read again (every two minutes). */
+function access_refresh_due(): bool
+{
+    $a = current_admin();
+    return (bool) $a && (($a['access_at'] ?? 0) <= time() - 120);
+}
+
+/** The access read, for the request's boot batch (boot.php) and for access_refresh() alike. */
+function access_refresh_entry(): array
+{
+    return ['users', ['select' => 'admin_tier,is_dev,committee', 'id' => 'eq.' . (current_admin()['id'] ?? '0'), 'limit' => '1'], true];
 }
 
 /** The person's access, fresh from the database every two minutes (called from require_admin). */
 function access_refresh(): void
 {
     $a = current_admin();
-    if (!$a || (($a['access_at'] ?? 0) > time() - 120)) return;
+    if (!access_refresh_due()) return;
     try {
-        $me = db()->select('users', ['select' => 'admin_tier,is_dev,committee', 'id' => 'eq.' . $a['id'], 'limit' => '1'])[0] ?? null;
+        $me = db()->select('users', access_refresh_entry()[1])[0] ?? null;
     } catch (Throwable) {
         return;   // keep what the session has; the database still decides
     }
@@ -86,17 +101,45 @@ function require_page_access(): void
     }
 }
 
-/** The barangay's committees (0145), read once per request: key => [name_en, name_fil, short_en, active, sort]. */
+/**
+ * The barangay's committees (0145): key => [name_en, name_fil, short_en, active, sort, colour, logo_url]. Read once per request,
+ * from the shared cache (shared_cache.php) most of the time; Settings drops the copy when a committee is saved.
+ */
 function committees_all(): array
 {
     static $memo = null;
     if ($memo !== null) return $memo;
+    $rows = shared_cache('committees', static function (): ?array {
+        try { [, $cq] = committees_read_entry(); return (array) db()->select('committees', $cq); } catch (Throwable) {}
+        // logo_url arrives with 0164; until it is applied the committees are read without it
+        try { return (array) db()->select('committees', ['select' => 'key,name_en,name_fil,short_en,active,sort,colour', 'order' => 'sort.asc,key.asc']); } catch (Throwable) {}
+        return null;
+    }, access_token() !== null);
     $memo = [];
-    try {
-        foreach ((array) db()->select('committees', ['select' => 'key,name_en,name_fil,short_en,active,sort,colour', 'order' => 'sort.asc,key.asc']) as $c) {
-            $memo[(string) $c['key']] = $c;
-        }
-    } catch (Throwable) {}
+    foreach ($rows as $c) { $memo[(string) $c['key']] = $c + ['logo_url' => null]; }
+    return $memo;
+}
+
+/** The committees' read and the committee-categories read, for the request's boot batch (boot.php) and for the readers alike. */
+function committees_read_entry(): array
+{
+    return ['committees', ['select' => 'key,name_en,name_fil,short_en,active,sort,colour,logo_url', 'order' => 'sort.asc,key.asc'], true];
+}
+
+function committee_categories_read_entry(): array
+{
+    return ['committee_categories', ['select' => 'committee,category'], true];
+}
+
+/** Which complaint types each committee sees (0145, committee_categories): committee key => list of category keys. Shared cache. */
+function committee_categories_all(): array
+{
+    static $memo = null;
+    if ($memo !== null) return $memo;
+    $rows = shared_cache('committee_categories', static fn (): array => (array) db()->select('committee_categories', committee_categories_read_entry()[1]),
+                         access_token() !== null);
+    $memo = [];
+    foreach ($rows as $r) { $memo[(string) $r['committee']][] = (string) $r['category']; }
     return $memo;
 }
 

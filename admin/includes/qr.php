@@ -33,6 +33,6 @@ function portal_url(string $path): string
     if (!preg_match('/^[a-z0-9.-]+(:[0-9]{1,5})?$/i', $host)) {
         $host = 'smartsumbong-ph.onrender.com';
     }
-    $https = ($_SERVER['HTTPS'] ?? '') === 'on' || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+    $https = request_is_https();
     return ($https || !str_starts_with($host, '127.0.0.1') && !str_starts_with($host, 'localhost') ? 'https' : 'http') . '://' . $host . '/admin/' . ltrim($path, '/');
 }
