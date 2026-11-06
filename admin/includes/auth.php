@@ -16,23 +16,93 @@ require_once __DIR__ . '/barangay.php';
 require_once __DIR__ . '/access.php';
 require_once __DIR__ . '/boot.php';
 
+/**
+ * The session is opened once per request. A page view (GET or HEAD) reads it and lets go of it at once (speed work, 7 Nov 2026).
+ *
+ * PHP locks a session file for as long as a request has it open, so two requests from one person used to run one after the
+ * other: a press waited behind the browser's prefetch of the same address, behind a list's live refresh, behind a page open in
+ * another tab, each of them a whole page of waits on the database in Mumbai. Now a page view holds the lock only while it reads
+ * the session. What it changes on the way (the sidebar's counts, a message shown once and then dropped, a remembered filter, the
+ * sign-in's refreshed token) is written back when the request ends: the session is opened again for a moment, and only the
+ * entries this request changed are put over what the file holds then, so another request's changes in the meantime are kept.
+ * A form (POST and the rest) keeps the lock from start to end, as before: it may sign in, sign out or change who someone is.
+ */
 function session_start_once(): void
 {
-    if (session_status() === PHP_SESSION_NONE) {
-        // Over HTTPS the cookie carries the __Host- prefix (7 Nov 2026): a browser then accepts it only when it is Secure, for the
-        // whole site (path /) and set by this host alone, so no other site under a shared domain (onrender.com) can plant or
-        // overwrite it. Plain HTTP (the local test site) keeps PHP's own name, since the prefix needs Secure.
-        if (request_is_https()) session_name('__Host-ssid');
-        session_set_cookie_params([
-            'httponly' => true,
-            'samesite' => 'Lax',
-            // Render terminates HTTPS at its proxy, so PHP itself sees plain
-            // HTTP; the proxy says so in X-Forwarded-Proto.
-            'secure'   => request_is_https(),
-            'path'     => '/',
-        ]);
-        session_start();
+    static $opened = false;
+    if ($opened || session_status() !== PHP_SESSION_NONE) return;
+    $opened = true;
+    // Over HTTPS the cookie carries the __Host- prefix (7 Nov 2026): a browser then accepts it only when it is Secure, for the
+    // whole site (path /) and set by this host alone, so no other site under a shared domain (onrender.com) can plant or
+    // overwrite it. Plain HTTP (the local test site) keeps PHP's own name, since the prefix needs Secure.
+    if (request_is_https()) session_name('__Host-ssid');
+    session_set_cookie_params([
+        'httponly' => true,
+        'samesite' => 'Lax',
+        // Render terminates HTTPS at its proxy, so PHP itself sees plain
+        // HTTP; the proxy says so in X-Forwarded-Proto.
+        'secure'   => request_is_https(),
+        'path'     => '/',
+    ]);
+    session_start();
+    if (PHP_SAPI !== 'cli' && in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
+        session_let_go();
     }
+}
+
+/** What the session held when this request let go of it (null: it still holds it, or never let go). */
+function &session_snapshot(): ?array
+{
+    static $snap = null;
+    return $snap;
+}
+
+/** Reads done: write the session as it is, unlock it, and write this request's changes back when it ends. */
+function session_let_go(): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) return;
+    $snap = &session_snapshot();
+    $snap = $_SESSION;
+    session_write_close();
+    register_shutdown_function(static function (): void { session_take_back(true); });
+}
+
+/**
+ * Takes the session back after session_let_go(): opens it again (locking it), puts this request's own changes over what the
+ * file holds now, and, at the end of a request, writes and unlocks it. $atEnd = false keeps it open for a request that must
+ * change the session as a whole from here on (session_writable()). Nothing changed: nothing is opened.
+ */
+function session_take_back(bool $atEnd): void
+{
+    $snap = &session_snapshot();
+    if ($snap === null || session_status() === PHP_SESSION_ACTIVE) return;
+    $now = $_SESSION ?? [];
+    $set = [];
+    foreach ($now as $k => $v) {
+        if (!array_key_exists($k, $snap) || $snap[$k] !== $v) $set[$k] = $v;
+    }
+    $gone = array_keys(array_diff_key($snap, $now));
+    $snap = null;
+    if ($atEnd && !$set && !$gone) return;
+    $id = session_id();
+    if ($id === '' || $id === false) return;
+    if ($atEnd) {
+        // the page may already be written: no cookie and no cache headers this time (the cookie is the one the browser sent)
+        @ini_set('session.use_cookies', '0');
+        @ini_set('session.cache_limiter', '');
+    }
+    session_id($id);
+    if (!@session_start()) return;
+    foreach ($set as $k => $v) $_SESSION[$k] = $v;
+    foreach ($gone as $k) unset($_SESSION[$k]);
+    if ($atEnd) session_write_close();
+}
+
+/** A page view that has to replace or end the session itself (a new id, signing out) takes the lock back first. */
+function session_writable(): void
+{
+    session_start_once();
+    session_take_back(false);
 }
 
 function current_admin(): ?array
@@ -104,7 +174,7 @@ function establish_session(array $session): void
         throw new SupabaseError(t('This portal is for barangay administrators only.', 'Para lamang sa mga administrator ng barangay ang portal na ito.'));
     }
 
-    session_start_once();
+    session_writable();
     session_regenerate_id(true);
     unset($_SESSION['dash_intro']);   // the dashboard animates its charts once per sign-in
     $_SESSION[SESSION_KEY] = [
@@ -133,7 +203,7 @@ function logout(): void
     if ($token = access_token()) {
         (new Supabase($token))->signOut();
     }
-    session_start_once();
+    session_writable();
     $_SESSION = [];
     session_destroy();
 }

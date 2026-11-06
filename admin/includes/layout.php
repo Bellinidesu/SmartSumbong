@@ -564,8 +564,13 @@ window.ssSupabase = function (url, key, initial) {
       // is often already here when the click lands (Speculation Rules, prefetch only, never prerender: no page runs before it is
       // opened). Browsers without it ignore this. Left out, because opening them is not only reading: an Inbox message (opening it
       // marks it read), downloads, sign-out, new-tab links, the DEV pill, and links inside the press flow's regions (htmx fetches
-      // those itself). A link can opt out with data-no-prefetch. ?>
-<script type="speculationrules">{"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-boost=\"true\"], a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
+      // those itself). A link can opt out with data-no-prefetch.
+      // Nor any link to the page already open (7 Nov 2026): those change the view, and the press flow fetches them itself. The browser
+      // matches a prefetch by address, not by link, so a chip in a region was still fetched twice when a plain link elsewhere on the
+      // page (a tile, an alert's "Show them") had the same address: once as a whole page, once by the press. ?>
+<?php $sameUrl = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+      $sameRule = preg_match('~^/[A-Za-z0-9_./-]+\.php$~', $sameUrl) ? '{"not":{"href_matches":' . json_encode($sameUrl . '*', JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '}},' : ''; ?>
+<script type="speculationrules">{"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-boost=\"true\"], a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>

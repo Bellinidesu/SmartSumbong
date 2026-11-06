@@ -1,6 +1,6 @@
 """A fake Supabase (PostgREST + enough GoTrue) with fixture data, to see portal screens without touching production."""
 import math
-import json, re, sys, datetime as dt
+import json, re, sys, os, time, datetime as dt
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -356,6 +356,12 @@ def apply_filters(rows, qs):
     return out
 
 
+# FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for Singapore -> Mumbai;
+# parallel requests wait at the same time, as a real batch does). Off by default.
+RTT = float(os.environ.get('FAKE_RTT_MS') or 0) / 1000
+# a page's batch opens a dozen connections at once, two pages two dozen: the default queue of five made them wait for each other
+ThreadingHTTPServer.request_queue_size = 128
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 
@@ -377,6 +383,7 @@ class H(BaseHTTPRequestHandler):
 
     def route(self, m):
         u = urlparse(self.path); qs = parse_qs(u.query)
+        if RTT and not u.path.startswith('/__'): time.sleep(RTT)
         n = int(self.headers.get('Content-Length') or 0)
         body = self.rfile.read(n) if n else b''
         if u.path == '/__feat':   # ?ws=0&cc=0
