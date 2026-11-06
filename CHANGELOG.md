@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Quiet background jobs (0168, 7 Nov)**
+- The database's own statistics: two scheduled jobs used two thirds of its time on a small shared server that every page waits on.
+  The waiting-line sweep (every 2 minutes) now returns at once when no case waits for a tanod; the SMART watcher (every 5
+  minutes) rescans recurring patterns and spikes only after a report changes, or hourly. Nothing they decide changes.
+
 **Hardening (7 Nov, the gap search)**
 - The portal image no longer ships compilers and headers (gcc, g++, the libc and kernel headers, -dev packages): they were most
   of the image scan's findings. The build keeps only what PHP, its extensions and Apache link to, and fails if a build tool is
