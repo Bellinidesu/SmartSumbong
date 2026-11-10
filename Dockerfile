@@ -13,7 +13,7 @@
 # here at the versions in admin/composer.lock; docs/UPDATING.md.
 
 # Composer only installs admin/composer.lock; it is not left in the image.
-FROM composer:2.11.0 AS composer
+FROM composer:2.11.1 AS composer
 
 # PHP 8.5 (7 Oct 2026), the version the portal is developed on. It also
 # keeps database connections open between page loads (supabase.php).
