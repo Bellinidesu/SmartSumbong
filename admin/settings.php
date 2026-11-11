@@ -647,7 +647,6 @@ function st_reads(string $stPage): array
     if (st_on('status')) {
         $g['status'] = [
             'up'     => ['rpc/portal_uptime_summary', [], true],   // 0096: the database pings the portal every 10 minutes
-            'eng'    => ['rpc/engine_status', [], true],           // 0137: the engine that reads ID photos on the server
             'smh'    => ['rpc/smart_engine_health', [], true],     // 0140: is SMART running, and how often its advice was taken
             'smp'    => ['rpc/smart_pick_stats', ['p_days' => 90], true],
             'smf'    => ['rpc/smart_fix_stats', ['p_days' => 90], true],
@@ -1027,11 +1026,11 @@ if ($stPage !== 'mine') try {
 <?php if (st_on('status')):
 // 0096 (industry pass 5): the database pings the portal every 10 minutes
 // and keeps score.
-$up = $eng = $smh = $smp = $smf = $errs = null; $alerts = [];
+$up = $smh = $smp = $smf = $errs = null; $alerts = [];
 try {
     $got = $db->selectMany(st_group('status'));
     $ok = static fn (string $k) => ($got[$k] ?? null) instanceof SupabaseError ? null : ($got[$k] ?? null);
-    $up = $ok('up'); $eng = $ok('eng'); $smh = $ok('smh'); $smp = $ok('smp'); $smf = $ok('smf'); $errs = $ok('errs');
+    $up = $ok('up'); $smh = $ok('smh'); $smp = $ok('smp'); $smf = $ok('smf'); $errs = $ok('errs');
     $alerts = $ok('alerts') ?? [];   // 0119: what the hourly health check found and has not seen clear yet
 } catch (SupabaseError) {}
 $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 100, 2), '0'), '.') . '%' : '—';
@@ -1523,17 +1522,6 @@ endif;
       <div class="st-uptime-tile<?= (int) ($smh['watch_failures_24h'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($smh['watch_failures_24h'] ?? 0) ?></b><span><?= e(sprintf(t('Failed runs in 24 hours · %d things decided or asked', 'Pumalpak na takbo sa 24 oras · %d ang pinasya o itinanong'), (int) ($smh['events_24h'] ?? 0))) ?></span></div>
     </div>
     <p class="st-note"><?= e(t('SMART scores every report, ranks the tanods and keeps the queue. It runs inside the database every few minutes; this says whether it did.', 'Minamarkahan ng SMART ang bawat ulat, nire-rank ang mga tanod at pinananatili ang pila. Tumatakbo ito sa loob ng database kada ilang minuto; ito ang nagsasabi kung ginawa nga.')) ?></p>
-  </div>
-  <?php endif; ?>
-  <?php if (is_array($eng)): ?>
-  <div class="p-card p-card-pad st-uptime" id="engine">
-    <p class="p-eyebrow"><?= e(t('Engine', 'Makina')) ?></p>
-    <div class="st-uptime-tiles">
-      <div class="st-uptime-tile<?= $eng['configured'] ? '' : ' st-down' ?>"><b><?= e($eng['configured'] ? t('On', 'Bukas') : t('Not set up', 'Hindi pa naka-set up')) ?></b><span><?= e(t('Reads ID photos on the server', 'Nagbabasa ng ID sa server')) ?></span></div>
-      <div class="st-uptime-tile"><b><?= (int) $eng['read_week'] ?></b><span><?= e(t('Read in the last 7 days', 'Nabasa sa nakaraang 7 araw')) ?><?= !empty($eng['last_read_at']) ? e(' · ' . relative_time($eng['last_read_at'])) : '' ?></span></div>
-      <div class="st-uptime-tile<?= (int) $eng['failed_week'] > 0 ? ' st-down' : '' ?>"><b><?= (int) $eng['waiting'] ?></b><span><?= e(sprintf(t('Waiting · %d could not be read this week', 'Naghihintay · %d hindi nabasa ngayong linggo'), (int) $eng['failed_week'])) ?></span></div>
-    </div>
-    <p class="st-note"><?= e(t('Every minute the database hands the engine the ID photos of new sign-ups to read (type, name and number), and saves what it reads. A reading only points to what to check; a person verifies.', 'Bawat minuto, ibinibigay ng database sa engine ang mga ID ng bagong nag-sign up para basahin (uri, pangalan at numero), at sine-save ang nabasa. Tinuturo lamang ng pagbasa kung ano ang susuriin; tao ang nagve-verify.')) ?></p>
   </div>
   <?php endif; ?>
   </div>

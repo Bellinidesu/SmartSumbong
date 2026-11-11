@@ -27,7 +27,6 @@ fn _committee_label(p text) anon=call authenticated=call
 fn _concern_backfill() anon=- authenticated=-
 fn _concern_snapshot() anon=call authenticated=call
 fn _dispatch_cap_guard() anon=call authenticated=call
-fn _engine_config() anon=- authenticated=-
 fn _flag_sensitive() anon=call authenticated=call
 fn _guard_admin_access() anon=- authenticated=-
 fn _guard_case_committee() anon=call authenticated=call
@@ -189,9 +188,6 @@ fn end_sessions_on_access_change() anon=- authenticated=-
 fn endorse_retirement(p_request uuid, p_note text) anon=- authenticated=call
 fn enforce_daily_report_limit() anon=call authenticated=call
 fn enforce_media_cap() anon=call authenticated=call
-fn engine_enqueue() anon=- authenticated=-
-fn engine_status() anon=- authenticated=call
-fn engine_tick() anon=- authenticated=-
 fn escalate_in_barangay(p_report uuid, p_reason text, p_committee text) anon=- authenticated=call
 fn escalation_target(p_report uuid, p_committee text) anon=- authenticated=call
 fn extensions_used(p_report uuid) anon=- authenticated=call
@@ -395,7 +391,6 @@ seq case_forwards_id_seq anon=usage,select,update authenticated=usage,select,upd
 seq command_handovers_id_seq anon=usage,select,update authenticated=usage,select,update
 seq complaint_options_id_seq anon=usage,select,update authenticated=usage,select,update
 seq dev_level_switches_id_seq anon=usage,select,update authenticated=usage,select,update
-seq engine_jobs_id_seq anon=usage,select,update authenticated=usage,select,update
 seq hazard_zones_id_seq anon=usage,select,update authenticated=usage,select,update
 seq inbox_messages_id_seq anon=usage,select,update authenticated=usage,select,update
 seq places_id_seq anon=usage,select,update authenticated=usage,select,update
@@ -442,7 +437,6 @@ table dispatch_media anon=select,insert,update,delete,truncate,references,trigge
 table dispatch_updates anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table dispatches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table duty_roster anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
-table engine_jobs anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table escalation_requests anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table feature_switches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table feedback anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
