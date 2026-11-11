@@ -1779,3 +1779,27 @@ test('Press flow (7 Nov): a cancelled confirm does not leave a form stuck; the n
   expect(r.errors, 'console errors').toEqual([]);
   await ctx.close();
 });
+
+test('Case page, the chat head (12 Nov 2026): one button opens Messages; the list, a conversation, a send in place, Escape; no accessibility finding while open', async ({ page }) => {
+  const r = await open(page, `case.php?id=${CASE}`);
+  await expect(page.locator('#resident-messages, .p-thread-card')).toHaveCount(0);   // the two cards that used to hold the conversations
+  const fab = page.locator('#ch-fab');
+  await expect(fab).toBeVisible();
+  await expect(fab).toHaveAttribute('aria-expanded', 'false');
+  await fab.click();
+  await expect(fab).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('.ch-row')).toHaveCount(2);                    // the resident and the tanod on the open dispatch
+  await page.locator('.ch-row').nth(1).click();
+  const conv = page.locator('.ch-conv:not([hidden])');
+  expect(await conv.locator('.ch-b').count()).toBeGreaterThanOrEqual(3);      // earlier runs against the same fake add their own sends
+  expect(await conv.locator('.ch-out').count()).toBeGreaterThanOrEqual(1);
+  const note = 'Sige po, papunta na ang kasama ko ' + Date.now();
+  const sent = page.waitForResponse(x => x.request().method() === 'POST' && x.url().includes('case.php'));
+  const box = conv.locator('textarea'); await box.fill(note); await box.press('Enter');
+  expect((await (await sent).json()).ok).toBe(true);
+  await expect(conv.locator('.ch-b', { hasText: note })).toHaveCount(1);        // in place: the page did not reload
+  expect(await axe(page), 'axe with the chat open').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#ch-panel')).toBeHidden();
+  expect(r.errors, 'console errors').toEqual([]);
+});
