@@ -1,7 +1,7 @@
 -- 49_housekeeping.sql: the job history is purged and the trigger functions name their search_path (0170). Rolled back.
 do $sweep$
 declare
-  v_log text := '';
+  v_log text := 'setup ok';   -- the first line is joined to psql's ERROR line, so the checks start on the next
   n integer; m integer; j bigint;
 begin
   -- 1. the purge keeps the last seven days and drops what is older
@@ -23,8 +23,10 @@ begin
     if has_function_privilege('authenticated', 'public.purge_cron_history()', 'execute') or has_function_privilege('anon', 'public.purge_cron_history()', 'execute') then
       raise exception 'a signed-in or signed-out caller may run the purge';
     end if;
-    v_log := v_log || 'ok  the job history keeps seven days, and only the job may purge it';
-  exception when others then v_log := v_log || 'FAIL purge: ' || sqlerrm; end;
+    v_log := v_log || E'
+' || 'ok  the job history keeps seven days, and only the job may purge it';
+  exception when others then v_log := v_log || E'
+' || 'FAIL purge: ' || sqlerrm; end;
 
   -- 2. the five functions name their search_path; the five folded-in helpers are left alone
   begin
