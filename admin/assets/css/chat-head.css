@@ -5,14 +5,16 @@
 .ch [hidden] { display: none !important; }
 
 /* the button */
-.ch-fab { position: relative; display: grid; place-items: center; width: 58px; height: 58px; margin-left: auto; border: 0; border-radius: 50%; cursor: pointer; color: #141B34; background: linear-gradient(160deg, #FFB547, #FF9800); box-shadow: 0 10px 24px rgba(255,152,0,.38), 0 2px 6px rgba(20,27,52,.22); transition: transform .16s ease, box-shadow .16s ease; }
+.ch-fab { touch-action: none; user-select: none; position: relative; display: grid; place-items: center; width: 58px; height: 58px; margin-left: auto; border: 0; border-radius: 50%; cursor: pointer; color: #141B34; background: linear-gradient(160deg, #FFB547, #FF9800); box-shadow: 0 10px 24px rgba(255,152,0,.38), 0 2px 6px rgba(20,27,52,.22); transition: transform .16s ease, box-shadow .16s ease; }
 .ch-fab:hover { transform: translateY(-2px) scale(1.04); }
 .ch-fab:focus-visible { outline: 3px solid var(--p-blue); outline-offset: 3px; }
 .ch-open .ch-fab { box-shadow: 0 4px 12px rgba(20,27,52,.25); }
 .ch-badge { position: absolute; top: -4px; right: -4px; min-width: 22px; height: 22px; padding: 0 6px; display: grid; place-items: center; border-radius: 11px; background: #D92D20; color: #fff; font: 800 12px Inter, sans-serif; box-shadow: 0 0 0 3px var(--ch-bg); }
 
 /* the panel */
-.ch-panel { position: absolute; right: 0; bottom: 72px; width: 380px; height: min(640px, calc(100dvh - 130px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 22px; background: var(--ch-bg); border: 1px solid var(--ch-line); box-shadow: 0 24px 60px rgba(20,27,52,.28), 0 4px 14px rgba(20,27,52,.14); transform-origin: calc(100% - 29px) 100%; animation: chIn .18s ease-out; }
+.ch-panel { position: absolute; right: 0; bottom: 72px; width: 380px; max-width: calc(100vw - 24px); height: min(640px, calc(100dvh - 130px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 22px; background: var(--ch-bg); border: 1px solid var(--ch-line); box-shadow: 0 24px 60px rgba(20,27,52,.28), 0 4px 14px rgba(20,27,52,.14); animation: chIn .18s ease-out; }
+.ch-up .ch-panel { bottom: 72px; top: auto; } .ch-down .ch-panel { top: 72px; bottom: auto; }
+.ch-r .ch-panel { right: 0; left: auto; } .ch-l .ch-panel { left: 0; right: auto; }
 @keyframes chIn { from { opacity: 0; transform: scale(.92) translateY(8px); } to { opacity: 1; transform: none; } }
 .ch-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .ch-view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -20,12 +22,12 @@
 /* headers */
 .ch-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 18px 16px 10px 20px; }
 .ch-title { margin: 0; font: 800 26px Inter Tight, Inter, sans-serif; letter-spacing: -.01em; color: var(--p-ink); }
+.ch-hbtns { display: inline-flex; gap: 6px; align-items: center; justify-self: end; }
 .ch-x, .ch-back { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--p-surface-2); color: var(--p-ink-2); cursor: pointer; }
 .ch-x:hover, .ch-back:hover { background: var(--ch-in); color: var(--p-ink); }
 .ch-back { background: transparent; color: var(--ch-out); width: 36px; margin-left: -6px; }
 :root[data-theme="dark"] .ch-back { color: #8FB0FF; }
-.ch-head--conv { display: grid; grid-template-columns: 40px 1fr 40px; align-items: start; padding: 12px 12px 8px; border-bottom: 1px solid var(--ch-line); }
-.ch-head--conv .ch-x { justify-self: end; }
+.ch-head--conv { display: grid; grid-template-columns: 40px 1fr auto; align-items: start; padding: 12px 12px 8px; border-bottom: 1px solid var(--ch-line); }
 .ch-who { display: grid; justify-items: center; gap: 1px; text-align: center; min-width: 0; }
 .ch-who b { font-size: 13px; color: var(--p-ink); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ch-who small { font-size: 11px; color: var(--p-muted); }
@@ -91,8 +93,44 @@
 @media (max-width: 640px) {
   .ch { right: 16px; bottom: 16px; }
   .ch.ch-open { z-index: 1100; }   /* above the portal's top bar (1000) so the full-screen chat keeps its own back and close buttons */
-  .ch-panel { position: fixed; inset: 0; width: auto; height: auto; border-radius: 0; border: 0; }
+  .ch-panel { position: fixed !important; inset: 0 !important; width: auto !important; max-width: none; height: auto !important; border-radius: 0; border: 0; }
   .ch-open .ch-fab { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .ch-panel { animation: none; } .ch-fab, .ch-send { transition: none; } .ch-msgs { scroll-behavior: auto; } }
-@media print { .ch { display: none; } }
+
+
+/* a head that floats on another page, and one that has been dragged */
+.ch-float { right: auto; bottom: auto; }
+.ch-placed { position: fixed; }
+.ch-drag .ch-fab { cursor: grabbing; transform: scale(1.06); box-shadow: 0 16px 34px rgba(255,152,0,.45), 0 4px 10px rgba(20,27,52,.3); }
+.ch-drag .ch-panel, .ch-drag .ch-peek { display: none; }
+.ch-fab { cursor: grab; }
+.ch-tag { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; padding: 1px 7px; border-radius: 9px; background: var(--p-ink); color: var(--p-surface); font: 700 10.5px Inter, sans-serif; letter-spacing: .02em; pointer-events: none; white-space: nowrap; }
+.ch-open .ch-tag { display: none; }
+
+/* the notification ball and the preview that slides out next to a head when something new comes in */
+.ch-pulse { animation: chPulse 1.1s ease-out 3; }
+@keyframes chPulse { 0% { box-shadow: 0 0 0 0 rgba(255,152,0,.6), 0 10px 24px rgba(255,152,0,.38); } 100% { box-shadow: 0 0 0 20px rgba(255,152,0,0), 0 10px 24px rgba(255,152,0,.38); } }
+.ch-peek { position: absolute; top: 4px; width: max-content; max-width: 250px; padding: 9px 13px; border: 1px solid var(--ch-line); border-radius: 18px; background: var(--p-surface); color: var(--p-ink); font: 13px/1.35 Inter, sans-serif; text-align: left; cursor: pointer; box-shadow: 0 10px 26px rgba(20,27,52,.22); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; animation: chIn .2s ease-out; }
+.ch-peek b { font-weight: 800; }
+.ch-r .ch-peek { right: 70px; } .ch-l .ch-peek { left: 70px; }
+.ch-open .ch-peek { display: none; }
+
+/* the right-click menu */
+.ch-menu { position: fixed; z-index: 1250; min-width: 232px; padding: 6px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface); color: var(--p-ink); box-shadow: 0 18px 44px rgba(20,27,52,.3), 0 2px 8px rgba(20,27,52,.12); font-family: Inter, system-ui, sans-serif; animation: chIn .12s ease-out; }
+.ch-mi { display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 9px 12px 9px 8px; border: 0; border-radius: 9px; background: transparent; color: inherit; font: 600 14px Inter, sans-serif; text-align: left; text-decoration: none; cursor: pointer; }
+.ch-mi:hover, .ch-mi:focus-visible { background: var(--p-surface-2); outline: 0; }
+.ch-tick { width: 16px; flex: none; text-align: center; color: var(--p-blue); font-weight: 800; }
+:root[data-theme="dark"] .ch-tick { color: #8FB0FF; }
+.ch-msep { height: 1px; margin: 5px 6px; background: var(--p-line); }
+
+/* Settings: the Chat heads card */
+.chp-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.chp-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--p-line); border-radius: 12px; }
+.chp-item a { flex: 1; font-weight: 700; color: var(--p-ink); text-decoration: none; }
+.chp-item a:hover { text-decoration: underline; }
+.chp-item [aria-pressed="true"] { border-color: var(--p-blue); color: var(--p-blue); }
+:root[data-theme="dark"] .chp-item [aria-pressed="true"] { border-color: #8FB0FF; color: #8FB0FF; }
+.chp-none { margin: 10px 0 0; font-size: 13.5px; color: var(--p-muted); }
+.chp-foot { margin-top: 14px; }
+@media print { .ch, .ch-menu { display: none; } }

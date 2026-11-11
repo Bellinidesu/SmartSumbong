@@ -98,11 +98,12 @@ function case_chat_preview(array $c): string
 function case_chat_body(array $convs, string $id): string
 {
     ob_start();
+    $more = '<button type="button" class="ch-x ch-more" data-ch="menu" aria-haspopup="menu" aria-label="' . e(t('Chat options', 'Mga opsyon ng chat')) . '"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>';
     $close = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     ?>
     <div class="ch-view ch-listview" data-view="list">
       <header class="ch-head"><h2 class="ch-title"><?= e(t('Messages', 'Mga Mensahe')) ?></h2>
-        <button type="button" class="ch-x" data-ch="close" aria-label="<?= e(t('Close messages', 'Isara ang mga mensahe')) ?>"><?= $close ?></button></header>
+        <span class="ch-hbtns"><?= $more ?><button type="button" class="ch-x" data-ch="close" aria-label="<?= e(t('Close messages', 'Isara ang mga mensahe')) ?>"><?= $close ?></button></span></header>
       <ul class="ch-rows">
         <?php foreach ($convs as $c): $unread = 0; ?>
           <li><button type="button" class="ch-row" data-ch="open" data-conv="<?= e($c['id']) ?>">
@@ -123,7 +124,7 @@ function case_chat_body(array $convs, string $id): string
         <header class="ch-head ch-head--conv">
           <button type="button" class="ch-back" data-ch="back" aria-label="<?= e(t('Back to messages', 'Bumalik sa mga mensahe')) ?>"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
           <div class="ch-who"><span class="ch-av ch-av--<?= e($c['kind']) ?> ch-av--sm" aria-hidden="true"><?= e(case_chat_initials($c['name'])) ?></span><b><?= e($c['name']) ?></b><small><?= e($c['sub']) ?></small></div>
-          <button type="button" class="ch-x" data-ch="close" aria-label="<?= e(t('Close messages', 'Isara ang mga mensahe')) ?>"><?= $close ?></button>
+          <span class="ch-hbtns"><?= $more ?><button type="button" class="ch-x" data-ch="close" aria-label="<?= e(t('Close messages', 'Isara ang mga mensahe')) ?>"><?= $close ?></button></span>
         </header>
         <div class="ch-msgs" tabindex="0" role="log" aria-live="polite" aria-label="<?= e(t('Conversation with ', 'Usapan kay ') . $c['name']) ?>">
           <?php
@@ -170,21 +171,19 @@ function case_chat_body(array $convs, string $id): string
 }
 
 /** The floating button and the panel around the body. */
-function case_chat_head(array $convs, string $id): string
+function case_chat_head(array $convs, string $id, string $tracking = ''): string
 {
     ob_start();
     ?>
-<link rel="stylesheet" href="assets/css/chat-head.css?v=<?= e(asset_version('chat-head.css')) ?>">
-<div class="ch" id="chat-head" data-report="<?= e($id) ?>" data-url="case.php?id=<?= e(urlencode($id)) ?>&amp;chat=1">
+<div class="ch" id="chat-head" data-main="1" data-report="<?= e($id) ?>" data-tracking="<?= e($tracking) ?>" data-url="case.php?id=<?= e(urlencode($id)) ?>&amp;chat=1">
   <section class="ch-panel" id="ch-panel" role="dialog" aria-label="<?= e(t('Messages', 'Mga Mensahe')) ?>" hidden>
     <div class="ch-body" id="ch-body"><?= case_chat_body($convs, $id) ?></div>
   </section>
-  <button type="button" class="ch-fab" id="ch-fab" aria-expanded="false" aria-controls="ch-panel" aria-label="<?= e(t('Messages', 'Mga Mensahe')) ?>">
+  <button type="button" class="ch-fab" id="ch-fab" aria-expanded="false" aria-controls="ch-panel" aria-haspopup="menu" aria-label="<?= e(t('Messages. Right-click for options.', 'Mga mensahe. I-right-click para sa mga opsyon.')) ?>">
     <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.5 1.3 4.7 3.4 6.2-.2 1.3-.8 2.6-1.7 3.6a.5.5 0 0 0 .5.8c2-.3 3.7-1.1 4.9-2A11.7 11.7 0 0 0 12 20c5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/></svg>
     <span class="ch-badge" id="ch-badge" hidden>0</span>
   </button>
 </div>
-<script src="assets/js/chat-head.js?v=<?= e(asset_version('../js/chat-head.js')) ?>" defer></script>
     <?php
     return (string) ob_get_clean();
 }

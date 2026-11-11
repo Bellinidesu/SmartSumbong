@@ -373,6 +373,7 @@ TABLES['dispatch_updates'] = [
 ]
 def _now(): return dt.datetime.now(dt.timezone.utc).isoformat()
 RPC['post_report_message'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': True, 'body': b.get('p_body'), 'created_at': _now()}) or {}
+RPC['fake_incoming'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': False, 'body': b.get('body') or 'Kuya, may bago po akong tanong.', 'created_at': _now()}) or {}   # the tests play the resident writing
 RPC['post_dispatch_update'] = lambda b: TABLES['dispatch_updates'].append({'id': 'du' + str(len(TABLES['dispatch_updates']) + 1), 'dispatch_id': b.get('p_dispatch'), 'author_id': ADMIN['id'], 'kind': 'message', 'step': None, 'body': b.get('p_body'), 'created_at': _now()}) or {}
 
 # FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for a distant database;

@@ -1987,6 +1987,28 @@ endif;
         </div></div>
     </div>
   </div>
+  <div class="p-card p-card-pad st-look" id="chp">
+    <p class="p-eyebrow"><?= e(t('Chat heads', 'Mga chat head')) ?></p>
+    <p class="st-note" style="margin-top:0"><?= e(t('Right-click the chat bubble on a case, or use its ... button, to float the chat of that case on every page, and to turn its sound on or off. These choices are kept in this browser only.', 'I-right-click ang chat bubble sa kaso, o gamitin ang ... button nito, para ilutang ang chat ng kasong iyon sa lahat ng pahina at para buksan o patayin ang tunog nito. Sa browser na ito lang naka-save ang mga pinili.')) ?></p>
+    <div class="st-prefs">
+      <div class="st-pref"><span class="st-pref-l"><?= p_icon('i-chat', 18) ?><b><?= e(t('Floating chat heads', 'Mga lumulutang na chat head')) ?></b></span>
+        <div class="p-seg-mini" data-pref="floats" role="group" aria-label="<?= e(t('Floating chat heads', 'Mga lumulutang na chat head')) ?>">
+          <button type="button" data-v="1"><?= e(t('On', 'Naka-on')) ?></button><button type="button" data-v="0"><?= e(t('Off', 'Naka-off')) ?></button>
+        </div></div>
+      <div class="st-pref"><span class="st-pref-l"><?= p_icon('i-bell', 18) ?><b><?= e(t('Notification balls', 'Mga bola ng abiso')) ?></b></span>
+        <div class="p-seg-mini" data-pref="ball" role="group" aria-label="<?= e(t('Notification balls', 'Mga bola ng abiso')) ?>">
+          <button type="button" data-v="1"><?= e(t('On', 'Naka-on')) ?></button><button type="button" data-v="0"><?= e(t('Off', 'Naka-off')) ?></button>
+        </div></div>
+      <div class="st-pref"><span class="st-pref-l"><?= p_icon('i-alert', 18) ?><b><?= e(t('Sound for new chats', 'Tunog sa mga bagong chat')) ?></b></span>
+        <div class="p-seg-mini" data-pref="sound" role="group" aria-label="<?= e(t('Sound for new chats', 'Tunog sa mga bagong chat')) ?>">
+          <button type="button" data-v="1"><?= e(t('On', 'Naka-on')) ?></button><button type="button" data-v="0"><?= e(t('Off', 'Naka-off')) ?></button>
+        </div></div>
+    </div>
+    <p class="p-eyebrow" style="margin-top:18px"><?= e(t('Floating now', 'Lumulutang ngayon')) ?> <span class="p-badge-n p-badge-n--quiet" id="chp-count">0</span></p>
+    <ul class="chp-list" id="chp-list"></ul>
+    <p class="chp-none" id="chp-none"><?= e(t('No case is floating. Right-click the chat bubble of a case and choose Float on every page.', 'Walang lumulutang na kaso. I-right-click ang chat bubble ng kaso at piliin ang Ilutang sa lahat ng pahina.')) ?></p>
+    <div class="chp-foot"><button type="button" class="p-btn p-btn-ghost p-btn-sm" id="chp-reset"><?= e(t('Put the bubbles back at the edge', 'Ibalik ang mga bubble sa gilid')) ?></button></div>
+  </div>
   <div class="p-card p-card-pad st-look">
     <p class="p-eyebrow"><?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?></p>
     <p class="st-note" style="margin-top:0"><?= e(t('How the panels and buttons floating on the Spatial Distribution map are drawn. Glass lets the map show through; Solid is flat and plain, easier on older screens and in bright rooms. This is kept on this computer.', 'Kung paano iginuhit ang mga panel at button sa mapa. Hinahayaan ng Glass na makita ang mapa; ang Solid ay patag at simple, mas magaan sa lumang screen at sa maliwanag na silid. Nakatago ito sa computer na ito.')) ?></p>

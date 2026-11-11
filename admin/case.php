@@ -1761,7 +1761,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 })();
 </script>
 
-<?= case_chat_head(case_chat_conversations($report, $dispatches, $thread, $threadMedia, $messages, $status), $id) ?>
+<?= case_chat_head(case_chat_conversations($report, $dispatches, $thread, $threadMedia, $messages, $status), $id, (string) $report['tracking_id']) ?>
 <script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
 <script>
 // Realtime, added 6 Sep 2026 — explicit ask: "the entire system needs to
