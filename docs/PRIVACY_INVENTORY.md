@@ -89,7 +89,6 @@ A complaint's words and photos can identify a neighbour, a vendor or a vehicle. 
 | Supabase (database, sign-in, realtime, functions) | Everything in section 3 except the photo files | Singapore (since 7 Nov 2026; Mumbai, India before, a copy kept there until it is deleted) | The system's database |
 | Cloudinary | ID photos, selfies, profile pictures, complaint and dispatch photos and videos | Cloudinary's storage (check the account's region) | Image storage |
 | Render | The portal's pages as they are served, administrators' IP addresses in its logs | Singapore | Portal hosting |
-| Render (engine, when deployed) | ID photos, to read their text (OCR) | Singapore | The server engine (0137) |
 | Google Firebase | Device push tokens, notification text; crash reports (device model, OS, error), with no user id attached | Google | Push notifications, crash reports |
 | Semaphore | Mobile number and a one-time code | Philippines | SMS for forgotten passwords (0085) |
 | Cloudflare Turnstile | A browser check at registration (IP, browser signals) | Cloudflare | Stop automated sign-ups |

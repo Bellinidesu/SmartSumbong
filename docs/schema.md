@@ -68,7 +68,6 @@ How the database fits the rest of the system is in
 | `admin_punches` | When a Kagawad or staff member signed in to and out of the portal, for the punch card; append-only | 0153 |
 | `device_tokens` | FCM push tokens | 0035 |
 | `web_push_subscriptions` | Browsers with alerts on: push service address and keys, one row per browser, ten per person | 0136 |
-| `engine_jobs` | Work handed to the engine (`engine/`): ID photos to read, with tries and the last error | 0137 |
 | `smart_events` | What SMART decided and what people did with it: picks, "was it fixed?" questions and answers; kept 180 days | 0140 |
 | `command_modes`, `command_tags`, `command_words`, `command_checklist`, `command_place_kinds` | The command center's four modes, what each reads (depth on MMDA's flood gauge, fire and damage words), each mode's checklist, and the places a quake check or fire surroundings names | 0143 |
 | `feature_switches` | Parts of the system that can be switched off without removing them (the Workspace and the command center ship off). Written only by `feature_set()` | 0144 |
@@ -191,8 +190,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `smart_read` | 0133 | How SMART read a text (word forms, spellings, negation); 0133 added the present tense, doubled words, stretched letters, English endings |
 | `search_places(q, lat, lng, limit)` | 0135 | Places for what was typed: forgives shorthand, slips and accents; kind words list that kind nearest first; chains counted once |
 | `place_save` / `place_remove` | 0134 | Admins: the barangay's own places (within 5 km of the hall) |
-| `smart_verify`, `smart_verify_queue` | 0126 | ID checks on what was read from the ID (by the engine since 0137) |
-| `engine_status` | 0137 | The engine: set up or not, read and waiting, could not read |
+| `smart_verify`, `smart_verify_queue` | 0126 | ID checks on what the app read from the ID (submit_id_reading) |
 | `confirm_fix(report, fixed, note)` | 0140 | The resident answers "Was it fixed?" once, within 14 days; "no" tells the admins and queues a recheck |
 | `smart_why_order(report)` | 0140 | A plain sentence (English and Tagalog) on why a report is where it is; the owner or an admin |
 | `command_board`, `command_feed`, `command_suggest` | 0143 | The board of a mode (one envelope for all four), what happened, and SMART's suggestion with its reason |
@@ -292,8 +290,6 @@ Times in UTC; Philippine time is UTC+8.
 | `keep-portal-awake` | every 10 min | Pings the portal and records uptime; two misses alert every admin |
 | `purge-old-notifications` | daily 03:20 | Read notifications after 90 days, any after a year (0115) |
 | `media-cleanup` | daily 03:40 | Calls the `media-cleanup` function with the secret from Vault (0118) |
-| `engine-tick` | every minute | Files the engine's answers and hands it the next ID photos, with a link signed here (0137); off until Vault has its settings |
-| `engine-jobs-purge` | daily 03:50 | Finished engine jobs after 30 days (0137) |
 
 `dashboard_metrics` is deliberately **not** definer: RLS still decides which
 reports are counted.

@@ -45,7 +45,7 @@ It scores what the app needs: the card's type, the name, and the ID number.
   never verifies anyone**.
 - Where it runs: on the phone since 22 Oct 2026 (the paddle_ocr_native
   plugin: the same PP-OCRv6 small models, 30 MB, on ONNX Runtime), because
-  the free Render server cannot host the engine (`engine/`, 0137, which stays
-  built and tested but off). It reads at the ID step only, in a second or
+  the free Render server cannot host it (a server engine, `engine/` with 0137,
+  was built for it and removed unused in 0172). It reads at the ID step only, in a second or
   two, and the photo does not leave the phone for it. Phones older than
   Android 8 skip it. The app grows from 55 to 107 MB.

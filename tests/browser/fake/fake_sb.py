@@ -339,8 +339,7 @@ RPC = {
     'dashboard_metrics': {'daily': [{'label': str(i), 'filed': max(0, round(3 + 2.2 * math.sin(i / 3.4) + 1.2 * math.sin(i / 1.3) + (1.5 if i > 22 else 0)))} for i in range(1, 31)], 'efficiency': [], 'resolution_status': {'done': 30, 'overdue': 4, 'late': 3, 'processing': 12, 'rejected': 2},
                           'categories': [{'category': c, 'n': 5 + i} for i, c in enumerate(CATS)], 'tiles': {'resolved': 30, 'escalated': 6, 'overdue': 4}, 'total': 51},
     'account_directory': lambda b: ACCOUNTS + (TANOD_EXTRA if b.get('p_role') == 'tanod' else []),
-    'portal_uptime_summary': {'day_checks': 144, 'day_ok': 144, 'week_checks': 1008, 'week_ok': 1006, 'last_at': ago(0.1), 'last_ok': True, 'mem_now': 138, 'mem_limit': 512, 'mem_week_avg': 131, 'mem_week_max': 204, 'mem_samples': 1008}, 'engine_status': {'configured': True, 'waiting': 1, 'failed_week': 0, 'read_week': 6, 'last_read_at': ago(2)},
-}
+    'portal_uptime_summary': {'day_checks': 144, 'day_ok': 144, 'week_checks': 1008, 'week_ok': 1006, 'last_at': ago(0.1), 'last_ok': True, 'mem_now': 138, 'mem_limit': 512, 'mem_week_avg': 131, 'mem_week_max': 204, 'mem_samples': 1008}, }
 
 
 def apply_filters(rows, qs):

@@ -136,7 +136,6 @@ supabase/
                             send-dispatch-push, sign-upload
   tests/                    rolled-back database checks and the query performance budget
   seed.sql, config.toml     SLA guide hours and boundary; per-function JWT settings
-engine/                   the engine: work the database hands out (reading ID photos), its own small service
 docs/                     architecture, operations, incidents, schema, SMART, widgets, panel asks
 tools/                    builders for the portal's map data (transit routes, safe points)
 scripts/                  one-off maintenance scripts

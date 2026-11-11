@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Access rules for signed-in users, and the unused engine removed (0171, 0172, 11 Nov)**
+- 166 of the database's access rules were written without a role, so PostgreSQL also weighed them for signed-out callers; each
+  kept them out only through its own sign-in check. They now say `to authenticated`: a future rule that forgets the check cannot
+  open a table to the internet. Eight stay public because the app reads them before sign-in (complaint types and options,
+  hotlines, the barangay's profile, wording, boundary and hazard zones). Nothing anyone can read or do changes.
+- The server engine (`engine/`, 0137) is gone: it was never deployed, since the app reads IDs on the phone, yet its job ran every
+  minute and CI built and scanned its image on every change. The app's own ID reading (`submit_id_reading`) is unchanged.
+
 **Backend guard (0170, 11 Nov, the backend sweep)**
 - Who may call what is on file: `supabase/grants.txt` lists what a signed-out and a signed-in caller may do with every function
   and table. CI fails when the migrations produce anything else; the nightly backup fails when the live database differs. The move
