@@ -28,6 +28,9 @@ rules decide, and a person approves anything new.
 
 - **Report Summary spreadsheet.** OpenSpout (MIT), through Composer.
 - **QR code on the printed complaint.** chillerlan/php-qrcode (MIT/Apache-2.0), through Composer.
+- **Copied into the portal** (`admin/assets/vendor`, pinned and checksummed in `vendor.json`, each with its licence file
+  beside it, updated by `tools/vendor.py`): supabase-js (MIT; sign-in, live updates), htmx (0BSD; pages that change in
+  place), MapLibre GL (BSD-3), mapillary-js (MIT; street photos), and the Inter and Inter Tight fonts (SIL OFL 1.1).
 
 - **Maps.** OpenStreetMap data (ODbL), OpenFreeMap vector tiles, MapLibre GL
   (BSD-3), Project NOAH flood zones, Nominatim, Overpass.

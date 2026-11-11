@@ -401,7 +401,7 @@ function render_retirement_queue(): void
     });
     </script>
 
-    <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
+    <script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
     <script>
     // Realtime for the retirement queue — explicit ask, 6 Sep 2026: "the
     // entire system needs to work realtime," and this page was the one

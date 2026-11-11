@@ -387,7 +387,7 @@ $_SESSION['dash_intro'] = true;
 ?>
 <script>window.SS_INTRO = <?= $intro ? 'true' : 'false' ?>;</script>
 <script src="assets/js/dash-intro.js?v=<?= e(asset_version('../js/dash-intro.js')) ?>"></script>
-<script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
+<script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
 <script>
 (function () {
   var M = {

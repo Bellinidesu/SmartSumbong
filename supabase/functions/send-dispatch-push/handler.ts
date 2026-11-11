@@ -58,6 +58,9 @@
 
 import { logError } from "../_shared/log.ts";
 import { type Browser, importP256, sendWebPush, unb64u } from "./webpush.ts";
+import { timedFetch } from "../_shared/fetch.ts";
+// every outside call gives up after 10 seconds (_shared/fetch.ts, 11 Nov 2026)
+const fetch = timedFetch(10_000);
 
 interface NotificationRecord {
   id: string;
@@ -347,13 +350,16 @@ function sameSecret(sent: string): boolean {
 }
 
 export async function handler(req: Request): Promise<Response> {
+  // The portal's status check (Settings -> System status) reaches this
+  // function with an OPTIONS request and no body: that is a "yes, I am
+  // here", not a notification, and not an error to log. It is answered
+  // before the secret check, because it does nothing.
+  if (req.method !== "POST") return new Response("ok", { status: 200 });
+  // Only the database webhook (dispatch_push) may ask for a push: it sends
+  // the shared secret (PUSH_WEBHOOK_SECRET) in x-webhook-secret.
   if (WEBHOOK_SECRET && !sameSecret(req.headers.get("x-webhook-secret") ?? "")) {
     return new Response("forbidden", { status: 403 });
   }
-  // The portal's status check and the hourly health check reach this
-  // function with no body (an OPTIONS or empty request): that is a "yes,
-  // I am here", not a notification, and not an error to log.
-  if (req.method !== "POST") return new Response("ok", { status: 200 });
   try {
     const raw = await req.text();
     if (raw.trim() === "") return new Response("ignored", { status: 200 });

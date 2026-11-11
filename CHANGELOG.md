@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Finishing the backend (11 Nov, the backend sweep)**
+- Edge Functions: every outside call gives up after 10 seconds (3 for the error log), so a hung Semaphore, Cloudinary, Google
+  or push service no longer holds a function until the platform stops it (`_shared/fetch.ts`).
+- `send-dispatch-push` answers the portal's status probe before its secret check, and refuses a push asked for without the
+  webhook's shared secret (now set, and sent by the `dispatch_push` webhook).
+- The portal tags its vendored libraries with their version from `vendor.json` (`vendor_version()`): `supabase.js` was still
+  tagged 2.117.3 on nine pages, so returning browsers kept the old copy for up to a year.
+- Open-source housekeeping: `.gitattributes`, a code of conduct (Contributor Covenant 2.1), pull request and issue templates,
+  CODEOWNERS, Dependabot for the OCR lab, and `docs/OPEN_SOURCE.md` lists every library copied into the portal.
+
 **Access rules for signed-in users, and the unused engine removed (0171, 0172, 11 Nov)**
 - 166 of the database's access rules were written without a role, so PostgreSQL also weighed them for signed-out callers; each
   kept them out only through its own sign-in check. They now say `to authenticated`: a future rule that forgets the check cannot

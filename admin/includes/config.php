@@ -133,6 +133,25 @@ function asset_version(string $cssFile): string
 }
 
 /**
+ * The ?v= tag of a library copied into assets/vendor: its version in vendor.json (11 Nov 2026). Those files are cached for a
+ * year, so a tag typed by hand and left behind on an update kept returning browsers on the old copy (supabase.js was tagged
+ * 2.117.3 on nine pages while the file was 2.118.0). A library the file does not list falls back to the file's change time,
+ * never to an empty tag. $lib is vendor.json's key: 'supabase-js', 'htmx', 'maplibre-gl', 'mapillary-js'.
+ */
+function vendor_version(string $lib): string
+{
+    static $libs = null;
+    if ($libs === null) {
+        $j = json_decode((string) @file_get_contents(__DIR__ . '/../assets/vendor/vendor.json'), true);
+        $libs = is_array($j['libraries'] ?? null) ? $j['libraries'] : [];
+    }
+    $v = (string) ($libs[$lib]['version'] ?? '');
+    if ($v !== '' && preg_match('/^[0-9A-Za-z.+-]+$/', $v)) return $v;
+    $m = @filemtime(__DIR__ . '/../assets/vendor/vendor.json');
+    return $m !== false ? (string) $m : '1';
+}
+
+/**
  * Content-Security-Policy (industry passes 3 and 6, 7 Oct 2026). The
  * browser runs only scripts this server put in the page: every <script>
  * carries a random per-request nonce (added below, as the page is sent),

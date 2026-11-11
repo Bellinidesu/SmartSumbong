@@ -1,0 +1,22 @@
+# Line endings (11 Nov 2026): text files are stored with LF whatever the platform; git decides what is text.
+# Windows working copies may hold CRLF (core.autocrlf), and commits stay LF.
+* text=auto
+
+# Binary, never converted
+*.png binary
+*.jpg binary
+*.webp binary
+*.jxl binary
+*.ico binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.jks binary
+*.age binary
+*.onnx binary
+*.gpg binary
+
+# Shell scripts run on Linux (CI, the image): always LF
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf

@@ -138,7 +138,7 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
 </div>
 </div><?php // #act-list ?>
 
-<script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
+<script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
 <script>
 // New rows anywhere reload the feed (debounced), the same way Case Reports
 // keeps itself current.

@@ -1848,7 +1848,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 })();
 </script>
 
-<script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
+<script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
 <script>
 // Realtime, added 6 Sep 2026 — explicit ask: "the entire system needs to
 // work realtime." This is the one page in the portal with live form

@@ -16,6 +16,9 @@
 // Required secrets: none beyond what Supabase injects (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY).
 
 import { logError } from "../_shared/log.ts";
+import { timedFetch } from "../_shared/fetch.ts";
+// every outside call gives up after 10 seconds (_shared/fetch.ts, 11 Nov 2026)
+const fetch = timedFetch(10_000);
 
 const LEVELS = ["super", "captain", "committee", "moderator"];
 

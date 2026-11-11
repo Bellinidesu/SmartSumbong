@@ -805,7 +805,7 @@ $tlTone = function (array $l): string {
 </script>
 
   <?php if ($isOngoing): ?>
-  <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
+  <script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
   <script>
   // Realtime, 6 Sep 2026 — only wired up for an open period (see
   // $isOngoing above). This report is meant to be printed and signed, so

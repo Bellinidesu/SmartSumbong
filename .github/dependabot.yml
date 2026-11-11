@@ -30,6 +30,12 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+  # the OCR lab (the measurements behind the app's ID reader), like the SMART lab: monthly
+  - package-ecosystem: pip
+    directory: /tools/ocr_lab
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
   - package-ecosystem: github-actions
     directory: /
     schedule:

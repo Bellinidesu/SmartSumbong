@@ -118,6 +118,6 @@ function app_editor_end(array $catOpts, array $hlTop, array $hlKids, array $hlNu
     echo '</div>';
     render_app_phone($catOpts, $hlTop, $hlKids, $hlNums, $switches, $liveOn);
     echo '</div>';
-    if ($liveOn) { echo '<script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>'; }
+    if ($liveOn) { echo '<script src="assets/vendor/supabase/supabase.js?v=' . e(vendor_version('supabase-js')) . '"></script>'; }
     echo '<script src="assets/js/app-editor.js?v=' . e(asset_version('../js/app-editor.js')) . '"></script>';
 }
