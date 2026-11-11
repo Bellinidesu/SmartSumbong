@@ -37,7 +37,7 @@ the fake does not have yet, add it to `fake/fake_sb.py` (keep it invented).
 `chooser-probe.spec.mjs` presses every chooser on every page (tabs, chips, filters, pagers that stay on the page) for a super
 admin and a Kagawad, and prints for each press whether it swapped in place or reloaded, how long until it settled, and the
 server's Server-Timing (waits on the database, calls, server time); `?_trace=1` lists each wait. Give the fake a round trip so
-waits cost what Mumbai makes them cost, and the shared cache its live lifetime:
+waits cost what a distant database makes them cost, and the shared cache its live lifetime:
 
     SITE=$(mktemp -d) FAKE_RTT_MS=100 bash serve.sh
     sed -i 's/^FEATURE_CACHE_TTL=0/FEATURE_CACHE_TTL=300/' "$SITE/.env"

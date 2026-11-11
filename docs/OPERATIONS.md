@@ -183,8 +183,9 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
   was still open). Read it in the browser's Network panel → Timing. The
   image keeps few, long-lived Apache workers (`zz-workers.conf`) so their
   connections stay open.
-  Supabase is in Mumbai and the portal in Singapore, so each wait is a full
-  round trip: the number of waits is what makes a page slow. The rule (7 Nov
+  Supabase and the portal are both in Singapore (since 7 Nov 2026; the
+  database was in Mumbai before, where each wait was a full round trip).
+  The number of waits is still what a page is measured by. The rule (7 Nov
   2026): a page reads in one batch. Its parts declare their reads
   (`briefing_reads()`, `forwarding_pins_reads()`, `st_reads()` and others)
   and the page puts them in its first batch; the parts' own calls then find
@@ -199,12 +200,26 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
   `tests/php/perf_test.php` (CI) covers the batch modes, the memo and the
   cache. `?_trace=1` on any page lists each wait in the page source.
   Page links are prefetched when held under the pointer (Speculation Rules
-  in `layout_head`, prefetch only, never prerender); anything that is not
+  in `layout_head`); the sidebar's pages are prerendered, so the click shows
+  a page that is already built, and links to the page already open are left
+  to the press flow. Anything that is not
   only reading when opened is left out (an Inbox message, downloads,
   sign-out, new-tab links, the press flow's regions), and a link can opt
   out with `data-no-prefetch`. A page that writes on a plain GET must be
   added to that list.
   Lighthouse: 100 on performance, accessibility and best practices.
+  The engine (7 Nov 2026): a database connection that runs a large function for
+  the first time pays for planning it (`smart_module()` was 530 ms cold, 13 ms
+  warm), and the API lets idle connections go, so that cost came back on most
+  pages. Two things keep it away. In the database (0169), the job
+  `smart-snapshot` works out the four barangay-wide analyses once a minute, only
+  when a report, a status or a dispatch changed (or five minutes passed), into
+  `smart_snapshot`; the engine functions read those lists while nothing has
+  changed since they were made, and run live otherwise, so they are never behind
+  (cold: 30-70 ms). In the portal, each person's engine answers are kept for
+  `ENGINE_CACHE_TTL` seconds (60) and dropped when they send any form
+  (`engine_cache_*` in `includes/supabase.php`). To see a cold call, time the
+  first run in a fresh `supabase db query --linked`.
 - **Dependencies** — Dependabot opens weekly update pull requests (Flutter
   packages, GitHub Actions, the Docker base image) and security-fix pull
   requests when an advisory lands. Merge them through CI like any change;

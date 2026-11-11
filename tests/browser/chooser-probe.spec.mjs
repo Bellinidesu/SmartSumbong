@@ -1,7 +1,7 @@
 // Local speed probe (7 Nov 2026): every page, every chooser on it (tabs, chips, filters, scopes, pagers that stay on the page),
 // pressed once each from a fresh load. For each press: whether it swapped in place or reloaded the page, how long until the page
 // settled, and the server's own account of it (Server-Timing waits plus the ?_trace=1 list of every wait).
-// Start the fake with a round trip so waits cost what Mumbai makes them cost:
+// Start the fake with a round trip so waits cost what a distant database makes them cost:
 //   FAKE_RTT_MS=100 bash serve.sh;  CP=1 npx playwright test chooser-probe.spec.mjs --workers=1
 import { test } from '@playwright/test';
 import fs from 'node:fs';
