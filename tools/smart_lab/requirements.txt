@@ -23,7 +23,7 @@ contourpy==1.4.0
 cycler==0.12.1
 defusedxml==0.7.1
 et_xmlfile==2.0.0
-fonttools==4.67.0
+fonttools==4.68.0
 holidays==0.107
 joblib==1.6.0
 kiwisolver==1.5.1
