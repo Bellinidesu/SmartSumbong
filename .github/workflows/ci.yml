@@ -246,7 +246,13 @@ jobs:
       - name: Every migration, then every rolled-back check
         env:
           PGVER: '17'
+          KEEP_DB: '1'   # left running for the grants check below
         run: bash supabase/tests/local/run-local.sh
+      # 11 Nov 2026: what a signed-out and a signed-in caller may do with every function and table is on file
+      # (supabase/grants.txt). A migration that leaves a function callable by mistake fails here; the nightly backup job checks
+      # the live database against the same file.
+      - name: The grants the migrations produce are the ones on file
+        run: bash supabase/tools/grants.sh check -h /var/tmp/smartsumbong-pg -p 55433 -U postgres -d postgres
       - name: The baseline still matches the migrations
         env:
           PGVER: '17'
