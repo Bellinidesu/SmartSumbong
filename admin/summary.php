@@ -117,7 +117,7 @@ $reports = $dispatches = $logs = $attendance = [];
  *
  * Fetched in two parallel rounds (branch B) — the four tables' row
  * counts, then every page of every table at once — instead of one page
- * after another: with the database in Mumbai, ~25 back-to-back round
+ * after another: with the database in Mumbai (until 7 Nov 2026), ~25 back-to-back round
  * trips made this page take about nine seconds.
  */
 const SUMMARY_PAGE = 1000;

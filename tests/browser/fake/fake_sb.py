@@ -356,7 +356,7 @@ def apply_filters(rows, qs):
     return out
 
 
-# FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for Singapore -> Mumbai;
+# FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for a distant database;
 # parallel requests wait at the same time, as a real batch does). Off by default.
 RTT = float(os.environ.get('FAKE_RTT_MS') or 0) / 1000
 # a page's batch opens a dozen connections at once, two pages two dozen: the default queue of five made them wait for each other

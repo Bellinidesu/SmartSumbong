@@ -86,7 +86,7 @@ A complaint's words and photos can identify a neighbour, a vendor or a vehicle. 
 
 | Service | What it receives | Where | Why |
 |---|---|---|---|
-| Supabase (database, sign-in, realtime, functions) | Everything in section 3 except the photo files | Mumbai, India | The system's database |
+| Supabase (database, sign-in, realtime, functions) | Everything in section 3 except the photo files | Singapore (since 7 Nov 2026; Mumbai, India before, a copy kept there until it is deleted) | The system's database |
 | Cloudinary | ID photos, selfies, profile pictures, complaint and dispatch photos and videos | Cloudinary's storage (check the account's region) | Image storage |
 | Render | The portal's pages as they are served, administrators' IP addresses in its logs | Singapore | Portal hosting |
 | Render (engine, when deployed) | ID photos, to read their text (OCR) | Singapore | The server engine (0137) |
@@ -96,7 +96,7 @@ A complaint's words and photos can identify a neighbour, a vendor or a vehicle. 
 | OpenStreetMap Nominatim | A complaint's coordinates, sent from the portal's server, and the text a resident types into the place search | OpenStreetMap Foundation | Street names for complaints |
 | Map tile and weather services | The barangay's area only (no person's data); the viewer's IP address, as any web request | Various | Maps, rain and flood layers |
 
-Cross-border transfer: the database is in India and the portal in Singapore. Under Sec. 21 (accountability) the barangay stays responsible for data it sends abroad. A data sharing or processing agreement with each service, or at least a record of their terms, belongs in the barangay's privacy file.
+Cross-border transfer: the database and the portal are both in Singapore (the database was in India until 7 Nov 2026; that project is kept for a short while as a fallback, then deleted). Under Sec. 21 (accountability) the barangay stays responsible for data it sends abroad. A data sharing or processing agreement with each service, or at least a record of their terms, belongs in the barangay's privacy file.
 
 ## 6. Proposed legal bases (for the barangay to confirm)
 

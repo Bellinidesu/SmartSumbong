@@ -40,7 +40,7 @@ function supabase_curl_opts(): array
         CURLOPT_TCP_KEEPALIVE => 1,
         CURLOPT_ENCODING      => '',
         // A batch's calls wait to ride the one open HTTP/2 connection instead of each opening a new one (7 Nov 2026). Without it,
-        // calls that start together found no connection ready and opened their own: two more round trips to Mumbai for each.
+        // calls that start together found no connection ready and opened their own: two more round trips to the database for each (it was in Mumbai then).
         // Measured from Manila on the live database: a 16-call batch went from 222-700 ms (typically ~440) to 168-443 (~300).
         CURLOPT_PIPEWAIT      => 1,
     ];
@@ -94,7 +94,7 @@ function server_timing_db(?float $ms = null, string $what = ''): array
 
 /**
  * New connections to Supabase opened while answering this request, and the longest handshake among them (7 Nov 2026). A call that
- * rides an open connection opens none; one that has to open its own pays the TCP and TLS handshakes to Mumbai first (two or three
+ * rides an open connection opens none; one that has to open its own pays the TCP and TLS handshakes first (two or three
  * round trips). Read from each call's own cURL figures. Returns [new connections, longest handshake in ms].
  */
 function server_timing_conn(?CurlHandle $ch = null): array
@@ -422,7 +422,7 @@ final class Supabase
 
     /**
      * Several selects at once (branch B), over curl_multi: the portal's
-     * database is a round trip away in Mumbai, and a page that made its
+     * database is a round trip away (in Mumbai until 7 Nov 2026, Singapore since), and a page that made its
      * requests one after another spent most of its load time waiting on
      * each in turn. Keys are kept; each value is that select's rows.
      * With $count, each value is instead the exact row count (only the

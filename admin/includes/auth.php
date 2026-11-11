@@ -21,7 +21,7 @@ require_once __DIR__ . '/boot.php';
  *
  * PHP locks a session file for as long as a request has it open, so two requests from one person used to run one after the
  * other: a press waited behind the browser's prefetch of the same address, behind a list's live refresh, behind a page open in
- * another tab, each of them a whole page of waits on the database in Mumbai. Now a page view holds the lock only while it reads
+ * another tab, each of them a whole page of waits on the database. Now a page view holds the lock only while it reads
  * the session. What it changes on the way (the sidebar's counts, a message shown once and then dropped, a remembered filter, the
  * sign-in's refreshed token) is written back when the request ends: the session is opened again for a moment, and only the
  * entries this request changed are put over what the file holds then, so another request's changes in the meantime are kept.

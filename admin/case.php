@@ -90,8 +90,8 @@ $threadMedia = []; // update id => its photos
 // Two parallel rounds (branch B) in place of about nine requests one
 // after another: everything keyed on the complaint id at once, then what
 // needs the first round's answers (its category, its dispatches, whether
-// it is still to be judged or assigned). With the database in Mumbai
-// every sequential round trip was a visible part of opening a case.
+// it is still to be judged or assigned). While the database was in Mumbai
+// (until 7 Nov 2026) every sequential round trip was a visible part of opening a case.
 /**
  * The case page's second round, asked for in the first (speed work, 7 Nov 2026): everything here needs only the case's id, so the
  * page waits on the database once; the second round's own code then finds each answer in the request's read memo (supabase.php).

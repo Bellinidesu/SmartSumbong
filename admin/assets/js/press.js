@@ -66,7 +66,7 @@
   function announce(msg) { live.textContent = ''; setTimeout(function () { live.textContent = msg; }, 30); }
 
   // ---- the progress bar: it shows only for a request that takes longer than half a second (Hotwire Turbo's own default), and
-  // finishes cleanly. Every press goes to the server (the Philippines to Singapore to Mumbai), so a bar after 120 ms showed on
+  // finishes cleanly. Every press goes to the server (the Philippines to Singapore), so a bar after 120 ms showed on
   // every press; the pressed control and the chooser's pill already answer at once (7 Nov 2026).
   var bar = document.createElement('div');
   bar.className = 'ss-progress'; bar.setAttribute('aria-hidden', 'true');
