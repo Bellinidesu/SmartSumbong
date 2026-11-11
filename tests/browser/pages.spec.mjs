@@ -1873,3 +1873,30 @@ test('Chat heads drag like a phone\'s (12 Nov 2026): the panel shuts when the bu
   await expect(page.locator('.ch-float')).toHaveCount(0);
   expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].pin)).toBe(false);
 });
+
+test('Inbox, Case chats (12 Nov 2026): the folder lists the cases that have chats with an unread dot; opening one draws the chat in the pane; a send stays on the page; the dot clears once read', async ({ page }) => {
+  const r = await open(page, 'inbox.php?box=chats');
+  await page.evaluate(() => { try { Object.keys(localStorage).filter(k => k.startsWith('ss-chat-')).forEach(k => localStorage.removeItem(k)); } catch (e) {} });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const rows = page.locator('[data-chat-row]');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('SS-2610-1001');
+  await expect(rows.first()).toHaveClass(/ib-unread/);                              // the resident's last question has no answer yet
+  await expect(rows.first().locator('.ib-cnt')).toBeVisible();
+  await rows.first().click();
+  await expect(page).toHaveURL(/box=chats&c=c0000000-0000-0000-0000-000000000001/);
+  const chat = page.locator('.ch-inline');
+  await expect(chat).toBeVisible();
+  await expect(chat.locator('.ch-row')).toHaveCount(2);                              // the resident and the tanod of this case
+  await chat.locator('.ch-row', { hasText: 'Garcia' }).click();
+  await expect(rows.first()).not.toHaveClass(/ib-unread/);                           // read: the dot clears
+  const note = 'Opo, sinusuri na namin ' + Date.now();
+  const sent = page.waitForResponse(x => x.request().method() === 'POST' && x.url().includes('case.php'));
+  const box = chat.locator('.ch-conv:not([hidden]) textarea'); await box.fill(note); await box.press('Enter');
+  expect((await (await sent).json()).ok).toBe(true);
+  await expect(chat.locator('.ch-b', { hasText: note })).toHaveCount(1);
+  expect(await axe(page), 'axe on Case chats').toEqual([]);
+  await page.goto('inbox.php?box=chats&who=mine', { waitUntil: 'domcontentloaded' });  // the fake's case is handled by somebody else
+  await expect(page.locator('[data-chat-row]')).toHaveCount(0);
+  expect(r.errors, 'console errors').toEqual([]);
+});

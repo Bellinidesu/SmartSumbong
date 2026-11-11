@@ -141,3 +141,17 @@
 .chp-none { margin: 10px 0 0; font-size: 13.5px; color: var(--p-muted); }
 .chp-foot { margin-top: 14px; }
 @media print { .ch, .ch-menu { display: none; } }
+
+/* the Inbox's Case chats: the chat drawn in the reading pane instead of floating */
+.ch-inline { position: static; right: auto; bottom: auto; z-index: auto; }
+.ch-inline .ch-panel { position: static; width: auto; max-width: none; height: min(68vh, 720px); box-shadow: none; animation: none; border-radius: 16px; }
+.ch-inline [data-ch="close"] { display: none; }
+.ch-inline .ch-title { font-size: 22px; }
+.ib-chatread .ib-chhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.ib-chatread .ib-chhead p { margin: 2px 0 0; }
+.ib-chfilter { display: flex; width: 100%; margin: 0 0 10px; box-sizing: border-box; }
+.ib-chfilter a { flex: 1; display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 12px; border-radius: 7px; font: 700 13px Inter, sans-serif; color: var(--p-muted); text-decoration: none; }
+.ib-chfilter a.p-on { background: var(--p-surface); color: var(--p-ink); box-shadow: var(--p-shadow-sm); }
+.ib-row .ib-cnt { margin-left: auto; flex: none; }
+.ib-row .ib-subj b { font-weight: 700; color: var(--p-ink); }
+@media (max-width: 640px) { .ch-inline .ch-panel { position: static !important; inset: auto !important; height: 70vh !important; border: 1px solid var(--ch-line); border-radius: 16px; } }

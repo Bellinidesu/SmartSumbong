@@ -15,6 +15,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/forwarding.php';
+require_once __DIR__ . '/includes/case_chat.php';   // 12 Nov 2026: the Case chats folder reads the chat head's conversations
 
 $admin = require_admin();
 $db    = db();
@@ -71,7 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $flash = $_SESSION['inbox_flash'] ?? null; unset($_SESSION['inbox_flash']);
-$box   = ($_GET['box'] ?? '') === 'sent' ? 'sent' : 'in';
+$box   = match ((string) ($_GET['box'] ?? '')) { 'sent' => 'sent', 'chats' => 'chats', default => 'in' };
+$chatId = preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', (string) ($_GET['c'] ?? '')) ? strtolower((string) $_GET['c']) : '';
+$chatMine = ($_GET['who'] ?? '') === 'mine';   // the case chats: all that this person can read, or only the cases they handle
 $open  = ctype_digit((string) ($_GET['m'] ?? '')) ? (int) $_GET['m'] : 0;
 $new   = isset($_GET['new']) || isset($_GET['reply']);
 $error = null;
@@ -101,7 +104,7 @@ $openGot = [];
 // the list on the left runs for every view of the page
     $per = 20;
     $page = max(1, (int) ($_GET['page'] ?? 1));
-    $rows = []; $total = 0; $listError = null; $dueByQ = [];
+    $rows = []; $total = 0; $listError = null; $dueByQ = []; $chatRows = []; $chatOpen = null;
     try {
         // one wait (speed work, 7 Nov 2026): the unread count, and the page of the list with the total behind its pager
         if ($box === 'in') {
@@ -112,6 +115,13 @@ $openGot = [];
             $openGot = $got;
             $total = (int) ($got['rows:total'] ?? 0);
             $rows = (array) $got['rows'];
+        } elseif ($box === 'chats') {
+            // the case chats (12 Nov 2026): no mail is read here; the mail's unread count still rides along for the tab
+            $got = $db->selectMany(['unread' => $unreadRead]);
+            $unread = is_int($got['unread'] ?? null) ? $got['unread'] : 0;
+            $chatRows = case_chat_list($db, $me, $chatMine);
+            $total = count($chatRows);
+            $chatOpen = $chatId !== '' ? case_chat_load($db, $chatId) : null;
         } else {
             // one row per message sent, with everyone it went to
             $got = $db->selectMany($openReads + ['unread' => $unreadRead, 'sent' => ['inbox_messages', ['sender' => 'eq.' . $me, 'select' => 'id,batch,subject,created_at,to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
@@ -146,11 +156,55 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
      data-announce="<?= e(t('Inbox updated', 'Na-update ang mga liham')) ?>">
 <nav class="st-tabs ib-tabs" aria-label="<?= e(t('Inbox', 'Mga Liham')) ?>">
   <a hx-boost="true" class="st-link<?= $box === 'in' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php"><?= e(t('Inbox', 'Mga Liham')) ?><?php if ($unread): ?> <span class="p-badge-n"><?= (int) $unread ?></span><?php endif; ?></a>
+  <a hx-boost="true" class="st-link<?= $box === 'chats' ? ' p-on' : '' ?>" href="inbox.php?box=chats"><?= e(t('Case chats', 'Mga chat sa kaso')) ?></a>
   <a hx-boost="true" class="st-link<?= $box === 'sent' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php?box=sent"><?= e(t('Sent', 'Naipadala')) ?></a>
   <a hx-boost="true" class="st-link<?= $new ? ' p-on' : '' ?>" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a>
 </nav>
 <?php if ($flash && $flash['text']): ?><div class="p-flash p-flash--<?= $flash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($flash['text']) ?></div><?php endif; ?>
 
+<?php if ($box === 'chats'):
+    // ---------- the case chats: every conversation with a resident or a tanod, newest first; the reader is the chat head, drawn in the page ----------
+    $chQ = $chatMine ? '&who=mine' : '';
+    $statusText = static fn (string $s): string => status_label($s); ?>
+<div class="ib-split ib-chats<?= !$chatRows && $chatId === '' ? ' ib-empty' : '' ?>">
+<section class="ib-list" aria-label="<?= e(t('Case chats', 'Mga chat sa kaso')) ?>">
+  <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
+  <div class="p-seg-mini ib-chfilter" role="group" aria-label="<?= e(t('Which cases', 'Aling mga kaso')) ?>">
+    <a hx-boost="true" class="<?= $chatMine ? '' : 'p-on' ?>" href="inbox.php?box=chats<?= $chatId !== '' ? '&c=' . e($chatId) : '' ?>"><?= e(t('All I can read', 'Lahat ng mababasa ko')) ?></a>
+    <a hx-boost="true" class="<?= $chatMine ? 'p-on' : '' ?>" href="inbox.php?box=chats&who=mine<?= $chatId !== '' ? '&c=' . e($chatId) : '' ?>"><?= e(t('Cases I handle', 'Mga kasong hawak ko')) ?></a>
+  </div>
+  <div class="p-card ib-rows-card">
+    <?php if (!$chatRows): ?><div class="ib-none-list"><span class="ib-none-ic" aria-hidden="true"><?= p_icon('i-chat', 20) ?></span><b><?= e(t('No case chats yet.', 'Wala pang chat sa kaso.')) ?></b>
+      <span><?= e(t('They appear here when a resident writes about a case or a tanod replies from the field.', 'Lalabas dito kapag sumulat ang residente tungkol sa kaso o sumagot ang tanod mula sa lugar.')) ?></span></div><?php endif; ?>
+    <nav class="ib-rows" aria-label="<?= e(t('Case chats', 'Mga chat sa kaso')) ?>">
+    <?php foreach ($chatRows as $cr): ?>
+      <a hx-boost="true" class="fr ib-row<?= $cr['id'] === $chatId ? ' ib-sel' : '' ?>" data-sev="info" data-chat-row data-report="<?= e($cr['id']) ?>" data-feed="<?= e((string) json_encode($cr['feed'])) ?>" href="inbox.php?box=chats&c=<?= e($cr['id']) ?><?= $chQ ?>">
+        <span class="ib-av" aria-hidden="true"><?= p_icon('i-chat', 18) ?></span>
+        <span class="ib-top"><b class="ib-name"><?= e($cr['tracking']) ?></b><span class="ib-when"><?= e(relative_time($cr['last'])) ?></span></span>
+        <span class="ib-line"><span class="ib-subj"><b><?= e($cr['who']) ?>:</b> <?= e($cr['text']) ?></span><span class="p-badge-n ib-cnt" hidden>0</span></span>
+      </a>
+    <?php endforeach; ?>
+    </nav>
+  </div>
+</section>
+<div class="ib-pane">
+<?php if ($chatId !== '' && $chatOpen): $cro = $chatOpen['report']; ?>
+  <article class="p-card p-card-pad ib-read ib-chatread">
+    <div class="ib-chhead">
+      <div><h2><?= e((string) $cro['tracking_id']) ?></h2><p class="p-hint"><?= e((string) $cro['subject']) ?> · <?= e($statusText((string) $cro['status'])) ?></p></div>
+      <a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($chatId) ?>"><?= e(t('Open the case', 'Buksan ang kaso')) ?></a>
+    </div>
+    <?= case_chat_inline($chatOpen['convs'], $chatId, (string) $cro['tracking_id']) ?>
+  </article>
+<?php elseif ($chatId !== ''): ?>
+  <div class="p-card p-empty"><?= e(t('That case is not yours to read.', 'Hindi para sa iyo ang kasong iyan.')) ?></div>
+<?php else: ?>
+  <div class="p-card ib-none"><span class="ib-none-ic" aria-hidden="true"><?= p_icon('i-chat', 22) ?></span><b><?= e(t('Pick a conversation to read it here', 'Pumili ng usapan para mabasa rito')) ?></b>
+    <span><?= e(t('You can answer from here, the same as in the chat on the case.', 'Maaari kang sumagot dito, tulad ng sa chat sa kaso.')) ?></span></div>
+<?php endif; ?>
+</div>
+</div>
+<?php else: ?>
 <div class="ib-split<?= !$rows && !$new && !$open ? ' ib-empty' : '' ?>">
 <section class="ib-list" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
   <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
@@ -331,6 +385,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 <?php endif; ?>
 </div>
 </div>
+<?php endif; // the case chats, or the mail ?>
 </div><?php // #ib-main ?>
 <script>
 // the countdown on messages that wait for an answer

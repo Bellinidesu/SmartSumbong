@@ -371,10 +371,13 @@ TABLES['dispatch_updates'] = [
     {'id': 'du4', 'dispatch_id': 'd2', 'author_id': 'u2', 'kind': 'message', 'step': None, 'body': 'Copy po, nilagyan ko na ng harang ang kalsada.', 'created_at': ago(0.35)},
     {'id': 'du5', 'dispatch_id': 'd2', 'author_id': 'u2', 'kind': 'step', 'step': 'arrived', 'body': None, 'created_at': ago(0.3)},
 ]
+_CHREP = {'id': _CASE1, 'tracking_id': 'SS-2610-1001', 'subject': 'Live wire sparking near the school', 'status': 'validated', 'handler_id': 'a0000000-0000-0000-0000-0000000000dc'}
+for _m in TABLES['report_messages']: _m['report'] = _CHREP
+for _u in TABLES['dispatch_updates']: _u['d'] = {'report_id': _CASE1, 'tanod_id': 'u2', 'report': _CHREP}
 def _now(): return dt.datetime.now(dt.timezone.utc).isoformat()
-RPC['post_report_message'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': True, 'body': b.get('p_body'), 'created_at': _now()}) or {}
-RPC['fake_incoming'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': False, 'body': b.get('body') or 'Kuya, may bago po akong tanong.', 'created_at': _now()}) or {}   # the tests play the resident writing
-RPC['post_dispatch_update'] = lambda b: TABLES['dispatch_updates'].append({'id': 'du' + str(len(TABLES['dispatch_updates']) + 1), 'dispatch_id': b.get('p_dispatch'), 'author_id': ADMIN['id'], 'kind': 'message', 'step': None, 'body': b.get('p_body'), 'created_at': _now()}) or {}
+RPC['post_report_message'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': True, 'body': b.get('p_body'), 'created_at': _now(), 'report': _CHREP}) or {}
+RPC['fake_incoming'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': False, 'body': b.get('body') or 'Kuya, may bago po akong tanong.', 'created_at': _now(), 'report': _CHREP}) or {}   # the tests play the resident writing
+RPC['post_dispatch_update'] = lambda b: TABLES['dispatch_updates'].append({'id': 'du' + str(len(TABLES['dispatch_updates']) + 1), 'dispatch_id': b.get('p_dispatch'), 'author_id': ADMIN['id'], 'kind': 'message', 'step': None, 'body': b.get('p_body'), 'created_at': _now(), 'd': {'report_id': _CASE1, 'tanod_id': 'u2', 'report': _CHREP}}) or {}
 
 # FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for a distant database;
 # parallel requests wait at the same time, as a real batch does). Off by default.
