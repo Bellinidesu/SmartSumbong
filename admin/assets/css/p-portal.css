@@ -199,6 +199,8 @@ a.p-btn-pdf2 { text-decoration: none; }
 .p-composer .p-note { min-height: 40px; height: 40px; resize: vertical; }
 .p-thread-card .p-meta-line { margin: 0 0 4px; font-weight: 700; color: var(--p-ink-2); }
 .p-controls { display: grid; gap: 12px; align-content: start; }
+.p-controls .ss-zl { margin: 6px 0 -6px; } /* a small label that ties to the block under it (Case owner, Where the case is) */
+.p-by b { font-weight: 700; color: var(--p-ink); }
 .p-ctl-stack .p-ctl-note kbd { font: 700 11px Inter, sans-serif; padding: 1px 6px; border: 1px solid var(--p-line-2); border-radius: 5px; background: var(--p-surface-2); }
 .p-check { display: inline-flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: var(--p-ink-2); cursor: pointer; }
 .p-check input { accent-color: var(--p-blue); margin-top: 3px; }

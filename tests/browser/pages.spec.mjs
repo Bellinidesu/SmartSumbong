@@ -164,8 +164,8 @@ test('panel asks 3a and 4: filter by the issue under a category; the barangay se
   r = await open(page, 'cases.php?tab=all&issue=Potholes');   // no category: the issue is dropped, not applied
   await expect(page.locator('select[name="issue"]')).toHaveCount(0);
   r = await open(page, `case.php?id=${CASE}`);
-  await expect(page.locator('.p-meta-strip')).toContainText('Garcia');
-  await expect(page.locator('.p-meta-strip')).toContainText('Anonymous to others');
+  await expect(page.locator('.p-report .p-by')).toContainText('Garcia');
+  await expect(page.locator('.p-report .p-by')).toContainText('Anonymous to others');
   expect(r.errors, 'console errors').toEqual([]);
 });
 

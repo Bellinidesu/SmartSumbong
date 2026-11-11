@@ -386,7 +386,6 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <div class="p-grid p-case-left">
   <!-- ---------- the complaint itself ---------- -->
   <div>
-    <div class="p-case-tabs"><button type="button" class="p-on"><?= e(t('Original Report', 'Orihinal na Ulat')) ?></button></div>
     <article class="p-report">
     <h1 class="p-case-title">
       <?= e($report['tracking_id']) ?>: <?= e(category_label($report['category'])) ?>
@@ -409,6 +408,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       </svg>
       <?= e(t('Filed on', 'Isinampa noong')) ?> <?= e(long_datetime($report['created_at'])) ?>
     </p>
+    <p class="p-filed p-by"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span><?= e(t('Reported by', 'Isinampa ni')) ?> <b><?= e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?><?php if (!empty($report['is_anonymous'])): ?>
+        <span class="p-anon" title="<?= e(t('Filed as anonymous: only the barangay office sees the name. Tanods, the map and the printouts do not.', 'Isinampa bilang hindi nagpakilala: ang opisina ng barangay lamang ang nakakakita ng pangalan. Hindi ito nakikita ng mga tanod, ng mapa at ng mga print.')) ?>"><?= e(t('Anonymous to others', 'Hindi nagpakilala sa iba')) ?></span><?php endif; ?></b></span></p>
     <?php if (!empty($report['location_label'])): ?>
       <!-- The street saved with the complaint (0068): a label read off the
            map, not something the resident typed — the coordinates on the
@@ -575,14 +576,6 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
     </article>
 
-  <!-- ---------- the register row, as designed ---------- -->
-  <div class="p-card p-meta-strip">
-    <div><small><?= e(t('Resident', 'Residente')) ?></small><b><?= e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?><?php if (!empty($report['is_anonymous'])): ?>
-        <span class="p-anon" title="<?= e(t('Filed as anonymous: only the barangay office sees the name. Tanods, the map and the printouts do not.', 'Isinampa bilang hindi nagpakilala: ang opisina ng barangay lamang ang nakakakita ng pangalan. Hindi ito nakikita ng mga tanod, ng mapa at ng mga print.')) ?>"><?= e(t('Anonymous to others', 'Hindi nagpakilala sa iba')) ?></span><?php endif; ?></b></div>
-    <div><small><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></small><b class="p-num"><?= e($report['tracking_id']) ?></b></div>
-    <div><small><?= e(t('Category', 'Kategorya')) ?></small><b><?= e(category_label($report['category'])) ?></b></div>
-    <div><small><?= e(t('Filed', 'Naisampa')) ?></small><b class="p-num"><?= e(short_date($report['created_at'])) ?></b></div>
-  </div>
 
 
   </div>
@@ -666,7 +659,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php if (!empty($smart['reasons'])): ?>
       <ul class="ss-reasons">
         <?php foreach ((array) $smart['reasons'] as $rs): ?>
-          <li style="--w:<?= (int) round(((int) ($rs['points'] ?? 0)) / $rsMax * 100) ?>%"><span><?= e((string) ($rs['detail'] ?? $rs['factor'] ?? '')) ?></span><b>+<?= (int) ($rs['points'] ?? 0) ?></b></li>
+          <?php $rsText = trim((string) ($rs['detail'] ?? $rs['factor'] ?? '')); if (($rs['factor'] ?? '') === 'category' && $rsText !== '') $rsText = category_label($rsText); if ($rsText === '' || (int) ($rs['points'] ?? 0) <= 0) continue; ?>
+          <li style="--w:<?= (int) round(((int) ($rs['points'] ?? 0)) / $rsMax * 100) ?>%"><span><?= e($rsText) ?></span><b>+<?= (int) ($rs['points'] ?? 0) ?></b></li>
         <?php endforeach; ?>
       </ul>
     <?php endif; ?>
@@ -942,6 +936,26 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <p class="p-eyebrow"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
     <?php if (is_captain()): ?><div class="ss-locked" role="note"><?= e(t('View only: this account can read everything about the case, but not change it.', 'Tingin lamang: mababasa ng account na ito ang lahat tungkol sa kaso, pero hindi ito mababago.')) ?></div><?php endif; ?>
 
+    <?php // 0087: who handles this case. ?>
+    <p class="p-flabel ss-zl"><?= e(t('Case owner', 'May-hawak ng kaso')) ?></p>
+    <?php if ($hid === ''): ?>
+      <div class="ss-handler"><div><b><?= e(t('Nobody is handling this case yet', 'Wala pang humahawak sa kasong ito')) ?></b><span class="p-hint"><?= e(t('Accepting it, or any action on it, makes it yours.', 'Kapag tinanggap mo ito o kumilos ka rito, ikaw na ang hahawak.')) ?></span></div></div>
+    <?php elseif ($mine): ?>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b><div class="ss-hrow"><?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div></div>
+    <?php else: ?>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><div class="ss-hrow"><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?></div><?php if (!empty($report['handled_since'])): ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span><?php endif; ?></div></div>
+      <div class="ss-locked"><?= e(sprintf(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.'), $hName)) ?></div>
+      <details class="p-fix" data-keep-details>
+        <summary><?= e(t('Take over', 'Kunin')) ?></summary>
+        <form method="post" class="p-ctl-stack" data-keep>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="take_over">
+          <div class="p-cfield"><label class="p-flabel" for="to-reason"><?= e(sprintf(t('Reason — %s sees it', 'Dahilan — makikita ni %s'), $hName)) ?></label>
+            <input class="p-input-plain" id="to-reason" name="reason" required minlength="3" maxlength="300" placeholder="<?= e(t('e.g. Rose is off shift today.', 'hal. Wala si Rose ngayong araw.')) ?>"></div>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Take over', 'Kunin')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
     <?php // 0152: the committee this case is with, how it got there, and forwarding it
     $fwLog = []; $fwFlags = [];
     try {
@@ -1004,25 +1018,6 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php endif; ?>
     </div>
 
-    <?php // 0087: who handles this case. ?>
-    <?php if ($hid === ''): ?>
-      <div class="ss-handler"><div><b><?= e(t('Nobody is handling this case yet', 'Wala pang humahawak sa kasong ito')) ?></b><span class="p-hint"><?= e(t('Accepting it, or any action on it, makes it yours.', 'Kapag tinanggap mo ito o kumilos ka rito, ikaw na ang hahawak.')) ?></span></div></div>
-    <?php elseif ($mine): ?>
-      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b><div class="ss-hrow"><?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div></div>
-    <?php else: ?>
-      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><div class="ss-hrow"><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?></div><?php if (!empty($report['handled_since'])): ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span><?php endif; ?></div></div>
-      <div class="ss-locked"><?= e(sprintf(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.'), $hName)) ?></div>
-      <details class="p-fix" data-keep-details>
-        <summary><?= e(t('Take over', 'Kunin')) ?></summary>
-        <form method="post" class="p-ctl-stack" data-keep>
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="action" value="take_over">
-          <div class="p-cfield"><label class="p-flabel" for="to-reason"><?= e(sprintf(t('Reason — %s sees it', 'Dahilan — makikita ni %s'), $hName)) ?></label>
-            <input class="p-input-plain" id="to-reason" name="reason" required minlength="3" maxlength="300" placeholder="<?= e(t('e.g. Rose is off shift today.', 'hal. Wala si Rose ngayong araw.')) ?>"></div>
-          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Take over', 'Kunin')) ?></button>
-        </form>
-      </details>
-    <?php endif; ?>
     <?php // 0130: the ladder inside the barangay, and the sensitive mark.
       $tier = (int) ($report['tier'] ?? 0); $sens = !empty($report['is_sensitive']);
       $openCase = !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true) && empty($report['referred_to']);
@@ -1032,72 +1027,15 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <div class="ss-sensitive" role="note"><b><?= e(t('Sensitive case', 'Sensitibong kaso')) ?></b>
         <?= e(t('Escalate it to the Chairman; the super admins are told. Do not send it to the nearest tanod; if a tanod is needed, choose a designated women responder.', 'I-escalate sa Punong Barangay; sasabihan ang mga super admin. Huwag ipadala sa pinakamalapit na tanod; kung kailangan ng tanod, pumili ng itinalagang responder para sa kababaihan.')) ?></div>
     <?php endif; ?>
+    <p class="p-flabel ss-zl"><?= e(t('Where the case is', 'Nasaan ang kaso')) ?></p>
     <ol class="ss-ladder" aria-label="<?= e(t('Where the case is', 'Nasaan ang kaso')) ?>">
       <?php foreach ($steps as $k => $nm): ?><li data-r="<?= ['staff', 'kagawad', 'chair'][$k] ?>" class="<?= $k === $tier ? 'now' : ($k < $tier ? 'past' : '') ?>"<?= $k === $tier ? ' aria-current="step"' : '' ?>><?= e($nm) ?></li><?php endforeach; ?>
     </ol>
-    <?php if ($mine && $openCase && $tier < 2): $cm = committee_labels();
-      // 0166: who it reaches, named before anyone presses (escalation_target, the same answer the escalation uses)
-      $escWhy = (string) ($escTo['why'] ?? '');
-      $escToChair = $escTo !== null && (int) ($escTo['to_tier'] ?? 0) === 2; ?>
-      <details class="p-fix">
-        <summary><?= e($escTo !== null
-            ? sprintf(t('Escalate to %s', 'I-escalate kay %s'), (string) $escTo['official_name'] . ', ' . ($escToChair ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))
-            : ($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay'))) ?></summary>
-        <form method="post" class="p-ctl-stack" data-keep>
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="action" value="escalate_barangay">
-          <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
-          <?php if ($escWhy === 'kagawad'): ?>
-            <p class="p-ctl-note"><?= e(t('A Kagawad\'s escalation goes to the Chairman. The super admins are told.', 'Ang escalation ng Kagawad ay napupunta sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
-          <?php elseif ($escWhy === 'sensitive'): ?>
-            <p class="p-ctl-note"><?= e(t('A sensitive case goes to the Chairman. The super admins are told.', 'Ang sensitibong kaso ay napupunta sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
-          <?php elseif ($tier === 0): ?>
-            <?php if ($escWhy === 'no_kagawad'): ?>
-              <p class="p-ctl-note"><?= e(t('This committee has no Kagawad account yet, so it goes to the Chairman. The super admins are told.', 'Wala pang account ng Kagawad ang komiteng ito, kaya napupunta ito sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
-            <?php endif; ?>
-            <div class="p-cfield"><label class="p-flabel" for="eb-comm"><?= e(t('Committee', 'Komite')) ?></label>
-              <select class="p-input-plain" id="eb-comm" name="committee">
-                <option value=""><?= e(t('The committee the case is with now', 'Ang komiteng may hawak ng kaso ngayon')) ?></option>
-                <?php foreach ($cm as $ck => $cl): if (committees_all() && empty(committees_all()[$ck]['active'])) continue; ?><option value="<?= e($ck) ?>"><?= e($cl[0]) ?></option><?php endforeach; ?>
-              </select></div>
-          <?php endif; ?>
-          <div class="p-cfield"><label class="p-flabel" for="eb-reason"><?= e(t('Why (the official and the resident see it)', 'Bakit (makikita ng opisyal at ng residente)')) ?></label>
-            <input class="p-input-plain" id="eb-reason" name="reason" required minlength="3" maxlength="300"></div>
-          <p class="p-hint"><?= e(t('Any tanod on this case is stood down and told. The official becomes its handler.', 'Aalisin at sasabihan ang tanod na nasa kasong ito. Ang opisyal na ang hahawak.')) ?></p>
-          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Escalate', 'I-escalate')) ?></button>
-        </form>
-      </details>
-    <?php endif; ?>
-    <?php if ($mine && $tier > 0): ?>
-      <details class="p-fix">
-        <summary><?= e(t('Send it back down', 'Ibalik pababa')) ?></summary>
-        <form method="post" class="p-ctl-stack" data-keep>
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="action" value="return_official">
-          <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
-          <div class="p-cfield"><label class="p-flabel" for="ro-remark"><?= e(t('Decision or remark', 'Pasya o puna')) ?></label>
-            <input class="p-input-plain" id="ro-remark" name="remark" required minlength="3" maxlength="300"></div>
-          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Return', 'Ibalik')) ?></button>
-        </form>
-      </details>
-    <?php endif; ?>
-    <?php if ($mine && $openCase): ?>
-      <details class="p-fix">
-        <summary><?= e($sens ? t('Not sensitive after all', 'Hindi pala sensitibo') : t('Mark as sensitive', 'Markahang sensitibo')) ?></summary>
-        <form method="post" class="p-ctl-stack" data-keep>
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="action" value="set_sensitive">
-          <input type="hidden" name="on" value="<?= $sens ? '0' : '1' ?>">
-          <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
-          <div class="p-cfield"><label class="p-flabel" for="ss-why"><?= e(t('Why (kept on the record)', 'Bakit (itatago sa talaan)')) ?></label>
-            <input class="p-input-plain" id="ss-why" name="reason" required minlength="3" maxlength="300"></div>
-          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e($sens ? t('Remove the mark', 'Alisin ang marka') : t('Mark sensitive', 'Markahang sensitibo')) ?></button>
-        </form>
-      </details>
-    <?php endif; ?>
     <div id="ss-also" hidden></div>
     <?php if ($handlerLog): ?>
-      <ul class="ss-hist">
+      <details class="p-fix" data-keep-details>
+        <summary><?= e(sprintf(t('Ownership history (%d)', 'Kasaysayan ng may-hawak (%d)'), count($handlerLog))) ?></summary>
+        <ul class="ss-hist">
         <?php foreach ($handlerLog as $h): ?>
           <li><?= e(name_or($h['admin']['full_name'] ?? null, '')) ?> <?= e(match ($h['action']) {
               'take' => t('took the case', 'kinuha ang kaso'),
@@ -1105,7 +1043,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               default => t('took over from', 'kinuha mula kay') . ' ' . ($h['prev']['full_name'] ?? ''),
           }) ?> · <?= e(long_datetime($h['created_at'])) ?><?= !empty($h['reason']) ? ' — “' . e($h['reason']) . '”' : '' ?></li>
         <?php endforeach; ?>
-      </ul>
+      </ul></details>
     <?php endif; ?>
 
     <?php if ($canJudge): ?>
@@ -1289,7 +1227,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php else: ?>
       <?php if ($active): ?>
         <div class="p-tanod-card">
-          <p class="p-eyebrow" style="margin:0"><?= e(t('Currently with', 'Kasalukuyang hawak ni')) ?></p>
+          <p class="p-eyebrow" style="margin:0"><?= e(t('Field responder', 'Tanod na tumutugon')) ?></p>
           <p class="p-assigned-name"><?= e(formal_or($active['tanod']['full_name'] ?? null, t('Unknown tanod', 'Hindi kilalang tanod'))) ?></p>
           <p class="p-kv-line">
             <?= e(status_label($active['state'])) ?>
@@ -1574,6 +1512,67 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       </details>
     <?php endif; ?>
 
+    <?php $openCase = !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true) && empty($report['referred_to']); ?>
+    <?php if ($mine && $openCase && $tier < 2): $cm = committee_labels();
+      // 0166: who it reaches, named before anyone presses (escalation_target, the same answer the escalation uses)
+      $escWhy = (string) ($escTo['why'] ?? '');
+      $escToChair = $escTo !== null && (int) ($escTo['to_tier'] ?? 0) === 2; ?>
+      <details class="p-fix">
+        <summary><?= e($escTo !== null
+            ? sprintf(t('Escalate to %s', 'I-escalate kay %s'), (string) $escTo['official_name'] . ', ' . ($escToChair ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))
+            : ($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay'))) ?></summary>
+        <form method="post" class="p-ctl-stack" data-keep>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="escalate_barangay">
+          <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
+          <?php if ($escWhy === 'kagawad'): ?>
+            <p class="p-ctl-note"><?= e(t('A Kagawad\'s escalation goes to the Chairman. The super admins are told.', 'Ang escalation ng Kagawad ay napupunta sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
+          <?php elseif ($escWhy === 'sensitive'): ?>
+            <p class="p-ctl-note"><?= e(t('A sensitive case goes to the Chairman. The super admins are told.', 'Ang sensitibong kaso ay napupunta sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
+          <?php elseif ($tier === 0): ?>
+            <?php if ($escWhy === 'no_kagawad'): ?>
+              <p class="p-ctl-note"><?= e(t('This committee has no Kagawad account yet, so it goes to the Chairman. The super admins are told.', 'Wala pang account ng Kagawad ang komiteng ito, kaya napupunta ito sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
+            <?php endif; ?>
+            <div class="p-cfield"><label class="p-flabel" for="eb-comm"><?= e(t('Committee', 'Komite')) ?></label>
+              <select class="p-input-plain" id="eb-comm" name="committee">
+                <option value=""><?= e(t('The committee the case is with now', 'Ang komiteng may hawak ng kaso ngayon')) ?></option>
+                <?php foreach ($cm as $ck => $cl): if (committees_all() && empty(committees_all()[$ck]['active'])) continue; ?><option value="<?= e($ck) ?>"><?= e($cl[0]) ?></option><?php endforeach; ?>
+              </select></div>
+          <?php endif; ?>
+          <div class="p-cfield"><label class="p-flabel" for="eb-reason"><?= e(t('Why (the official and the resident see it)', 'Bakit (makikita ng opisyal at ng residente)')) ?></label>
+            <input class="p-input-plain" id="eb-reason" name="reason" required minlength="3" maxlength="300"></div>
+          <p class="p-hint"><?= e(t('Any tanod on this case is stood down and told. The official becomes its handler.', 'Aalisin at sasabihan ang tanod na nasa kasong ito. Ang opisyal na ang hahawak.')) ?></p>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Escalate', 'I-escalate')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
+    <?php if ($mine && $tier > 0): ?>
+      <details class="p-fix">
+        <summary><?= e(t('Send it back down', 'Ibalik pababa')) ?></summary>
+        <form method="post" class="p-ctl-stack" data-keep>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="return_official">
+          <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
+          <div class="p-cfield"><label class="p-flabel" for="ro-remark"><?= e(t('Decision or remark', 'Pasya o puna')) ?></label>
+            <input class="p-input-plain" id="ro-remark" name="remark" required minlength="3" maxlength="300"></div>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Return', 'Ibalik')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
+    <?php if ($mine && $openCase): ?>
+      <details class="p-fix">
+        <summary><?= e($sens ? t('Not sensitive after all', 'Hindi pala sensitibo') : t('Mark as sensitive', 'Markahang sensitibo')) ?></summary>
+        <form method="post" class="p-ctl-stack" data-keep>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="set_sensitive">
+          <input type="hidden" name="on" value="<?= $sens ? '0' : '1' ?>">
+          <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
+          <div class="p-cfield"><label class="p-flabel" for="ss-why"><?= e(t('Why (kept on the record)', 'Bakit (itatago sa talaan)')) ?></label>
+            <input class="p-input-plain" id="ss-why" name="reason" required minlength="3" maxlength="300"></div>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e($sens ? t('Remove the mark', 'Alisin ang marka') : t('Mark sensitive', 'Markahang sensitibo')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
     <!-- ---------- map preview ---------- -->
     <!-- Martin's note / Rose's feedback: the preview had no way to get
          bigger — it is deliberately a non-interactive thumbnail (see the
