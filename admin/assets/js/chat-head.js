@@ -49,7 +49,9 @@
   }
 
   /* ---------- the right-click menu ---------- */
-  var menu = null, menuBack = null;
+  var menu = null, menuBack = null, sharedTrash = null, holding = false;
+  // a bubble held over a link or an image must not start the browser's own drag of it: that would cancel ours
+  document.addEventListener('dragstart', function (e) { if (holding) { e.preventDefault(); } }, true);
   function outside(e) { if (menu && !menu.contains(e.target)) { closeMenu(false); } }
   function menuKey(e) {
     if (!menu) { return; }
@@ -220,43 +222,75 @@
       showMenu(x, y, menuItems(), fab);
     });
 
-    /* dragging: press and move the bubble anywhere; it settles on the nearer side and remembers where */
-    var drag = null, moved = false, suppress = false;
+    /* dragging, the way a phone's chat heads work: the panel shuts when you pick the bubble up, it follows your finger or mouse,
+       a quick flick sends it to that side, and on letting go it springs to the left or right edge at the height you left it.
+       A floating head also shows a round X at the bottom while it is held: drop it there and it stops floating. */
+    var EDGE = 12, SZ = 58, drag = null, moved = false, suppress = false;
+    var trash = null;
+    function getTrash() {          // one round X for the whole page, shared by every head
+      if (!sharedTrash) {
+        sharedTrash = el('div', 'ch-trash'); sharedTrash.setAttribute('aria-hidden', 'true');
+        sharedTrash.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+        document.body.appendChild(sharedTrash);
+      }
+      trash = sharedTrash;
+      return sharedTrash;
+    }
+    function xFor(side) { return side === 'l' ? EDGE : window.innerWidth - SZ - EDGE; }
+    function clampY(y) { return Math.max(EDGE, Math.min(window.innerHeight - SZ - EDGE, y)); }
     function place(x, y) {
-      var vw = window.innerWidth, vh = window.innerHeight;
-      root.classList.add('ch-placed'); root.style.left = Math.max(0, Math.min(vw - 58, x)) + 'px'; root.style.top = Math.max(0, Math.min(vh - 58, y)) + 'px'; root.style.right = 'auto'; root.style.bottom = 'auto';
+      root.classList.add('ch-placed'); root.style.left = Math.max(0, Math.min(window.innerWidth - SZ, x)) + 'px'; root.style.top = Math.max(0, Math.min(window.innerHeight - SZ, y)) + 'px';
+      root.style.right = 'auto'; root.style.bottom = 'auto';
     }
     function applyPos() {
-      var c = store.cases()[report] || {}, y = c.y != null ? c.y : api.defY;
-      if (y != null) {
-        var vh = window.innerHeight, ty = Math.max(10, Math.min(vh - 68, y)), lft = c.side === 'l';
-        root.classList.add('ch-placed'); root.style.top = ty + 'px'; root.style.bottom = 'auto'; root.style.left = lft ? '16px' : 'auto'; root.style.right = lft ? 'auto' : '16px';
-      } else if (main) { root.classList.remove('ch-placed'); root.style.top = root.style.left = root.style.right = root.style.bottom = ''; }
+      var c = store.cases()[report] || {}, y = c.y != null ? Number(c.y) : api.defY;
+      if (y != null && isFinite(y)) { place(xFor(c.side === 'l' ? 'l' : 'r'), clampY(y)); }
+      else if (main) { root.classList.remove('ch-placed'); root.style.top = root.style.left = root.style.right = root.style.bottom = ''; }
       orient();
     }
     api.applyPos = applyPos;
     fab.addEventListener('pointerdown', function (e) {
       if (e.button !== 0) { return; }
-      drag = { x: e.clientX, y: e.clientY, r: root.getBoundingClientRect(), id: e.pointerId }; moved = false;
+      drag = { x: e.clientX, y: e.clientY, r: root.getBoundingClientRect(), vx: 0, lx: e.clientX, lt: e.timeStamp, near: false };
+      moved = false; holding = true;
       try { fab.setPointerCapture(e.pointerId); } catch (x) { /* the drag still works while the pointer stays over the bubble */ }   // captured at once, so a quick flick cannot leave the bubble behind
     });
     fab.addEventListener('pointermove', function (e) {
       if (!drag) { return; }
       var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       if (!moved && Math.hypot(dx, dy) < 6) { return; }
-      if (!moved) { moved = true; root.classList.add('ch-drag'); }
+      if (!moved) {
+        moved = true; closeMenu(false); if (!panel.hidden) { close(); }
+        root.classList.remove('ch-snap'); root.classList.add('ch-drag'); if (!main) { getTrash().classList.add('ch-on'); }
+      }
       place(drag.r.left + dx, drag.r.top + dy);
+      var dt = Math.max(1, e.timeStamp - drag.lt); drag.vx = 0.6 * drag.vx + 0.4 * ((e.clientX - drag.lx) / dt); drag.lx = e.clientX; drag.lt = e.timeStamp;
+      if (!main) {
+        var tb = getTrash().getBoundingClientRect();
+        drag.near = Math.hypot(e.clientX - (tb.left + tb.width / 2), e.clientY - (tb.top + tb.height / 2)) < 84;
+        trash.classList.toggle('ch-hot', drag.near); root.classList.toggle('ch-bin', drag.near);
+      }
     });
     function endDrag() {
       if (!drag) { return; }
-      var was = moved; drag = null; moved = false;
-      if (was) {
-        root.classList.remove('ch-drag'); suppress = true; setTimeout(function () { suppress = false; }, 60);
-        var r = root.getBoundingClientRect();
-        store.patch(report, { side: r.left + r.width / 2 < window.innerWidth / 2 ? 'l' : 'r', y: Math.round(r.top), t: api.tracking || (store.cases()[report] || {}).t || '' });
+      var was = moved, near = drag.near, vx = drag.vx; drag = null; moved = false; holding = false;
+      if (trash) { trash.classList.remove('ch-on', 'ch-hot'); }
+      if (!was) { return; }
+      root.classList.remove('ch-drag', 'ch-bin'); suppress = true; setTimeout(function () { suppress = false; }, 80);
+      if (near && !main) {                                   // dropped on the X: it shrinks into it and stops floating
+        var tb = trash.getBoundingClientRect();
+        root.classList.add('ch-snap', 'ch-gone'); root.style.left = (tb.left + tb.width / 2 - SZ / 2) + 'px'; root.style.top = (tb.top + tb.height / 2 - SZ / 2) + 'px';
+        setTimeout(function () { store.patch(report, { pin: false }); }, 200);
+        return;
       }
+      var r = root.getBoundingClientRect(), mid = r.left + r.width / 2;
+      var side = Math.abs(vx) > 0.5 ? (vx > 0 ? 'r' : 'l') : (mid < window.innerWidth / 2 ? 'l' : 'r');
+      var y = Math.round(clampY(r.top));
+      root.classList.add('ch-snap'); root.style.left = xFor(side) + 'px'; root.style.top = y + 'px';
+      setTimeout(function () { root.classList.remove('ch-snap'); }, 400);
+      store.patch(report, { side: side, y: y, t: api.tracking || (store.cases()[report] || {}).t || '' });
     }
-    fab.addEventListener('pointerup', endDrag); fab.addEventListener('pointercancel', endDrag);
+    fab.addEventListener('pointerup', endDrag); fab.addEventListener('pointercancel', endDrag); fab.addEventListener('lostpointercapture', endDrag);
     fab.addEventListener('click', function () { if (suppress) { return; } if (panel.hidden) { open(); } else { close(); } });
     window.addEventListener('resize', applyPos);
 

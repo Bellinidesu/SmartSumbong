@@ -1847,3 +1847,29 @@ test('Chat heads float (12 Nov 2026): right-click the bubble for a menu; Float o
   await expect(page.locator('.ch-float')).toHaveCount(0);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('Chat heads drag like a phone\'s (12 Nov 2026): the panel shuts when the bubble is picked up, it springs to a side edge on letting go, and dropping a floating head on the round X stops it floating', async ({ page }) => {
+  await open(page, `case.php?id=${CASE}`);
+  await page.evaluate(id => localStorage.setItem('ss-chat-cases', JSON.stringify({ [id]: { pin: true, t: 'SS-2610-1001' } })), CASE);
+  await page.goto('cases.php', { waitUntil: 'domcontentloaded' });
+  const head = page.locator('.ch-float');
+  await expect(head).toHaveCount(1);
+  await head.locator('.ch-fab').click();
+  await expect(head.locator('.ch-panel')).toBeVisible();
+  const b = await head.locator('.ch-fab').boundingBox();
+  await page.mouse.move(b.x + 29, b.y + 29); await page.mouse.down();
+  await page.mouse.move(700, 400, { steps: 8 });
+  await expect(head.locator('.ch-panel')).toBeHidden();                     // picked up: the chat shuts
+  await page.mouse.up();
+  await expect.poll(async () => Math.round((await head.locator('.ch-fab').boundingBox()).x)).toBeLessThan(30);   // and it settles on the left edge
+  expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].side)).toBe('l');
+  const c = await head.locator('.ch-fab').boundingBox();
+  await page.mouse.move(c.x + 29, c.y + 29); await page.mouse.down();
+  await page.mouse.move(700, 600, { steps: 6 });
+  const tb = await page.locator('.ch-trash').boundingBox();
+  await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height / 2, { steps: 6 });
+  await expect(page.locator('.ch-trash')).toHaveClass(/ch-hot/);
+  await page.mouse.up();
+  await expect(page.locator('.ch-float')).toHaveCount(0);
+  expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].pin)).toBe(false);
+});

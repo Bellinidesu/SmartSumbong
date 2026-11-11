@@ -104,6 +104,13 @@
 .ch-placed { position: fixed; }
 .ch-drag .ch-fab { cursor: grabbing; transform: scale(1.06); box-shadow: 0 16px 34px rgba(255,152,0,.45), 0 4px 10px rgba(20,27,52,.3); }
 .ch-drag .ch-panel, .ch-drag .ch-peek { display: none; }
+.ch-snap { transition: left .34s cubic-bezier(.2,1.3,.4,1), top .34s ease; }
+.ch-bin .ch-fab { transform: scale(.72); opacity: .85; }
+.ch-gone { transform: scale(.2); opacity: 0; transition: left .2s ease, top .2s ease, transform .2s ease, opacity .2s ease; }
+.ch-trash { position: fixed; left: 50%; bottom: 28px; z-index: 1240; width: 64px; height: 64px; margin-left: -32px; display: grid; place-items: center; border-radius: 50%; background: rgba(20,27,52,.88); color: #fff; box-shadow: 0 10px 26px rgba(20,27,52,.34); opacity: 0; transform: translateY(46px) scale(.8); pointer-events: none; transition: opacity .18s ease, transform .18s ease, background .12s ease; }
+.ch-trash.ch-on { opacity: 1; transform: none; }
+.ch-trash.ch-hot { background: #D92D20; transform: scale(1.2); }
+@media (prefers-reduced-motion: reduce) { .ch-snap, .ch-gone, .ch-trash { transition: none; } }
 .ch-fab { cursor: grab; }
 .ch-tag { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; padding: 1px 7px; border-radius: 9px; background: var(--p-ink); color: var(--p-surface); font: 700 10.5px Inter, sans-serif; letter-spacing: .02em; pointer-events: none; white-space: nowrap; }
 .ch-open .ch-tag { display: none; }
