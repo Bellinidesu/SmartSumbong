@@ -66,6 +66,18 @@ current APK, receives fixes.
   CodeQL run on every pull request and weekly; Dependabot raises security
   updates. GitHub Actions are pinned to commit hashes.
 
+## Known limitations
+
+- Administrators sign in with a password only. Supabase supports a second
+  factor (TOTP), but the portal does not ask for one yet; it is planned work
+  after the capstone defense.
+- Passwords need at least 8 characters, with no composition rules (as NIST SP
+  800-63B advises). They are not checked against lists of breached passwords:
+  Supabase offers that on paid plans only.
+- Base images carry operating-system packages with published vulnerabilities
+  that have no fix yet; the image scan blocks a build only on fixable ones, and
+  the nightly rebuild picks fixes up as they are released.
+
 ## If something leaks
 
 [docs/INCIDENTS.md](docs/INCIDENTS.md) is the runbook: rotate first, then

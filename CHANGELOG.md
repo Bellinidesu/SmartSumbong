@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Backend guard (0170, 11 Nov, the backend sweep)**
+- Who may call what is on file: `supabase/grants.txt` lists what a signed-out and a signed-in caller may do with every function
+  and table. CI fails when the migrations produce anything else; the nightly backup fails when the live database differs. The move
+  to Singapore had left signed-out callers able to run 383 functions instead of 62 (found and repaired 11 Nov); this catches it
+  the same night next time. `supabase/tools/grants.sh` prints, checks, writes and applies it.
+- The scheduled jobs' own run history is kept seven days (it was never purged: 21,600 rows in four days).
+- Five functions name their search path; five small inlined helpers are left as they are on purpose (0170 says why).
+- The secret and dependency scanners in CI are checksum-pinned and retried (a download hiccup failed the Security run on 9 Nov).
+- The runbook's restore steps are the ones the move actually needed; SECURITY.md lists the known limitations.
+
 **Quiet background jobs (0168, 7 Nov)**
 - The database's own statistics: two scheduled jobs used two thirds of its time on a small shared server that every page waits on.
   The waiting-line sweep (every 2 minutes) now returns at once when no case waits for a tanod; the SMART watcher (every 5

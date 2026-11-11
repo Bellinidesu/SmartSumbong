@@ -1,0 +1,512 @@
+fn _add_report_evidence(p_report uuid, p_log uuid, p_kind text, p_media jsonb) anon=- authenticated=-
+fn _admin_tier_default() anon=- authenticated=-
+fn _ask_if_fixed() anon=call authenticated=call
+fn _case_committee(p_report uuid) anon=- authenticated=call
+fn _case_guard(p_report uuid) anon=- authenticated=-
+fn _case_guard_report() anon=call authenticated=call
+fn _case_guard_row() anon=call authenticated=call
+fn _catalogue_change_note() anon=call authenticated=call
+fn _cld_sign(p_url text, p_transformation text, p_secret text) anon=- authenticated=-
+fn _clear_alerts_except(p_prefix text, p_keep text[]) anon=- authenticated=-
+fn _close_concerns() anon=call authenticated=call
+fn _colour_clash(p_colour text, p_committee text) anon=- authenticated=call
+fn _colour_dist(a text, b text) anon=call authenticated=call
+fn _command_active() anon=- authenticated=-
+fn _command_auto() anon=- authenticated=-
+fn _command_cell(p_geom geography, p_metres integer) anon=- authenticated=-
+fn _command_counts(p_session uuid) anon=- authenticated=-
+fn _command_read(p_text text) anon=- authenticated=-
+fn _command_reading(p_report uuid) anon=- authenticated=-
+fn _command_reads_forget() anon=- authenticated=-
+fn _command_reports(p_mode text, p_since timestamp with time zone) anon=- authenticated=-
+fn _command_suggestion(p_signal smallint) anon=- authenticated=-
+fn _command_words_all() anon=- authenticated=-
+fn _committee_colour_check() anon=call authenticated=call
+fn _committee_free_colour() anon=- authenticated=call
+fn _committee_label(p text) anon=call authenticated=call
+fn _concern_backfill() anon=- authenticated=-
+fn _concern_snapshot() anon=call authenticated=call
+fn _dispatch_cap_guard() anon=call authenticated=call
+fn _engine_config() anon=- authenticated=-
+fn _flag_sensitive() anon=call authenticated=call
+fn _guard_admin_access() anon=- authenticated=-
+fn _guard_case_committee() anon=call authenticated=call
+fn _guard_official_fields() anon=call authenticated=call
+fn _id_reading_save(p_user uuid, p_type id_document_type, p_name text, p_number text) anon=- authenticated=-
+fn _inbox_alert() anon=- authenticated=call
+fn _is_sensitive_text(p_text text) anon=call authenticated=call
+fn _kagawad_of_staff(p_user uuid) anon=- authenticated=call
+fn _kagawad_of_tanod(p_tanod uuid) anon=- authenticated=call
+fn _mail_may_send(p_from uuid, p_to uuid) anon=- authenticated=-
+fn _main_concern() anon=call authenticated=call
+fn _notifications_scope() anon=- authenticated=-
+fn _notify_admins(p_message text, p_subject uuid) anon=- authenticated=-
+fn _notify_committee_heads(p_committee text, p_report uuid, p_kind text, p_message text) anon=- authenticated=call
+fn _notify_tanod_committee(p_to uuid, p_tanod uuid, p_message text) anon=- authenticated=call
+fn _places_grp(t jsonb) anon=call authenticated=call
+fn _places_query() anon=call authenticated=call
+fn _places_text(p_name text, p_aliases text[]) anon=call authenticated=call
+fn _poll_vote_guard() anon=- authenticated=-
+fn _raise_alert(p_key text, p_message text) anon=- authenticated=-
+fn _reports_scope_row() anon=- authenticated=-
+fn _reroute_ask(p_report uuid) anon=- authenticated=-
+fn _reroute_committee(p_report uuid) anon=- authenticated=-
+fn _reroute_ok(p_report uuid, p_tanod uuid) anon=- authenticated=-
+fn _resolution_tanod(p_report uuid, p_remark text, p_new_status report_status) anon=- authenticated=-
+fn _scan_guard() anon=- authenticated=-
+fn _scope_guard(p_report uuid, p_write boolean) anon=- authenticated=-
+fn _sees_punch_card(p_user uuid) anon=- authenticated=call
+fn _smart_apply_rules(p_changes jsonb) anon=- authenticated=-
+fn _smart_briefing_text(p_period text) anon=- authenticated=-
+fn _smart_category_hint(p_category complaint_category, p_subject text, p_description text) anon=- authenticated=-
+fn _smart_changed_since(p_at timestamp with time zone) anon=- authenticated=-
+fn _smart_common_words() anon=call authenticated=call
+fn _smart_concepts(p_text text) anon=- authenticated=-
+fn _smart_deadline_risk() anon=- authenticated=-
+fn _smart_digest_text() anon=- authenticated=-
+fn _smart_event(p_kind text, p_report uuid, p_summary text, p_detail jsonb) anon=- authenticated=-
+fn _smart_id_number(p_number text) anon=call authenticated=call
+fn _smart_id_number_ok(p_type id_document_type, p_number text) anon=call authenticated=call
+fn _smart_lexicon_snapshot() anon=- authenticated=-
+fn _smart_lexicon_versioned() anon=- authenticated=-
+fn _smart_name_match(p_registered text, p_read text) anon=call authenticated=call
+fn _smart_name_words(p_name text) anon=call authenticated=call
+fn _smart_new_version(p_default_reason text) anon=- authenticated=-
+fn _smart_patterns(p_days integer) anon=- authenticated=-
+fn _smart_queue() anon=- authenticated=-
+fn _smart_read(p_text text) anon=- authenticated=-
+fn _smart_referral(p_category complaint_category) anon=- authenticated=-
+fn _smart_rule_keys() anon=- authenticated=-
+fn _smart_rules_snapshot(p jsonb) anon=- authenticated=-
+fn _smart_rules_versioned() anon=- authenticated=-
+fn _smart_score(p_category complaint_category, p_subject text, p_description text, p_geom geography, p_at timestamp with time zone, p_resident uuid, p_exclude uuid) anon=- authenticated=-
+fn _smart_similar_cases(p_report uuid) anon=- authenticated=-
+fn _smart_snapshot_current() anon=- authenticated=-
+fn _smart_snapshot_refresh(p_force boolean) anon=- authenticated=-
+fn _smart_spikes() anon=- authenticated=-
+fn _smart_stem(p_tok text, p_vocab text[]) anon=- authenticated=-
+fn _smart_stuck() anon=- authenticated=-
+fn _smart_tanod_ranking(p_report uuid) anon=- authenticated=-
+fn _smart_tokens(p_text text) anon=call authenticated=call
+fn _smart_triage_after_write() anon=- authenticated=-
+fn _smart_unrepeat(p_words text[]) anon=- authenticated=-
+fn _smart_unstretch(p_tok text) anon=- authenticated=-
+fn _smart_verify(p_user uuid) anon=- authenticated=-
+fn _smart_vocab() anon=- authenticated=call
+fn _smart_word_candidates(p_days integer) anon=- authenticated=-
+fn _smart_words_hit(p_words jsonb, p_text text, p_read jsonb) anon=- authenticated=-
+fn _snap_deadline_risk() anon=- authenticated=-
+fn _snap_patterns() anon=- authenticated=-
+fn _snap_spikes() anon=- authenticated=-
+fn _snap_stuck() anon=- authenticated=-
+fn _status_log_no_repeat() anon=call authenticated=call
+fn _super_colour_check() anon=call authenticated=call
+fn _system_mail(p_to uuid, p_subject text, p_body text, p_report uuid, p_question bigint) anon=- authenticated=-
+fn _temp_password() anon=- authenticated=-
+fn _triage_rules_version() anon=call authenticated=call
+fn _user_sees_case(p_user uuid, p_report uuid, p_cat complaint_category, p_handler uuid) anon=- authenticated=-
+fn _user_sees_category(p_user uuid, p_cat complaint_category) anon=- authenticated=-
+fn _ws_feeds_ok(p_urls text[]) anon=call authenticated=call
+fn _ws_ids_ok(p_ids text[]) anon=call authenticated=call
+fn _ws_is_lead() anon=- authenticated=call
+fn _ws_options_ok(p_opts text[]) anon=call authenticated=call
+fn _ws_staff_guard() anon=- authenticated=-
+fn _ws_words_ok(p_words text[]) anon=call authenticated=call
+fn accept_dispatch(p_dispatch uuid) anon=- authenticated=call
+fn account_audit_fingerprint(a account_audit) anon=- authenticated=-
+fn account_directory(p_role user_role) anon=- authenticated=call
+fn add_report_concern(p_report uuid, p_category complaint_category, p_note text, p_option bigint) anon=- authenticated=call
+fn admin_barangay_update(p_report uuid, p_body text, p_media jsonb) anon=- authenticated=call
+fn admin_can_write() anon=- authenticated=call
+fn admin_candidates(p_search text) anon=- authenticated=call
+fn admin_dispatch(p_report uuid, p_tanod uuid, p_instructions text) anon=- authenticated=call
+fn admin_reroute_dispatch(p_dispatch uuid, p_reason text, p_to uuid) anon=- authenticated=call
+fn admin_reset_password(p_user uuid) anon=- authenticated=call
+fn admin_scoped() anon=- authenticated=call
+fn admin_sees_case(p_report uuid, p_cat complaint_category, p_handler uuid) anon=- authenticated=call
+fn admin_sees_category(p_cat complaint_category) anon=- authenticated=call
+fn admin_sees_dispatch(p_dispatch uuid) anon=- authenticated=call
+fn admin_sees_report(p_report uuid) anon=- authenticated=call
+fn admin_set_status(p_report uuid, p_status text, p_remark text, p_media jsonb) anon=- authenticated=call
+fn admin_tier() anon=- authenticated=call
+fn admin_update_user(p_user uuid, p_full_name text, p_email text) anon=- authenticated=call
+fn answer_reroute_question(p_question bigint, p_tanod uuid) anon=- authenticated=call
+fn app_release_publish(p_version text, p_build integer, p_url text, p_sha256 text, p_notes_en text, p_notes_fil text, p_mandatory boolean) anon=- authenticated=call
+fn app_release_set_active(p_id uuid, p_on boolean) anon=- authenticated=call
+fn appeal_report(p_report uuid, p_remark text) anon=- authenticated=call
+fn approve_escalation(p_request uuid, p_office text, p_note text) anon=- authenticated=call
+fn approve_resolution(p_report uuid) anon=- authenticated=call
+fn assert_not_client(p_what text) anon=- authenticated=call
+fn assign_tracking_id() anon=call authenticated=call
+fn assignable_tanods(p_report uuid) anon=- authenticated=call
+fn audit_integrity() anon=- authenticated=call
+fn auth_email_for(p_mobile text) anon=call authenticated=call
+fn auto_dispatch(p_report uuid) anon=- authenticated=-
+fn cancel_admin_handover() anon=- authenticated=call
+fn cancel_report(p_report uuid, p_reason text) anon=- authenticated=call
+fn case_committee(r reports) anon=- authenticated=call
+fn catalogue_fill() anon=- authenticated=call
+fn category_save(p_key text, p_label_en text, p_label_fil text, p_colour text, p_icon text, p_active boolean, p_sort integer) anon=- authenticated=call
+fn chain_account_audit() anon=call authenticated=call
+fn chain_status_log() anon=call authenticated=call
+fn check_login_lockout(p_mobile text) anon=call authenticated=call
+fn check_system_health() anon=- authenticated=-
+fn clear_login_attempts(p_mobile text) anon=- authenticated=call
+fn clear_password_change_flag() anon=- authenticated=call
+fn command_board(p_mode text, p_signal smallint) anon=- authenticated=call
+fn command_check(p_item text, p_done boolean, p_note text) anon=- authenticated=call
+fn command_dismiss(p_mode text, p_hours integer) anon=- authenticated=call
+fn command_display_link_create(p_label text) anon=- authenticated=call
+fn command_display_link_revoke(p_id uuid) anon=- authenticated=call
+fn command_end(p_note text) anon=- authenticated=call
+fn command_feed(p_limit integer) anon=- authenticated=call
+fn command_hall(p_token text) anon=call authenticated=call
+fn command_handover(p_note text) anon=- authenticated=call
+fn command_now() anon=- authenticated=call
+fn command_place_check(p_place bigint, p_status text, p_note text) anon=- authenticated=call
+fn command_set_auto(p_on boolean) anon=- authenticated=call
+fn command_start(p_mode text, p_reason text, p_how text) anon=- authenticated=call
+fn command_suggest(p_signal smallint) anon=- authenticated=call
+fn committee_save(p_key text, p_name_en text, p_name_fil text, p_active boolean, p_short text, p_colour text) anon=- authenticated=call
+fn committee_set_categories(p_key text, p_categories complaint_category[]) anon=- authenticated=call
+fn committee_set_logo(p_key text, p_url text) anon=- authenticated=call
+fn complaint_catalogue(p_all boolean) anon=call authenticated=call
+fn confirm_fix(p_report uuid, p_fixed boolean, p_note text) anon=- authenticated=call
+fn confirm_synthetic_auth_email() anon=call authenticated=call
+fn create_admin_account(p_email text, p_full_name text, p_mobile text) anon=- authenticated=call
+fn dashboard_committees(p_month_from timestamp with time zone) anon=- authenticated=call
+fn dashboard_metrics(p_from timestamp with time zone, p_to timestamp with time zone, p_category complaint_category) anon=- authenticated=call
+fn dashboard_slice(p_from timestamp with time zone, p_to timestamp with time zone, p_kind text, p_key text, p_limit integer) anon=- authenticated=call
+fn decide_profile_request(p_request uuid, p_approve boolean, p_note text) anon=- authenticated=call
+fn decide_tanod_committee(p_tanod uuid, p_committee text, p_approve boolean, p_note text) anon=- authenticated=call
+fn deny_escalation(p_request uuid, p_reason text) anon=- authenticated=call
+fn dev_levels() anon=- authenticated=call
+fn dev_test_accounts_ensure(p_committee text) anon=- authenticated=call
+fn dismiss_forward_flag(p_flag bigint, p_note text) anon=- authenticated=call
+fn dispatch_on_file() anon=call authenticated=call
+fn display_name(p_name text) anon=call authenticated=call
+fn end_sessions_on_access_change() anon=- authenticated=-
+fn endorse_retirement(p_request uuid, p_note text) anon=- authenticated=call
+fn enforce_daily_report_limit() anon=call authenticated=call
+fn enforce_media_cap() anon=call authenticated=call
+fn engine_enqueue() anon=- authenticated=-
+fn engine_status() anon=- authenticated=call
+fn engine_tick() anon=- authenticated=-
+fn escalate_in_barangay(p_report uuid, p_reason text, p_committee text) anon=- authenticated=call
+fn escalation_target(p_report uuid, p_committee text) anon=- authenticated=call
+fn extensions_used(p_report uuid) anon=- authenticated=call
+fn feature_on(p_key text) anon=- authenticated=call
+fn feature_set(p_key text, p_on boolean) anon=- authenticated=call
+fn file_report(p_category complaint_category, p_subject text, p_description text, p_latitude double precision, p_longitude double precision, p_is_anonymous boolean, p_media jsonb, p_client_ref uuid, p_option bigint, p_concerns jsonb) anon=- authenticated=call
+fn finalize_retirement(p_request uuid, p_decision text, p_reason text) anon=- authenticated=call
+fn flag_case_for_forward(p_report uuid, p_reason text, p_to text) anon=- authenticated=call
+fn follow_up_report(p_report uuid, p_message text) anon=- authenticated=call
+fn forward_case(p_report uuid, p_to text, p_note text, p_flag bigint) anon=- authenticated=call
+fn guard_last_admin() anon=call authenticated=call
+fn guard_privileged_user_fields() anon=call authenticated=call
+fn hand_to_higher_official(p_report uuid, p_official text, p_note text) anon=- authenticated=call
+fn handle_new_auth_user() anon=call authenticated=call
+fn identity_media_in_use(p_url text) anon=- authenticated=-
+fn is_admin() anon=call authenticated=call
+fn is_barangay_media_url(p_url text) anon=- authenticated=call
+fn is_evidence_media_url(p_url text) anon=- authenticated=call
+fn is_full_viewer() anon=- authenticated=call
+fn is_identity_media_url(p_url text) anon=call authenticated=call
+fn is_media_url(p_url text) anon=- authenticated=call
+fn is_super_admin() anon=- authenticated=call
+fn is_within_barangay(p_lat double precision, p_lon double precision) anon=- authenticated=call
+fn latest_app_release() anon=call authenticated=call
+fn location_is_fresh(p_at timestamp with time zone) anon=- authenticated=call
+fn log_duty_change() anon=- authenticated=-
+fn log_portal_error(p_source text, p_page text, p_message text, p_detail text) anon=call authenticated=call
+fn mail_recipients() anon=- authenticated=call
+fn mark_mail_read(p_ids bigint[]) anon=- authenticated=call
+fn media_trash_done(p_urls text[]) anon=- authenticated=-
+fn media_trash_due(p_limit integer) anon=- authenticated=-
+fn my_admin_handover_status() anon=- authenticated=call
+fn my_resolution_authors(p_report_ids uuid[]) anon=- authenticated=call
+fn my_retirement_status() anon=- authenticated=call
+fn my_role() anon=- authenticated=call
+fn my_status_log_authors(p_report_id uuid) anon=- authenticated=call
+fn nearest_available_tanod(p_report uuid) anon=- authenticated=call
+fn notification_committee(n notifications) anon=- authenticated=call
+fn option_save(p_id bigint, p_category text, p_label_en text, p_label_fil text, p_active boolean, p_sort integer) anon=- authenticated=call
+fn otp_attempt(p_user uuid, p_purpose text, p_hash text, p_max integer) anon=- authenticated=-
+fn personnel_committees() anon=- authenticated=call
+fn ping_portal() anon=- authenticated=-
+fn place_remove(p_id bigint) anon=- authenticated=call
+fn place_save(p_id bigint, p_name text, p_grp text, p_lat double precision, p_lng double precision, p_aliases text[]) anon=- authenticated=call
+fn places_norm(p text) anon=call authenticated=call
+fn places_refresh_ask() anon=- authenticated=-
+fn places_refresh_file() anon=- authenticated=-
+fn places_status() anon=- authenticated=call
+fn poll_vote(p_poll uuid, p_choice smallint) anon=- authenticated=call
+fn portal_uptime_summary() anon=- authenticated=call
+fn post_dispatch_update(p_dispatch uuid, p_body text, p_media jsonb) anon=- authenticated=call
+fn post_report_message(p_report uuid, p_body text) anon=- authenticated=call
+fn preview_end(p_id uuid) anon=- authenticated=call
+fn preview_pair(p_code text, p_device text) anon=- authenticated=call
+fn preview_start() anon=- authenticated=call
+fn profile_requests_queue_media_trash() anon=- authenticated=-
+fn promote_to_admin(p_user uuid, p_reason text, p_handover_days integer, p_revert_role user_role) anon=- authenticated=call
+fn propose_tanod_committee(p_tanod uuid, p_committee text, p_role text, p_note text) anon=- authenticated=call
+fn public_incidents() anon=- authenticated=call
+fn punch(p_kind text) anon=- authenticated=call
+fn punch_cards(p_days integer, p_user uuid) anon=- authenticated=call
+fn purge_cron_history() anon=- authenticated=-
+fn purge_old_notifications() anon=- authenticated=-
+fn purge_old_records() anon=- authenticated=-
+fn push_plan(p_id uuid) anon=- authenticated=-
+fn push_test() anon=- authenticated=call
+fn queue_media_trash(p_url text) anon=- authenticated=-
+fn record_game_score(p_game text, p_score numeric) anon=- authenticated=call
+fn redispatch_report(p_report uuid, p_why text) anon=- authenticated=-
+fn refer_report(p_report uuid, p_agency text, p_note text) anon=- authenticated=call
+fn refuse_audit_write() anon=call authenticated=call
+fn register_device_token(p_token text, p_platform text) anon=- authenticated=call
+fn register_login_failure(p_mobile text) anon=call authenticated=call
+fn reject_resolution(p_report uuid, p_reason text) anon=- authenticated=call
+fn release_case(p_report uuid) anon=- authenticated=call
+fn remove_tanod_committee(p_tanod uuid, p_committee text, p_note text) anon=- authenticated=call
+fn reopen_report(p_report uuid, p_reason text) anon=- authenticated=call
+fn report_hotspots(p_from timestamp with time zone, p_to timestamp with time zone, p_category complaint_category) anon=- authenticated=call
+fn request_account_deletion() anon=- authenticated=call
+fn request_additional_details(p_report uuid, p_message text) anon=- authenticated=call
+fn request_appeal(p_report uuid, p_reason text, p_media jsonb) anon=- authenticated=call
+fn request_escalation(p_dispatch uuid, p_reason text, p_office text) anon=- authenticated=call
+fn request_id_reupload(p_id_type text, p_id_image_url text, p_reason text) anon=- authenticated=call
+fn request_ocr_rescan(p_user uuid) anon=- authenticated=call
+fn request_profile_change(p_field text, p_value text, p_reason text) anon=- authenticated=call
+fn request_reopen(p_report uuid, p_reason text, p_media jsonb) anon=- authenticated=call
+fn request_retirement() anon=- authenticated=call
+fn request_source() anon=- authenticated=-
+fn reroute_dispatch(p_dispatch uuid, p_reason text, p_to uuid) anon=- authenticated=call
+fn reset_admin_password(p_user uuid) anon=- authenticated=call
+fn reset_verification_overdue_mark() anon=call authenticated=call
+fn resident_abuse_reports(p_user uuid) anon=- authenticated=call
+fn resident_remark(p_remark text, p_is_system boolean) anon=call authenticated=call
+fn retirement_requests_queue() anon=- authenticated=call
+fn return_from_official(p_report uuid, p_remark text) anon=- authenticated=call
+fn review_report(p_report uuid, p_decision text, p_remark text, p_abusive boolean) anon=- authenticated=call
+fn revoke_user_sessions(p_user uuid) anon=- authenticated=-
+fn run_admin_handover_expirations() anon=- authenticated=-
+fn run_media_cleanup() anon=- authenticated=-
+fn search_places(p_q text, p_lat double precision, p_lng double precision, p_limit integer) anon=- authenticated=call
+fn send_mail(p_to uuid[], p_subject text, p_body text, p_report uuid, p_reply_to bigint) anon=- authenticated=call
+fn set_accept_deadline() anon=call authenticated=call
+fn set_account_suspension(p_user uuid, p_suspend boolean, p_reason text) anon=- authenticated=call
+fn set_admin_access(p_user uuid, p_tier text, p_committee text, p_dev boolean) anon=- authenticated=call
+fn set_case_sensitive(p_report uuid, p_on boolean, p_reason text) anon=- authenticated=call
+fn set_concern_status(p_concern uuid, p_resolved boolean, p_remark text) anon=- authenticated=call
+fn set_dispatch_step(p_dispatch uuid, p_step text) anon=- authenticated=call
+fn set_my_banner(p_preset text, p_colour text, p_url text, p_y integer) anon=- authenticated=call
+fn set_notification_mute(p_kind notification_kind, p_muted boolean) anon=- authenticated=call
+fn set_official_role(p_user uuid, p_role text, p_committee text, p_women boolean) anon=- authenticated=call
+fn set_push_choices(p_scope text, p_quiet_from smallint, p_quiet_to smallint, p_quiet_urgent boolean) anon=- authenticated=call
+fn set_report_deadline() anon=call authenticated=call
+fn set_report_location_label(p_report uuid, p_label text) anon=- authenticated=call
+fn set_report_public(p_report uuid, p_public boolean) anon=- authenticated=call
+fn set_resolution_target(p_report uuid, p_due timestamp with time zone, p_reason text) anon=- authenticated=call
+fn set_verification_deadline() anon=call authenticated=call
+fn shift_checkin(p_mood text) anon=- authenticated=call
+fn shift_mood_totals(p_date date) anon=- authenticated=call
+fn smart_calibration(p_days integer) anon=- authenticated=call
+fn smart_case_card(p_report uuid) anon=- authenticated=call
+fn smart_chart_notes(p_chart text, p_from timestamp with time zone, p_to timestamp with time zone, p_category complaint_category) anon=- authenticated=call
+fn smart_deadline_risk() anon=- authenticated=call
+fn smart_digest_preview() anon=- authenticated=call
+fn smart_digest_send(p_period text) anon=- authenticated=-
+fn smart_duplicates(p_report uuid) anon=- authenticated=call
+fn smart_duplicates_of(p_report uuid) anon=- authenticated=-
+fn smart_engine_health() anon=- authenticated=call
+fn smart_eta(p_category complaint_category) anon=- authenticated=call
+fn smart_factor_stats(p_days integer) anon=- authenticated=call
+fn smart_fairness(p_days integer) anon=- authenticated=call
+fn smart_fix_stats(p_days integer) anon=- authenticated=call
+fn smart_forecast(p_days integer) anon=- authenticated=call
+fn smart_module() anon=- authenticated=call
+fn smart_morning_digest() anon=- authenticated=-
+fn smart_override(p_report uuid, p_level text, p_reason text) anon=- authenticated=call
+fn smart_patterns(p_days integer) anon=- authenticated=call
+fn smart_pick_stats(p_days integer) anon=- authenticated=call
+fn smart_preview(p_category complaint_category, p_subject text, p_description text, p_lat double precision, p_lng double precision) anon=- authenticated=call
+fn smart_queue(p_stage text, p_limit integer) anon=- authenticated=call
+fn smart_read(p_text text) anon=- authenticated=call
+fn smart_replay(p_changes jsonb, p_days integer, p_limit integer) anon=- authenticated=call
+fn smart_retriage(p_report uuid) anon=- authenticated=call
+fn smart_rollback(p_version integer, p_reason text) anon=- authenticated=call
+fn smart_roster_suggestion(p_days integer) anon=- authenticated=call
+fn smart_rule_history(p_limit integer) anon=- authenticated=call
+fn smart_save_rules(p_changes jsonb, p_reason text) anon=- authenticated=call
+fn smart_similar_cases(p_report uuid) anon=- authenticated=call
+fn smart_sla_scorecard(p_month date) anon=- authenticated=call
+fn smart_spikes() anon=- authenticated=call
+fn smart_storm_mode(p_on boolean, p_reason text, p_hours integer) anon=- authenticated=call
+fn smart_stuck_cases() anon=- authenticated=call
+fn smart_summary() anon=- authenticated=call
+fn smart_tanod_ranking(p_report uuid) anon=- authenticated=call
+fn smart_teach_word(p_word text, p_as text, p_target text) anon=- authenticated=call
+fn smart_time_patterns(p_days integer, p_category complaint_category) anon=- authenticated=call
+fn smart_triage(p_report uuid) anon=- authenticated=-
+fn smart_verify(p_user uuid) anon=- authenticated=call
+fn smart_verify_queue(p_role user_role) anon=- authenticated=call
+fn smart_watch() anon=- authenticated=-
+fn smart_why_order(p_report uuid) anon=- authenticated=call
+fn smart_word_suggestions(p_days integer) anon=- authenticated=call
+fn smart_workorder_create(p_pattern_key text, p_title text, p_note text) anon=- authenticated=call
+fn smart_workorder_set(p_id uuid, p_status text, p_note text) anon=- authenticated=call
+fn status_log_fingerprint(l status_logs) anon=- authenticated=-
+fn step_down_as_admin(p_new_role user_role) anon=- authenticated=call
+fn submit_additional_details(p_request uuid, p_details text, p_media jsonb) anon=- authenticated=call
+fn submit_field_report(p_dispatch uuid, p_text text) anon=- authenticated=call
+fn submit_id_reading(p_detected_type id_document_type, p_name text, p_number text) anon=- authenticated=call
+fn sweep_awaiting_units() anon=- authenticated=-
+fn sweep_overdue_reports() anon=- authenticated=-
+fn sweep_overdue_verifications() anon=- authenticated=-
+fn sweep_reroute_questions() anon=- authenticated=-
+fn sweep_unaccepted_dispatches() anon=- authenticated=-
+fn sync_dispatchable() anon=call authenticated=call
+fn system_usage() anon=- authenticated=call
+fn take_case(p_report uuid) anon=- authenticated=call
+fn take_over_case(p_report uuid, p_reason text) anon=- authenticated=call
+fn take_rate_slot(p_bucket text, p_max integer, p_window interval) anon=- authenticated=-
+fn tanod_dispatch_cap() anon=call authenticated=call
+fn tanod_pick_list() anon=- authenticated=call
+fn tanod_roster(p_report uuid) anon=- authenticated=call
+fn touch_settings() anon=call authenticated=call
+fn touch_updated_at() anon=call authenticated=call
+fn unregister_device_token(p_token text) anon=- authenticated=call
+fn update_my_location(p_lat double precision, p_lon double precision) anon=- authenticated=call
+fn users_queue_media_trash() anon=- authenticated=-
+fn verify_report_trail(p_report uuid) anon=- authenticated=call
+fn verify_user_account(p_user uuid, p_decision text, p_reason text) anon=- authenticated=call
+fn web_push_subscribe(p_endpoint text, p_p256dh text, p_auth text, p_label text) anon=- authenticated=call
+fn web_push_unsubscribe(p_endpoint text) anon=- authenticated=call
+fn workspace_activity(p_limit integer) anon=- authenticated=call
+fn workspace_alarm_db() anon=- authenticated=call
+fn workspace_find(p_q text) anon=- authenticated=call
+fn workspace_numbers() anon=- authenticated=call
+fn workspace_photos(p_limit integer) anon=- authenticated=call
+fn workspace_risk() anon=- authenticated=call
+fn workspace_save(p_tabs text[], p_tab text, p_feeds text[], p_keywords text[], p_mine jsonb) anon=- authenticated=call
+fn workspace_team() anon=- authenticated=call
+seq admin_punches_id_seq anon=usage,select,update authenticated=usage,select,update
+seq case_forwards_id_seq anon=usage,select,update authenticated=usage,select,update
+seq command_handovers_id_seq anon=usage,select,update authenticated=usage,select,update
+seq complaint_options_id_seq anon=usage,select,update authenticated=usage,select,update
+seq dev_level_switches_id_seq anon=usage,select,update authenticated=usage,select,update
+seq engine_jobs_id_seq anon=usage,select,update authenticated=usage,select,update
+seq hazard_zones_id_seq anon=usage,select,update authenticated=usage,select,update
+seq inbox_messages_id_seq anon=usage,select,update authenticated=usage,select,update
+seq places_id_seq anon=usage,select,update authenticated=usage,select,update
+seq portal_errors_id_seq anon=usage,select,update authenticated=usage,select,update
+seq portal_outages_id_seq anon=usage,select,update authenticated=usage,select,update
+seq portal_uptime_id_seq anon=usage,select,update authenticated=usage,select,update
+seq report_seq anon=usage,select,update authenticated=usage,select,update
+seq reroute_questions_id_seq anon=usage,select,update authenticated=usage,select,update
+seq smart_events_id_seq anon=usage,select,update authenticated=usage,select,update
+seq smart_rule_versions_version_seq anon=usage,select,update authenticated=usage,select,update
+seq tanod_committee_log_id_seq anon=usage,select,update authenticated=usage,select,update
+seq web_push_subscriptions_id_seq anon=usage,select,update authenticated=usage,select,update
+table account_audit anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table admin_punches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table app_releases anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table attendance anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table barangay_boundary anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table barangay_profile anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table case_forwards anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table case_handler_log anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table checkpoint_scans anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
+table command_checklist anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_checks anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_display_links anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_handovers anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_modes anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_place_checks anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_place_kinds anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_reads anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_sessions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_state anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_tags anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table command_words anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table committee_categories anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table committee_for_category anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table committees anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table complaint_categories anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table complaint_options anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table detail_requests anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table dev_level_switches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table dev_test_accounts anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table device_tokens anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table dispatch_media anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table dispatch_updates anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table dispatches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table duty_roster anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
+table engine_jobs anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table escalation_requests anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table feature_switches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table feedback anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table game_scores anon=- authenticated=select,truncate,references,trigger rls=on
+table hazard_zones anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table hotline_groups anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table hotline_numbers anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table inbox_messages anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table login_attempts anon=- authenticated=- rls=on
+table login_failure_sources anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table look_shares anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,delete,truncate,references,trigger rls=on
+table media_trash anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table notifications anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table operational_settings anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table password_otps anon=- authenticated=- rls=on
+table patrol_checkpoints anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table place_kinds anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table places anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table places_refresh anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table poll_votes anon=- authenticated=select,insert,truncate,references,trigger rls=on
+table polls anon=- authenticated=select,insert,truncate,references,trigger rls=on
+table portal_errors anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table portal_outages anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table portal_uptime anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table preview_attempts anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table preview_sessions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table profile_requests anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table rate_limit_hits anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table relief_tally anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
+table report_concerns anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table report_evidence anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table report_media anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table report_messages anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table report_triage anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table reports anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table reroute_questions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table resolution_checks anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table retirement_requests anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table safe_point_notes anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table shift_checkins anon=- authenticated=select,insert,truncate,references,trigger rls=on
+table sla_extensions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table sla_policies anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table smart_events anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table smart_lexicon anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table smart_overrides anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table smart_patterns_seen anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table smart_rule_versions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table smart_rules anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table smart_snapshot anon=- authenticated=- rls=on
+table smart_watch_state anon=- authenticated=- rls=on
+table smart_word_decisions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table smart_work_orders anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table staff_credentials anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table staff_dates anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table staff_leave anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
+table status_logs anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table system_alerts anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table tanod_committee_log anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table tanod_committees anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table team_post_reads anon=- authenticated=select,insert,truncate,references,trigger rls=on
+table team_posts anon=- authenticated=select,insert,truncate,references,trigger rls=on
+table users anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table web_push_subscriptions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table wording anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table workspace_prefs anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table workspace_settings anon=- authenticated=select,update,truncate,references,trigger rls=on
+view case_forward_flags anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=off

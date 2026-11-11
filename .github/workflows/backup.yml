@@ -78,6 +78,12 @@ jobs:
           sudo apt-get install -y -q postgresql-17 postgresql-17-postgis-3 postgresql-17-cron
       - name: Restore drill
         run: bash tools/restore_drill.sh "$(ls out/smartsumbong-*.tgz.gpg | head -1)"
+      # 11 Nov 2026: what a signed-out and a signed-in caller may do in the live database is what is on file (supabase/grants.txt,
+      # the same file CI holds the migrations to). A restore, a new project or a dashboard click that leaves grants wider than
+      # the migrations intend fails the night. Object names and rights only.
+      - name: The live grants are the ones on file
+        run: |
+          PGPASSWORD="$SUPABASE_DB_PASSWORD" bash supabase/tools/grants.sh check             -h aws-0-ap-southeast-1.pooler.supabase.com -p 5432 -U postgres.vmtzyyyxcmhtqgeeorhg -d postgres
       - name: Tell the backup check how it went
         if: always()
         run: |

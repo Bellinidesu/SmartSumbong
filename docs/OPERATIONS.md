@@ -236,14 +236,66 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
 - **Nightly** (`.github/workflows/backup.yml`, 02:30 PH time): roles, schema
   and data, encrypted with `BACKUP_PASSPHRASE`, kept 30 days as the
   `smartsumbong-backup` artifact of each run.
-- **Restore** into a fresh Supabase project:
+- **Restore** into a fresh Supabase project (the steps the move from Mumbai to
+  Singapore needed, 7 Nov 2026; `.github/workflows/move-sg.yml` in its history
+  is a worked example):
   1. Download the artifact; `gpg --decrypt smartsumbong-<date>.tgz.gpg | tar xz`.
-  2. `psql "<new project connection string>" -f roles.sql`, then
-     `-f schema.sql`, then `-f data.sql`.
-  3. Point the portal (`SUPABASE_URL`, key) and the app's
-     `dart_defines.json` at the new project; redeploy the Edge Functions and
-     set their secrets.
+  2. In the new project, before restoring: turn on **Database Webhooks**
+     (Integrations; it creates the `supabase_functions` schema the
+     `dispatch_push` webhook uses), and create the extensions the schema needs:
+     `fuzzystrmatch`, `pg_trgm`, `postgis` and `pg_net` (each
+     `with schema extensions`), and `pg_cron`.
+  3. Restore in one transaction:
+     `psql "<conn>" --single-transaction -v ON_ERROR_STOP=1 -f schema.sql -c 'SET session_replication_role = replica' -f data.sql`.
+     Skip `roles.sql` (it holds only the Supabase CLI's own login role). First
+     drop the `COPY "storage".…` blocks from `data.sql`: nothing is stored
+     there, and those tables are Supabase's to write.
+  4. **Grants:** `bash supabase/tools/grants.sh apply <psql options>`, then
+     `grants.sh check <psql options>`. A new project grants everything to
+     signed-out and signed-in callers as each object is created, and a dump
+     carries no revoke for that: skipping this step left signed-out callers
+     able to run 383 functions instead of 62 after the move.
+  5. Set by hand what a dump does not carry:
+     - the scheduled jobs (`cron.job`): create them switched off, turn them on
+       at the cutover, and turn the old project's off;
+     - the migration history (`supabase_migrations.schema_migrations`: each
+       version and name), so `supabase db push` knows what is applied;
+     - the two vault secrets, `media_cleanup_secret` and `media_cleanup_url`
+       (the new project's `/functions/v1/media-cleanup`);
+     - the webhook trigger `dispatch_push` (after insert on
+       `public.notifications`, for each row): POST to the new project's
+       `/functions/v1/send-dispatch-push`, timeout 5000 ms, headers
+       `Content-type`, `Authorization: Bearer <service role key>` and
+       `x-webhook-secret: <PUSH_WEBHOOK_SECRET>`;
+     - the auth settings: site URL, redirect URLs, minimum password length 8.
+       Push a small config that declares only these: the repository's
+       `supabase/config.toml` is the local-development one and would weaken
+       the project;
+     - the Edge Functions (`supabase functions deploy --project-ref <ref> --use-api`)
+       and their secrets.
+  6. Point everything at the new project: Render's `SUPABASE_URL` and
+     `SUPABASE_PUBLISHABLE_KEY` (then redeploy), the GitHub secrets
+     `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_DB_PASSWORD`, the laptop
+     `.env`, `supabase/config.toml`, `deploy.yml`, `backup.yml`,
+     `.github/scripts/db-checks.sh`, and the app's `dart_defines.json` (then a
+     new APK).
 - Photos live in Cloudinary, not in the database backup.
+- Two old demo cases (BRG-2026-0049 and BRG-2026-0056) carry about 22,900
+  repeats of one system line from a bug fixed in October 2026. They are kept on
+  purpose: the trail is hash-chained and append-only, and removing them would
+  mean rebuilding the chain. Their case pages load only the newest 600 entries.
+
+## Who may call what (`supabase/grants.txt`)
+
+The file lists, for every function, table, view and sequence in `public`, what
+a signed-out caller (`anon`) and a signed-in one (`authenticated`) may do. It
+is checked twice: CI fails when the migrations produce anything else, and the
+nightly backup job fails when the live database differs from it (a restore, a
+dashboard click or a new project that widens or narrows access is caught the
+same night). `bash supabase/tools/grants.sh print|check|write|apply <psql options>`.
+A migration that changes who may call something must update the file: the
+"Rebuild baseline" workflow (push a `baseline-*` branch) produces it next to the
+baseline.
 
 ## Releasing the app
 
