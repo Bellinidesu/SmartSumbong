@@ -920,7 +920,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   dlg.addEventListener('htmx:afterRequest', function (e) { if (e.detail && e.detail.successful) dlg.close(); });
 })();
 </script>
-<script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
+<script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
 <script>
 // Realtime for the case list + notifications panel — explicit ask, 6 Sep
 // 2026: "the entire system needs to work realtime." reports, dispatches,

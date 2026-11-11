@@ -30,6 +30,9 @@
 // plus SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets.
 
 import { logError } from "../_shared/log.ts";
+import { timedFetch } from "../_shared/fetch.ts";
+// every outside call gives up after 10 seconds (_shared/fetch.ts, 11 Nov 2026)
+const fetch = timedFetch(10_000);
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

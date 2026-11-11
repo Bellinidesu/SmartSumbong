@@ -2,6 +2,10 @@
 // 0119), so it shows under Settings -> System status -> Recent errors and
 // raises the hourly health alert. Never throws: logging must not turn one
 // failure into two. Only the error's message is kept (no request bodies).
+import { timedFetch } from "./fetch.ts";
+// the error log gives up after 3 seconds: a failure is never made slower by logging it (11 Nov 2026)
+const fetch = timedFetch(3_000);
+
 export async function logError(fn: string, e: unknown): Promise<void> {
   try {
     const url = Deno.env.get("SUPABASE_URL");

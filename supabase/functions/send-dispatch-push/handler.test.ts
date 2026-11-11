@@ -139,3 +139,16 @@ Deno.test("a status check with no body is answered, not logged as an error", asy
     assertEquals(s.calls.length, 0);
   } finally { s.restore(); }
 });
+
+Deno.test("the portal's status probe needs no secret; a push asked for without the right one is refused", async () => {
+  const s = world({ tokens: ["phone"] });
+  try {
+    // the status page probes with OPTIONS and no secret: answered, nothing sent
+    assertEquals((await handler(new Request("https://fn.test/", { method: "OPTIONS" }))).status, 200);
+    // a push request with no secret, or a wrong one, is refused before anything is read or sent
+    const ask = (h: Record<string, string>) => post({ type: "INSERT", table: "notifications", record: { id: "c0000000-0000-0000-0000-000000000001" } }, h);
+    assertEquals((await handler(ask({}))).status, 403);
+    assertEquals((await handler(ask({ "x-webhook-secret": "not-the-secret" }))).status, 403);
+    assertEquals(s.calls.length, 0);
+  } finally { s.restore(); }
+});

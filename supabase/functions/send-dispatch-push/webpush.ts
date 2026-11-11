@@ -1,3 +1,6 @@
+import { timedFetch } from "../_shared/fetch.ts";
+// every outside call gives up after 10 seconds (_shared/fetch.ts, 11 Nov 2026)
+const fetch = timedFetch(10_000);
 // SmartSumbong — Web Push for the portal's browsers (0136)
 //
 // Written against the two standards with the Web Crypto API alone, the way

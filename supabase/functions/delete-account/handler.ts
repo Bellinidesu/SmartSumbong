@@ -41,6 +41,9 @@
 // production — see the deploy notes.
 
 import { logError } from "../_shared/log.ts";
+import { timedFetch } from "../_shared/fetch.ts";
+// every outside call gives up after 10 seconds (_shared/fetch.ts, 11 Nov 2026)
+const fetch = timedFetch(10_000);
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;

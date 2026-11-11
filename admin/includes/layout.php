@@ -558,7 +558,7 @@ window.ssSupabase = function (url, key, initial) {
       // localStorage (Back fetches the page fresh), same-origin only; assets/js/press.js is the portal's layer over it. ?>
 <meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"refreshOnHistoryMiss":true,"selfRequestsOnly":true,"includeIndicatorStyles":false,"scrollIntoViewOnBoost":false,"defaultSettleDelay":0,"getCacheBusterParam":false}'>
 <link href="assets/css/press.css?v=<?= e(asset_version('press.css')) ?>" rel="stylesheet">
-<script src="assets/vendor/htmx/htmx.min.js?v=2.0.11" defer></script>
+<script src="assets/vendor/htmx/htmx.min.js?v=<?= e(vendor_version('htmx')) ?>" defer></script>
 <script src="assets/js/press.js?v=<?= e(asset_version('../js/press.js')) ?>" defer></script>
 <?php // Speed work, step 4 (7 Nov 2026): a page link held under the pointer (or pressed) is fetched a moment early, so the next page
       // is often already here when the click lands (Speculation Rules, prefetch only, never prerender: no page runs before it is

@@ -1,0 +1,15 @@
+name: An idea
+description: Something the system should do, or do differently
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Who needs it, and why
+      description: Which role (resident, tanod, staff, Kagawad, Chairman, super admin) and what they are trying to do
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind

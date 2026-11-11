@@ -1,0 +1,32 @@
+name: Something is wrong
+description: The portal, the app or the database does something it should not
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **A security problem? Do not open an issue.** Report it privately: Security → Report a vulnerability (see SECURITY.md).
+        Never paste a resident's name, number, photo or location here: describe the case without them.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options: [Admin portal, Resident or tanod app, Database or scheduled jobs, Edge Functions, CI or tooling, Documentation]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      placeholder: "1. Sign in as a Kagawad\n2. Open Case Reports\n3. ..."
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The portal's commit (Settings → System status) or the app's version (About)
