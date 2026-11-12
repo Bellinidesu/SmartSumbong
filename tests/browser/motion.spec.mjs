@@ -39,7 +39,8 @@ test('first open: the pages rise in once and then the class that lets them is ta
     await page.goto(p, { waitUntil: 'commit' });
     await page.waitForSelector('main.p-main', { state: 'attached' });
     await expect(page.locator('body')).toHaveClass(/mo-on/);
-    const rising = await page.evaluate(() => document.getAnimations().filter(a => a.animationName === 'moRise').length);
+    await page.waitForTimeout(400);
+    const rising = await page.evaluate(() => window.__ev.filter(e => e.n === 'moRise').length);          // seen starting (a slow page may finish before it is looked at)
     if (p === 'spatial.php') { expect(rising, 'the map keeps its own entrances').toBe(0); continue; }
     expect(rising, p + ': blocks rising in').toBeGreaterThan(0);
     await expect(page.locator('body')).not.toHaveClass(/mo-in/, { timeout: 4000 });                // it plays once; later swaps never replay it
@@ -108,11 +109,11 @@ test('Spatial Distribution: the filter box opens over nothing; the SMART suggest
   await page.goto('spatial.php', { waitUntil: 'domcontentloaded' });
   const sug = page.locator('#cc-suggest');
   await expect(sug).toBeVisible({ timeout: 8000 });
-  await page.mouse.move(700, 40);                                                       // point at the filter box: it opens downward
-  await page.waitForTimeout(900);
-  const box = await page.locator('#map-search').boundingBox(), s = await sug.boundingBox();
-  expect(s.y, 'the suggestion starts below the open filter box').toBeGreaterThanOrEqual(box.y + box.height - 1);
-  await page.mouse.move(1200, 700); await page.waitForTimeout(900);
-  const s2 = await sug.boundingBox(); expect(s2.y, 'and comes back up when the box closes').toBeLessThan(s.y);
+  await page.waitForTimeout(1500);                                                      // its own entrance has finished
+  await page.locator('#map-search').hover();                                             // point at the filter box: it opens downward
+  await expect.poll(async () => { const b = await page.locator('#map-search').boundingBox(), s = await sug.boundingBox(); return s.y - (b.y + b.height - 1); }, { timeout: 6000, message: 'the suggestion starts below the open filter box' }).toBeGreaterThanOrEqual(0);
+  const open = (await sug.boundingBox()).y;
+  await page.mouse.move(1200, 700);
+  await expect.poll(async () => (await sug.boundingBox()).y, { timeout: 6000, message: 'and comes back up when the box closes' }).toBeLessThan(open);
 });
 

@@ -61,5 +61,4 @@
 @media (prefers-reduced-motion: reduce) { #s-spatial .p-map-dock.sd-snap, #s-spatial .p-map-dock .sd-grip { transition: none; } }
 /* the filter box opens downward when pointed at; it opens over the SMART suggestion under it, not under it (12 Nov: the suggestion used to sit on the lower half of the filters) */
 #s-spatial#s-spatial .p-map-search:is(:hover, :focus-within) { z-index: 9; }
-#s-spatial#s-spatial .cc-suggest { transition: transform .25s cubic-bezier(.2, .7, .2, 1); }
-#s-spatial#s-spatial .p-map-search:is(:hover, :focus-within) ~ .cc-suggest { transform: translate3d(0, 40px, 0); }   /* and it rides down with the box, as the layer cards do */
+#s-spatial#s-spatial .cc-suggest { transition: top .25s cubic-bezier(.2, .7, .2, 1); }   /* it rides down with the box (spatial.php places it, as the layer cards are placed) */
