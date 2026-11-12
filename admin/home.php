@@ -104,59 +104,71 @@ $hoursLeft = function ($h): string {
   <?php endif; ?>
 </div>
 
-<div class="hm-grid">
-  <div class="hm-col">
-    <section class="p-card hm-list">
+<?php $hmCards = []; $hmClear = []; // what has something to show is a card; what has nothing is one line in "All clear" (12 Nov 2026), so an empty list never takes a card of space ?>
+<?php if ($risk): ob_start(); ?>
+<section class="p-card hm-list">
       <div class="p-card-head"><h2><?= e(t('Likely to miss the deadline', 'Maaaring lumampas sa deadline')) ?></h2><span class="p-badge-n p-badge-n--quiet"><?= count($risk) ?></span></div>
-      <?php if (!$risk): ?><p class="p-hint hm-none"><?= e(t('Nothing at risk. Every open case is on pace for its deadline.', 'Walang nanganganib. Nasa tamang bilis ang bawat bukas na kaso.')) ?></p><?php else: ?>
+      
       <table class="ss-table"><thead><tr><th><?= e(t('Case', 'Kaso')) ?></th><th><?= e(t('Due', 'Deadline')) ?></th><th class="n"><?= e(t('Time left', 'Natitirang oras')) ?></th><th><?= e(t('Risk', 'Panganib')) ?></th></tr></thead><tbody>
       <?php foreach ($risk as $r): ?>
         <tr class="p-click" data-href="case.php?id=<?= e((string) $r['report_id']) ?>"><td><a class="p-mono-id" href="case.php?id=<?= e((string) $r['report_id']) ?>"><?= e((string) $r['tracking_id']) ?></a></td>
           <td><?= e(!empty($r['due_at']) ? (new DateTimeImmutable((string) $r['due_at']))->setTimezone($tz)->format('M j, g:i A') : '—') ?></td>
           <td class="n"><?= e($hoursLeft($r['hours_left'] ?? 0)) ?></td>
           <td><span class="hm-risk hm-risk-<?= e((string) ($r['risk'] ?? 'medium')) ?>"><?= e($riskLabel((string) ($r['risk'] ?? ''))) ?></span></td></tr>
-      <?php endforeach; ?></tbody></table><?php endif; ?>
+      <?php endforeach; ?></tbody></table>
     </section>
-    <section class="p-card hm-list">
+<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [t('Likely to miss the deadline', 'Maaaring lumampas sa deadline'), t('Nothing at risk. Every open case is on pace for its deadline.', 'Walang nanganganib. Nasa tamang bilis ang bawat bukas na kaso.')]; endif; ?>
+<?php if ($quiet): ob_start(); ?>
+<section class="p-card hm-list">
       <div class="p-card-head"><h2><?= e(t('Quiet cases', 'Mga tahimik na kaso')) ?></h2><span class="p-badge-n p-badge-n--quiet"><?= count($quiet) ?></span></div>
-      <?php if (!$quiet): ?><p class="p-hint hm-none"><?= e(t('No open case has gone quiet.', 'Walang bukas na kasong natahimik.')) ?></p><?php else: ?>
+      
       <table class="ss-table"><thead><tr><th><?= e(t('Case', 'Kaso')) ?></th><th><?= e(t('Status', 'Katayuan')) ?></th><th class="n"><?= e(t('Quiet for', 'Tahimik nang')) ?></th><th><?= e(t('Last news', 'Huling balita')) ?></th></tr></thead><tbody>
       <?php foreach ($quiet as $q): ?>
         <tr class="p-click" data-href="case.php?id=<?= e((string) $q['report_id']) ?>"><td><a class="p-mono-id" href="case.php?id=<?= e((string) $q['report_id']) ?>"><?= e((string) $q['tracking_id']) ?></a></td>
           <td><?= e(status_label((string) $q['status'])) ?></td>
           <td class="n"><?= e(sprintf((int) $q['days_quiet'] === 1 ? t('%d day', '%d araw') : t('%d days', '%d araw'), (int) $q['days_quiet'])) ?></td>
           <td><?= e((string) ($q['last_activity'] ?? '')) ?></td></tr>
-      <?php endforeach; ?></tbody></table><?php endif; ?>
+      <?php endforeach; ?></tbody></table>
     </section>
-  </div>
-  <div class="hm-col">
-    <section class="p-card hm-tanods">
+<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [t('Quiet cases', 'Mga tahimik na kaso'), t('No open case has gone quiet.', 'Walang bukas na kasong natahimik.')]; endif; ?>
+<?php if ((int) ($tn['total'] ?? 0) > 0): ob_start(); ?>
+<section class="p-card hm-tanods">
       <div class="p-card-head"><h2><?= e($isCom ? t('Your tanods now', 'Ang mga tanod mo ngayon') : t('The committee\'s tanods now', 'Ang mga tanod ng komite ngayon')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="personnel.php"><?= e(t('Personnel', 'Mga Tanod')) ?> &rarr;</a></div>
       <?php $tot = max(1, (int) ($tn['total'] ?? 0));
         $parts = [['on_duty', t('Free', 'Bakante'), '#1FA24A'], ['busy', t('On a case', 'May kaso'), '#1E6FD9'], ['lunch', t('Lunch', 'Tanghalian'), '#F59E0B'], ['break', t('Break', 'Pahinga'), '#F2C94C'], ['offline', t('Off', 'Wala'), '#9AA3B5']]; ?>
-      <?php if ((int) ($tn['total'] ?? 0) === 0): ?><p class="p-hint hm-none"><?= e(t('No tanods in your committee yet. A Kagawad proposes them in Personnel.', 'Wala pang tanod sa komite mo. Iminumungkahi sila ng Kagawad sa Personnel.')) ?></p><?php else: ?>
+      
       <div class="hm-bar" role="img" aria-label="<?= e(implode(', ', array_map(fn ($p) => $p[1] . ' ' . (int) ($tn[$p[0]] ?? 0), $parts))) ?>"><?php foreach ($parts as [$k, , $c]): $n = (int) ($tn[$k] ?? 0); if ($n > 0): ?><i style="flex:<?= $n ?>;background:<?= e($c) ?>"></i><?php endif; endforeach; ?></div>
       <ul class="hm-legend"><?php foreach ($parts as [$k, $lb, $c]): ?><li><i style="background:<?= e($c) ?>"></i><span><?= e($lb) ?></span><b class="p-num"><?= (int) ($tn[$k] ?? 0) ?></b></li><?php endforeach; ?></ul>
-      <?php endif; ?>
+      
     </section>
-    <section class="p-card hm-list">
+<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [$isCom ? t('Your tanods now', 'Ang mga tanod mo ngayon') : t('The committee\'s tanods now', 'Ang mga tanod ng komite ngayon'), t('No tanods in your committee yet. A Kagawad proposes them in Personnel.', 'Wala pang tanod sa komite mo. Iminumungkahi sila ng Kagawad sa Personnel.')]; endif; ?>
+<?php if ($spikes): ob_start(); ?>
+<section class="p-card hm-list">
       <div class="p-card-head"><h2><?= e(t('Spikes this week', 'Biglang dami ngayong linggo')) ?></h2></div>
-      <?php if (!$spikes): ?><p class="p-hint hm-none"><?= e(t('Nothing is coming in more than usual.', 'Walang dumarating nang higit sa karaniwan.')) ?></p><?php else: ?>
+      
       <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th class="n"><?= e(t('This week', 'Linggong ito')) ?></th><th class="n"><?= e(t('Usually', 'Karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
       <?php foreach (array_slice($spikes, 0, 5) as $sp): ?>
         <tr><td><?= e(category_label((string) $sp['category'])) ?></td><td class="n"><?= (int) $sp['this_week'] ?></td><td class="n"><?= e(rtrim(rtrim(number_format((float) $sp['usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($sp['place'] ?? '')) ?></td></tr>
-      <?php endforeach; ?></tbody></table><?php endif; ?>
+      <?php endforeach; ?></tbody></table>
     </section>
-    <section class="p-card hm-list">
+<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [t('Spikes this week', 'Biglang dami ngayong linggo'), t('Nothing is coming in more than usual.', 'Walang dumarating nang higit sa karaniwan.')]; endif; ?>
+<?php if ($pats): ob_start(); ?>
+<section class="p-card hm-list">
       <div class="p-card-head"><h2><?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="spatial.php"><?= e(t('On the map', 'Sa mapa')) ?> &rarr;</a></div>
-      <?php if (!$pats): ?><p class="p-hint hm-none"><?= e(t('No problem keeps coming back at the same spot.', 'Walang problemang paulit-ulit sa iisang lugar.')) ?></p><?php else: ?>
+      
       <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Weeks', 'Linggo')) ?></th><th class="n"><?= e(t('Still open', 'Bukas pa')) ?></th></tr></thead><tbody>
       <?php foreach ($pats as $pt): ?>
         <tr><td><?= e(category_label((string) $pt['category'])) ?></td><td class="n"><?= (int) $pt['reports'] ?></td><td class="n"><?= (int) $pt['weeks'] ?></td><td class="n<?= (int) $pt['still_open'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $pt['still_open'] ?></td></tr>
-      <?php endforeach; ?></tbody></table><?php endif; ?>
+      <?php endforeach; ?></tbody></table>
     </section>
-  </div>
-</div>
+<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [t('Recurring problems', 'Paulit-ulit na problema'), t('No problem keeps coming back at the same spot.', 'Walang problemang paulit-ulit sa iisang lugar.')]; endif; ?>
+<?php if ($hmCards): ?><div class="hm-cols"><?= implode('', $hmCards) ?></div><?php endif; ?>
+<?php if ($hmClear): ?>
+<section class="p-card hm-clear" aria-label="<?= e(t('All clear', 'Maayos lahat')) ?>">
+  <div class="p-card-head"><h2><?= e(t('All clear', 'Maayos lahat')) ?></h2></div>
+  <ul><?php foreach ($hmClear as [$ct, $cm]): ?><li><i aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><b><?= e($ct) ?></b><span><?= e($cm) ?></span></li><?php endforeach; ?></ul>
+</section>
+<?php endif; ?>
 <?php endif; ?>
 <?= $cRow ? committee_banner_script() : '' ?>
 <?php layout_foot(); ?>

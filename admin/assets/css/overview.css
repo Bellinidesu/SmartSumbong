@@ -57,8 +57,16 @@
 .page-home .hm-tile b { font-size: 32px; }
 .page-home .hm-tile small { color: var(--p-muted); line-height: 1.35; }
 .page-home .hm-tile > span:first-child { min-height: 0; }
-.page-home .hm-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-.page-home .hm-col { display: grid; gap: 18px; min-width: 0; }
+.page-home .hm-cols { columns: 2; column-gap: 18px; }   /* 12 Nov: the cards that have something to show fill two columns evenly, whatever their heights */
+.page-home .hm-cols > .p-card { break-inside: avoid; margin: 0 0 18px; }
+.page-home .hm-clear { padding: 16px 20px; }
+.page-home .hm-clear .p-card-head { margin-bottom: 8px; }
+.page-home .hm-clear h2 { margin: 0; font-size: 17px; }
+.page-home .hm-clear ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 24px; }
+.page-home .hm-clear li { display: grid; grid-template-columns: 22px minmax(0, 1fr); column-gap: 10px; align-items: start; }
+.page-home .hm-clear li i { grid-row: 1 / span 2; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--p-green-bg); color: var(--p-green); }
+.page-home .hm-clear li b { font-weight: 700; font-size: 14px; }
+.page-home .hm-clear li span { color: var(--p-muted); font-size: 13px; line-height: 1.35; }
 .page-home .hm-list, .page-home .hm-tanods { padding: 18px 20px; }
 .page-home .hm-list .p-card-head, .page-home .hm-tanods .p-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .page-home .hm-list h2, .page-home .hm-tanods h2 { margin: 0; font-size: 17px; }
@@ -76,7 +84,7 @@
 :root[data-theme="dark"] .page-home .hm-risk-high { color: #FF7B7B; } :root[data-theme="dark"] .page-home .hm-risk-medium { color: #FFC266; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .page-home .hm-risk-high { color: #FF7B7B; } :root:not([data-theme="light"]) .page-home .hm-risk-medium { color: #FFC266; } }
 @media (max-width: 1500px) { .page-home .hm-row-6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 1180px) { .page-home .hm-grid { grid-template-columns: 1fr; } .page-home .hm-row-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1180px) { .page-home .hm-cols { columns: 1; } .page-home .hm-row-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .page-home .hm-row-4, .page-home .hm-row-6 { grid-template-columns: 1fr; } .page-home .hm-legend { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 /* 5 Nov sweep: on a narrow screen a long category ("Public Safety and Infrastructure") keeps to two lines, so every row of
    Report Summary and Case Reports stays one height; the whole name is in its tooltip. */
