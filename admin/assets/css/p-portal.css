@@ -884,12 +884,11 @@ td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: 
 .ss-win .ss-two > *, .ss-win .ss-stack, .ss-win .ss-stack > * { min-width: 0; }
 .ss-win .ss-table.ss-nowrap { display: block; overflow-x: auto; }   /* its rows stay on one line and scroll inside the card */
 /* a committee's sidebar (12 Nov 2026, Ace): no contour pattern; the gradient does the work (the committee colour glows from the top and again from the foot), and the committee's own logo
-   lies across the foot, big, slanted and faded into the colour. The seal sits in a halo of the colour and the name has a lit rule under it. */
+   lies across the foot, big, slanted and faded into the colour. The seal sits in a halo of the colour. */
 .p-sidebar.has-mark::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: auto; left: 50%; bottom: -34px; width: 270px; height: 270px; margin-left: -118px;
   background: var(--p-side-mark) center / contain no-repeat; opacity: .34; transform: rotate(-19deg); transform-origin: 50% 50%;
   -webkit-mask: radial-gradient(closest-side, #000 52%, transparent 100%); mask: radial-gradient(closest-side, #000 52%, transparent 100%); -webkit-mask-composite: source-over; mask-composite: add; }
 .p-sidebar.has-mark .p-brand-img { filter: drop-shadow(0 0 24px color-mix(in srgb, var(--p-side-glow, transparent) 75%, transparent)) drop-shadow(0 6px 14px rgba(0,0,0,.3)); }
-.p-side-com::after { content: ""; display: block; width: 64px; height: 2px; margin: 9px auto 0; border-radius: 2px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cc) 35%, #fff 65%), transparent); opacity: .9; }
 /* dark: the sidebar stays tinted with the committee's hue all the way down (it was black under a glow, which made the glow look like a spotlight with a hard fall-off); the logo is lit into it */
 :root[data-theme="dark"] .p-sidebar.has-mark { background:
   radial-gradient(170% 280px at 50% 0%, color-mix(in srgb, var(--p-side-glow, transparent) 62%, transparent), transparent 100%),
