@@ -17,7 +17,7 @@
   function rd(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v && typeof v === 'object' ? v : d; } catch (e) { return d; } }
   function wr(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window */ } }
   function seenOf(id) { return rd('ss-chat-seen-' + id, {}); }
-  function setSeen(id, conv, t) { var m = seenOf(id); m[conv] = t; wr('ss-chat-seen-' + id, m); }
+  function setSeen(id, conv, t) { var c = window.ssChatCore; if (c) { c.store.setSeen(id, conv, t); return; } var m = seenOf(id); m[conv] = t; wr('ss-chat-seen-' + id, m); }
   function core() { return window.ssChatCore || null; }
   function soundOn(id) { var c = core(); return c ? c.soundFor(id) : true; }
 
@@ -199,5 +199,13 @@
   detail.addEventListener('input', function (e) { if (e.target.classList && e.target.classList.contains('mg-findin')) { find(e.target.value); } });
 
   document.addEventListener('ss-chat-change', paintMute);
+  /* where this person was, from the database (each row carries it as feed.st), joined to what this browser remembers */
+  function joinState() {
+    var c = core(); if (!c || !c.merge) { return; }
+    var done = {};
+    rows().forEach(function (r) { var id = r.getAttribute('data-report'); if (done[id]) { return; } done[id] = 1; try { c.merge(id, JSON.parse(r.getAttribute('data-feed') || '{}').st); } catch (e) { /* a row without it */ } });
+    paint(); paintMute();
+  }
+  if (core()) { joinState(); } else { document.addEventListener('ss-chat-ready', joinState, { once: true }); }
   paint(); if (detail.querySelector('.mg-center')) { root.classList.add('mg-showing'); bindDetail(); }
 })();

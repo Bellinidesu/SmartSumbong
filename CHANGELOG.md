@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Case chats: where each person was follows them (12 Nov)**
+- Read-up-to and Hide Alerts for a case's chats are now kept per person in the database (`chat_state`, 0173) as well as in the browser: a second browser or the phone-sized window starts from
+  what the person already read and muted. The browser stays the quick copy; the two are joined when a page opens (reading only moves forward, the case's mute follows the database unless
+  a change is still on its way, and a mute that only this browser had is sent up once). `chat-feed.php` carries the state with its feed and takes the saves (CSRF, `chat_state_set`).
+  Pin, side and height of a chat head stay per browser. No database change in this part.
 **BarangayMail, drawn and driven like Gmail's web app (12 Nov)**
 - BarangayMail is now a page of its own kind, `inbox.php?app=mail`, filled by a JSON door (`mail.php`) from `assets/js/gmail.js` and `gmail-compose.js`: Compose and a rail of Inbox, Starred,
   Snoozed, Sent, Drafts, All Mail and Trash with counts, and your own labels (create, rename, colour, delete); a search pill with Gmail's operators (`from:` `to:` `subject:` `label:` `is:`

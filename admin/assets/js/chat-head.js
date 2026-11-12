@@ -3,7 +3,8 @@
    - A case whose chat is "floated" (right-click the bubble, or the ... button) gets its own draggable bubble on every other page,
      with a notification ball and, if wanted, a sound, fed by chat-feed.php every 15 seconds.
    - Choices live in this browser (localStorage): ss-chat-prefs (master switches), ss-chat-cases (per case: pin, sound, side, y),
-     ss-chat-seen-<case> (what was last looked at). The backend is not involved.
+     ss-chat-seen-<case> (what was last looked at). Since 0173 what was read and what is muted are also kept per person in the database
+     (chat_state, through chat-feed.php): the browser stays the quick copy, the database is what another browser starts from.
    Strict CSP: no inline handlers; everything is delegated or bound here. */
 (function () {
   'use strict';
@@ -19,16 +20,45 @@
   var PK = 'ss-chat-prefs', CK = 'ss-chat-cases';
   function rd(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v && typeof v === 'object' ? v : d; } catch (e) { return d; } }
   function wr(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* a private window: choices last until the page closes */ } }
+  /* ---------- the same two things, kept per person (read up to, muted) so they follow the person to another browser ---------- */
+  var CSRF = (document.currentScript && document.currentScript.getAttribute('data-csrf')) || '', pend = {}, pendT = null;
+  function flush() {
+    var items = Object.keys(pend).map(function (k) { return pend[k]; }); pend = {};
+    if (!items.length || !CSRF) { return; }
+    fetch('chat-feed.php', { method: 'POST', credentials: 'same-origin', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: CSRF, items: items }) }).catch(function () { /* the browser copy still holds it */ });
+  }
+  function save(it) { var k = it.c + '|' + (it.all ? '*' : it.k); pend[k] = Object.assign(pend[k] || {}, it); clearTimeout(pendT); pendT = setTimeout(flush, 800); }
+  window.addEventListener('pagehide', flush);
   var listeners = [];
   function changed() { listeners.slice().forEach(function (f) { f(); }); }
   var store = {
     prefs: function () { var p = rd(PK, {}); return { floats: p.floats !== false, ball: p.ball !== false, sound: p.sound !== false }; },
     setPref: function (k, v) { var p = rd(PK, {}); p[k] = v; wr(PK, p); changed(); },
     cases: function () { return rd(CK, {}); },
-    patch: function (id, o) { var c = rd(CK, {}); c[id] = Object.assign(c[id] || {}, o); wr(CK, c); changed(); },
+    patch: function (id, o, quiet) { var c = rd(CK, {}); c[id] = Object.assign(c[id] || {}, o); wr(CK, c); if (!quiet && typeof o.sound === 'boolean') { save({ c: id, all: true, m: !o.sound }); } changed(); },
     seen: function (id) { return rd('ss-chat-seen-' + id, {}); },
-    setSeen: function (id, conv, t) { var m = rd('ss-chat-seen-' + id, {}); m[conv] = t; wr('ss-chat-seen-' + id, m); }
+    setSeen: function (id, conv, t) { var m = rd('ss-chat-seen-' + id, {}); if (m[conv] && ts(m[conv]) >= ts(t)) { return; } m[conv] = t; wr('ss-chat-seen-' + id, m); save({ c: id, k: conv, s: t }); }
   };
+  /* what the database knows of a case (st: {conv: {s: read up to, m: muted}}) joins what this browser knows: reading only moves forward,
+     the case's mute follows the database unless a change of ours is still on its way, and a mute only this browser has is sent up once */
+  function merge(id, st) {
+    if (!st || typeof st !== 'object') { return; }
+    var key = 'ss-chat-seen-' + id, m = rd(key, {}), ch = false;
+    Object.keys(st).forEach(function (k) { if (st[k] && st[k].s && ts(st[k].s) > ts(m[k])) { m[k] = st[k].s; ch = true; } });
+    if (ch) { wr(key, m); }
+    var local = store.cases()[id], mine = local && typeof local.sound === 'boolean' ? local.sound : null;
+    if (!pend[id + '|*']) {
+      if (st.r) { if (mine !== !st.r.m) { store.patch(id, { sound: !st.r.m }, true); ch = true; } }
+      else if (mine === false) { save({ c: id, all: true, m: true }); }
+    }
+    if (ch) { document.dispatchEvent(new Event('ss-chat-seen')); }
+  }
+  function pull(ids) {
+    return fetch('chat-feed.php?ids=' + ids.slice(0, 8).map(encodeURIComponent).join(','), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.ok) { ids.forEach(function (id) { if (j.cases[id]) { merge(id, j.cases[id].st); } }); } })
+      .catch(function () { /* offline: the browser copy stands */ });
+  }
   window.addEventListener('storage', function (e) { if (e.key === PK || e.key === CK) { changed(); } });
   function soundFor(id) { var c = store.cases()[id]; return c && typeof c.sound === 'boolean' ? c.sound : store.prefs().sound; }
 
@@ -48,7 +78,8 @@
     } catch (e) { /* silent is fine */ }
   }
 
-  window.ssChatCore = { store: store, ding: ding, soundFor: soundFor };   // for the Inbox's Case chats (msgr.js), which shares the seen map, the sound and the mute
+  window.ssChatCore = { store: store, ding: ding, soundFor: soundFor, merge: merge, pull: pull };
+  document.dispatchEvent(new Event('ss-chat-ready'));   // for the Inbox's Case chats (msgr.js), which shares the seen map, the sound and the mute
 
   /* ---------- the right-click menu ---------- */
   var menu = null, menuBack = null, sharedTrash = null, holding = false;
@@ -338,6 +369,7 @@
       var iv = setInterval(function () { if (!root.isConnected) { clearInterval(iv); return; } if (!document.hidden) { refresh(); } }, 15000);
     }
     if (main) {
+      pull([report]).then(paintUnread);       // where this person was, from the database
       if (location.hash === '#chat') { open(); } else if (location.hash === '#resident-messages') { open('r'); }
     }
     return api;
@@ -373,7 +405,7 @@
     var ids = Object.keys(floaters); if (!ids.length) { return; }
     fetch('chat-feed.php?ids=' + ids.map(encodeURIComponent).join(','), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (!j || !j.ok) { return; } ids.forEach(function (id) { if (j.cases[id]) { lastFeed[id] = j.cases[id]; applyFeed(id, j.cases[id]); } }); })
+      .then(function (j) { if (!j || !j.ok) { return; } ids.forEach(function (id) { if (j.cases[id]) { merge(id, j.cases[id].st); lastFeed[id] = j.cases[id]; applyFeed(id, j.cases[id]); } }); })
       .catch(function () { /* offline or signed out: the next poll tries again */ });
   }
   window.ssChatPoll = poll;

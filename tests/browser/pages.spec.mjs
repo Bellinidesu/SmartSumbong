@@ -1909,6 +1909,7 @@ test('Spatial Distribution (12 Nov 2026): the SMART panel stays navy by day; the
 
 test('Inbox, Case chats like Messenger (12 Nov 2026): a conversation per person with an unread dot, search and chips, a conversation that opens in place, send and the thumbs-up, emoji, mute, the information column; BarangayMail is the other section', async ({ page }) => {
   const r = await open(page, 'inbox.php');
+  await page.evaluate(() => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_reset_chat_state', { method: 'POST', body: '{}' }));   // nothing read or muted yet, for anybody
   await page.evaluate(() => { try { Object.keys(localStorage).filter(k => k.startsWith('ss-chat-') || k.startsWith('ss-msgr') || k.startsWith('ss-emoji')).forEach(k => localStorage.removeItem(k)); } catch (e) {} });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('.ib-apps a')).toHaveText([/Case chats/, /BarangayMail/]);   // two sections, no more
@@ -2070,5 +2071,31 @@ test('BarangayMail: compose with a draft that saves itself, Undo send, send, rep
   expect(await axe(page), 'BarangayMail, light').toEqual([]);
   await page.emulateMedia({ colorScheme: 'dark' });
   expect(await axe(page), 'BarangayMail, dark').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Case chats keep where a person was in the database (12 Nov 2026): read and muted follow them to another browser', async ({ page, context, browser }) => {
+  const FAKE = 'http://127.0.0.1:54399/rest/v1/rpc/';
+  const r = await open(page, 'inbox.php');
+  await page.evaluate(u => fetch(u + 'fake_reset_chat_state', { method: 'POST', body: '{}' }), FAKE);
+  await page.evaluate(u => fetch(u + 'fake_incoming', { method: 'POST', body: '{"body":"Kuya, kumusta po ang kaso ko?"}' }), FAKE);   // the resident writes again
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const rows = page.locator('[data-mg-row]');
+  await expect(rows.filter({ hasText: 'Garcia' })).toHaveClass(/mg-unread/);
+  await rows.filter({ hasText: 'Garcia' }).click();
+  await expect(page.locator('.mg-center')).toBeVisible();
+  await expect(rows.filter({ hasText: 'Garcia' })).not.toHaveClass(/mg-unread/);
+  await page.locator('[data-mg="mute"]').click();
+  await expect(page.locator('[data-mg="mute"]')).toHaveAttribute('aria-checked', 'true');
+  await page.waitForTimeout(1600);                                                    // the page sends the two to the database a moment later
+  // a second browser (no local memory at all) starts from the database
+  const other = await browser.newContext({ baseURL: 'http://127.0.0.1:8013/admin/', storageState: { cookies: (await context.storageState()).cookies, origins: [] } });
+  const p2 = await other.newPage();
+  await p2.goto('inbox.php?app=chats&c=c0000000-0000-0000-0000-000000000001&k=r', { waitUntil: 'domcontentloaded' });
+  await p2.waitForTimeout(1200);
+  expect(await p2.evaluate(() => Object.keys(localStorage).some(k => k.startsWith('ss-chat-seen-')))).toBe(true);   // learned from the database
+  await expect(p2.locator('[data-mg-row]').filter({ hasText: 'Garcia' })).not.toHaveClass(/mg-unread/);
+  await expect(p2.locator('[data-mg="mute"]')).toHaveAttribute('aria-checked', 'true');
+  await other.close();
   expect(r.errors, 'console errors').toEqual([]);
 });

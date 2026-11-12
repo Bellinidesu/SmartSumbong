@@ -240,6 +240,7 @@ function case_chat_list_reads(int $keep = 300): array
                                        'order' => 'created_at.desc', 'limit' => (string) $keep]],
         'ups'  => ['dispatch_updates', ['select' => 'dispatch_id,author_id,kind,body,created_at,d:dispatches!inner(report_id,tanod_id,tanod:users!dispatches_tanod_id_fkey(full_name),report:reports!dispatches_report_id_fkey(' . $rep . '))',
                                         'kind' => 'eq.message', 'order' => 'created_at.desc', 'limit' => (string) $keep]],
+        'chst' => ['chat_state', ['select' => 'report_id,conv,seen_at,muted', 'limit' => '1000']],      // this person's own rows only (row level security)
     ];
 }
 
@@ -268,6 +269,11 @@ function case_chat_list_rows(array $got, string $me): array
         $put((array) ($d['report'] ?? []), 'd-' . $u['dispatch_id'], 'tanod', (string) ($d['tanod']['full_name'] ?? t('Tanod', 'Tanod')),
              ($u['author_id'] ?? null) === ($d['tanod_id'] ?? '?'), $iso($u['created_at'] ?? null), (string) ($u['body'] ?? ''));
     }
+    // where this person was in each conversation (chat_state, 0173): rides each row so the page starts from the database, not only this browser
+    $st = [];
+    foreach ((array) ($got['chst'] ?? []) as $s) { $st[(string) ($s['report_id'] ?? '')][(string) ($s['conv'] ?? '')] = ['s' => $iso($s['seen_at'] ?? null), 'm' => !empty($s['muted'])]; }
+    foreach ($rows as &$row) { if (isset($st[$row['case']])) { $row['feed']['st'] = $st[$row['case']]; } }
+    unset($row);
     $list = array_values($rows);
     usort($list, static fn ($a, $b) => strcmp($b['last'], $a['last']));
     return $list;
