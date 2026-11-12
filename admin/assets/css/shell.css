@@ -145,3 +145,11 @@ html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
   .p-brand-sep{height:30px}
   .p-brand-sym{box-shadow:0 0 0 2px rgba(255,255,255,.88)}
 }
+/* the folded sidebar (12 Nov 2026, Ace): the barangay's seal on top for every rung (a committee's colour dot beneath it), the profile picture alone in its dark plate at the foot, no exit button (it is in the open sidebar) */
+@media (min-width:981px){
+  html[data-side="min"] .p-side-top .p-brand,html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-brand{display:grid}
+  html[data-side="min"] .p-sidebar .p-brand.p-brand-seal .p-brand-img,html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-brand.p-brand-seal .p-brand-img{width:46px;height:46px}
+  html[data-side="min"] .p-side-top{padding-bottom:12px}
+  html[data-side="min"] .p-side-user>button,html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user>button{display:none}
+  html[data-side="min"] .p-sidebar.has-mark::before,html[data-side="hover"] .p-sidebar.has-mark:not(:hover):not(:focus-within)::before{width:96px;height:96px;margin-left:-48px;bottom:84px}
+}
