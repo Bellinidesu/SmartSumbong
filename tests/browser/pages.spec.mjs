@@ -1398,7 +1398,12 @@ test('Home for a Kagawad and staff: they land there, it reads their SMART module
   await expect(page.locator('.hm-banner')).toContainText('Peace and Order');
   await expect(page.locator('.hm-lead .hm-tile')).toHaveCount(4);
   await expect(page.locator('.hm-lead .hm-tile').first()).toContainText('Escalations to approve');
-  await expect(page.locator('.hm-row-6 .hm-tile')).toHaveCount(6);
+  await expect(page.locator('.hm-lead + .hm-h + .hm-row-4 .hm-tile')).toHaveCount(4);   // Right now: four tiles under the four decisions
+  const g = await page.evaluate(() => { const x = s => Math.round(document.querySelector(s).getBoundingClientRect().left), r = s => Math.round(document.querySelector(s).getBoundingClientRect().right);
+    const cols = [...document.querySelectorAll('.hm-cols .hm-col')].map(c => Math.round(c.getBoundingClientRect().bottom));
+    return { a: x('.hm-lead .hm-tile'), b: x('.hm-lead + .hm-h + .hm-row-4 .hm-tile'), ar: r('.hm-lead .hm-tile:last-child'), br: r('.hm-lead + .hm-h + .hm-row-4 .hm-tile:last-child'), cols }; });
+  expect(g.a, 'the decisions and the numbers start at the same edge').toBe(g.b); expect(g.ar, 'and end at the same edge').toBe(g.br);
+  if (g.cols.length === 2) expect(Math.abs(g.cols[0] - g.cols[1]), 'the two columns of lists end level').toBeLessThanOrEqual(2);
   await expect(page.locator('.hm-list tr[data-href^="case.php?id="]').first()).toBeAttached();
   expect(await axe(page), 'Home, Kagawad').toEqual([]);
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
