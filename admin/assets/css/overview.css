@@ -45,20 +45,24 @@
 /* Case Reports: a case with more than one concern says so beside its category (the names are in the tip and on the case page) */
 .cr-more { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; margin-left: 6px; border: 1px solid var(--p-line); border-radius: 99px; font: 800 11px Inter, sans-serif; color: var(--p-muted); vertical-align: 1px; cursor: help; white-space: nowrap; }
 /* Home (4 Nov 2026): a Kagawad's or staff member's own page, from their SMART module (0165) */
-.page-home .hm-lead { margin: 0 0 22px; }
-.page-home .hm-banner { margin: 0; border-radius: 16px 16px 0 0; overflow: hidden; }
+.page-home .hm-lead { margin: 0 0 20px; }
+/* 12 Nov: the decision band is a bar over its tiles, not a frame around them, so every row of the page (the four decisions, the four numbers, the tanods, the two lists) shares the same left and right edges */
+:root:root .p-body.page-home .hm-banner { margin: 0 0 14px; border-radius: 16px; overflow: hidden; }
 .page-home .hm-banner .cm-chip { min-height: 58px; }
-.page-home .hm-lead .hm-row { padding: 14px; border: 1px solid var(--p-line); border-top: 0; border-radius: 0 0 16px 16px; background: var(--p-surface); }
+.page-home .hm-lead .hm-row { padding: 0; margin: 14px 0 0; border: 0; border-radius: 0; background: none; }
 .page-home .hm-h { margin: 0 0 10px; }
 .page-home .hm-row { display: grid; gap: 14px; }
 .page-home .hm-row-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.page-home .hm-row-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 22px; }
+.page-home .hm-lead + .hm-h + .hm-row-4 { margin-bottom: 18px; }   /* one grid under the whole page: four columns above, two lists below, the same gaps */
 .page-home .hm-tile { gap: 4px; padding: 16px 20px; }
 .page-home .hm-tile b { font-size: 32px; }
 .page-home .hm-tile small { color: var(--p-muted); line-height: 1.35; }
 .page-home .hm-tile > span:first-child { min-height: 0; }
-.page-home .hm-cols { columns: 2; column-gap: 18px; }   /* 12 Nov: the cards that have something to show fill two columns evenly, whatever their heights */
-.page-home .hm-cols > .p-card { break-inside: avoid; margin: 0 0 18px; }
+.page-home .hm-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; margin-bottom: 18px; }   /* 12 Nov: two level columns; the last card of each stretches so neither ends short */
+.page-home .hm-cols.hm-one { grid-template-columns: minmax(0, 1fr); }
+.page-home .hm-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.page-home .hm-col > .p-card { margin: 0; }
+.page-home .hm-col > .p-card:last-child { flex: 1 1 auto; }
 .page-home .hm-clear { padding: 16px 20px; }
 .page-home .hm-clear .p-card-head { margin-bottom: 8px; }
 .page-home .hm-clear h2 { margin: 0; font-size: 17px; }
@@ -83,9 +87,8 @@
 .page-home .hm-legend b { font-size: 20px; color: var(--p-ink); }
 :root[data-theme="dark"] .page-home .hm-risk-high { color: #FF7B7B; } :root[data-theme="dark"] .page-home .hm-risk-medium { color: #FFC266; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .page-home .hm-risk-high { color: #FF7B7B; } :root:not([data-theme="light"]) .page-home .hm-risk-medium { color: #FFC266; } }
-@media (max-width: 1500px) { .page-home .hm-row-6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 1180px) { .page-home .hm-cols { columns: 1; } .page-home .hm-row-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .page-home .hm-row-4, .page-home .hm-row-6 { grid-template-columns: 1fr; } .page-home .hm-legend { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1180px) { .page-home .hm-cols { grid-template-columns: minmax(0, 1fr); } .page-home .hm-row-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .page-home .hm-row-4 { grid-template-columns: 1fr; } .page-home .hm-legend { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 /* 5 Nov sweep: on a narrow screen a long category ("Public Safety and Infrastructure") keeps to two lines, so every row of
    Report Summary and Case Reports stays one height; the whole name is in its tooltip. */
 @media (max-width: 1180px) {
