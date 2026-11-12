@@ -104,7 +104,7 @@ $hoursLeft = function ($h): string {
   <?php endif; ?>
 </div>
 
-<?php $hmCards = []; $hmClear = []; // what has something to show is a card; what has nothing is one line in "All clear" (12 Nov 2026), so an empty list never takes a card of space ?>
+<?php $hmCards = []; $hmClear = []; $hmStrip = ''; // what has something to show is a card; what has nothing is one line in "All clear" (12 Nov 2026), so an empty list never takes a card of space ?>
 <?php if ($risk): ob_start(); ?>
 <section class="p-card hm-list">
       <div class="p-card-head"><h2><?= e(t('Likely to miss the deadline', 'Maaaring lumampas sa deadline')) ?></h2><span class="p-badge-n p-badge-n--quiet"><?= count($risk) ?></span></div>
@@ -141,7 +141,7 @@ $hoursLeft = function ($h): string {
       <ul class="hm-legend"><?php foreach ($parts as [$k, $lb, $c]): ?><li><i style="background:<?= e($c) ?>"></i><span><?= e($lb) ?></span><b class="p-num"><?= (int) ($tn[$k] ?? 0) ?></b></li><?php endforeach; ?></ul>
       
     </section>
-<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [$isCom ? t('Your tanods now', 'Ang mga tanod mo ngayon') : t('The committee\'s tanods now', 'Ang mga tanod ng komite ngayon'), t('No tanods in your committee yet. A Kagawad proposes them in Personnel.', 'Wala pang tanod sa komite mo. Iminumungkahi sila ng Kagawad sa Personnel.')]; endif; ?>
+<?php $hmStrip = ob_get_clean(); else: $hmClear[] = [$isCom ? t('Your tanods now', 'Ang mga tanod mo ngayon') : t('The committee\'s tanods now', 'Ang mga tanod ng komite ngayon'), t('No tanods in your committee yet. A Kagawad proposes them in Personnel.', 'Wala pang tanod sa komite mo. Iminumungkahi sila ng Kagawad sa Personnel.')]; endif; ?>
 <?php if ($spikes): ob_start(); ?>
 <section class="p-card hm-list">
       <div class="p-card-head"><h2><?= e(t('Spikes this week', 'Biglang dami ngayong linggo')) ?></h2></div>
@@ -162,6 +162,7 @@ $hoursLeft = function ($h): string {
       <?php endforeach; ?></tbody></table>
     </section>
 <?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [t('Recurring problems', 'Paulit-ulit na problema'), t('No problem keeps coming back at the same spot.', 'Walang problemang paulit-ulit sa iisang lugar.')]; endif; ?>
+<?= $hmStrip ?? '' ?>
 <?php if ($hmCards): ?><div class="hm-cols"><?= implode('', $hmCards) ?></div><?php endif; ?>
 <?php if ($hmClear): ?>
 <section class="p-card hm-clear" aria-label="<?= e(t('All clear', 'Maayos lahat')) ?>">

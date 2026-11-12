@@ -92,3 +92,8 @@
   .cat-n { display: -webkit-inline-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; vertical-align: top; }
   td:has(> .cr-more) > .cat-n { max-width: calc(100% - 44px); }   /* the +N pill stays on the name's line */
 }
+.page-home .hm-tanods { display: grid; grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); column-gap: 28px; row-gap: 6px; align-items: center; margin: 0 0 18px; padding: 14px 20px; }   /* the tanods are one wide strip: the bar and its legend beside the title, not a tall card */
+.page-home .hm-tanods .p-card-head { grid-row: 1 / span 2; margin: 0; align-self: center; flex-direction: column; align-items: flex-start; gap: 2px; }
+.page-home .hm-tanods .p-card-head .p-spacer { display: none; }
+.page-home .hm-tanods .hm-legend { margin: 0; }
+@media (max-width: 900px) { .page-home .hm-tanods { grid-template-columns: 1fr; } .page-home .hm-tanods .p-card-head { grid-row: auto; margin-bottom: 8px; } }
