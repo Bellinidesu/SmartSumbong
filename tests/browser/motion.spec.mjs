@@ -39,10 +39,9 @@ test('first open: the pages rise in once and then the class that lets them is ta
     await page.goto(p, { waitUntil: 'commit' });
     await page.waitForSelector('main.p-main', { state: 'attached' });
     await expect(page.locator('body')).toHaveClass(/mo-on/);
-    await page.waitForTimeout(400);
-    const rising = await page.evaluate(() => window.__ev.filter(e => e.n === 'moRise').length);          // seen starting (a slow page may finish before it is looked at)
-    if (p === 'spatial.php') { expect(rising, 'the map keeps its own entrances').toBe(0); continue; }
-    expect(rising, p + ': blocks rising in').toBeGreaterThan(0);
+    const rising = () => page.evaluate(() => window.__ev.filter(e => e.n === 'moRise').length);          // seen starting (a slow page may finish before it is looked at)
+    if (p === 'spatial.php') { await page.waitForTimeout(1500); expect(await rising(), 'the map keeps its own entrances').toBe(0); continue; }
+    await expect.poll(rising, { timeout: 8000, message: p + ': blocks rising in' }).toBeGreaterThan(0);   // a page that is slow to answer starts later
     await expect(page.locator('body')).not.toHaveClass(/mo-in/, { timeout: 4000 });                // it plays once; later swaps never replay it
     await page.waitForTimeout(1500);
     expect(await page.evaluate(() => document.getAnimations().filter(a => a.animationName === 'moRise').length), p + ': nothing left rising').toBe(0);
