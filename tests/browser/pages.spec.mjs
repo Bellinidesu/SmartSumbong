@@ -1095,7 +1095,7 @@ test('Roles and pages 5: BarangayMail, writing along the ladder, and the reroute
   await expect(page.locator('.gm-q [data-pick="any"]')).toContainText('nearest from any committee');
   expect(await axe(page), 'BarangayMail, reroute question').toEqual([]);
   const i = await open(page, 'inbox.php?app=mail');
-  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox is a section of the sidebar (Ace, 12 Nov)').toHaveCount(1);
   await expect(page.locator('.gm-row')).toHaveCount(3);                                // the people's conversations; the system's are under Updates
   await page.locator('.gm-tabs [data-tab="updates"]').click();
   await expect(page.locator('.gm-row')).toHaveCount(1);
@@ -1110,7 +1110,7 @@ test('Roles and pages 5: BarangayMail, writing along the ladder, and the reroute
   await expect(page.locator('.gm-win--inline .gm-w-sub')).toHaveValue('Re: Pulong bukas');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const m = await open(page, 'inbox.php?app=mail');
-  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox is a section of the sidebar (Ace, 12 Nov)').toHaveCount(1);
   expect(n.errors.concat(i.errors, w.errors, r.errors, m.errors), 'console errors').toEqual([]);
 });
 
@@ -2109,5 +2109,27 @@ test('Case chats keep where a person was in the database (12 Nov 2026): read and
   await expect(p2.locator('[data-mg-row]').filter({ hasText: 'Garcia' })).not.toHaveClass(/mg-unread/);
   await expect(p2.locator('[data-mg="mute"]')).toHaveAttribute('aria-checked', 'true');
   await other.close();
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('The Inbox in the sidebar (12 Nov 2026): two pills like Notifications, the chats count with a bubble and the mail count with an envelope; read on any page and kept live on the Inbox', async ({ page }) => {
+  const FAKE = 'http://127.0.0.1:54399/rest/v1/rpc/';
+  const r = await open(page, 'cases.php');
+  await page.waitForTimeout(1200);
+  await page.evaluate(u => fetch(u + 'fake_reset_chat_state', { method: 'POST', body: '{}' }), FAKE);
+  await page.evaluate(u => fetch(u + 'fake_incoming', { method: 'POST', body: '{"body":"Kuya, may balita na po ba?"}' }), FAKE);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const chat = page.locator('.p-nav a[href="inbox.php"] .p-ib-chat'), mail = page.locator('.p-nav a[href="inbox.php"] .p-ib-mail');
+  await expect(chat).toBeVisible({ timeout: 6000 });                                   // the chats' count came from the server
+  await expect(mail).toBeVisible();                                                    // and the mail's came with the page: two pills, side by side, both still
+  const a = await chat.boundingBox(), b = await mail.boundingBox();
+  expect(Math.abs(a.y - b.y), 'on one line').toBeLessThan(2); expect(Math.abs(a.x - b.x), 'beside each other, not stacked').toBeGreaterThan(15);
+  expect(await chat.evaluate(e => getComputedStyle(e).animationName)).toBe('none');
+  const n1 = Number(await chat.getAttribute('data-n')); expect(n1).toBeGreaterThan(0);
+  // on the Inbox itself the number follows what is read there
+  await page.goto('inbox.php', { waitUntil: 'domcontentloaded' });
+  await expect(chat).toBeVisible({ timeout: 5000 });
+  await page.locator('[data-mg-row]').filter({ hasText: 'Garcia' }).click();
+  await expect.poll(async () => Number(await chat.getAttribute('data-n')), { timeout: 5000 }).toBeLessThan(n1);
   expect(r.errors, 'console errors').toEqual([]);
 });

@@ -2385,6 +2385,8 @@
 {"en":"Unlock with Face ID / fingerprint","fil":"I-unlock gamit ang Face ID / fingerprint","in":["app"]},
 {"en":"Unlock with Face ID or fingerprint to continue.","fil":"I-unlock gamit ang Face ID o fingerprint para magpatuloy.","in":["app"]},
 {"en":"Unread","fil":"Hindi pa nababasa","in":["portal"]},
+{"en":"Unread case chats","fil":"Mga hindi pa nababasang chat sa kaso","in":["portal"]},
+{"en":"Unread mail","fil":"Mga hindi pa nababasang mail","in":["portal"]},
 {"en":"Unread notes from the SMART engine","fil":"May hindi pa nababasang abiso mula sa SMART engine","in":["portal"]},
 {"en":"Unrecognized document","fil":"Hindi makilalang dokumento","in":["portal"]},
 {"en":"Unsaved Changes","fil":"Hindi Na-save na mga Pagbabago","in":["app"]},

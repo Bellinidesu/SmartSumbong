@@ -39,6 +39,7 @@
       r.hidden = !ok; if (ok) { shown++; }
     });
     if (rows().length) { none.textContent = tr('No chats match.', 'Walang tumutugong chat.'); none.hidden = shown > 0; } else { none.hidden = false; }
+    document.dispatchEvent(new CustomEvent('ss-chat-total', { detail: total }));
     var b = document.getElementById('ib-chats-n'); if (b) { b.textContent = total > 9 ? '9+' : String(total); b.hidden = total === 0; }
   }
   qIn.addEventListener('input', paint);

@@ -84,6 +84,12 @@ html[data-side="min"] .p-nav .p-brain-badge{left:auto;right:8px}
 .p-nav a.p-active .p-brain-pill{box-shadow:0 0 0 2px rgba(255,255,255,.55)}
 html[data-side="min"] .p-nav .p-rt{position:absolute;right:5px;top:2px;gap:2px}
 html[data-side="min"] .p-nav .p-pill{min-width:17px;height:17px;padding:0 4px;font-size:9.5px}
+/* the Inbox's two pills (Ace, 12 Nov: two, like Notifications, so nothing is confused): the chats' unread with a bubble, the mail's unread with an envelope */
+.p-nav .p-ib{display:inline-flex;align-items:center;gap:4px;padding:0 7px;white-space:nowrap}
+.p-nav .p-ib[hidden]{display:none}
+.p-nav .p-ib b{font-weight:700}
+.p-nav .p-ib-chat{background:#E5383B}
+html[data-side="min"] .p-nav .p-ib{padding:0 4px}html[data-side="min"] .p-nav .p-ib svg{display:none}
 html[data-side="min"] .p-nav .p-brain-pill{width:17px;height:17px}
 html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
 @media (min-width:981px){
