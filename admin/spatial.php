@@ -2459,6 +2459,7 @@ loadBoundary();
 load();
 </script>
 <script src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
+<script src="assets/js/sd-dock.js?v=<?= e(asset_version('../js/sd-dock.js')) ?>"></script>
 <?php if ($smartOn): ?>
 <script>window.SS_SMART = <?= json_encode(['levels' => (object) $smartLevels, 'late' => array_column($smartLate, 'report_id'),
     'recur' => array_map(fn($p) => ['lat' => (float) $p['lat'], 'lng' => (float) $p['lng']], $patterns),

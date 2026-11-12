@@ -9,7 +9,8 @@
 #s-spatial#s-spatial :is(.p-map-search, .cc-suggest, .p-map-stats, .p-map-legend, .fw-card, .lyc, .ss-lyr, .cs-sheet, .ss-qv, .ss-pop) {
   border-radius: var(--sd-card-r);
 }
-:root:not([data-theme="dark"]) #s-spatial#s-spatial :is(.p-map-search, .cc-suggest, .p-map-stats, .p-map-legend, .fw-card, .lyc, .ss-lyr, .cs-sheet, .ss-qv, .ss-pop) {
+/* the SMART panel is navy by day on purpose (its light words sit on it): it is not painted white */
+:root:not([data-theme="dark"]) #s-spatial#s-spatial :is(.p-map-search, .cc-suggest, .p-map-stats:not(.ss-drawer), .p-map-legend, .fw-card, .lyc, .ss-lyr, .cs-sheet, .ss-qv, .ss-pop) {
   background: #fff; border: 1px solid var(--ae-edge, rgba(20, 27, 52, .07));
   box-shadow: 0 1px 1px rgba(10, 30, 90, .05), 0 10px 26px rgba(10, 30, 90, .14), 0 28px 56px rgba(10, 30, 90, .09);
 }
@@ -43,3 +44,17 @@
 #s-spatial#s-spatial :is(.cc-suggest, .cc-side) .p-btn-ghost { background: transparent; border: 1px solid var(--p-line-2); color: var(--p-ink); box-shadow: none; }
 #s-spatial#s-spatial :is(.cc-suggest, .cc-side) .p-btn-ghost:hover { border-color: var(--p-orange); }
 @media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] #s-spatial#s-spatial * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
+
+/* ---- the buttons down the side can be moved (sd-dock.js), and never cover a panel ---- */
+#s-spatial .p-map-dock .sd-grip { order: -20; justify-self: end; display: grid; place-items: center; width: 42px; height: 18px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--p-muted); cursor: grab; opacity: .55; touch-action: none; user-select: none; transition: opacity .15s ease, background .15s ease; }
+#s-spatial .p-map-dock .sd-grip:hover, #s-spatial .p-map-dock .sd-grip:focus-visible { opacity: 1; background: color-mix(in srgb, var(--p-surface) 82%, transparent); }
+#s-spatial .p-map-dock .sd-grip:focus-visible { outline: 3px solid var(--p-link); outline-offset: 2px; }
+#s-spatial .p-map-dock.sd-drag .sd-grip { cursor: grabbing; opacity: 1; }
+#s-spatial .p-map-dock.sd-drag { transition: none; opacity: 1 !important; }
+#s-spatial .p-map-dock.sd-snap { transition: left .34s cubic-bezier(.2, 1.2, .4, 1), top .34s ease; }
+#s-spatial .p-map-dock.sd-left { justify-items: start; }
+#s-spatial .p-map-dock.sd-left .sd-grip { justify-self: start; }
+/* while a panel is open on the right, the buttons on the right keep to their icons: their words would land on the panel */
+#s-spatial#s-spatial:has(.p-map-stats:not([hidden])) .p-map-dock:not(.sd-left):is(:hover, :focus-within) .p-dock-btn:has(.dl) { width: 42px; padding: 0; gap: 0; justify-content: center; }
+#s-spatial#s-spatial:has(.p-map-stats:not([hidden])) .p-map-dock:not(.sd-left):is(:hover, :focus-within) .p-dock-btn .dl { max-width: 0; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { #s-spatial .p-map-dock.sd-snap, #s-spatial .p-map-dock .sd-grip { transition: none; } }

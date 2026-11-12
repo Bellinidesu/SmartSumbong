@@ -1879,3 +1879,35 @@ test('Chat heads drag like a phone\'s (12 Nov 2026): the panel shuts when the bu
   await expect(page.locator('.ch-float')).toHaveCount(0);
   expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].pin)).toBe(false);
 });
+
+test('Spatial Distribution (12 Nov 2026): the SMART panel stays navy by day; the buttons move (a grip, the nearer side, remembered, put back) and never cover an open panel', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'spatial.php');
+  await page.evaluate(() => { try { localStorage.setItem('ss-theme', 'light'); localStorage.removeItem('ss-sd-dock'); } catch (e) {} });
+  await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(1500);
+  // the SMART panel: dark behind light words, in the light theme too
+  await page.locator('#smart-toggle').click();
+  await expect(page.locator('#smart-side')).toBeVisible();
+  const lum = await page.locator('#smart-side').evaluate(e => { const m = getComputedStyle(e).backgroundColor.match(/[\d.]+/g).map(Number); return (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255; });
+  expect(lum).toBeLessThan(0.35);
+  // an open panel is not covered: hovering the buttons does not widen them
+  const btn = page.locator('#incident-toggle');
+  await btn.hover(); await page.waitForTimeout(400);
+  expect((await btn.boundingBox()).width).toBeLessThan(60);
+  await page.locator('#smart-toggle').click();
+  await expect(page.locator('#smart-side')).toBeHidden();
+  // the grip: drag the column to the left side, mid height; it settles on the left and is remembered
+  const grip = page.locator('.p-map-dock .sd-grip'); await expect(grip).toBeVisible();
+  const g = await grip.boundingBox();
+  await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2); await page.mouse.down(); await page.mouse.move(700, 400, { steps: 8 }); await page.mouse.up();
+  await expect(page.locator('.p-map-dock')).toHaveClass(/sd-left/);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ss-sd-dock')).side)).toBe('l');
+  await page.waitForTimeout(500);
+  expect((await page.locator('.p-map-dock').boundingBox()).x).toBeLessThan(500);
+  await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(1200);
+  await expect(page.locator('.p-map-dock')).toHaveClass(/sd-left/);                      // remembered
+  await page.locator('.p-map-dock .sd-grip').dblclick();                                   // put back
+  await expect(page.locator('.p-map-dock')).not.toHaveClass(/sd-moved/);
+  expect(await page.evaluate(() => localStorage.getItem('ss-sd-dock'))).toBeNull();
+  expect(r.errors, 'console errors').toEqual([]);
+});

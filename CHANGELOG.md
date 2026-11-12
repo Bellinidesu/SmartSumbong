@@ -14,6 +14,8 @@ Changes on `main` not yet deployed belong here.
 - The map's floating surfaces follow the portal's cards: by night the near-black card with a lit edge and a top sheen instead of frosted glass, by day a solid white card with a
   thin edge and one soft elevation, one corner radius, and the main action (Turn on Flood Watch and the other primary buttons) in orange with the second outlined.
   New `sd-skin.css`, loaded only on this page after the map's own styles. Pins, heat and every colour that carries meaning are unchanged.
+- The buttons down the side can be moved: a grip at their head (drag, or the arrow keys; press twice to put them back), they settle on the nearer side and are remembered in the browser.
+  While a panel is open they keep to their icons, so their words no longer land on the panel; the SMART panel stays navy by day (it had been painted white under its light words). New `sd-dock.js`.
 
 **The case page, and the chat head (12 Nov, looks pass)**
 - Case page: the owner first, a labelled "Where the case is" ladder, the ownership history folded, "Field responder" instead of "Currently with", the
