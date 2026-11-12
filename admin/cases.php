@@ -865,7 +865,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
             <?= sensitive_badge($r) ?>
             <span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?></span>
             <?php if (report_is_overdue($r)): ?><span class="p-badge p-b-denied"><?= e(t('Overdue', 'Lampas na sa takdang oras')) ?></span><?php endif; ?>
-            <?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($r['referred_to']) ?></span><?php endif; ?>
+            <?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet" title="<?= e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to']) ?>"><?= e(t('Escalated to ', 'In-escalate sa ')) . e(referral_short((string) $r['referred_to'])) ?></span><?php endif; ?>
             <?php if (!empty($r['higher_official'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($r['higher_official']) ?></span><?php endif; ?>
             <?php if (!empty($r['resolution_submitted_at'])): ?><span class="p-badge p-b-pending"><?= e(t('Awaiting approval', 'Naghihintay ng pag-apruba')) ?></span><?php endif; ?>
             <?php if (!empty($r['followed_up_at']) && !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?><span class="p-badge p-b-pending"><?= e(t('Followed up', 'Nag-follow up')) ?></span><?php endif; ?>
@@ -1006,9 +1006,10 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   // Same markup as smart_badge() above: the level's word always beside its colour.
   function smartBadge(tr) {
     if (!tr || !tr.effective_level) return '<span class="p-sub">' + T('Not scored', 'Walang marka') + '</span>';
-    let o = '<span class="p-badge p-b-' + (LEVEL_CLASS[tr.effective_level] || 'grey') + '">' + escapeHtml(LEVEL_LABEL[tr.effective_level] || tr.effective_level) + '</span><small class="ss-score"> ' + (tr.score | 0) + '</small>';
+    const lv = escapeHtml(LEVEL_LABEL[tr.effective_level] || tr.effective_level);
+    let o = '<span class="p-badge p-b-' + (LEVEL_CLASS[tr.effective_level] || 'grey') + ' p-b-score" title="' + lv + ' · ' + (tr.score | 0) + '"><b class="ss-score-n">' + (tr.score | 0) + '</b>' + lv + '</span>';
     if (tr.override_level) o += '<small class="ss-set" title="' + T('Set by an admin', 'Itinakda ng admin') + '">' + T('set by admin', 'itinakda ng admin') + '</small>';
-    if ((tr.possible_duplicates | 0) > 0) o += '<span class="p-badge p-b-violet ss-dup">' + T('Possible duplicate', 'Maaaring doble') + '</span>';
+    if ((tr.possible_duplicates | 0) > 0) o += '<span class="p-badge p-b-violet ss-dup" title="' + T('Possible duplicate', 'Maaaring doble') + '">' + T('Duplicate?', 'Doble?') + '</span>';
     return o;
   }
   // The pager, as pager() draws it, for the pages the live refresh redraws.

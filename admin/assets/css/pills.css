@@ -1,0 +1,26 @@
+/* Pills, one system (12 Nov 2026, Ace), light and dark, on every page: one height (24px), solid colours with lettering chosen so it reads (white on the deep tones, dark only on the
+   amber and the gold, which are too bright for white), long words shortened with the whole text in the title, counts inside the pill where there was a dot. */
+
+/* the SMART level: its score is inside the pill, where the dot was */
+:root:root:root:root:root:root:root:root .p-badge.p-b-score { display: inline-flex; align-items: center; gap: 7px; height: 24px; padding: 0 11px 0 4px; border-radius: 999px; background: var(--pb); color: var(--pt); }
+:root:root:root:root:root:root:root:root .p-badge.p-b-score::before { display: none; }
+.p-b-score .ss-score-n { display: inline-grid; place-items: center; min-width: 20px; height: 16px; padding: 0 5px; border-radius: 999px; background: rgba(255, 255, 255, .26); font: 800 11px/1 Inter, sans-serif; font-variant-numeric: tabular-nums; }
+.p-b-score.p-b-pending .ss-score-n { background: rgba(43, 26, 0, .16); }
+.ss-dup { display: flex; width: max-content; margin-top: 4px; }   /* the duplicate flag sits under the level, never beside the next column */
+td.ss-smart .p-badge + .p-badge { margin-left: 0; }
+
+/* positions: a deep fill with white lettering in both modes (the bright cyan and purple with dark lettering was the odd one out); one height with the status pills */
+:root:root:root .rank { min-height: 24px; height: 24px; padding: 0 11px 0 9px; font-size: 12px; font-weight: 800; background: color-mix(in srgb, var(--rc) 70%, #000); color: #fff; border: 0; box-shadow: 0 4px 12px -5px var(--rc); }
+:root:root:root .rank i { background: #fff; box-shadow: none; opacity: .92; }
+:root:root:root .rank.chair { background: #D5102F; color: #fff; }
+:root[data-theme="dark"]:root:root .rank { color: #fff; box-shadow: 0 0 14px -3px var(--rc); }
+:root[data-theme="dark"]:root:root .rank i { background: #fff; }
+:root[data-theme="dark"]:root:root .rank.chair { background: var(--rk-chair, #E8B73A); color: #14181D; }
+:root[data-theme="dark"]:root:root .rank.chair i { background: #14181D; }
+
+/* the red count in the sidebar and on the SMART button: a red that white lettering reads on */
+:root:root .p-nav .p-pill--hot, :root:root .p-nav .p-ib-chat, :root:root .ss-brain-n { background: #D92D31; color: #fff; }
+
+/* the "TEST" tag beside a test account's name is a tag, not a pill the size of a status */
+.p-badge.dv-test { height: 18px; padding: 0 7px; gap: 4px; font-size: 10.5px; letter-spacing: .06em; vertical-align: 2px; }
+.p-badge.dv-test::before { width: 5px; height: 5px; }
