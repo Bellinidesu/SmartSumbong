@@ -1317,6 +1317,7 @@ test('0164 each rung: the seal alone for everyone, a Kagawad and a staff member 
   await expect(page.locator('.p-side-com')).toContainText('Environment and Disaster Risk');
   expect(await page.locator('.p-side-com b').evaluate(e => { const s = getComputedStyle(e); return s.fontStyle + ' ' + s.textTransform + ' ' + s.fontFamily.split(',')[0].replace(/['"]/g, ''); }), 'capitals in the portal face, upright').toBe('normal uppercase Inter Tight');
   expect(await page.locator('.p-sidebar').evaluate(e => getComputedStyle(e).backgroundImage), 'the committee colour glows from the top').toContain('radial-gradient');
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('.p-sidebar'), '::before').backgroundImage), 'the committee logo, faded, instead of the pattern').toContain('url(');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const m = await open(page, 'personnel.php');
   await expect(page.locator('.p-side-com')).toContainText('Peace and Order');

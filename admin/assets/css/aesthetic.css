@@ -116,7 +116,7 @@
 }
 :root[data-theme="dark"] .p-body .p-modal { border-radius: var(--p-r-xl); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 40px 90px rgba(0, 0, 0, .7), 0 0 0 1px var(--ae-edge); }
 :root[data-theme="dark"] .p-sidebar {
-  background: radial-gradient(130% 34% at 50% 0%, color-mix(in srgb, var(--p-side-glow, transparent) 82%, transparent), transparent 78%), radial-gradient(420px 300px at 0% 0%, rgba(118, 78, 255, .22), transparent 70%), linear-gradient(180deg, #0B0F19 0%, #05070C 100%);
+  background: radial-gradient(160% 235px at 50% 0%, color-mix(in srgb, var(--p-side-glow, transparent) 84%, transparent), transparent 100%), radial-gradient(150% 330px at 30% 100%, color-mix(in srgb, var(--p-side-glow, transparent) 42%, transparent), transparent 100%), radial-gradient(420px 300px at 0% 0%, rgba(118, 78, 255, .22), transparent 70%), linear-gradient(180deg, #0B0F19 0%, #05070C 100%);
   -webkit-backdrop-filter: none; backdrop-filter: none; border-right: 1px solid var(--ae-edge);
 }
 :root[data-theme="dark"] .p-table-card tbody td { background: transparent; }

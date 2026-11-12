@@ -284,8 +284,15 @@ function side_colour_style(): string
         if ($h < 0) $h += 360;
     }
     $hs = (int) round($h); $sl = (int) round(min($s * 100, 90)); $sd = (int) round(min($s * 100, 30));
-    $light = "--p-side-a:hsl($hs $sl% 28%);--p-side-b:hsl($hs $sl% 20%);--p-side-glow:$hex";
-    $dark = "--p-side-a:hsl($hs $sd% 20%);--p-side-b:hsl($hs $sd% 11%);--p-side-glow:$hex";
+    // the committee's own logo, faded, is what the sidebar's pattern becomes (12 Nov 2026, Ace): its uploaded logo, or its symbol until it has one
+    $ck = (string) (current_admin()['committee'] ?? '');
+    $url = (string) (committees_all()[$ck]['logo_url'] ?? '');
+    $mark = $url !== '' ? cld_thumb($url, 640)
+        : 'data:image/svg+xml,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' . sd_icon_paths(committee_first_symbol($ck)) . '</svg>');
+    $markCss = '--p-side-mark:url("' . strtr($mark, ['"' => '%22', '\\' => '%5C', '<' => '%3C', '>' => '%3E', "\n" => '', "\r" => '']) . '")';
+    if ($url === '' && committee_first_symbol($ck) === 'other') $markCss = '--p-side-mark:none';   // a committee with no logo and no kind of its own has nothing worth drawing large
+    $light = "--p-side-a:hsl($hs $sl% 28%);--p-side-b:hsl($hs $sl% 20%);--p-side-glow:$hex;$markCss";
+    $dark = "--p-side-a:hsl($hs $sd% 20%);--p-side-b:hsl($hs $sd% 11%);--p-side-glow:$hex;$markCss";
     return "<style>:root{{$light}}@media (prefers-color-scheme: dark){:root:not([data-theme=\"light\"]){{$dark}}}:root[data-theme=\"dark\"]{{$dark}}</style>\n";
 }
 
@@ -587,7 +594,7 @@ window.ssSupabase = function (url, key, initial) {
 <body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?><?= $mo ? ' mo-on mo-in' : '' ?><?= $mo && str_contains((string) ($_SERVER['HTTP_SEC_PURPOSE'] ?? ''), 'prerender') ? ' mo-hold' : '' ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
 <div id="app" class="p-on">
-  <aside class="p-sidebar" aria-label="<?= e(t('Main menu', 'Pangunahing menu')) ?>">
+  <aside class="p-sidebar<?= side_colour()['label'] !== null ? ' has-mark' : '' ?>" aria-label="<?= e(t('Main menu', 'Pangunahing menu')) ?>">
     <button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"
             data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
             aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
