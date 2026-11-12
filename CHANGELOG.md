@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Inbox: two sections, Case chats and BarangayMail (12 Nov)**
+- The Inbox is now two sections. Case chats does what Messenger's web app does, drawn the way Apple's Messages is: a sidebar of conversations (a search field, a segmented
+  All / Unread / Cases I handle, one row per person with a round picture, the last words and a blue dot when unread, the open one filled blue); the person centred over the thread,
+  blue and grey bubbles with a tail on the last of a run and the day in bold before the time; a pill field with an emoji picker and an arrow that appears with the first letter;
+  and Details on the right as grouped lists with Hide Alerts as a switch, a search in the conversation and the photos. Conversations open without a reload and stay current
+  every 15 seconds. BarangayMail is the mail (its Gmail-style pass comes next). Chats are read from `report_messages` and `dispatch_updates` and sent through the same two actions
+  as in the case; unread and Hide Alerts are kept per browser for now (the tables for keeping them per person arrived with 0173). No database change in this part.
 **Spatial Distribution, the current look (12 Nov)**
 - The Layers tile is back at the map's bottom left with its row of pictures (Rose's 5 Nov move into the floating tab is undone; the lock fix stays).
 - The map's floating surfaces follow the portal's cards: by night the near-black card with a lit edge and a top sheen instead of frosted glass, by day a solid white card with a

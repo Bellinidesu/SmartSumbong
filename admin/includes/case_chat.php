@@ -187,3 +187,107 @@ function case_chat_head(array $convs, string $id, string $tracking = ''): string
     <?php
     return (string) ob_get_clean();
 }
+
+/**
+ * One case's conversations, read on their own (the Inbox's Case chats; case.php has these in its own batch).
+ * Null when the case is not there or not this person's to see.
+ *
+ * @return null|array{report:array,convs:list<array>,evidence:list<array>}
+ */
+function case_chat_load_reads(string $id): array
+{
+    return [
+        'report'     => ['reports', ['select' => 'id,tracking_id,subject,status,is_anonymous,handler_id,case_committee,handler:users!reports_handler_id_fkey(id,full_name),resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
+                                     'id' => 'eq.' . $id, 'deleted_at' => 'is.null', 'limit' => '1']],
+        'dispatches' => ['dispatches', ['select' => 'id,state,assigned_at,tanod_id,tanod:users!dispatches_tanod_id_fkey(id,full_name)', 'report_id' => 'eq.' . $id, 'order' => 'assigned_at.desc']],
+        'messages'   => ['report_messages', ['select' => 'id,from_barangay,body,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc']],
+        'thread'     => ['dispatch_updates', ['select' => 'id,dispatch_id,author_id,kind,step,body,created_at,d:dispatches!inner(report_id)', 'd.report_id' => 'eq.' . $id, 'order' => 'created_at.asc']],
+        'proof'      => ['dispatch_media', ['select' => 'dispatch_id,update_id,media_url,mime_type,bytes,uploaded_at,d:dispatches!inner(report_id)', 'd.report_id' => 'eq.' . $id, 'order' => 'uploaded_at.asc']],
+        'evidence'   => ['report_media', ['select' => 'id,media_url,mime_type', 'report_id' => 'eq.' . $id, 'order' => 'uploaded_at.asc']],
+    ];
+}
+
+/** The conversations of a case from the answers to case_chat_load_reads (read in a batch with other things). */
+function case_chat_load_build(array $got): ?array
+{
+    $report = is_array($got['report'] ?? null) ? ($got['report'][0] ?? null) : null;
+    if (!$report) return null;
+    $thread = []; $media = [];
+    foreach ((array) ($got['thread'] ?? []) as $u) { $thread[$u['dispatch_id']][] = $u; }
+    foreach ((array) ($got['proof'] ?? []) as $m) { if (!empty($m['update_id'])) $media[$m['update_id']][] = $m; }
+    $convs = case_chat_conversations($report, is_array($got['dispatches'] ?? null) ? $got['dispatches'] : [], $thread, $media,
+                                     is_array($got['messages'] ?? null) ? $got['messages'] : [], (string) ($report['status'] ?? ''));
+    return ['report' => $report, 'convs' => $convs, 'evidence' => is_array($got['evidence'] ?? null) ? $got['evidence'] : []];
+}
+
+function case_chat_load(Supabase $db, string $id): ?array
+{
+    return case_chat_load_build($db->selectMany(case_chat_load_reads($id)));
+}
+
+/**
+ * The Inbox's Case chats list, one row per CONVERSATION (the resident of a case, a tanod on one of its dispatches), the newest
+ * first, the way Messenger lists people. What the database lets this person read is all there is. Each row carries what the
+ * page needs to light its unread dot in the browser (this conversation's last words in and the barangay's last answer).
+ *
+ * @return list<array{key:string,case:string,conv:string,kind:string,name:string,tracking:string,subject:string,status:string,mine:bool,last:string,text:string,out:bool,feed:array}>
+ */
+function case_chat_list_reads(int $keep = 300): array
+{
+    $rep = 'id,tracking_id,subject,status,handler_id';
+    return [
+        'msgs' => ['report_messages', ['select' => 'report_id,from_barangay,body,created_at,report:reports!report_messages_report_id_fkey(' . $rep . ',resident:users!reports_resident_id_fkey(full_name))',
+                                       'order' => 'created_at.desc', 'limit' => (string) $keep]],
+        'ups'  => ['dispatch_updates', ['select' => 'dispatch_id,author_id,kind,body,created_at,d:dispatches!inner(report_id,tanod_id,tanod:users!dispatches_tanod_id_fkey(full_name),report:reports!dispatches_report_id_fkey(' . $rep . '))',
+                                        'kind' => 'eq.message', 'order' => 'created_at.desc', 'limit' => (string) $keep]],
+    ];
+}
+
+/** The rows from the answers to case_chat_list_reads. */
+function case_chat_list_rows(array $got, string $me): array
+{
+    $iso = static function (?string $s): string { $t = $s !== null ? strtotime($s) : false; return $t ? gmdate('Y-m-d\TH:i:s\Z', $t) : ''; };
+    $rows = [];
+    $put = static function (array $r, string $conv, string $kind, string $name, bool $incoming, string $ts, string $text) use (&$rows, $me): void {
+        if (empty($r['id']) || $ts === '') return;
+        $key = $r['id'] . '|' . $conv;
+        $c = &$rows[$key];
+        $c ??= ['key' => $key, 'case' => (string) $r['id'], 'conv' => $conv, 'kind' => $kind, 'name' => $name, 'tracking' => (string) ($r['tracking_id'] ?? ''),
+                'subject' => (string) ($r['subject'] ?? ''), 'status' => (string) ($r['status'] ?? ''), 'mine' => ($r['handler_id'] ?? null) === $me,
+                'last' => '', 'text' => '', 'out' => false, 'feed' => ['in' => [], 'out' => []]];
+        if ($ts > $c['last']) { $c['last'] = $ts; $c['text'] = mb_substr(trim($text), 0, 140); $c['out'] = !$incoming; }
+        if ($incoming) { if (count($c['feed']['in']) < 30) $c['feed']['in'][] = ['c' => $conv, 'ts' => $ts]; }
+        elseif (!isset($c['feed']['out'][$conv]) || $ts > $c['feed']['out'][$conv]) { $c['feed']['out'][$conv] = $ts; }
+    };
+    foreach ((array) ($got['msgs'] ?? []) as $m) {
+        $r = (array) ($m['report'] ?? []);
+        $put($r, 'r', 'resident', formal_or($r['resident']['full_name'] ?? null, t('Resident', 'Residente')), empty($m['from_barangay']), $iso($m['created_at'] ?? null), (string) ($m['body'] ?? ''));
+    }
+    foreach ((array) ($got['ups'] ?? []) as $u) {
+        $d = (array) ($u['d'] ?? []);
+        $put((array) ($d['report'] ?? []), 'd-' . $u['dispatch_id'], 'tanod', (string) ($d['tanod']['full_name'] ?? t('Tanod', 'Tanod')),
+             ($u['author_id'] ?? null) === ($d['tanod_id'] ?? '?'), $iso($u['created_at'] ?? null), (string) ($u['body'] ?? ''));
+    }
+    $list = array_values($rows);
+    usort($list, static fn ($a, $b) => strcmp($b['last'], $a['last']));
+    return $list;
+}
+
+function case_chat_list(Supabase $db, string $me, int $keep = 300): array
+{
+    return case_chat_list_rows($db->selectMany(case_chat_list_reads($keep)), $me);
+}
+
+/** The reader's chat, drawn in the page (not floating): the conversations of one case, open at once. */
+function case_chat_inline(array $convs, string $id, string $tracking): string
+{
+    ob_start();
+    ?>
+<div class="ch ch-inline" data-inline="1" data-report="<?= e($id) ?>" data-tracking="<?= e($tracking) ?>" data-url="case.php?id=<?= e(urlencode($id)) ?>&amp;chat=1">
+  <section class="ch-panel" role="region" aria-label="<?= e(t('Messages', 'Mga Mensahe')) ?>">
+    <div class="ch-body"><?= case_chat_body($convs, $id) ?></div>
+  </section>
+</div>
+    <?php
+    return (string) ob_get_clean();
+}

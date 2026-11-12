@@ -48,6 +48,8 @@
     } catch (e) { /* silent is fine */ }
   }
 
+  window.ssChatCore = { store: store, ding: ding, soundFor: soundFor };   // for the Inbox's Case chats (msgr.js), which shares the seen map, the sound and the mute
+
   /* ---------- the right-click menu ---------- */
   var menu = null, menuBack = null, sharedTrash = null, holding = false;
   // a bubble held over a link or an image must not start the browser's own drag of it: that would cancel ours
@@ -97,10 +99,11 @@
   function mount(root) {
     var report = root.getAttribute('data-report'), url = root.getAttribute('data-url');
     var main = root.getAttribute('data-main') === '1';
-    var fab = root.querySelector('.ch-fab'), panel = root.querySelector('.ch-panel'), body = root.querySelector('.ch-body'), badge = root.querySelector('.ch-badge');
-    var cur = null, drafts = {}, sending = 0, loaded = main;
+    var inline = root.getAttribute('data-inline') === '1';   // the Inbox's reader: no button, the panel is part of the page
+    var fab = root.querySelector('.ch-fab') || el('button', 'ch-fab'), panel = root.querySelector('.ch-panel'), body = root.querySelector('.ch-body'), badge = root.querySelector('.ch-badge') || el('span', 'ch-badge');
+    var cur = null, drafts = {}, sending = 0, loaded = main || inline;
     var api = { root: root, report: report, tracking: root.getAttribute('data-tracking') || '', defY: null };
-    var feedBadge = !main;       // a floating head's ball comes from the feed; the case page's from its own conversations
+    var feedBadge = !main && !inline;       // a floating head's ball comes from the feed; the case page's from its own conversations
 
     function convs() { return [].slice.call(body.querySelectorAll('.ch-conv')); }
     function lastOf(sel, c) { var n = c.querySelectorAll(sel); return n.length ? n[n.length - 1] : null; }
@@ -123,6 +126,7 @@
       var c = body.querySelector('.ch-conv[data-conv="' + id + '"]'); if (!c) { return; }
       var l = lastOf('.ch-b, .ch-sys', c); store.setSeen(report, id, l ? l.getAttribute('data-ts') : new Date().toISOString());
       if (api.onSeen) { api.onSeen(); }
+      document.dispatchEvent(new Event('ss-chat-seen'));
     }
     function toBottom(c) { var m = c && c.querySelector('.ch-msgs'); if (m) { m.scrollTop = m.scrollHeight; } }
     function grow(t) { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 120) + 'px'; }
@@ -136,13 +140,14 @@
       if (cur) {
         markSeen(cur); toBottom(v);
         var t = v.querySelector('textarea');
-        if (t) { if (drafts[cur]) { t.value = drafts[cur]; grow(t); v.querySelector('.ch-input').classList.add('has-text'); } t.focus(); }
+        if (t) { if (drafts[cur]) { t.value = drafts[cur]; grow(t); v.querySelector('.ch-input').classList.add('has-text'); } if (!inline) { t.focus(); } }
       }
       paintUnread();
     }
 
     /* where the panel opens: towards the roomier side of the screen, never off it */
     function orient() {
+      if (inline) { return; }
       var r = root.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
       var left = r.left + r.width / 2 < vw / 2, up = r.top + r.height / 2 > vh / 2;
       root.classList.toggle('ch-l', left); root.classList.toggle('ch-r', !left); root.classList.toggle('ch-up', up); root.classList.toggle('ch-down', !up);
@@ -153,7 +158,7 @@
     function open(id) {
       closeMenu(false); panel.hidden = false; fab.setAttribute('aria-expanded', 'true'); root.classList.add('ch-open'); orient();
       var peek = root.querySelector('.ch-peek'); if (peek) { peek.hidden = true; }
-      var go = function () { var all = convs(); show(id || (all.length === 1 ? all[0].getAttribute('data-conv') : null)); if (!cur) { var r = body.querySelector('.ch-row'); if (r) { r.focus(); } } };
+      var go = function () { var all = convs(); show(id || (all.length === 1 ? all[0].getAttribute('data-conv') : null)); if (!cur && !inline) { var r = body.querySelector('.ch-row'); if (r) { r.focus(); } } };
       if (!loaded) { body.textContent = ''; body.appendChild(el('p', 'ch-empty', tr('Loading…', 'Naglo-load…'))); refresh().then(function () { loaded = true; go(); }); } else { go(); }
     }
     function close() {
@@ -206,12 +211,14 @@
     /* the options, from the right-click or the ... button */
     function menuItems() {
       var cs = store.cases()[report] || {}, isOpen = !panel.hidden;
-      var items = [
+      var items = inline ? [] : [
         { label: isOpen ? tr('Close chat', 'Isara ang chat') : tr('Open chat', 'Buksan ang chat'), act: function () { if (isOpen) { close(); } else { open(); } } },
-        { sep: true },
+        { sep: true }
+      ];
+      items.push(
         { label: tr('Float on every page', 'Ilutang sa lahat ng pahina'), check: !!cs.pin, act: function () { store.patch(report, { pin: !cs.pin, t: api.tracking || cs.t || '' }); } },
         { label: tr('Sound for this case', 'Tunog para sa kasong ito'), check: soundFor(report), act: function () { store.patch(report, { sound: !soundFor(report), t: api.tracking || cs.t || '' }); } }
-      ];
+      );
       if (!main) { items.push({ label: tr('Go to the case', 'Pumunta sa kaso'), href: 'case.php?id=' + encodeURIComponent(report) }); }
       items.push({ sep: true }, { label: tr('Chat head settings', 'Mga setting ng chat head'), href: 'settings.php#look' });
       return items;
@@ -326,6 +333,10 @@
     listeners.push(applyPos);
     api.destroy = function () { listeners = listeners.filter(function (f) { return f !== applyPos; }); window.removeEventListener('resize', applyPos); root.remove(); };
     applyPos(); paintUnread();
+    if (inline) {                         // the reader: open at once, and kept current while the tab is in view
+      open();
+      var iv = setInterval(function () { if (!root.isConnected) { clearInterval(iv); return; } if (!document.hidden) { refresh(); } }, 15000);
+    }
     if (main) {
       if (location.hash === '#chat') { open(); } else if (location.hash === '#resident-messages') { open('r'); }
     }
@@ -420,7 +431,25 @@
     listeners.push(paint); paint();
   }
 
+  /* ---------- the Inbox's Case chats folder: readers drawn in the page, and an unread dot on each row ---------- */
+  function paintRows() {
+    [].forEach.call(document.querySelectorAll('[data-chat-row]'), function (r) {
+      var d; try { d = JSON.parse(r.getAttribute('data-feed') || '{}'); } catch (e) { return; }
+      var n = unreadOf(r.getAttribute('data-report'), d);
+      r.classList.toggle('ib-unread', n > 0); r.classList.toggle('is-unread', n > 0);
+      var b = r.querySelector('.ib-cnt'); if (b) { b.textContent = n > 9 ? '9+' : String(n); b.hidden = n === 0; }
+    });
+  }
+  function mountInline() {
+    [].forEach.call(document.querySelectorAll('.ch-inline:not([data-mounted])'), function (r) { r.setAttribute('data-mounted', '1'); mount(r); });
+    paintRows();
+  }
+  document.addEventListener('ss-chat-seen', paintRows);
+  document.body.addEventListener('htmx:afterSettle', mountInline);   // a conversation opened in place (the press flow) gets its chat
+  listeners.push(paintRows);
+
   if (mainEl) { window.ssChat = mount(mainEl); }
   wireSettings();
   listeners.push(sync); sync();
+  mountInline();
 })();

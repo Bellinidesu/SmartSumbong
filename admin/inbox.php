@@ -15,6 +15,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/forwarding.php';
+require_once __DIR__ . '/includes/case_chat.php';
+require_once __DIR__ . '/includes/case_msgr.php';   // 12 Nov 2026: the Case chats folder reads the chat head's conversations
 
 $admin = require_admin();
 $db    = db();
@@ -71,7 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $flash = $_SESSION['inbox_flash'] ?? null; unset($_SESSION['inbox_flash']);
-$box   = ($_GET['box'] ?? '') === 'sent' ? 'sent' : 'in';
+// Two sections (12 Nov 2026, Ace): Case chats, drawn like Messenger, and BarangayMail, the mail. Anything that is about a letter
+// (?m=, ?new, ?reply, ?box=sent, ?app=mail) is the mail, so every old link to a letter still opens it.
+$mailish = isset($_GET['m']) || isset($_GET['new']) || isset($_GET['reply']) || ($_GET['box'] ?? '') === 'sent' || ($_GET['app'] ?? '') === 'mail';
+$app   = $mailish ? 'mail' : 'chats';
+$box   = $app === 'chats' ? 'chats' : (($_GET['box'] ?? '') === 'sent' ? 'sent' : 'in');
+$part  = (string) ($_GET['part'] ?? '');   // the chat page asks for pieces of itself: the list, one thread, one conversation (list, thread, detail)
+$chatId = preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', (string) ($_GET['c'] ?? '')) ? strtolower((string) $_GET['c']) : '';
 $open  = ctype_digit((string) ($_GET['m'] ?? '')) ? (int) $_GET['m'] : 0;
 $new   = isset($_GET['new']) || isset($_GET['reply']);
 $error = null;
@@ -101,7 +109,7 @@ $openGot = [];
 // the list on the left runs for every view of the page
     $per = 20;
     $page = max(1, (int) ($_GET['page'] ?? 1));
-    $rows = []; $total = 0; $listError = null; $dueByQ = [];
+    $rows = []; $total = 0; $listError = null; $dueByQ = []; $chatRows = []; $chatOpen = null; $convId = '';
     try {
         // one wait (speed work, 7 Nov 2026): the unread count, and the page of the list with the total behind its pager
         if ($box === 'in') {
@@ -112,6 +120,21 @@ $openGot = [];
             $openGot = $got;
             $total = (int) ($got['rows:total'] ?? 0);
             $rows = (array) $got['rows'];
+        } elseif ($box === 'chats') {
+            // the case chats (12 Nov 2026): no mail is read here; the mail's unread count still rides along for the tab
+            // one wait on the database: the unread mail count, the list of conversations and the open case ride one batch (speed work, 7 Nov 2026)
+            $got = $db->selectMany(['unread' => $unreadRead]
+                + ($part !== 'thread' && $part !== 'detail' ? case_chat_list_reads() : [])
+                + ($chatId !== '' ? case_chat_load_reads($chatId) : []));
+            $unread = is_int($got['unread'] ?? null) ? $got['unread'] : 0;
+            if ($part !== 'thread' && $part !== 'detail') { $chatRows = case_chat_list_rows($got, $me); }
+            $total = count($chatRows);
+            $chatOpen = $chatId !== '' ? case_chat_load_build($got) : null;
+            $convId = (string) ($_GET['k'] ?? '');
+            if ($chatOpen) {
+                $ids = array_column($chatOpen['convs'], 'id');
+                if (!in_array($convId, $ids, true)) { $convId = (string) ($ids[0] ?? ''); }
+            }
         } else {
             // one row per message sent, with everyone it went to
             $got = $db->selectMany($openReads + ['unread' => $unreadRead, 'sent' => ['inbox_messages', ['sender' => 'eq.' . $me, 'select' => 'id,batch,subject,created_at,to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
@@ -137,6 +160,14 @@ $openGot = [];
         }
     } catch (SupabaseError $ex) { $listError = safe_error($ex); }
 
+if ($box === 'chats' && in_array($part, ['list', 'thread', 'detail'], true)) {
+    header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: no-store');
+    if ($part === 'list') { echo msgr_list($chatRows, $chatId . '|' . $convId); }
+    elseif ($chatOpen && $part === 'detail') { echo msgr_detail($chatOpen, $convId, $chatId); }
+    elseif ($chatOpen) { foreach ($chatOpen['convs'] as $c0) { if ($c0['id'] === $convId) { echo msgr_messages($c0, $chatOpen['report'], $chatId); break; } } }
+    exit;
+}
+
 layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 ?>
 <div class="p-topbar"><h1><?= e(t('Inbox', 'Mga Liham')) ?></h1></div>
@@ -144,13 +175,46 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
       // Inbox's own links are boosted (a link to a case stays an ordinary page change); the forms post as before. ?>
 <div id="ib-main" class="press-region" hx-target="#ib-main" hx-select="#ib-main" hx-swap="outerHTML" hx-push-url="true" hx-sync="#ib-main:replace"
      data-announce="<?= e(t('Inbox updated', 'Na-update ang mga liham')) ?>">
-<nav class="st-tabs ib-tabs" aria-label="<?= e(t('Inbox', 'Mga Liham')) ?>">
-  <a hx-boost="true" class="st-link<?= $box === 'in' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php"><?= e(t('Inbox', 'Mga Liham')) ?><?php if ($unread): ?> <span class="p-badge-n"><?= (int) $unread ?></span><?php endif; ?></a>
+<nav class="st-tabs ib-apps" aria-label="<?= e(t('Inbox sections', 'Mga bahagi ng Inbox')) ?>">
+  <a class="st-link<?= $app === 'chats' ? ' p-on' : '' ?>" href="inbox.php"<?= $app === 'chats' ? ' aria-current="page"' : '' ?>><?= e(t('Case chats', 'Mga chat sa kaso')) ?> <span class="p-badge-n" id="ib-chats-n" hidden>0</span></a>
+  <a class="st-link<?= $app === 'mail' ? ' p-on' : '' ?>" href="inbox.php?app=mail"<?= $app === 'mail' ? ' aria-current="page"' : '' ?>>BarangayMail<?php if ($unread): ?> <span class="p-badge-n"><?= (int) $unread ?></span><?php endif; ?></a>
+</nav>
+<?php if ($app === 'mail'): ?>
+<nav class="st-tabs ib-tabs" aria-label="BarangayMail">
+  <a hx-boost="true" class="st-link<?= $box === 'in' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php?app=mail"><?= e(t('Inbox', 'Mga Liham')) ?></a>
   <a hx-boost="true" class="st-link<?= $box === 'sent' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php?box=sent"><?= e(t('Sent', 'Naipadala')) ?></a>
   <a hx-boost="true" class="st-link<?= $new ? ' p-on' : '' ?>" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a>
 </nav>
+<?php endif; ?>
 <?php if ($flash && $flash['text']): ?><div class="p-flash p-flash--<?= $flash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($flash['text']) ?></div><?php endif; ?>
 
+<?php if ($box === 'chats'):
+    // ---------- Case chats, drawn like Messenger: the conversations, the open one, its information ----------
+    $selKey = $chatOpen ? $chatId . '|' . $convId : ''; ?>
+<link rel="stylesheet" href="assets/css/msgr.css?v=<?= e(asset_version('msgr.css')) ?>">
+<div class="mg" id="mg" data-list-url="inbox.php?app=chats&amp;part=list" data-detail-url="inbox.php?app=chats&amp;part=detail">
+  <section class="mg-left" aria-label="<?= e(t('Chats', 'Mga chat')) ?>">
+    <header class="mg-lhead"><h2><?= e(t('Chats', 'Mga chat')) ?></h2></header>
+    <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
+    <label class="mg-search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="p-sr"><?= e(t('Search chats', 'Hanapin ang mga chat')) ?></span><input type="search" id="mg-q" placeholder="<?= e(t('Search chats', 'Hanapin ang mga chat')) ?>" autocomplete="off"></label>
+    <div class="mg-chips" role="group" aria-label="<?= e(t('Show', 'Ipakita')) ?>">
+      <button type="button" class="mg-chip p-on" data-f="all" aria-pressed="true"><?= e(t('All', 'Lahat')) ?></button>
+      <button type="button" class="mg-chip" data-f="unread" aria-pressed="false"><?= e(t('Unread', 'Hindi pa nababasa')) ?></button>
+      <button type="button" class="mg-chip" data-f="mine" aria-pressed="false"><?= e(t('Cases I handle', 'Mga kasong hawak ko')) ?></button>
+    </div>
+    <nav class="mg-list" id="mg-list" aria-label="<?= e(t('Chats', 'Mga chat')) ?>"><?= msgr_list($chatRows, $selKey) ?></nav>
+    <p class="mg-nomatch" id="mg-nomatch"<?= $chatRows ? ' hidden' : '' ?>><?= $chatRows ? e(t('No chats match.', 'Walang tumutugong chat.')) : e(t('No chats yet. They start when a resident writes about a case or a tanod replies from the field.', 'Wala pang chat. Magsisimula ito kapag sumulat ang residente tungkol sa kaso o sumagot ang tanod mula sa lugar.')) ?></p>
+  </section>
+  <div class="mg-detail<?= $chatOpen ? ' mg-open' : '' ?>" id="mg-detail">
+    <?php if ($chatOpen && $convId !== ''): ?><?= msgr_detail($chatOpen, $convId, $chatId) ?>
+    <?php elseif ($chatId !== ''): ?><div class="mg-blank"><b><?= e(t('That case is not yours to read.', 'Hindi para sa iyo ang kasong iyan.')) ?></b></div>
+    <?php else: ?><div class="mg-blank"><svg viewBox="0 0 24 24" width="64" height="64" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.5 1.3 4.7 3.4 6.2-.2 1.3-.8 2.6-1.7 3.6a.5.5 0 0 0 .5.8c2-.3 3.7-1.1 4.9-2A11.7 11.7 0 0 0 12 20c5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/></svg>
+      <b><?= e(t('Select a chat', 'Pumili ng chat')) ?></b><span><?= e(t('Choose a conversation on the left to read it and answer here.', 'Pumili ng usapan sa kaliwa para mabasa at masagot dito.')) ?></span></div><?php endif; ?>
+  </div>
+</div>
+<script src="assets/js/emoji.js?v=<?= e(asset_version('../js/emoji.js')) ?>" defer></script>
+<script src="assets/js/msgr.js?v=<?= e(asset_version('../js/msgr.js')) ?>" defer></script>
+<?php else: ?>
 <div class="ib-split<?= !$rows && !$new && !$open ? ' ib-empty' : '' ?>">
 <section class="ib-list" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
   <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
@@ -331,6 +395,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 <?php endif; ?>
 </div>
 </div>
+<?php endif; // the case chats, or the mail ?>
 </div><?php // #ib-main ?>
 <script>
 // the countdown on messages that wait for an answer
