@@ -48,6 +48,8 @@
     } catch (e) { /* silent is fine */ }
   }
 
+  window.ssChatCore = { store: store, ding: ding, soundFor: soundFor };   // for the Inbox's Case chats (msgr.js), which shares the seen map, the sound and the mute
+
   /* ---------- the right-click menu ---------- */
   var menu = null, menuBack = null, sharedTrash = null, holding = false;
   // a bubble held over a link or an image must not start the browser's own drag of it: that would cancel ours

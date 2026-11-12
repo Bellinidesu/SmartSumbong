@@ -9,10 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
-**Inbox: Case chats (12 Nov)**
-- A new Inbox folder lists every case whose resident or tanod has written (the cases this person can read, or only the ones they handle), newest first, with an
-  unread dot per row; opening one draws the chat head's conversations in the reading pane, so an answer can be written from the Inbox. Mail stays mail:
-  chats are read from `report_messages` and `dispatch_updates` and are sent through the same two actions as in the case. Unread is kept per browser. No database change.
+**Inbox: two sections, Case chats like Messenger and BarangayMail (12 Nov)**
+- The Inbox is now two sections. Case chats is drawn like Messenger's web app: a conversation per person (the resident of a case, each tanod on its dispatches) with
+  search, All / Unread / Cases I handle chips, an unread dot, the open conversation in grouped bubbles with the other person's small picture, a pill composer with an
+  emoji picker and the thumbs-up that becomes Send, and a conversation-information column (the case, Mute, Search, media). Conversations open without a reload and
+  stay current every 15 seconds. BarangayMail is the mail (its Gmail-style pass comes next). Chats are read from `report_messages` and `dispatch_updates` and sent through
+  the same two actions as in the case; unread and mute are kept per browser. No database change.
 
 **The case page, and the chat head (12 Nov, looks pass)**
 - Case page: the owner first, a labelled "Where the case is" ladder, the ownership history folded, "Field responder" instead of "Currently with", the

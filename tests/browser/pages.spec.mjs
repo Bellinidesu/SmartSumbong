@@ -1874,32 +1874,49 @@ test('Chat heads drag like a phone\'s (12 Nov 2026): the panel shuts when the bu
   expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].pin)).toBe(false);
 });
 
-test('Inbox, Case chats (12 Nov 2026): the folder lists the cases that have chats with an unread dot; opening one draws the chat in the pane; a send stays on the page; the dot clears once read', async ({ page }) => {
-  const r = await open(page, 'inbox.php?box=chats');
-  await page.evaluate(() => { try { Object.keys(localStorage).filter(k => k.startsWith('ss-chat-')).forEach(k => localStorage.removeItem(k)); } catch (e) {} });
+test('Inbox, Case chats like Messenger (12 Nov 2026): a conversation per person with an unread dot, search and chips, a conversation that opens in place, send and the thumbs-up, emoji, mute, the information column; BarangayMail is the other section', async ({ page }) => {
+  const r = await open(page, 'inbox.php');
+  await page.evaluate(() => { try { Object.keys(localStorage).filter(k => k.startsWith('ss-chat-') || k.startsWith('ss-msgr') || k.startsWith('ss-emoji')).forEach(k => localStorage.removeItem(k)); } catch (e) {} });
   await page.reload({ waitUntil: 'domcontentloaded' });
-  const rows = page.locator('[data-chat-row]');
-  await expect(rows).toHaveCount(1);
-  await expect(rows.first()).toContainText('SS-2610-1001');
-  await expect(rows.first()).toHaveClass(/ib-unread/);                              // the resident's last question has no answer yet
-  await expect(rows.first().locator('.ib-cnt')).toBeVisible();
-  await rows.first().click();
-  await expect(page).toHaveURL(/box=chats&c=c0000000-0000-0000-0000-000000000001/);
-  const chat = page.locator('.ch-inline');
-  await expect(chat).toBeVisible();
-  await expect(chat.locator('.ch-row')).toHaveCount(2);                              // the resident and the tanod of this case
-  await chat.locator('.ch-row', { hasText: 'Garcia' }).click();
-  await expect(rows.first()).toHaveClass(/ib-unread/);                               // the tanod's replies in this case are still unread
-  await chat.locator('.ch-conv:not([hidden]) [data-ch="back"]').click();
-  await chat.locator('.ch-row', { hasText: 'Lediac' }).click();
-  await expect(rows.first()).not.toHaveClass(/ib-unread/);                           // both read: the dot clears
+  await expect(page.locator('.ib-apps a')).toHaveText([/Case chats/, /BarangayMail/]);   // two sections, no more
+  const rows = page.locator('[data-mg-row]');
+  await expect(rows).toHaveCount(2);                                                  // the resident and the tanod of the case: one row each
+  await expect(rows.filter({ hasText: 'Garcia' })).toHaveClass(/mg-unread/);          // the resident's last question has no answer yet
+  await page.locator('#mg-q').fill('lediac');
+  await expect(page.locator('[data-mg-row]:not([hidden])')).toHaveCount(1);
+  await page.locator('#mg-q').fill('');
+  await page.locator('.mg-chip[data-f="mine"]').click();                              // the fake's case is handled by somebody else
+  await expect(page.locator('[data-mg-row]:not([hidden])')).toHaveCount(0);
+  await page.locator('.mg-chip[data-f="all"]').click();
+  await rows.filter({ hasText: 'Garcia' }).click();
+  await expect(page).toHaveURL(/inbox\.php\?app=chats&c=c0000000-0000-0000-0000-000000000001&k=r/);
+  const center = page.locator('.mg-center');
+  await expect(center).toBeVisible();
+  await expect(center.locator('.mg-row').first()).toBeVisible();
+  await expect(rows.filter({ hasText: 'Garcia' })).not.toHaveClass(/mg-unread/);      // read: the dot clears
   const note = 'Opo, sinusuri na namin ' + Date.now();
   const sent = page.waitForResponse(x => x.request().method() === 'POST' && x.url().includes('case.php'));
-  const box = chat.locator('.ch-conv:not([hidden]) textarea'); await box.fill(note); await box.press('Enter');
+  const box = center.locator('textarea'); await box.fill(note);
+  await expect(page.locator('.mg-form')).toHaveClass(/has-text/);                      // the thumbs-up has become Send
+  await box.press('Enter');
   expect((await (await sent).json()).ok).toBe(true);
-  await expect(chat.locator('.ch-b', { hasText: note })).toHaveCount(1);
+  await expect(center.locator('.mg-b', { hasText: note })).toHaveCount(1);
+  const like = page.waitForResponse(x => x.request().method() === 'POST' && x.url().includes('case.php'));
+  await page.locator('.mg-send').click();                                              // empty: the thumbs-up
+  expect((await (await like).json()).ok).toBe(true);
+  await expect(center.locator('.mg-b', { hasText: '👍' })).toHaveCount(1);
+  await page.locator('.mg-emoji').click();
+  await expect(page.locator('.em-pop')).toBeVisible();
+  await page.locator('.em-pop .em-c').first().click();
+  expect((await center.locator('textarea').inputValue()).length).toBeGreaterThan(0);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.em-pop')).toHaveCount(0);
+  await page.locator('[data-mg="mute"]').click();
+  await expect(page.locator('[data-mg="mute"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('[data-mg="info"]').click();                                       // the information column closes
+  await expect(page.locator('.mg-info')).toBeHidden();
   expect(await axe(page), 'axe on Case chats').toEqual([]);
-  await page.goto('inbox.php?box=chats&who=mine', { waitUntil: 'domcontentloaded' });  // the fake's case is handled by somebody else
-  await expect(page.locator('[data-chat-row]')).toHaveCount(0);
+  await page.goto('inbox.php?app=mail', { waitUntil: 'domcontentloaded' });             // the other section
+  await expect(page.locator('.ib-apps a.p-on')).toHaveText(/BarangayMail/);
   expect(r.errors, 'console errors').toEqual([]);
 });
