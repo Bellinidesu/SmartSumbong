@@ -557,7 +557,8 @@ window.ssSupabase = function (url, key, initial) {
 <?php if (!in_array($active, ['case.php', 'spatial.php'], true)) : // the identity layer (identity.css), last, on every page but the case page and Spatial Distribution ?>
 <link href="assets/css/identity.css?v=<?= e(asset_version('identity.css')) ?>" rel="stylesheet">
 <?php endif; ?>
-<?= side_colour_style() ?><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
+<link href="assets/css/motion.css?v=<?= e(asset_version('motion.css')) ?>" rel="stylesheet">
+<?= side_colour_style() ?><script src="assets/js/motion.js?v=<?= e(asset_version('../js/motion.js')) ?>" defer></script><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
 <?php // The press flow (7 Nov 2026): htmx swaps only what a press changes. No eval, no scripts from swapped HTML, no page HTML in
       // localStorage (Back fetches the page fresh), same-origin only; assets/js/press.js is the portal's layer over it. ?>
 <meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"refreshOnHistoryMiss":true,"selfRequestsOnly":true,"includeIndicatorStyles":false,"scrollIntoViewOnBoost":false,"defaultSettleDelay":0,"getCacheBusterParam":false}'>
@@ -581,7 +582,9 @@ window.ssSupabase = function (url, key, initial) {
       $sameRule = preg_match('~^/[A-Za-z0-9_./-]+\.php$~', $sameUrl) ? '{"not":{"href_matches":' . json_encode($sameUrl . '*', JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '}},' : ''; ?>
 <script type="speculationrules">{"prerender":[{"source":"document","eagerness":"moderate","where":{"and":[{"selector_matches":"#side-nav a[href]"},{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"]"}}]}}],"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-boost=\"true\"], a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
 </head>
-<body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?>">
+<?php // 12 Nov 2026 (Ace): motion (motion.css, motion.js) on every page but Control Room, Settings and Profile: mo-on for hover and press, mo-in for the first open, mo-hold while a prerendered page waits to be shown ?>
+<?php $mo = !in_array($active, ['control-room.php', 'settings.php', 'profile.php'], true); ?>
+<body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?><?= $mo ? ' mo-on mo-in' : '' ?><?= $mo && str_contains((string) ($_SERVER['HTTP_SEC_PURPOSE'] ?? ''), 'prerender') ? ' mo-hold' : '' ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
 <div id="app" class="p-on">
   <aside class="p-sidebar" aria-label="<?= e(t('Main menu', 'Pangunahing menu')) ?>">

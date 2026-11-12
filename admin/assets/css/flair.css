@@ -270,10 +270,9 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 
 /* Sign-in: "Powered by SMART engine", version A (Ace's lock, 15 Oct): the logo breathing in its blue to orange glow. It sits at the foot of the panel so the layout does not move. */
 .login-powered { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 2; display: inline-flex; align-items: center; gap: 9px; margin: 0; font: 600 11.5px/1 var(--font-body, Inter, sans-serif); letter-spacing: .14em; text-transform: uppercase; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.45); white-space: nowrap; }
-.login-powered img { height: 22px; width: auto; display: block; animation: lpGlow 3.2s ease-in-out infinite; }
+.login-powered img { height: 22px; width: auto; display: block; filter: drop-shadow(0 0 4px #356CF9) drop-shadow(0 0 12px rgba(255,152,0,.6)); }
 :root[data-theme="dark"] .login-powered { color: #C9CCD1; text-shadow: none; }
-@keyframes lpGlow { 0%, 100% { filter: drop-shadow(0 0 3px #356CF9) drop-shadow(0 0 8px rgba(53,108,249,.6)); } 50% { filter: drop-shadow(0 0 6px #FF9800) drop-shadow(0 0 16px rgba(255,152,0,.8)); } }
-@media (prefers-reduced-motion: reduce) { .login-powered img { animation: none; } }
+@media (prefers-reduced-motion: reduce) {  }
 @media (max-width: 760px) { .login-powered { position: static; transform: none; justify-content: center; margin: 18px 0 0; } }
 
 /* Sign-in rail, dark (Ace, 15 Oct): the seals sit on frosted glass instead of white plates. Their navy lettering is lifted to a bright blue and given a thin light halo so it reads on the glass. */

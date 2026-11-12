@@ -1,0 +1,47 @@
+/* Motion (12 Nov 2026, Ace): how the portal moves, in one place. Quiet, quick and useful: it only ever moves opacity and transform (the two things a
+   browser can move without repainting), it is over in a third of a second, and it never repeats on its own.
+   - First open: the blocks of a page rise in a little, one after another (body.mo-in, which assets/js/p.js takes off again once it has played).
+   - Hover and press on controls that had nothing: a small lift on hover, a small press on click, colours that fade instead of snapping.
+   - A dialog or menu that opens lands softly.
+   Control Room, Settings and Profile have none of it (no mo-on / mo-in on their body). Controls that already move (buttons, cards, tiles, rows, the map's
+   dock) keep their own: these rules sit at zero specificity so any rule written for a thing wins over them. Reduced motion turns all of it off. */
+:root { --mo-ease: cubic-bezier(.2, .7, .2, 1); --mo-fast: .14s; --mo-med: .22s; }
+
+@keyframes moRise { from { opacity: 0; transform: translate3d(0, 10px, 0); } to { opacity: 1; transform: none; } }
+@keyframes moFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes moPop { from { opacity: 0; transform: translate3d(0, 8px, 0) scale(.975); } to { opacity: 1; transform: none; } }
+
+/* ---------- first open ---------- */
+.mo-in .p-main > :not(script, link, style, dialog, template, [hidden], .ss-storm, .ss-win, .ss-win-scrim, .ch, #s-spatial) {
+  animation: moRise .34s var(--mo-ease) backwards; animation-delay: calc(var(--mo-i, 0) * 45ms);
+}
+.mo-in .p-main > :nth-child(3) { --mo-i: 1; } .mo-in .p-main > :nth-child(4) { --mo-i: 2; } .mo-in .p-main > :nth-child(5) { --mo-i: 3; }
+.mo-in .p-main > :nth-child(6) { --mo-i: 4; } .mo-in .p-main > :nth-child(7) { --mo-i: 5; } .mo-in .p-main > :nth-child(n+8) { --mo-i: 6; }
+/* Spatial Distribution keeps its own entrances (the filter box drops in, the dock rises): nothing of the first open is added there */
+/* ---------- hover and press on what had nothing ---------- */
+:where(.mo-on) :where(.p-chip, .p-chip-band, .p-seg-mini a, .p-seg-mini button, .st-tabs a, .p-pill-select, .ss-viewsw button) {
+  transition: background-color var(--mo-fast) var(--mo-ease), border-color var(--mo-fast) var(--mo-ease), color var(--mo-fast) var(--mo-ease), transform var(--mo-fast) var(--mo-ease), opacity var(--mo-fast);
+}
+:where(.mo-on) :where(.p-chip, .p-chip-band, .p-seg-mini a, .p-seg-mini button, .st-tabs a):where(:hover) { transform: translate3d(0, -1px, 0); }
+:where(.mo-on) :where(.p-chip, .p-chip-band, .p-seg-mini a, .p-seg-mini button, .st-tabs a, .p-pill-select):where(:active) { transform: scale(.97); transition-duration: .06s; }
+
+/* buttons: the lift and the press (they had a quick colour change and a one-pixel press); .p-btn is the portal's one button, so every variant of it moves the same way */
+.mo-on .p-btn { transition: background-color var(--mo-fast) var(--mo-ease), border-color var(--mo-fast) var(--mo-ease), color var(--mo-fast) var(--mo-ease), transform var(--mo-fast) var(--mo-ease), box-shadow var(--mo-med) var(--mo-ease); }
+@media (hover: hover) { .mo-on .p-btn:not([disabled], [aria-disabled="true"]):hover { transform: translate3d(0, -1px, 0); } }
+.mo-on .p-btn:not([disabled], [aria-disabled="true"]):active { transform: scale(.97); transition-duration: .06s; }
+:where(.mo-on) :where(.p-th-sort) { transition: color var(--mo-fast) var(--mo-ease), opacity var(--mo-fast); }
+
+/* the sidebar is on every page, so its small answers are too: a fade for the colour, the icon leans in, a press settles */
+.p-nav a { transition: background-color var(--mo-fast) var(--mo-ease), color var(--mo-fast) var(--mo-ease), transform .08s; }
+.p-nav a > svg { transition: transform var(--mo-med) var(--mo-ease); }
+@media (hover: hover) { .p-nav a:hover > svg { transform: translate3d(2px, 0, 0); } }
+.p-nav a:active { transform: scale(.985); }
+
+/* dialogs and menus land softly (their scrim already fades) */
+.mo-on .p-scrim.p-on .p-modal { animation: moPop var(--mo-med) var(--mo-ease) backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mo-in .p-main > *, .mo-on .p-scrim.p-on .p-modal { animation: none !important; }
+  :where(.mo-on) :where(.p-chip, .p-chip-band, .p-seg-mini a, .p-seg-mini button, .st-tabs a, .p-pill-select, .ss-viewsw button, .p-th-sort), .mo-on .p-btn,
+  .p-nav a, .p-nav a > svg { transition: none !important; transform: none !important; }
+}
