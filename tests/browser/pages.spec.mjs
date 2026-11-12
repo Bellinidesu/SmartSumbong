@@ -2077,6 +2077,7 @@ test('BarangayMail: compose with a draft that saves itself, Undo send, send, rep
 test('Case chats keep where a person was in the database (12 Nov 2026): read and muted follow them to another browser', async ({ page, context, browser }) => {
   const FAKE = 'http://127.0.0.1:54399/rest/v1/rpc/';
   const r = await open(page, 'inbox.php');
+  await page.waitForTimeout(1500);                                                    // a save an earlier test's page sent as it closed has landed by now
   await page.evaluate(u => fetch(u + 'fake_reset_chat_state', { method: 'POST', body: '{}' }), FAKE);
   await page.evaluate(u => fetch(u + 'fake_incoming', { method: 'POST', body: '{"body":"Kuya, kumusta po ang kaso ko?"}' }), FAKE);   // the resident writes again
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -2085,6 +2086,7 @@ test('Case chats keep where a person was in the database (12 Nov 2026): read and
   await rows.filter({ hasText: 'Garcia' }).click();
   await expect(page.locator('.mg-center')).toBeVisible();
   await expect(rows.filter({ hasText: 'Garcia' })).not.toHaveClass(/mg-unread/);
+  await expect(page.locator('[data-mg="mute"]')).toHaveAttribute('aria-checked', 'false');   // nobody has muted it
   await page.locator('[data-mg="mute"]').click();
   await expect(page.locator('[data-mg="mute"]')).toHaveAttribute('aria-checked', 'true');
   await page.waitForTimeout(1600);                                                    // the page sends the two to the database a moment later
