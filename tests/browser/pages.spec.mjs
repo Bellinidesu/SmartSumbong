@@ -2080,6 +2080,7 @@ test('Case chats keep where a person was in the database (12 Nov 2026): read and
   await page.waitForTimeout(1500);                                                    // a save an earlier test's page sent as it closed has landed by now
   await page.evaluate(u => fetch(u + 'fake_reset_chat_state', { method: 'POST', body: '{}' }), FAKE);
   await page.evaluate(u => fetch(u + 'fake_incoming', { method: 'POST', body: '{"body":"Kuya, kumusta po ang kaso ko?"}' }), FAKE);   // the resident writes again
+  await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });          // this browser forgets what it learned from the database a moment ago
   await page.reload({ waitUntil: 'domcontentloaded' });
   const rows = page.locator('[data-mg-row]');
   await expect(rows.filter({ hasText: 'Garcia' })).toHaveClass(/mg-unread/);
