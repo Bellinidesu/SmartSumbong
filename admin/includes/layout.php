@@ -594,7 +594,7 @@ window.ssSupabase = function (url, key, initial) {
     <div class="p-side-top"><?= side_brand() ?></div>
     <?php $sideC = side_colour(); if ($sideC['label'] !== null): ?>
       <?php // 0150: a committee admin's sidebar names the committee, in its colour ?>
-      <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><?= e($sideC['label']) ?></span></div>
+      <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><small><?= e(t('Committee', 'Komite')) ?></small><b><?= e($sideC['label']) ?></b></span></div>
     <?php endif; ?>
     <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>

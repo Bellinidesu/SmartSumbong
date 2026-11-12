@@ -141,9 +141,19 @@ html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
 .p-brand-sym{display:grid;place-items:center;border-radius:50%;background:var(--cc);color:var(--ci);box-shadow:0 0 0 3px rgba(255,255,255,.88),0 8px 18px -6px rgba(0,0,0,.45)}
 .p-brand-sym svg{width:48%;height:48%}
 .p-brand-sep{width:1px;height:56px;flex:none;background:rgba(255,255,255,.3)}
+/* the head of a committee's sidebar, one mark (12 Nov 2026, Ace): the barangay's seal, with the committee's emblem set on its lower corner like a badge, in a ring of the sidebar's own colour; no divider, two things become one */
+.p-sidebar .p-brand.p-brand-pair{position:relative;display:grid;grid-template-columns:96px;justify-content:center;gap:0;padding:6px 0 10px}
+.p-sidebar .p-brand.p-brand-pair .p-brand-img{width:96px;height:96px}
+.p-sidebar .p-brand.p-brand-pair .p-brand-sep{display:none}
+.p-sidebar .p-brand.p-brand-pair .p-brand-com{position:absolute;left:50%;bottom:4px;margin-left:24px;width:46px;height:46px;box-sizing:border-box;border-radius:50%;filter:none;z-index:1}
+.p-sidebar .p-brand.p-brand-pair img.p-brand-com{padding:4px;background:#fff;object-fit:contain;box-shadow:0 0 0 3px var(--p-side-b),0 8px 16px -6px rgba(0,0,0,.55)}
+.p-sidebar .p-brand.p-brand-pair .p-brand-sym{box-shadow:0 0 0 2.5px #fff,0 0 0 5.5px var(--p-side-b),0 8px 16px -6px rgba(0,0,0,.55)}
 @media (max-width:980px){
   .p-sidebar .p-brand.p-brand-seal{gap:8px;padding:0}
-  .p-sidebar .p-brand.p-brand-seal .p-brand-img,.p-sidebar .p-brand.p-brand-pair .p-brand-com{width:44px;height:44px}
+  .p-sidebar .p-brand.p-brand-seal .p-brand-img{width:44px;height:44px}
+  .p-sidebar .p-brand.p-brand-pair{grid-template-columns:44px;padding:0}
+  .p-sidebar .p-brand.p-brand-pair .p-brand-img{width:44px;height:44px}
+  .p-sidebar .p-brand.p-brand-pair .p-brand-com{width:24px;height:24px;margin-left:12px;bottom:-2px}
   .p-brand-sep{height:30px}
   .p-brand-sym{box-shadow:0 0 0 2px rgba(255,255,255,.88)}
 }
