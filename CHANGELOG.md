@@ -27,6 +27,8 @@ Changes on `main` not yet deployed belong here.
   and Details on the right as grouped lists with Hide Alerts as a switch, a search in the conversation and the photos. Conversations open without a reload and stay current
   every 15 seconds. BarangayMail is the mail (its Gmail-style pass comes next). Chats are read from `report_messages` and `dispatch_updates` and sent through the same two actions
   as in the case; unread and Hide Alerts are kept per browser for now (the tables for keeping them per person arrived with 0173). No database change in this part.
+**Spatial Distribution: the buttons stay square while any popup is open (12 Nov)**
+- The buttons down the side widen with their words under the pointer, but not while a panel or a button's popup (Search, Saved views, Legend, Incidents, SMART, the Complaint type box) is open: they keep to their squares, on either side, so the words never land on the popup. Shut, they widen again.
 **Spatial Distribution, the current look (12 Nov)**
 - The Layers tile is back at the map's bottom left with its row of pictures (Rose's 5 Nov move into the floating tab is undone; the lock fix stays).
 - The map's floating surfaces follow the portal's cards: by night the near-black card with a lit edge and a top sheen instead of frosted glass, by day a solid white card with a
