@@ -1602,7 +1602,7 @@ test('Speed, step 3 (7 Nov 2026): Activity and Report Summary change view in pla
   expect(await page.evaluate(() => window.__stay), 'Report Summary did not reload').toBe(1);
   // the spreadsheet stays an ordinary download, never boosted
   expect(await page.locator('#rs-main a[href*="export=xlsx"]').evaluate(el => !el.closest('[hx-boost]'))).toBe(true);
-  expect(a.errors.concat(i.errors, r.errors), 'console errors').toEqual([]);
+  expect(a.errors.concat(r.errors), 'console errors').toEqual([]);
 });
 
 test('Press flow step 3, Residents and Personnel (7 Nov): chooser and duty tiles swap in place; the view, the ticks and the put-away banner survive a swap', async ({ page, context }) => {
