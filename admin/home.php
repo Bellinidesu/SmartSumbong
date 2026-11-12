@@ -85,22 +85,17 @@ $hoursLeft = function ($h): string {
 </section>
 
 <p class="p-eyebrow hm-h"><?= e(t('Right now', 'Ngayon')) ?></p>
-<div class="hm-row hm-row-6">
-  <?= $tile('cases.php', t('Open cases', 'Bukas na kaso'), $cn['open'] ?? 0, t('your committee\'s', 'ng komite mo')) ?>
-  <?php if ($isCom): ?>
+<div class="hm-row hm-row-4">
+  <?php if ($isCom): // 12 Nov 2026: four tiles under the four decisions, so every column lines up with the one above and with the two lists below ?>
+    <?= $tile('cases.php', t('Open cases', 'Bukas na kaso'), $cn['open'] ?? 0, sprintf(t('in your committee, %d are yours', 'sa komite mo, %d ang hawak mo'), (int) ($cn['mine'] ?? 0))) ?>
     <?= $tile('cases.php?tanod=needs', t('Urgent, no tanod yet', 'Urgent, wala pang tanod'), $cn['urgent_waiting'] ?? 0, sprintf(t('%d more at high', '%d pa sa mataas'), (int) ($cn['high_waiting'] ?? 0)), true) ?>
-    <?= $tile('cases.php?view=attention', t('Overdue', 'Lampas-oras'), $cn['overdue'] ?? 0, t('open past the deadline', 'bukas na lampas sa deadline'), true) ?>
-  <?php else: ?>
-    <?= $tile('cases.php', t('At risk of the deadline', 'Nanganganib sa deadline'), count($risk), t('the engine\'s reading', 'basa ng engine'), true) ?>
-    <?= $tile('cases.php', t('Quiet cases', 'Mga tahimik na kaso'), count($quiet), t('no news for days', 'ilang araw nang walang balita')) ?>
-  <?php endif; ?>
-  <?= $tile('cases.php?view=attention', t('Due in 24 hours', 'Deadline sa loob ng 24 oras'), $cn['due_24h'] ?? 0, t('still open', 'bukas pa')) ?>
-  <?php if ($isCom): ?>
+    <?= $tile('cases.php?view=attention', t('Overdue', 'Lampas-oras'), $cn['overdue'] ?? 0, sprintf(t('open past the deadline, %d more due in 24 hours', 'lampas sa deadline, %d pa ang sa loob ng 24 oras'), (int) ($cn['due_24h'] ?? 0)), true) ?>
     <?= $tile('cases.php?who=unclaimed', t('Nobody has taken', 'Walang humahawak'), $cn['untaken'] ?? 0, t('open, waiting for someone', 'bukas, naghihintay ng hahawak')) ?>
-    <?= $tile('cases.php?who=' . rawurlencode($me), t('Yours', 'Hawak mo'), $cn['mine'] ?? 0, t('cases you are handling', 'mga kasong hawak mo')) ?>
   <?php else: ?>
-    <?= $tile('personnel.php', t('Tanods free', 'Bakanteng tanod'), $tn['on_duty'] ?? 0, sprintf(t('of %d in the committee', 'sa %d ng komite'), (int) ($tn['total'] ?? 0))) ?>
-    <?= $tile('personnel.php', t('Tanods on a case', 'Tanod na may kaso'), $tn['busy'] ?? 0, t('out on a case now', 'nasa kaso ngayon')) ?>
+    <?= $tile('cases.php', t('Open cases', 'Bukas na kaso'), $cn['open'] ?? 0, t('in your committee', 'sa komite mo')) ?>
+    <?= $tile('cases.php', t('At risk of the deadline', 'Nanganganib sa deadline'), count($risk), t('the engine reading', 'basa ng engine'), true) ?>
+    <?= $tile('cases.php', t('Quiet cases', 'Mga tahimik na kaso'), count($quiet), t('no news for days', 'ilang araw nang walang balita')) ?>
+    <?= $tile('cases.php?view=attention', t('Due in 24 hours', 'Deadline sa loob ng 24 oras'), $cn['due_24h'] ?? 0, t('still open', 'bukas pa')) ?>
   <?php endif; ?>
 </div>
 
