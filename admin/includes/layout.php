@@ -17,6 +17,7 @@ function nav_items(): array
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
         ['workspace.php',  t('Workspace', 'Tablero ng Gawain'),               'i-board'],
         ['notifications.php', t('Notifications', 'Mga Abiso'),                'i-bell'],
+        ['inbox.php',      t('Inbox', 'Mga Liham'),                               'i-send'],   // its own section again (Ace, 12 Nov): Case chats and BarangayMail make chatting within a case easier
         ['residents.php',  t('Residents', 'Mga Residente'),                   'i-users'],
         ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'i-shield'],
         ['administrative-services.php', t('Administrative Services', 'Mga Serbisyong Pang-admin'), 'i-brief'],

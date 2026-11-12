@@ -1095,7 +1095,7 @@ test('Roles and pages 5: BarangayMail, writing along the ladder, and the reroute
   await expect(page.locator('.gm-q [data-pick="any"]')).toContainText('nearest from any committee');
   expect(await axe(page), 'BarangayMail, reroute question').toEqual([]);
   const i = await open(page, 'inbox.php?app=mail');
-  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox is a section of the sidebar (Ace, 12 Nov)').toHaveCount(1);
   await expect(page.locator('.gm-row')).toHaveCount(3);                                // the people's conversations; the system's are under Updates
   await page.locator('.gm-tabs [data-tab="updates"]').click();
   await expect(page.locator('.gm-row')).toHaveCount(1);
@@ -1110,7 +1110,7 @@ test('Roles and pages 5: BarangayMail, writing along the ladder, and the reroute
   await expect(page.locator('.gm-win--inline .gm-w-sub')).toHaveValue('Re: Pulong bukas');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const m = await open(page, 'inbox.php?app=mail');
-  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox is a section of the sidebar (Ace, 12 Nov)').toHaveCount(1);
   expect(n.errors.concat(i.errors, w.errors, r.errors, m.errors), 'console errors').toEqual([]);
 });
 
