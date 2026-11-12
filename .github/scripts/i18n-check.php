@@ -9,6 +9,8 @@ $sameInBoth = ['SmartSumbong', 'Tanod', 'Email', 'OK', 'Online', 'Offline', 'Bar
     'Cloudinary', 'Render', 'Password', 'Email address', 'Status', 'Dashboard', 'Admin', 'Server',
     'Browser', 'Function', 'Facebook', 'GitHub', 'Firebase', 'Semaphore', 'Uptime', 'PDF', 'Account',
     'Live', 'Heatmap', 'OCR flag', 'Mobile number', 'System', 'Update', 'Auto',
+    // loanwords Filipino mail users say as they are (BarangayMail, 12 Nov 2026)
+    'Inbox', 'Mail', 'Label', 'Draft',
     // Filipino already: titles and offices with no English to translate from.
     'Punong Barangay', 'Katarungang Pambarangay (Lupong Tagapamayapa)',
     // Workspace widgets named after a product, a publisher or a game everyone knows by its English name (17 Oct 2026).

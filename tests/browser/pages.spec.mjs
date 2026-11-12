@@ -90,8 +90,8 @@ test('speed, step 4 (7 Nov 2026): a page link held under the pointer is prefetch
   expect(await page.evaluate(() => performance.getEntriesByType('navigation')[0].deliveryType), 'served from the prefetch').toBe('navigational-prefetch');
   // opening an Inbox message marks it read, so hovering one must not fetch it
   await page.goto('inbox.php?app=mail'); await page.waitForLoadState('networkidle'); pre.length = 0;
-  const m = page.locator('a[href^="inbox.php?m="]').first();
-  await expect(m).toHaveCount(1);
+  const m = page.locator('a.gm-subj').first();
+  await expect(m).toBeVisible();
   await m.hover(); await page.waitForTimeout(1200);
   expect(pre, 'an Inbox message was prefetched').toEqual([]);
 });
@@ -1086,31 +1086,35 @@ test('Resident account page, peak: figures, a Reports tab of their own named rep
   expect(await axe(page), 'Resident account').toEqual([]);
 });
 
-test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
+test('Roles and pages 5: BarangayMail, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);
   await page.locator('.fw-pins a', { hasText: 'Pick a tanod' }).click();
   await expect(page).toHaveURL(/inbox\.php\?m=41/);
-  await expect(page.locator('#ib-question')).toBeVisible();
-  await expect(page.locator('#ib-question button[value="any"]')).toContainText('nearest from any committee');
-  expect(await axe(page), 'Inbox, reroute question').toEqual([]);
+  await expect(page.locator('.gm-q')).toBeVisible();                                   // the question's answer form, in its conversation
+  await expect(page.locator('.gm-q [data-pick="any"]')).toContainText('nearest from any committee');
+  expect(await axe(page), 'BarangayMail, reroute question').toEqual([]);
   const i = await open(page, 'inbox.php?app=mail');
   await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
-  await expect(page.locator('.ib-row')).toHaveCount(2);
-  await expect(page.locator('.ib-row.ib-unread')).toContainText('Needs your answer');
-  const w = await open(page, 'inbox.php?new=1');
-  await expect(page.locator('.ib-person')).toHaveCount(2);
-  expect(await axe(page), 'Inbox, write').toEqual([]);
+  await expect(page.locator('.gm-row')).toHaveCount(3);                                // the people's conversations; the system's are under Updates
+  await page.locator('.gm-tabs [data-tab="updates"]').click();
+  await expect(page.locator('.gm-row')).toHaveCount(1);
+  await expect(page.locator('.gm-row')).toContainText('Pick a tanod for SS-2610-1001');
+  const w = await open(page, 'inbox.php?app=mail&new=1');
+  await expect(page.locator('.gm-win')).toBeVisible();
+  await page.locator('.gm-win .gm-w-in').first().fill('a');
+  expect(await page.locator('.gm-sug .gm-sg').count(), 'people to write to').toBeGreaterThan(0);
+  expect(await axe(page), 'BarangayMail, compose').toEqual([]);
   const r = await open(page, 'inbox.php?m=42');
-  await page.locator('.ib-act a', { hasText: 'Reply' }).click();
-  await expect(page.locator('#ib-subject')).toHaveValue('Re: Pulong bukas');
+  await page.locator('[data-gm="reply"]').click();
+  await expect(page.locator('.gm-win--inline .gm-w-sub')).toHaveValue('Re: Pulong bukas');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const m = await open(page, 'inbox.php?app=mail');
   await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
   expect(n.errors.concat(i.errors, w.errors, r.errors, m.errors), 'console errors').toEqual([]);
 });
 
-test('Feed rows: notifications about one case fold into a row, and the Inbox shows its countdown and its thread', async ({ page }) => {
+test('Feed rows: notifications about one case fold into a row, and BarangayMail shows its countdown and its conversation', async ({ page }) => {
   const n = await open(page, 'notifications.php');
   const g = page.locator('details.nf-case');
   await expect(g).toHaveCount(1);
@@ -1122,11 +1126,13 @@ test('Feed rows: notifications about one case fold into a row, and the Inbox sho
   await expect(g.locator('.nf-case-act a')).toHaveAttribute('href', /case\.php\?id=/);
   await expect(page.locator('.p-notif.fr[data-sev]').first()).toBeVisible();
   const i = await open(page, 'inbox.php?app=mail');
-  await expect(page.locator('.ib-row.ib-needs .ib-due')).toContainText(/\d+:\d\d left|time is up/);
+  await page.locator('.gm-tabs [data-tab="updates"]').click();
+  await page.locator('.gm-row').first().click();
+  await expect(page.locator('.gm-q-due b')).toContainText(/\d+:\d\d left|time is up/);        // the question's clock
   const t = await open(page, 'inbox.php?m=42');
-  await expect(page.locator('.ib-thread .ib-msg')).toHaveCount(1);
-  await expect(page.locator('.ib-thread .ib-msg')).toContainText('Sige po, darating ako.');
-  expect(await axe(page), 'Inbox thread').toEqual([]);
+  await expect(page.locator('.gm-msg')).toHaveCount(2);                                // the message and its answer, one conversation
+  await expect(page.locator('.gm-msgs')).toContainText('Sige po, darating ako.');
+  expect(await axe(page), 'BarangayMail conversation').toEqual([]);
   expect(n.errors.concat(i.errors, t.errors), 'console errors').toEqual([]);
 });
 
@@ -1568,7 +1574,7 @@ test('Press flow step 3, Notifications (7 Nov): Unread/All, the chooser and the 
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('Speed, step 3 (7 Nov 2026): Activity, the Inbox and Report Summary change view in place; their widgets work after a swap', async ({ page }) => {
+test('Speed, step 3 (7 Nov 2026): Activity and Report Summary change view in place; their widgets work after a swap', async ({ page }) => {
   const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
   // Activity: the scopes swap the feed; the address follows
   const a = await open(page, 'activity.php');
@@ -1577,17 +1583,6 @@ test('Speed, step 3 (7 Nov 2026): Activity, the Inbox and Report Summary change 
   expect(page.url()).toMatch(/show=peers/);
   await expect(page.locator('#act-list .ss-seg a.p-on')).toHaveCount(1);
   expect(await page.evaluate(() => window.__stay), 'Activity did not reload').toBe(1);
-  // Inbox: Sent, then a message, in place; the case link inside a message stays an ordinary page change
-  const i = await open(page, 'inbox.php?app=mail');
-  await page.evaluate(() => { window.__stay = 1; });
-  s = settle(); await page.locator('#ib-main .ib-tabs a[href="inbox.php?box=sent"]').click(); await s;
-  expect(page.url()).toMatch(/box=sent/);
-  s = settle(); await page.locator('#ib-main .ib-tabs a[href="inbox.php?app=mail"]').click(); await s;
-  s = settle(); await page.locator('#ib-main a.ib-row').first().click(); await s;
-  expect(page.url()).toMatch(/[?&]m=\d+/);
-  await expect(page.locator('#ib-main .ib-read')).toHaveCount(1);
-  expect(await page.evaluate(() => window.__stay), 'the Inbox did not reload').toBe(1);
-  expect(await page.locator('#ib-main a[href^="case.php"][hx-boost]').count(), 'a case link is not boosted').toBe(0);
   // Report Summary: a quick range swaps the report; the tabs, the title and the engine window follow; a pager lands on its tab
   const r = await open(page, 'summary.php');
   await page.evaluate(() => { window.__stay = 1; });
@@ -1607,7 +1602,7 @@ test('Speed, step 3 (7 Nov 2026): Activity, the Inbox and Report Summary change 
   expect(await page.evaluate(() => window.__stay), 'Report Summary did not reload').toBe(1);
   // the spreadsheet stays an ordinary download, never boosted
   expect(await page.locator('#rs-main a[href*="export=xlsx"]').evaluate(el => !el.closest('[hx-boost]'))).toBe(true);
-  expect(a.errors.concat(i.errors, r.errors), 'console errors').toEqual([]);
+  expect(a.errors.concat(r.errors), 'console errors').toEqual([]);
 });
 
 test('Press flow step 3, Residents and Personnel (7 Nov): chooser and duty tiles swap in place; the view, the ticks and the put-away banner survive a swap', async ({ page, context }) => {
@@ -1955,5 +1950,125 @@ test('Inbox, Case chats like Messenger (12 Nov 2026): a conversation per person 
   expect(await axe(page), 'axe on Case chats').toEqual([]);
   await page.goto('inbox.php?app=mail', { waitUntil: 'domcontentloaded' });             // the other section
   await expect(page.locator('.ib-apps a.p-on')).toHaveText(/BarangayMail/);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+// ---------- BarangayMail, drawn like Gmail web app (12 Nov 2026) ----------
+test('BarangayMail: conversations, stars, archive with Undo, labels, search, snooze, bulk and the reading view', async ({ page }) => {
+  const r = await open(page, 'inbox.php?app=mail');
+  const rows = page.locator('.gm-row');
+  await expect(rows).toHaveCount(3);
+  await expect(page.locator('.gm-nav a[data-f="inbox"]')).toHaveClass(/on/);
+  await expect(page.locator('.gm-compose')).toBeVisible();
+  // a conversation of two messages is one row with its count
+  const conv = rows.filter({ hasText: 'Tanod schedule for the weekend' });
+  await expect(conv).toHaveCount(1);
+  await expect(conv.locator('.gm-from small')).toHaveText('2');
+  // star it, then see it under Starred
+  await conv.locator('.gm-star').click();
+  await expect(conv.locator('.gm-star')).toHaveClass(/on/);
+  await page.locator('.gm-nav a[data-f="starred"]').click();
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('Tanod schedule for the weekend');
+  await rows.first().locator('.gm-star').click();                                       // un-star: it leaves the folder
+  await expect(rows).toHaveCount(0);
+  await page.locator('.gm-nav a[data-f="inbox"]').click();
+  // archive from the hover bar; Undo brings it back
+  await expect(rows).toHaveCount(3);
+  const first = rows.filter({ hasText: 'Minutes of the committee meeting' });
+  await first.hover();
+  await first.locator('[data-gm="archive"]').click();
+  await expect(page.locator('#gm-snack')).toContainText('archived');
+  await expect(rows).toHaveCount(2);
+  await page.locator('#gm-snack .gm-snk-b').click();                                    // Undo
+  await expect(rows).toHaveCount(3);
+  // labels: make one in the rail, apply it to a conversation, find it under its label
+  await page.locator('[data-gm="newlabel"]').click();
+  const lbl = 'Mahalaga ' + (Date.now() % 100000);
+  await page.locator('.gm-dlg input[type="text"]').fill(lbl);
+  await page.locator('.gm-dlg .gm-btn--blue').click();
+  await expect(page.locator('#gm-labels a', { hasText: lbl })).toHaveCount(1);
+  await first.locator('input[type="checkbox"]').check();
+  await page.locator('#gm-tb [aria-label="Labels"]').click();
+  await page.locator('.gm-menu .gm-mi', { hasText: lbl }).click();
+  await page.keyboard.press('Escape');
+  await page.locator('#gm-labels a', { hasText: lbl }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('Minutes of the committee meeting');
+  await page.locator('.gm-nav a[data-f="inbox"]').click();
+  // search with an operator, then clear it
+  await page.locator('#gm-q').fill('from:santos');
+  await page.locator('#gm-q').press('Enter');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('Minutes');
+  await page.locator('#gm-qx').click();
+  await expect(rows).toHaveCount(3);
+  // select all: the bar counts the selection
+  await page.locator('#gm-tb .gm-sa input').check();
+  await expect(page.locator('#gm-tb .gm-selcount')).toContainText('3');
+  await page.locator('#gm-tb .gm-sa input').uncheck();
+  // snooze one to the first time offered: gone from the inbox, in Snoozed
+  await first.hover();
+  await first.locator('[data-gm="snooze"]').click();
+  await page.locator('.gm-menu .gm-mi').first().click();
+  await expect(rows).toHaveCount(2);
+  await page.locator('.gm-nav a[data-f="snoozed"]').click();
+  await expect(rows).toHaveCount(1);
+  // open a conversation: the reading view and its messages
+  await page.locator('.gm-nav a[data-f="all"]').click();
+  await rows.filter({ hasText: 'Tanod schedule for the weekend' }).locator('.gm-subj').click();
+  await expect(page.locator('#gm-reader')).toBeVisible();
+  await expect(page.locator('.gm-msg')).toHaveCount(2);
+  await expect(page.locator('.gm-msgs')).toContainText('Okay na po, naayos ko na.');
+  expect(await axe(page), 'BarangayMail reading view').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('BarangayMail: compose with a draft that saves itself, Undo send, send, reply, Gmail keys and the dark look', async ({ page }) => {
+  const r = await open(page, 'inbox.php?app=mail');
+  await page.keyboard.press('c');                                                       // the key for Compose
+  const win = page.locator('.gm-win').first();
+  await expect(win).toBeVisible();
+  await win.locator('.gm-w-in').first().fill('kag');
+  await page.locator('.gm-sug .gm-sg').first().click();
+  await win.locator('.gm-w-sub').fill('Pagpupulong ngayong Biyernes');
+  await win.locator('.gm-w-body').fill('Magandang araw po.');
+  await expect(win.locator('.gm-w-stat')).toHaveText(/saved|Na-save/, { timeout: 6000 });   // the draft saves itself
+  await page.locator('.gm-nav a[data-f="drafts"]').click();
+  await expect(page.locator('.gm-row.gm-draft', { hasText: 'Pagpupulong' })).toHaveCount(1);
+  await page.locator('.gm-nav a[data-f="inbox"]').click();
+  // send, change your mind with Undo, send again for real
+  await win.locator('.gm-w-send').click();
+  await expect(win).toBeHidden();
+  await page.locator('#gm-snack .gm-snk-b').click();
+  await expect(win).toBeVisible();
+  await win.locator('.gm-w-send').click();
+  await expect(page.locator('#gm-snack')).toContainText(/sent|Naipadala/i, { timeout: 9000 });
+  await page.locator('.gm-nav a[data-f="sent"]').click();
+  await expect(page.locator('.gm-row', { hasText: 'Pagpupulong ngayong Biyernes' })).toHaveCount(1);
+  await page.locator('.gm-nav a[data-f="drafts"]').click();
+  await expect(page.locator('.gm-row.gm-draft', { hasText: 'Pagpupulong' })).toHaveCount(0);   // sending removed the draft
+  // an empty message is refused
+  await page.keyboard.press('c');
+  const w2 = page.locator('.gm-win').first();
+  await w2.locator('.gm-w-send').click();
+  await expect(w2.locator('.gm-w-err')).toBeVisible();
+  await w2.locator('.gm-w-disc').click();
+  await expect(page.locator('.gm-win')).toHaveCount(0);
+  // reply from the reading view: inline, with the Re: subject
+  await page.locator('.gm-nav a[data-f="all"]').click();
+  await page.locator('.gm-row', { hasText: 'Pulong bukas' }).locator('.gm-subj').click();
+  await page.locator('[data-gm="reply"]').click();
+  await expect(page.locator('.gm-win--inline .gm-w-sub')).toHaveValue('Re: Pulong bukas');
+  await page.locator('.gm-win--inline .gm-w-disc').click();
+  // keys: g then i goes to the inbox, ? opens the list of keys
+  await page.keyboard.press('g'); await page.keyboard.press('i');
+  await expect(page.locator('.gm-nav a[data-f="inbox"]')).toHaveClass(/on/);
+  await page.keyboard.press('Shift+Slash');
+  await expect(page.locator('.gm-help')).toBeVisible();
+  await page.keyboard.press('Escape');
+  expect(await axe(page), 'BarangayMail, light').toEqual([]);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  expect(await axe(page), 'BarangayMail, dark').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
 });

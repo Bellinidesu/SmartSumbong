@@ -379,6 +379,95 @@ RPC['post_report_message'] = lambda b: TABLES['report_messages'].append({'id': '
 RPC['fake_incoming'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': False, 'body': b.get('body') or 'Kuya, may bago po akong tanong.', 'created_at': _now(), 'report': _CHREP}) or {}   # the tests play the resident writing
 RPC['post_dispatch_update'] = lambda b: TABLES['dispatch_updates'].append({'id': 'du' + str(len(TABLES['dispatch_updates']) + 1), 'dispatch_id': b.get('p_dispatch'), 'author_id': ADMIN['id'], 'kind': 'message', 'step': None, 'body': b.get('p_body'), 'created_at': _now(), 'd': {'report_id': _CASE1, 'tanod_id': 'u2', 'tanod': {'full_name': 'Lediac, Ace'}, 'report': _CHREP}}) or {}
 
+# 12 Nov 2026: BarangayMail as a Gmail-style page. Real batch ids (the door only takes uuids), a thread id and a role on every message, a few more
+# messages (a thread with a reply, a copy, a message I sent), the new state tables, and stand-ins for the 0173 functions that keep them.
+def _bid(n): return 'b0000000-0000-4000-8000-%012d' % n
+_BMAP = {'b1': _bid(1), 'b2': _bid(2), 'b3': _bid(3)}
+for _m in TABLES['inbox_messages']:
+    _m['batch'] = _BMAP.get(_m['batch'], _m['batch']); _m['role'] = 'to'; _m['thread_id'] = _m['batch']
+TABLES['inbox_messages'][2]['thread_id'] = _bid(2)          # "Sige po, darating ako." answers "Pulong bukas": one conversation
+_SANTOS = 'a0000000-0000-0000-0000-000000000009'
+TABLES['inbox_messages'] += [
+    {'id': 44, 'batch': _bid(4), 'thread_id': _bid(4), 'sender': _SANTOS, 'recipient': ADMIN['id'], 'role': 'cc', 'kind': 'mail', 'subject': 'Minutes of the committee meeting',
+     'body': 'Mga napagkasunduan:\n- Dagdagan ang tanod sa gabi\n- **Linisin** ang drainage sa 9th St.\n\nSalamat po! https://example.org/minutes', 'created_at': ago(5), 'read_at': None,
+     'report_id': None, 'question_id': None, 'from': {'full_name': 'Santos, Ben'}, 'to': {'full_name': ADMIN['full_name']}, 'report': None, 'reply_to': None},
+    {'id': 45, 'batch': _bid(5), 'thread_id': _bid(5), 'sender': ADMIN['id'], 'recipient': KAG['id'], 'role': 'to', 'kind': 'mail', 'subject': 'Tanod schedule for the weekend',
+     'body': 'Pakitingnan po ang iskedyul ng mga tanod ngayong weekend.', 'created_at': ago(30), 'read_at': None, 'report_id': REPORTS[0]['id'], 'question_id': None,
+     'from': {'full_name': ADMIN['full_name']}, 'to': {'full_name': KAG['full_name']}, 'report': {'id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'subject': REPORTS[0]['subject']}, 'reply_to': None},
+    {'id': 46, 'batch': _bid(6), 'thread_id': _bid(5), 'sender': KAG['id'], 'recipient': ADMIN['id'], 'role': 'to', 'kind': 'mail', 'subject': 'Re: Tanod schedule for the weekend',
+     'body': 'Okay na po, naayos ko na.', 'created_at': ago(26), 'read_at': None, 'report_id': None, 'question_id': None, 'from': {'full_name': KAG['full_name']},
+     'to': {'full_name': ADMIN['full_name']}, 'report': None, 'reply_to': 45}]
+TABLES['mail_state'] = []
+TABLES['mail_labels'] = [{'id': 1, 'user_id': ADMIN['id'], 'name': 'Para sa komite', 'colour': '#1E9E4A'}]
+TABLES['mail_label_links'] = []
+TABLES['mail_drafts'] = [{'id': 1, 'user_id': ADMIN['id'], 'to_ids': [KAG['id']], 'cc_ids': [], 'bcc_ids': [], 'subject': 'Draft: weekly report', 'body': 'Hindi pa tapos.', 'report_id': None, 'reply_to': None, 'updated_at': ago(2)}]
+
+def _arr(s): return [x for x in str(s or '').strip('{}').split(',') if x]
+def _state(b):
+    for r in TABLES['mail_state']:
+        if r['batch'] == b: return r
+    r = {'user_id': ADMIN['id'], 'batch': b, 'starred': False, 'archived': False, 'trashed_at': None, 'purged': False, 'snoozed_until': None}
+    TABLES['mail_state'].append(r); return r
+def _mail_flag(b):
+    n = 0
+    mine = {m['batch'] for m in TABLES['inbox_messages']}
+    for bt in _arr(b.get('p_batches')):
+        if bt not in mine: continue
+        s = _state(bt); n += 1
+        if b.get('p_starred') is not None: s['starred'] = bool(b['p_starred'])
+        if b.get('p_archived') is not None: s['archived'] = bool(b['p_archived'])
+        if b.get('p_trashed') is not None: s['trashed_at'] = _now() if b['p_trashed'] else None
+        if b.get('p_purged') is not None: s['purged'] = bool(b['p_purged'])
+        if b.get('p_snooze'): s['snoozed_until'] = b['p_snooze']
+        if b.get('p_unsnooze'): s['snoozed_until'] = None
+    return n
+def _mail_set_read(b):
+    n = 0
+    for i in _arr(b.get('p_ids')):
+        for m in TABLES['inbox_messages']:
+            if str(m['id']) == i and m['recipient'] == ADMIN['id']:
+                m['read_at'] = _now() if b.get('p_read') else None; n += 1
+    return n
+def _label_apply(b):
+    n = 0
+    for bt in _arr(b.get('p_batches')):
+        TABLES['mail_label_links'][:] = [l for l in TABLES['mail_label_links'] if not (l['batch'] == bt and l['label_id'] == b['p_label'])]
+        if b.get('p_on'): TABLES['mail_label_links'].append({'user_id': ADMIN['id'], 'batch': bt, 'label_id': b['p_label']}); n += 1
+    return n
+def _label_save(b):
+    if b.get('p_id'):
+        for l in TABLES['mail_labels']:
+            if l['id'] == b['p_id']: l['name'] = b['p_name']; l['colour'] = b.get('p_colour') or l['colour']; return l['id']
+    i = max([l['id'] for l in TABLES['mail_labels']] + [0]) + 1
+    TABLES['mail_labels'].append({'id': i, 'user_id': ADMIN['id'], 'name': b['p_name'], 'colour': b.get('p_colour') or '#5F6368'}); return i
+def _label_delete(b):
+    TABLES['mail_labels'][:] = [l for l in TABLES['mail_labels'] if l['id'] != b['p_id']]
+    TABLES['mail_label_links'][:] = [l for l in TABLES['mail_label_links'] if l['label_id'] != b['p_id']]
+def _draft_save(b):
+    d = {'to_ids': _arr(b.get('p_to')), 'cc_ids': _arr(b.get('p_cc')), 'bcc_ids': _arr(b.get('p_bcc')), 'subject': b.get('p_subject') or '', 'body': b.get('p_body') or '', 'report_id': b.get('p_report'), 'reply_to': b.get('p_reply_to'), 'updated_at': _now()}
+    if b.get('p_id'):
+        for r in TABLES['mail_drafts']:
+            if r['id'] == b['p_id']: r.update(d); return r['id']
+    i = max([r['id'] for r in TABLES['mail_drafts']] + [0]) + 1
+    TABLES['mail_drafts'].append({'id': i, 'user_id': ADMIN['id'], **d}); return i
+def _draft_delete(b): TABLES['mail_drafts'][:] = [r for r in TABLES['mail_drafts'] if r['id'] != b['p_id']]
+_NAMES = {KAG['id']: KAG['full_name'], _SANTOS: 'Santos, Ben', ADMIN['id']: ADMIN['full_name']}
+def _send_mail(b):
+    bt = 'b0000000-0000-4000-8000-%012d' % (900 + len(TABLES['inbox_messages']))
+    parent = next((m for m in TABLES['inbox_messages'] if m['id'] == b.get('p_reply_to')), None)
+    tid = parent['thread_id'] if parent else bt
+    nid = max(m['id'] for m in TABLES['inbox_messages']) + 1
+    for role, key in (('to', 'p_to'), ('cc', 'p_cc'), ('bcc', 'p_bcc')):
+        for rid in _arr(b.get(key)):
+            TABLES['inbox_messages'].append({'id': nid, 'batch': bt, 'thread_id': tid, 'sender': ADMIN['id'], 'recipient': rid, 'role': role, 'kind': 'mail', 'subject': b['p_subject'], 'body': b['p_body'],
+                'created_at': _now(), 'read_at': None, 'report_id': b.get('p_report'), 'question_id': None, 'from': {'full_name': ADMIN['full_name']}, 'to': {'full_name': _NAMES.get(rid, '?')}, 'report': None, 'reply_to': b.get('p_reply_to')}); nid += 1
+    if b.get('p_draft'): _draft_delete({'p_id': b['p_draft']})
+    return bt
+def _batch_people(b):
+    return [{'user_id': m['recipient'], 'full_name': _NAMES.get(m['recipient'], (m.get('to') or {}).get('full_name', '?')), 'role': m.get('role', 'to')} for m in TABLES['inbox_messages'] if m['batch'] == b['p_batch'] and m['recipient'] != '' and m['sender']]
+RPC['mail_flag'] = _mail_flag; RPC['mail_set_read'] = _mail_set_read; RPC['mail_label_apply'] = _label_apply; RPC['mail_label_save'] = _label_save; RPC['mail_label_delete'] = _label_delete
+RPC['mail_draft_save'] = _draft_save; RPC['mail_draft_delete'] = _draft_delete; RPC['send_mail'] = _send_mail; RPC['mail_batch_people'] = _batch_people
+
 # FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for a distant database;
 # parallel requests wait at the same time, as a real batch does). Off by default.
 RTT = float(os.environ.get('FAKE_RTT_MS') or 0) / 1000

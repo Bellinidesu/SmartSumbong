@@ -9,6 +9,17 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**BarangayMail, drawn and driven like Gmail's web app (12 Nov)**
+- BarangayMail is now a page of its own kind, `inbox.php?app=mail`, filled by a JSON door (`mail.php`) from `assets/js/gmail.js` and `gmail-compose.js`: Compose and a rail of Inbox, Starred,
+  Snoozed, Sent, Drafts, All Mail and Trash with counts, and your own labels (create, rename, colour, delete); a search pill with Gmail's operators (`from:` `to:` `subject:` `label:` `is:`
+  `in:` `before:` `after:`) and an options form; a toolbar that changes with the selection (select-all menu, archive, delete, mark read, snooze, labels, the pager); rows with a star,
+  a checkbox, shift-range selection and hover actions; the Undo bar after archive, delete and snooze; snooze to a time or a date; conversations (a reply stays in the same row, with its count)
+  that open in a reading view with older messages folded, newer and older, mark unread and a reply bar.
+- Compose floats like Gmail's: To, Cc and Bcc as chips with people to pick from, formatting marks (bold, italic, lists, quote, link), a case to attach, an emoji picker, a draft that saves itself
+  as you type and shows in Drafts, minimise and full screen, Undo send (five seconds), and Reply, Reply all and Forward inline with a pop-out. A message asking which tanod to send keeps its
+  answer form in its own conversation, and the SmartSumbong messages sit under an Updates tab beside the people's mail.
+- Gmail's keys work: c, /, ?, j k o u, x, s, e, #, r a f, z, Shift+I and Shift+U, and g then i, s, t, d, a. Old links to a letter (`?m=`, `?new=1`) still open it.
+- Stars, archive, trash, snooze, labels and drafts are each person's own (the 0173 tables); the page keeps nothing of its own in the browser. The wording catalogue gains the new labels.
 **Inbox: two sections, Case chats and BarangayMail (12 Nov)**
 - The Inbox is now two sections. Case chats does what Messenger's web app does, drawn the way Apple's Messages is: a sidebar of conversations (a search field, a segmented
   All / Unread / Cases I handle, one row per person with a round picture, the last words and a blue dot when unread, the open one filled blue); the person centred over the thread,
