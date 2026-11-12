@@ -8,7 +8,7 @@ import AxeBuilder from '@axe-core/playwright';
 const CASE = 'c0000000-0000-0000-0000-000000000001';
 const PAGES = [
   'dashboard.php', 'cases.php', `case.php?id=${CASE}`, 'summary.php', 'spatial.php', 'workspace.php',
-  'notifications.php', 'inbox.php', 'residents.php', 'personnel.php', 'settings.php', 'profile.php', 'activity.php',
+  'notifications.php', 'inbox.php', 'inbox.php?app=mail', 'residents.php', 'personnel.php', 'settings.php', 'profile.php', 'activity.php',
   'retirement-requests.php', 'administrative-services.php', 'control-room.php', `complaint-summary.php?id=${CASE}`, `complaint-print.php?id=${CASE}`,
 ];
 
@@ -89,7 +89,7 @@ test('speed, step 4 (7 Nov 2026): a page link held under the pointer is prefetch
   await link.click(); await page.waitForURL(/cases\.php/);
   expect(await page.evaluate(() => performance.getEntriesByType('navigation')[0].deliveryType), 'served from the prefetch').toBe('navigational-prefetch');
   // opening an Inbox message marks it read, so hovering one must not fetch it
-  await page.goto('inbox.php'); await page.waitForLoadState('networkidle'); pre.length = 0;
+  await page.goto('inbox.php?app=mail'); await page.waitForLoadState('networkidle'); pre.length = 0;
   const m = page.locator('a[href^="inbox.php?m="]').first();
   await expect(m).toHaveCount(1);
   await m.hover(); await page.waitForTimeout(1200);
@@ -1094,7 +1094,7 @@ test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute qu
   await expect(page.locator('#ib-question')).toBeVisible();
   await expect(page.locator('#ib-question button[value="any"]')).toContainText('nearest from any committee');
   expect(await axe(page), 'Inbox, reroute question').toEqual([]);
-  const i = await open(page, 'inbox.php');
+  const i = await open(page, 'inbox.php?app=mail');
   await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
   await expect(page.locator('.ib-row')).toHaveCount(2);
   await expect(page.locator('.ib-row.ib-unread')).toContainText('Needs your answer');
@@ -1105,7 +1105,7 @@ test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute qu
   await page.locator('.ib-act a', { hasText: 'Reply' }).click();
   await expect(page.locator('#ib-subject')).toHaveValue('Re: Pulong bukas');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
-  const m = await open(page, 'inbox.php');
+  const m = await open(page, 'inbox.php?app=mail');
   await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox has no sidebar entry (Rose, 7 Nov)').toHaveCount(0);
   expect(n.errors.concat(i.errors, w.errors, r.errors, m.errors), 'console errors').toEqual([]);
 });
@@ -1121,7 +1121,7 @@ test('Feed rows: notifications about one case fold into a row, and the Inbox sho
   await expect(g.locator('.nf-case-items li')).toHaveCount(2);
   await expect(g.locator('.nf-case-act a')).toHaveAttribute('href', /case\.php\?id=/);
   await expect(page.locator('.p-notif.fr[data-sev]').first()).toBeVisible();
-  const i = await open(page, 'inbox.php');
+  const i = await open(page, 'inbox.php?app=mail');
   await expect(page.locator('.ib-row.ib-needs .ib-due')).toContainText(/\d+:\d\d left|time is up/);
   const t = await open(page, 'inbox.php?m=42');
   await expect(page.locator('.ib-thread .ib-msg')).toHaveCount(1);
@@ -1578,11 +1578,11 @@ test('Speed, step 3 (7 Nov 2026): Activity, the Inbox and Report Summary change 
   await expect(page.locator('#act-list .ss-seg a.p-on')).toHaveCount(1);
   expect(await page.evaluate(() => window.__stay), 'Activity did not reload').toBe(1);
   // Inbox: Sent, then a message, in place; the case link inside a message stays an ordinary page change
-  const i = await open(page, 'inbox.php');
+  const i = await open(page, 'inbox.php?app=mail');
   await page.evaluate(() => { window.__stay = 1; });
   s = settle(); await page.locator('#ib-main .ib-tabs a[href="inbox.php?box=sent"]').click(); await s;
   expect(page.url()).toMatch(/box=sent/);
-  s = settle(); await page.locator('#ib-main .ib-tabs a[href="inbox.php"]').click(); await s;
+  s = settle(); await page.locator('#ib-main .ib-tabs a[href="inbox.php?app=mail"]').click(); await s;
   s = settle(); await page.locator('#ib-main a.ib-row').first().click(); await s;
   expect(page.url()).toMatch(/[?&]m=\d+/);
   await expect(page.locator('#ib-main .ib-read')).toHaveCount(1);

@@ -122,11 +122,14 @@ $openGot = [];
             $rows = (array) $got['rows'];
         } elseif ($box === 'chats') {
             // the case chats (12 Nov 2026): no mail is read here; the mail's unread count still rides along for the tab
-            $got = $db->selectMany(['unread' => $unreadRead]);
+            // one wait on the database: the unread mail count, the list of conversations and the open case ride one batch (speed work, 7 Nov 2026)
+            $got = $db->selectMany(['unread' => $unreadRead]
+                + ($part !== 'thread' && $part !== 'detail' ? case_chat_list_reads() : [])
+                + ($chatId !== '' ? case_chat_load_reads($chatId) : []));
             $unread = is_int($got['unread'] ?? null) ? $got['unread'] : 0;
-            if ($part !== 'thread' && $part !== 'detail') { $chatRows = case_chat_list($db, $me); }
+            if ($part !== 'thread' && $part !== 'detail') { $chatRows = case_chat_list_rows($got, $me); }
             $total = count($chatRows);
-            $chatOpen = $chatId !== '' ? case_chat_load($db, $chatId) : null;
+            $chatOpen = $chatId !== '' ? case_chat_load_build($got) : null;
             $convId = (string) ($_GET['k'] ?? '');
             if ($chatOpen) {
                 $ids = array_column($chatOpen['convs'], 'id');
