@@ -538,6 +538,9 @@ window.ssSupabase = function (url, key, initial) {
 <link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <link href="assets/css/shell.css?v=<?= e(asset_version('shell.css')) ?>" rel="stylesheet">
 <link href="assets/css/aesthetic.css?v=<?= e(asset_version('aesthetic.css')) ?>" rel="stylesheet">
+<?php if ($active === 'spatial.php') : // Spatial Distribution in the current look (12 Nov 2026), written over the map's own styles ?>
+<link href="assets/css/sd-skin.css?v=<?= e(asset_version('sd-skin.css')) ?>" rel="stylesheet">
+<?php endif; ?>
 <?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php', 'home.php'], true)) : // Case Reports, the Dashboard, Report Summary and Home (overview.css) ?>
 <link href="assets/css/overview.css?v=<?= e(asset_version('overview.css')) ?>" rel="stylesheet">
 <?php endif; ?>

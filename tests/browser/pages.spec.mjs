@@ -1346,17 +1346,23 @@ test('Settings for a Kagawad and staff: their look, their committee read only, t
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
-test('Rose, 2 Nov: the lock holds when the map is pressed, the layers are a row of the floating tab, and the first day picked can be taken back', async ({ page }) => {
+test('Rose, 2 Nov: the lock holds when the map is pressed, the layers stay in their tile at the bottom left of the map (Ace, 12 Nov), and the first day picked can be taken back', async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'spatial.php');
-  await expect(page.locator('#map-search .p-row-lyr #lyr-list .map-sw')).not.toHaveCount(0);   // the layers, in the tab
-  await expect(page.locator('#layers-btn')).toBeHidden();
+  await expect(page.locator('#map-search .p-row-lyr')).toHaveCount(0);                       // not a row of the floating tab
+  await expect(page.locator('#layers-btn')).toBeVisible();                                   // the tile at the bottom left
+  const lb = await page.locator('#layers-btn').boundingBox();
+  expect(lb.x).toBeLessThan(400); expect(lb.y).toBeGreaterThan(700);
+  await expect(page.locator('#ss-lyr')).toBeHidden();
+  await page.locator('#layers-btn').click();
+  await expect(page.locator('#ss-lyr #lyr-list .map-sw')).not.toHaveCount(0);                // it opens the card of layers
+  await page.locator('#layers-btn').click();
+  await expect(page.locator('#ss-lyr')).toBeHidden();
   await page.locator('#map-pin').click();
   await expect(page.locator('#map-pin')).toHaveAttribute('aria-pressed', 'true');
   await page.mouse.move(1200, 900); await page.mouse.down(); await page.mouse.move(1260, 860, { steps: 6 }); await page.mouse.up();   // press and drag on the map
   await page.waitForTimeout(600);
   await expect(page.locator('#f-category')).toBeVisible();   // the filters stay
-  expect(await page.locator('.p-row-lyr').evaluate(e => e.getBoundingClientRect().height)).toBeGreaterThan(30);
   await page.locator('#map-pin').click();   // unlocked again for the other tests
   const s = await open(page, 'summary.php');
   await page.locator('#period-form .sdp-btn').first().click();
@@ -1872,4 +1878,36 @@ test('Chat heads drag like a phone\'s (12 Nov 2026): the panel shuts when the bu
   await page.mouse.up();
   await expect(page.locator('.ch-float')).toHaveCount(0);
   expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].pin)).toBe(false);
+});
+
+test('Spatial Distribution (12 Nov 2026): the SMART panel stays navy by day; the buttons move (a grip, the nearer side, remembered, put back) and never cover an open panel', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'spatial.php');
+  await page.evaluate(() => { try { localStorage.setItem('ss-theme', 'light'); localStorage.removeItem('ss-sd-dock'); } catch (e) {} });
+  await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(1500);
+  // the SMART panel: dark behind light words, in the light theme too
+  await page.locator('#smart-toggle').click();
+  await expect(page.locator('#smart-side')).toBeVisible();
+  const lum = await page.locator('#smart-side').evaluate(e => { const m = getComputedStyle(e).backgroundColor.match(/[\d.]+/g).map(Number); return (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255; });
+  expect(lum).toBeLessThan(0.35);
+  // an open panel is not covered: hovering the buttons does not widen them
+  const btn = page.locator('#incident-toggle');
+  await btn.hover(); await page.waitForTimeout(400);
+  expect((await btn.boundingBox()).width).toBeLessThan(60);
+  await page.locator('#smart-toggle').click();
+  await expect(page.locator('#smart-side')).toBeHidden();
+  // the grip: drag the column to the left side, mid height; it settles on the left and is remembered
+  const grip = page.locator('.p-map-dock .sd-grip'); await expect(grip).toBeVisible();
+  const g = await grip.boundingBox();
+  await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2); await page.mouse.down(); await page.mouse.move(700, 400, { steps: 8 }); await page.mouse.up();
+  await expect(page.locator('.p-map-dock')).toHaveClass(/sd-left/);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ss-sd-dock')).side)).toBe('l');
+  await page.waitForTimeout(500);
+  expect((await page.locator('.p-map-dock').boundingBox()).x).toBeLessThan(500);
+  await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(1200);
+  await expect(page.locator('.p-map-dock')).toHaveClass(/sd-left/);                      // remembered
+  await page.locator('.p-map-dock .sd-grip').dblclick();                                   // put back
+  await expect(page.locator('.p-map-dock')).not.toHaveClass(/sd-moved/);
+  expect(await page.evaluate(() => localStorage.getItem('ss-sd-dock'))).toBeNull();
+  expect(r.errors, 'console errors').toEqual([]);
 });
