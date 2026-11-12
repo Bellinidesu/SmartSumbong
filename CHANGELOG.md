@@ -9,12 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
-**Inbox: two sections, Case chats like Messenger and BarangayMail (12 Nov)**
-- The Inbox is now two sections. Case chats is drawn like Messenger's web app: a conversation per person (the resident of a case, each tanod on its dispatches) with
-  search, All / Unread / Cases I handle chips, an unread dot, the open conversation in grouped bubbles with the other person's small picture, a pill composer with an
-  emoji picker and the thumbs-up that becomes Send, and a conversation-information column (the case, Mute, Search, media). Conversations open without a reload and
-  stay current every 15 seconds. BarangayMail is the mail (its Gmail-style pass comes next). Chats are read from `report_messages` and `dispatch_updates` and sent through
-  the same two actions as in the case; unread and mute are kept per browser. No database change.
+**Inbox: two sections, Case chats and BarangayMail (12 Nov)**
+- The Inbox is now two sections. Case chats does what Messenger's web app does, drawn the way Apple's Messages is: a sidebar of conversations (a search field, a segmented
+  All / Unread / Cases I handle, one row per person with a round picture, the last words and a blue dot when unread, the open one filled blue); the person centred over the thread,
+  blue and grey bubbles with a tail on the last of a run and the day in bold before the time; a pill field with an emoji picker and an arrow that appears with the first letter;
+  and Details on the right as grouped lists with Hide Alerts as a switch, a search in the conversation and the photos. Conversations open without a reload and stay current
+  every 15 seconds. BarangayMail is the mail (its Gmail-style pass comes next). Chats are read from `report_messages` and `dispatch_updates` and sent through the same two actions
+  as in the case; unread and Hide Alerts are kept per browser for now (the tables for keeping them per person arrived with 0173). No database change in this part.
 
 **The case page, and the chat head (12 Nov, looks pass)**
 - Case page: the owner first, a labelled "Where the case is" ladder, the ownership history folded, "Field responder" instead of "Currently with", the

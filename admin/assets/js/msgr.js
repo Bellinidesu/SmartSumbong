@@ -145,7 +145,6 @@
   detail.addEventListener('input', function (e) {
     var t = e.target; if (t.tagName !== 'TEXTAREA') { return; }
     grow(t); t.closest('form').classList.toggle('has-text', t.value.trim() !== '');
-    var s = t.closest('form').querySelector('.mg-send'); if (s) { s.setAttribute('aria-label', t.value.trim() ? s.getAttribute('data-send') : s.getAttribute('data-like')); }
   });
   detail.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.target.tagName === 'TEXTAREA') { e.preventDefault(); e.target.closest('form').requestSubmit(); }
@@ -154,9 +153,8 @@
     var f = e.target.closest('[data-mg="form"]'); if (!f) { return; }
     e.preventDefault();
     var t = f.querySelector('textarea'), text = t.value.trim();
-    if (!text) { text = '👍'; }                                   // the thumbs-up button, as Messenger's like
+    if (!text) { return; }
     t.value = ''; grow(t); f.classList.remove('has-text');
-    var s = f.querySelector('.mg-send'); if (s) { s.setAttribute('aria-label', s.getAttribute('data-like')); }
     sendText(f, text); t.focus();
   });
 
@@ -173,8 +171,7 @@
   function paintMute() {
     var c = detail.querySelector('.mg-center'), b = detail.querySelector('[data-mg="mute"]'); if (!c || !b) { return; }
     var muted = !soundOn(c.getAttribute('data-report'));
-    b.setAttribute('aria-pressed', muted ? 'true' : 'false'); b.classList.toggle('mg-on', muted);
-    var l = b.querySelector('[data-mute-l]'); if (l) { l.textContent = muted ? tr('Unmute', 'I-unmute') : tr('Mute', 'I-mute'); }
+    b.setAttribute('aria-checked', muted ? 'true' : 'false');                // Hide Alerts, a switch
   }
   function find(q) {
     var msgs = detail.querySelector('.mg-msgs'), n = 0, first = null; q = (q || '').trim().toLowerCase();

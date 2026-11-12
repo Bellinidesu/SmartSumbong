@@ -1897,14 +1897,13 @@ test('Inbox, Case chats like Messenger (12 Nov 2026): a conversation per person 
   const note = 'Opo, sinusuri na namin ' + Date.now();
   const sent = page.waitForResponse(x => x.request().method() === 'POST' && x.url().includes('case.php'));
   const box = center.locator('textarea'); await box.fill(note);
-  await expect(page.locator('.mg-form')).toHaveClass(/has-text/);                      // the thumbs-up has become Send
+  await expect(page.locator('.mg-form')).toHaveClass(/has-text/);                      // the arrow has appeared
   await box.press('Enter');
   expect((await (await sent).json()).ok).toBe(true);
   await expect(center.locator('.mg-b', { hasText: note })).toHaveCount(1);
-  const like = page.waitForResponse(x => x.request().method() === 'POST' && x.url().includes('case.php'));
-  await page.locator('.mg-send').click();                                              // empty: the thumbs-up
-  expect((await (await like).json()).ok).toBe(true);
-  await expect(center.locator('.mg-b', { hasText: '👍' })).toHaveCount(1);
+  const before = await center.locator('.mg-b').count();
+  await box.press('Enter');                                                            // empty: nothing is sent
+  expect(await center.locator('.mg-b').count()).toBe(before);
   await page.locator('.mg-emoji').click();
   await expect(page.locator('.em-pop')).toBeVisible();
   await page.locator('.em-pop .em-c').first().click();
@@ -1912,7 +1911,7 @@ test('Inbox, Case chats like Messenger (12 Nov 2026): a conversation per person 
   await page.keyboard.press('Escape');
   await expect(page.locator('.em-pop')).toHaveCount(0);
   await page.locator('[data-mg="mute"]').click();
-  await expect(page.locator('[data-mg="mute"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-mg="mute"]')).toHaveAttribute('aria-checked', 'true');      // Hide Alerts, a switch
   await page.locator('[data-mg="info"]').click();                                       // the information column closes
   await expect(page.locator('.mg-info')).toBeHidden();
   expect(await axe(page), 'axe on Case chats').toEqual([]);
