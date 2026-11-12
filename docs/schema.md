@@ -62,6 +62,10 @@ How the database fits the rest of the system is in
 | `attendance` | Tanod duty logging | 0001 |
 | `tanod_committees` | The committees a tanod belongs to: proposed by a Kagawad or approved by a super admin, with the committee's own role for them; written only by the functions. `tanod_committee_log` keeps every change (append-only) | 0153 |
 | `inbox_messages` | The portal's Inbox: one row per recipient (a batch per message sent), from a person or the system (sender null), optionally about a case; read by its sender and recipient only | 0155 |
+| `mail_state` | BarangayMail: one person's own star, archive, trash and snooze on a message (by batch); read by that person only, written through `mail_flag` | 0173 |
+| `mail_labels`, `mail_label_links` | BarangayMail: the labels a person makes and which messages carry them; that person only | 0173 |
+| `mail_drafts` | BarangayMail: a person's unsent mail; that person only; removed when sent | 0173 |
+| `chat_state` | Case chats: per person and conversation (resident, or a tanod on a dispatch), when it was last read and whether it is muted, pinned or put away; that person only | 0173 |
 | `reroute_questions` | A reroute that found none of the case's committee's tanods free asks its Kagawad: open until answered, timed out or no longer needed | 0155 |
 | `users.banner_preset`, `banner_colour`, `banner_url`, `banner_y` | An administrator's profile banner: sidebar colour, contour, a colour, the committee's, or their own picture and its framing | 0157 |
 | `retirement_requests.endorsed_by`, `endorsed_at`, `endorse_note` | The tanod's Kagawad endorses a retirement request to the super admins, who decide | 0157 |
