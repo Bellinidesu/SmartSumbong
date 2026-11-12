@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Inbox: Case chats (12 Nov)**
+- A new Inbox folder lists every case whose resident or tanod has written (the cases this person can read, or only the ones they handle), newest first, with an
+  unread dot per row; opening one draws the chat head's conversations in the reading pane, so an answer can be written from the Inbox. Mail stays mail:
+  chats are read from `report_messages` and `dispatch_updates` and are sent through the same two actions as in the case. Unread is kept per browser. No database change.
+
 **The case page, and the chat head (12 Nov, looks pass)**
 - Case page: the owner first, a labelled "Where the case is" ladder, the ownership history folded, "Field responder" instead of "Currently with", the
   resident in the header; the SMART "Why this level" card is readable again in light mode (a later stylesheet had painted it white) (#372).

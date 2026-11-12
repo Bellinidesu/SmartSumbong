@@ -1889,7 +1889,10 @@ test('Inbox, Case chats (12 Nov 2026): the folder lists the cases that have chat
   await expect(chat).toBeVisible();
   await expect(chat.locator('.ch-row')).toHaveCount(2);                              // the resident and the tanod of this case
   await chat.locator('.ch-row', { hasText: 'Garcia' }).click();
-  await expect(rows.first()).not.toHaveClass(/ib-unread/);                           // read: the dot clears
+  await expect(rows.first()).toHaveClass(/ib-unread/);                               // the tanod's replies in this case are still unread
+  await chat.locator('.ch-conv:not([hidden]) [data-ch="back"]').click();
+  await chat.locator('.ch-row', { hasText: 'Lediac' }).click();
+  await expect(rows.first()).not.toHaveClass(/ib-unread/);                           // both read: the dot clears
   const note = 'Opo, sinusuri na namin ' + Date.now();
   const sent = page.waitForResponse(x => x.request().method() === 'POST' && x.url().includes('case.php'));
   const box = chat.locator('.ch-conv:not([hidden]) textarea'); await box.fill(note); await box.press('Enter');
