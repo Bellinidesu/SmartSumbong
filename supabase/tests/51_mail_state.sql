@@ -77,8 +77,10 @@ begin
     perform set_config('request.jwt.claim.sub', v_kpo::text, true);
     select id into m_kpo from public.inbox_messages where batch = b1 and recipient = v_kpo;
     perform public.mark_mail_read(array[m_kpo]);
-    if public.mail_set_read(array[m_kpo], false) <> 1 or (select read_at from public.inbox_messages where id = m_kpo) is not null then raise exception 'not marked unread'; end if;
-    if public.mail_set_read(array[m_kpo], true) <> 1 or (select read_at from public.inbox_messages where id = m_kpo) is null then raise exception 'not marked read again'; end if;
+    n := public.mail_set_read(array[m_kpo], false);
+    if n <> 1 or (select read_at from public.inbox_messages where id = m_kpo) is not null then raise exception 'not marked unread'; end if;
+    n := public.mail_set_read(array[m_kpo], true);
+    if n <> 1 or (select read_at from public.inbox_messages where id = m_kpo) is null then raise exception 'not marked read again'; end if;
     perform set_config('request.jwt.claim.sub', v_sup::text, true);
     if public.mail_set_read(array[m_kpo], false) <> 0 then raise exception 'the sender changed the recipient''s read mark'; end if;
     v_log := v_log || E'\n' || 'ok  star, archive, trash, snooze and read/unread are one person''s own marks, kept and undone, on mail they sent or received only';

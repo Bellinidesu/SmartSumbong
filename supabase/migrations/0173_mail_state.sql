@@ -75,6 +75,7 @@ create table public.mail_label_links (
   primary key (user_id, batch, label_id)
 );
 create index mail_label_links_label_idx on public.mail_label_links (user_id, label_id);
+create index mail_label_links_label_only_idx on public.mail_label_links (label_id);
 comment on table public.mail_label_links is '0173: which of a person''s labels sit on which message.';
 alter table public.mail_label_links enable row level security;
 create policy mail_label_links_read on public.mail_label_links for select to authenticated using (user_id = (select auth.uid()));
@@ -92,6 +93,8 @@ create table public.mail_drafts (
   updated_at timestamptz not null default now()
 );
 create index mail_drafts_user_idx on public.mail_drafts (user_id, updated_at desc);
+create index mail_drafts_report_idx on public.mail_drafts (report_id);
+create index mail_drafts_reply_idx on public.mail_drafts (reply_to);
 comment on table public.mail_drafts is '0173: a person''s unsent mail. Read and written only by that person; sending it (send_mail with p_draft) removes it.';
 alter table public.mail_drafts enable row level security;
 create policy mail_drafts_read on public.mail_drafts for select to authenticated using (user_id = (select auth.uid()));
@@ -109,6 +112,7 @@ create table public.chat_state (
   updated_at timestamptz not null default now(),
   primary key (user_id, report_id, conv)
 );
+create index chat_state_report_idx on public.chat_state (report_id);
 comment on table public.chat_state is '0173: per person and conversation of a case (r = the resident, d-<dispatch> = a tanod): when it was last read, and whether it is muted, pinned or put away. Written through chat_state_set.';
 alter table public.chat_state enable row level security;
 create policy chat_state_read on public.chat_state for select to authenticated using (user_id = (select auth.uid()));
