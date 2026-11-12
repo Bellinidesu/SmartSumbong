@@ -1,0 +1,29 @@
+{
+  "name": "Barangay 183 Hall",
+  "tier": "hero",
+  "match": {
+    "name": "Barangay 183 Hall"
+  },
+  "anchor": [
+    121.012595,
+    14.525072
+  ],
+  "blend": "hall.npz",
+  "about": "The Barangay 183 Hall in Blender (blend/build_hall.py) from Ace's Street View shots 266 to 273: a three-storey pink block with green pilasters and bands, an open ground floor under a green awning, a blue-grey glazed top floor, the BARANGAY 183 lettering and the big 183 panel, a pink turret with a blue cap, the rear stair block and water tank, the green fence; turned to face south-south-west as the cameras show.",
+  "palette": {
+    "wall": "EBA7A4",
+    "trim": "6FAE5C",
+    "accent": "6FAE5C"
+  },
+  "use": "hall",
+  "tiles": {},
+  "facade": false,
+  "night": {
+    "wash": {
+      "color": "green",
+      "height": 14,
+      "strength": 0.5
+    }
+  },
+  "ref": []
+}

@@ -1,0 +1,170 @@
+{
+ "Belmont Hotel": {
+  "bay_w": 3.78,
+  "floor_h": 3.4,
+  "bay_conf": 0.63,
+  "floor_conf": 0.0,
+  "strip": true,
+  "win": [
+   0.382,
+   0.618,
+   0.339,
+   0.661
+  ],
+  "glass_share": 0.306,
+  "glass": "020201",
+  "wall": "6B6A67",
+  "glass_spread": 0.012,
+  "face": 5,
+  "length": 44.5,
+  "pano": "5148376211867122",
+  "faces_read": 2
+ },
+ "Holiday Inn Express": {
+  "bay_w": 4.33,
+  "floor_h": 3.4,
+  "bay_conf": 0.5,
+  "floor_conf": 0.0,
+  "strip": true,
+  "win": [
+   0.346,
+   0.654,
+   0.258,
+   0.742
+  ],
+  "glass_share": 0.217,
+  "glass": "5F5A4E",
+  "wall": "433F35",
+  "glass_spread": 0.043,
+  "face": 2,
+  "length": 79.0,
+  "pano": "160767466378907",
+  "faces_read": 3
+ },
+ "Horizon Centre": {
+  "bay_w": 3.22,
+  "floor_h": 3.78,
+  "bay_conf": 0.31,
+  "floor_conf": 0.34,
+  "strip": false,
+  "win": [
+   0.414,
+   0.586,
+   0.441,
+   0.559
+  ],
+  "glass_share": 0.129,
+  "glass": "404B47",
+  "wall": "86BBBC",
+  "glass_spread": 0.064,
+  "face": 1,
+  "length": 63.8,
+  "pano": "505425011080554",
+  "faces_read": 3
+ },
+ "Marriot West Wing": {
+  "bay_w": 2.67,
+  "floor_h": 3.4,
+  "bay_conf": 0.52,
+  "floor_conf": 0.0,
+  "strip": true,
+  "win": [
+   0.458,
+   0.542,
+   0.339,
+   0.661
+  ],
+  "glass_share": 0.228,
+  "glass": "77797F",
+  "wall": "4E4C50",
+  "glass_spread": 0.049,
+  "face": 1,
+  "length": 55.9,
+  "pano": "871164985026714",
+  "faces_read": 2
+ },
+ "Marriott Grand Ballroom": {
+  "bay_w": 3.22,
+  "floor_h": 3.4,
+  "bay_conf": 0.64,
+  "floor_conf": 0.0,
+  "strip": true,
+  "win": [
+   0.414,
+   0.586,
+   0.403,
+   0.597
+  ],
+  "glass_share": 0.142,
+  "glass": "858180",
+  "wall": "65615C",
+  "glass_spread": 0.086,
+  "face": 1,
+  "length": 110.8,
+  "pano": "1123828598181293",
+  "faces_read": 3
+ },
+ "Newport Mall": {
+  "bay_w": 7.89,
+  "floor_h": 3.4,
+  "bay_conf": 0.39,
+  "floor_conf": 0.0,
+  "strip": true,
+  "win": [
+   0.458,
+   0.542,
+   0.403,
+   0.597
+  ],
+  "glass_share": 0.145,
+  "glass": "40413D",
+  "wall": "636969",
+  "glass_spread": 0.041,
+  "face": 4,
+  "length": 63.7,
+  "pano": "1053637983317411",
+  "faces_read": 1
+ },
+ "Newport World Resorts - Grand Wing": {
+  "bay_w": 3.22,
+  "floor_h": 3.4,
+  "bay_conf": 0.74,
+  "floor_conf": 0.0,
+  "strip": true,
+  "win": [
+   0.103,
+   0.897,
+   0.194,
+   0.806
+  ],
+  "glass_share": 0.418,
+  "glass": "11120C",
+  "wall": "88A1A3",
+  "glass_spread": 0.034,
+  "face": 6,
+  "length": 112.3,
+  "pano": "2196881727119185",
+  "faces_read": 1
+ },
+ "Plaza 66": {
+  "bay_w": 4.22,
+  "floor_h": 3.4,
+  "bay_conf": 0.31,
+  "floor_conf": 0.0,
+  "strip": true,
+  "win": [
+   0.434,
+   0.566,
+   0.258,
+   0.742
+  ],
+  "glass_share": 0.222,
+  "glass": "8F9DAD",
+  "wall": "BDB8AD",
+  "glass_spread": 0.046,
+  "face": 0,
+  "length": 143.2,
+  "pano": "5155492034511992",
+  "faces_read": 3
+ }
+}

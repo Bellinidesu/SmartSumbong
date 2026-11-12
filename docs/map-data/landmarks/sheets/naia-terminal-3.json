@@ -1,0 +1,151 @@
+{
+  "name": "NAIA Terminal 3",
+  "tier": "hero",
+  "match": {
+    "name": "NAIA Terminal 3"
+  },
+  "about": "A linear terminal read from the satellite (a u/v grid along its 1,020 m axis), the street frames and the Commons photographs: a main building with a north-west and a south-east concourse; five barrel vaults over the landside departures hall with a glazed valley between them; rows of skylights on the airside roof; a shallow pitched roof on each concourse; the departures kerb canopy; a jet bridge at every gate (OpenStreetMap). Facade in graphite and glass, roofs pale. Principles: departures above arrivals, gates on the airside, processing in the middle (Campbell, archgyan).",
+  "frame": {
+    "origin": [
+      121.013705,
+      14.519476
+    ],
+    "th": -44.80529957923038
+  },
+  "palette": {
+    "wall": "8E98A8",
+    "trim": "F2F1EC",
+    "accent": "3F8F8E",
+    "podium": "B9BDC6"
+  },
+  "use": "terminal",
+  "height": 22.0,
+  "roof": {
+    "colour": "EEEDE8"
+  },
+  "tiles": {
+    "glass": {
+      "kind": "curtain",
+      "m": [
+        6.4,
+        3.8
+      ],
+      "fit": true,
+      "graded": true,
+      "seed": 501,
+      "p": 0.6,
+      "bays": 4,
+      "jit": 0.08,
+      "lc": "bright"
+    },
+    "base": {
+      "kind": "board",
+      "m": [
+        6.0,
+        4.0
+      ],
+      "fit": true,
+      "seed": 503
+    }
+  },
+  "sections": [
+    {
+      "u0": -520,
+      "u1": -209,
+      "h": 14.0,
+      "podium": 4.0,
+      "podium_mat": "base",
+      "mat": "glass",
+      "grade": 0.25
+    },
+    {
+      "u0": -209,
+      "u1": 91,
+      "h": 22.0,
+      "podium": 8.0,
+      "podium_mat": "base",
+      "mat": "glass",
+      "grade": 0.3
+    },
+    {
+      "u0": 91,
+      "u1": 520,
+      "h": 14.0,
+      "podium": 4.0,
+      "podium_mat": "base",
+      "mat": "glass",
+      "grade": 0.25
+    }
+  ],
+  "features": [
+    {
+      "type": "vaults",
+      "u0": -185,
+      "u1": -5,
+      "v0": 27,
+      "v1": 92,
+      "n": 5,
+      "z": 22.0,
+      "rise": 6.5,
+      "colour": "F2F1EC",
+      "valley": "3F8F8E",
+      "end_colour": "9FB7C4"
+    },
+    {
+      "type": "skylights",
+      "u0": -165,
+      "u1": -40,
+      "v0": -50,
+      "v1": -4,
+      "z": 22.0,
+      "step": 7.0,
+      "colour": "7FA3A6"
+    },
+    {
+      "type": "pitched",
+      "u0": -509,
+      "u1": -215,
+      "v0": -47,
+      "v1": -24,
+      "z": 14.0,
+      "rise": 2.4,
+      "colour": "ECEBE6"
+    },
+    {
+      "type": "pitched",
+      "u0": 95,
+      "u1": 509,
+      "v0": -64,
+      "v1": -30,
+      "z": 14.0,
+      "rise": 2.6,
+      "colour": "ECEBE6"
+    },
+    {
+      "type": "kerb_canopy",
+      "u0": -200,
+      "u1": 85,
+      "v0": 93,
+      "v1": 104,
+      "z": 8.5,
+      "spacing": 18
+    },
+    {
+      "type": "jet_bridges",
+      "u0": -520,
+      "u1": 520,
+      "v0": -130,
+      "v1": -20
+    }
+  ],
+  "facade": false,
+  "night": {
+    "wash": {
+      "color": "white",
+      "height": 20,
+      "strength": 0.45
+    },
+    "lit": 0.9
+  },
+  "ref": []
+}
