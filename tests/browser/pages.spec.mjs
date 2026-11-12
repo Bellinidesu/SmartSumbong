@@ -554,13 +554,13 @@ test('Development team: the DEV switcher makes test accounts, switches into a ru
   const sw = page.locator('.dv-sw');
   await expect(sw, 'a developer has the switcher').toHaveCount(1);
   await sw.locator('summary').click();
-  await expect(sw.locator('.dv-l')).toHaveCount(4);   // Super admin, Captain, Kagawad, Staff
-  await expect(sw.locator('.dv-l').nth(2)).toContainText('Kagawad');
-  await expect(sw.locator('.dv-l').nth(2)).toContainText('Peace and Order');
+  await expect(sw.locator('.dv-l')).toHaveCount(3);   // Captain, Kagawad, Staff (the Super admin one is the person's own account: Back to my own account)
+  await expect(sw.locator('.dv-l').nth(1)).toContainText('Kagawad');
+  await expect(sw.locator('.dv-l').nth(1)).toContainText('Peace and Order');
   await sw.locator('.dv-setup button[type=submit]').click();
   await expect(page.locator('.dv-msg')).toContainText('test accounts are ready');
   await expect(page.locator('.dv-sw[open]'), 'the panel is open to show what the last action said').toHaveCount(1);
-  await page.locator('.dv-sw .dv-l').nth(2).click();
+  await page.locator('.dv-sw .dv-l').nth(1).click();
   await expect(page.locator('.dv-band'), 'a band says whose eyes these are').toContainText('Seeing the portal as Councilor (Kagawad)');
   await expect(page.locator('.dv-sw .dv-l.p-on')).toContainText('Kagawad');
   await page.locator('.dv-band button').click();

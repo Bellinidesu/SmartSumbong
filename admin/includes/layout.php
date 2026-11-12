@@ -411,6 +411,8 @@ function dev_switcher(): string
     } else {
         try { $levels = (array) (new Supabase($tok))->rpc('dev_levels'); $_SESSION['ss_dev_levels'] = ['k' => hash('sha256', $tok), 'at' => time(), 'v' => $levels]; } catch (Throwable) {}
     }
+    // 12 Nov 2026 (Ace): the pill's own account is the Super admin one, and "Back to my own account" goes there, so the list is only the rungs under it
+    $levels = array_values(array_filter($levels, static fn ($l): bool => (string) ($l['level'] ?? '') !== 'super'));
     $now = (string) ($_SESSION['dev_view'] ?? '');
     $name = ['super' => t('Super admin', 'Pangunahing admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Councilor (Kagawad)', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')];
     $from = basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
