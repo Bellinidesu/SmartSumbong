@@ -1346,17 +1346,23 @@ test('Settings for a Kagawad and staff: their look, their committee read only, t
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
-test('Rose, 2 Nov: the lock holds when the map is pressed, the layers are a row of the floating tab, and the first day picked can be taken back', async ({ page }) => {
+test('Rose, 2 Nov: the lock holds when the map is pressed, the layers stay in their tile at the map's bottom left (Ace, 12 Nov), and the first day picked can be taken back', async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'spatial.php');
-  await expect(page.locator('#map-search .p-row-lyr #lyr-list .map-sw')).not.toHaveCount(0);   // the layers, in the tab
-  await expect(page.locator('#layers-btn')).toBeHidden();
+  await expect(page.locator('#map-search .p-row-lyr')).toHaveCount(0);                       // not a row of the floating tab
+  await expect(page.locator('#layers-btn')).toBeVisible();                                   // the tile at the bottom left
+  const lb = await page.locator('#layers-btn').boundingBox();
+  expect(lb.x).toBeLessThan(400); expect(lb.y).toBeGreaterThan(700);
+  await expect(page.locator('#ss-lyr')).toBeHidden();
+  await page.locator('#layers-btn').click();
+  await expect(page.locator('#ss-lyr #lyr-list .map-sw')).not.toHaveCount(0);                // it opens the card of layers
+  await page.locator('#layers-btn').click();
+  await expect(page.locator('#ss-lyr')).toBeHidden();
   await page.locator('#map-pin').click();
   await expect(page.locator('#map-pin')).toHaveAttribute('aria-pressed', 'true');
   await page.mouse.move(1200, 900); await page.mouse.down(); await page.mouse.move(1260, 860, { steps: 6 }); await page.mouse.up();   // press and drag on the map
   await page.waitForTimeout(600);
   await expect(page.locator('#f-category')).toBeVisible();   // the filters stay
-  expect(await page.locator('.p-row-lyr').evaluate(e => e.getBoundingClientRect().height)).toBeGreaterThan(30);
   await page.locator('#map-pin').click();   // unlocked again for the other tests
   const s = await open(page, 'summary.php');
   await page.locator('#period-form .sdp-btn').first().click();
