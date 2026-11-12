@@ -466,6 +466,17 @@ def _send_mail(b):
 def _batch_people(b):
     return [{'user_id': m['recipient'], 'full_name': _NAMES.get(m['recipient'], (m.get('to') or {}).get('full_name', '?')), 'role': m.get('role', 'to')} for m in TABLES['inbox_messages'] if m['batch'] == b['p_batch'] and m['recipient'] != '' and m['sender']]
 RPC['mail_flag'] = _mail_flag; RPC['mail_set_read'] = _mail_set_read; RPC['mail_label_apply'] = _label_apply; RPC['mail_label_save'] = _label_save; RPC['mail_label_delete'] = _label_delete
+# 12 Nov 2026: where each person was in a case's chats (0173 chat_state, kept through chat_state_set; reading only moves forward)
+TABLES['chat_state'] = []
+def _chat_state_set(b):
+    row = next((r for r in TABLES['chat_state'] if r['report_id'] == b['p_report'] and r['conv'] == b['p_conv'] and r['user_id'] == ADMIN['id']), None)
+    if row is None:
+        row = {'user_id': ADMIN['id'], 'report_id': b['p_report'], 'conv': b['p_conv'], 'seen_at': None, 'muted': False, 'pinned': False, 'archived': False}; TABLES['chat_state'].append(row)
+    if b.get('p_seen') and (not row['seen_at'] or b['p_seen'] > row['seen_at']): row['seen_at'] = b['p_seen']
+    for k, f in (('p_muted', 'muted'), ('p_pinned', 'pinned'), ('p_archived', 'archived')):
+        if b.get(k) is not None: row[f] = bool(b[k])
+RPC['chat_state_set'] = _chat_state_set
+RPC['fake_reset_chat_state'] = lambda b: TABLES['chat_state'].clear() or {}   # the tests start a chat from nothing read, nothing muted
 RPC['mail_draft_save'] = _draft_save; RPC['mail_draft_delete'] = _draft_delete; RPC['send_mail'] = _send_mail; RPC['mail_batch_people'] = _batch_people
 
 # FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for a distant database;

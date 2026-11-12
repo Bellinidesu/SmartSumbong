@@ -850,7 +850,7 @@ window.SS_PRESENCE = <?= json_encode([
 <script src="assets/js/presence.js?v=<?= e(asset_version('../js/presence.js')) ?>" defer></script>
 <?php // 12 Nov 2026: the chat head (a floating bubble for a case's chat) works on every page, so its style and script ride with the footer. ?>
 <link rel="stylesheet" href="assets/css/chat-head.css?v=<?= e(asset_version('chat-head.css')) ?>">
-<script src="assets/js/chat-head.js?v=<?= e(asset_version('../js/chat-head.js')) ?>" defer></script>
+<script src="assets/js/chat-head.js?v=<?= e(asset_version('../js/chat-head.js')) ?>" data-csrf="<?= e(csrf_token()) ?>" defer></script>
 <?php endif; ?>
 <?php if (current_admin()): ?>
 <div class="p-scrim" id="p-m-logout"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="p-ml-t">
