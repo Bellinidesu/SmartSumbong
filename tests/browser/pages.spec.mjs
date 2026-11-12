@@ -1779,3 +1779,97 @@ test('Press flow (7 Nov): a cancelled confirm does not leave a form stuck; the n
   expect(r.errors, 'console errors').toEqual([]);
   await ctx.close();
 });
+
+test('Case page, the chat head (12 Nov 2026): one button opens Messages; the list, a conversation, a send in place, Escape; no accessibility finding while open', async ({ page }) => {
+  const r = await open(page, `case.php?id=${CASE}`);
+  await expect(page.locator('#resident-messages, .p-thread-card')).toHaveCount(0);   // the two cards that used to hold the conversations
+  const fab = page.locator('#ch-fab');
+  await expect(fab).toBeVisible();
+  await expect(fab).toHaveAttribute('aria-expanded', 'false');
+  await fab.click();
+  await expect(fab).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('.ch-row')).toHaveCount(2);                    // the resident and the tanod on the open dispatch
+  await page.locator('.ch-row').nth(1).click();
+  const conv = page.locator('.ch-conv:not([hidden])');
+  expect(await conv.locator('.ch-b').count()).toBeGreaterThanOrEqual(3);      // earlier runs against the same fake add their own sends
+  expect(await conv.locator('.ch-out').count()).toBeGreaterThanOrEqual(1);
+  const note = 'Sige po, papunta na ang kasama ko ' + Date.now();
+  const sent = page.waitForResponse(x => x.request().method() === 'POST' && x.url().includes('case.php'));
+  const box = conv.locator('textarea'); await box.fill(note); await box.press('Enter');
+  expect((await (await sent).json()).ok).toBe(true);
+  await expect(conv.locator('.ch-b', { hasText: note })).toHaveCount(1);        // in place: the page did not reload
+  expect(await axe(page), 'axe with the chat open').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#ch-panel')).toBeHidden();
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Chat heads float (12 Nov 2026): right-click the bubble for a menu; Float on every page puts a bubble with a ball on another page; Stop floating takes it away; Settings has the card', async ({ page }) => {
+  const r = await open(page, `case.php?id=${CASE}`);
+  await page.evaluate(() => { try { localStorage.removeItem('ss-chat-cases'); localStorage.removeItem('ss-chat-prefs'); } catch (e) {} });
+  await page.locator('#ch-fab').click({ button: 'right' });
+  const menu = page.locator('.ch-menu');
+  await expect(menu).toBeVisible();
+  await expect(menu.locator('[role="menuitemcheckbox"]')).toHaveCount(2);          // Float on every page, Sound for this case
+  await expect(menu.getByRole('menuitemcheckbox', { name: /Sound for this case/ })).toHaveAttribute('aria-checked', 'true');
+  expect(await axe(page), 'axe with the menu open').toEqual([]);
+  await menu.getByRole('menuitemcheckbox', { name: /Float on every page/ }).click();
+  await expect(menu).toHaveCount(0);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ss-chat-cases'))[Object.keys(JSON.parse(localStorage.getItem('ss-chat-cases')))[0]].pin)).toBe(true);
+  // another page: the case's bubble is there, and a new message from the resident lights its ball
+  await page.goto('cases.php', { waitUntil: 'domcontentloaded' });
+  const head = page.locator('.ch-float');
+  await expect(head).toHaveCount(1);
+  await expect(head.locator('.ch-tag')).toHaveText('1001');
+  await page.evaluate(() => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_incoming', { method: 'POST', body: '{"body":"Kuya, may balita na po ba?"}' }));
+  await page.evaluate(() => window.ssChatPoll());
+  await expect(head.locator('.ch-badge')).toBeVisible();
+  await head.locator('.ch-fab').click();
+  await expect(head.locator('.ch-row')).toHaveCount(2);
+  expect(await axe(page), 'axe with a floating chat open').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(head.locator('.ch-panel')).toBeHidden();
+  // dragging keeps its place; the bubble does not open when it was only dragged
+  const b = await head.locator('.ch-fab').boundingBox();
+  await page.mouse.move(b.x + 29, b.y + 29); await page.mouse.down(); await page.mouse.move(300, 300, { steps: 6 }); await page.mouse.up();
+  await expect(head.locator('.ch-panel')).toBeHidden();
+  expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].side)).toBe('l');
+  // Settings: the card lists it and its switches are kept
+  await page.goto('settings.php', { waitUntil: 'domcontentloaded' });
+  await page.locator('.st-tabs [data-st="look"]').click();
+  await expect(page.locator('#chp .chp-item')).toHaveCount(1);
+  await page.locator('#chp [data-pref="floats"] [data-v="0"]').click();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ss-chat-prefs')).floats)).toBe(false);
+  await expect(page.locator('.ch-float')).toHaveCount(0);                              // off: nothing floats
+  await page.locator('#chp [data-pref="floats"] [data-v="1"]').click();
+  await expect(page.locator('.ch-float')).toHaveCount(1);
+  await page.locator('#chp .chp-item button', { hasText: /Stop floating/ }).click();
+  await expect(page.locator('.ch-float')).toHaveCount(0);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Chat heads drag like a phone\'s (12 Nov 2026): the panel shuts when the bubble is picked up, it springs to a side edge on letting go, and dropping a floating head on the round X stops it floating', async ({ page }) => {
+  await open(page, `case.php?id=${CASE}`);
+  await page.evaluate(id => localStorage.setItem('ss-chat-cases', JSON.stringify({ [id]: { pin: true, t: 'SS-2610-1001' } })), CASE);
+  await page.goto('cases.php', { waitUntil: 'domcontentloaded' });
+  const head = page.locator('.ch-float');
+  await expect(head).toHaveCount(1);
+  await head.locator('.ch-fab').click();
+  await expect(head.locator('.ch-panel')).toBeVisible();
+  const b = await head.locator('.ch-fab').boundingBox();
+  await page.mouse.move(b.x + 29, b.y + 29); await page.mouse.down();
+  await page.mouse.move(700, 400, { steps: 8 });
+  await expect(head.locator('.ch-panel')).toBeHidden();                     // picked up: the chat shuts
+  await page.mouse.up();
+  await expect.poll(async () => Math.round((await head.locator('.ch-fab').boundingBox()).x)).toBeLessThan(30);   // and it settles on the left edge
+  expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].side)).toBe('l');
+  const c = await head.locator('.ch-fab').boundingBox();
+  await page.mouse.move(c.x + 29, c.y + 29); await page.mouse.down();
+  await page.mouse.move(700, 600, { steps: 6 });
+  const tb = await page.locator('.ch-trash').boundingBox();
+  await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height / 2, { steps: 6 });
+  await expect(page.locator('.ch-trash')).toHaveClass(/ch-hot/);
+  await page.mouse.up();
+  await expect(page.locator('.ch-float')).toHaveCount(0);
+  expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].pin)).toBe(false);
+});

@@ -344,6 +344,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // The chat head sends in place (12 Nov 2026): it asks for the answer, not a redirect, and only for these two actions.
+    if (($_SERVER['HTTP_X_CHAT'] ?? '') === '1' && in_array((string) ($_POST['action'] ?? ''), ['dispatch_reply', 'resident_reply'], true)) {
+        header('Content-Type: application/json'); header('Cache-Control: no-store');
+        echo json_encode(['ok' => $level !== 'error', 'text' => (string) $flash]);
+        exit;
+    }
+
     $_SESSION['flash'] = ['text' => $flash, 'level' => $level];
     header('Location: case.php?id=' . urlencode($id));
     exit;

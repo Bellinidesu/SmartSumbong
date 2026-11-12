@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The case page, and the chat head (12 Nov, looks pass)**
+- Case page: the owner first, a labelled "Where the case is" ladder, the ownership history folded, "Field responder" instead of "Currently with", the
+  resident in the header; the SMART "Why this level" card is readable again in light mode (a later stylesheet had painted it white) (#372).
+- Chat head: the tanod and resident conversations are one Messages-style panel behind a floating button (no longer two cards at the foot of the page).
+  Sends happen in place; a right-click (or the ... button) floats a case's chat on every page as a draggable bubble with a notification ball and an
+  optional sound per case; bubbles drag like a phone's (spring to an edge, a round X to drop one); Settings > Appearance has a Chat heads card.
+  New read-only door `chat-feed.php`; choices are kept in the browser. No database change.
+
 **Finishing the backend (11 Nov, the backend sweep)**
 - Edge Functions: every outside call gives up after 10 seconds (3 for the error log), so a hung Semaphore, Cloudinary, Google
   or push service no longer holds a function until the platform stops it (`_shared/fetch.ts`).

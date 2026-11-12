@@ -19,6 +19,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/forwarding.php';
 require_once __DIR__ . '/includes/issues.php';   // 0163: the options by id, and what a concern was filed as
+require_once __DIR__ . '/includes/case_chat.php';   // 12 Nov 2026: the Messages-style chat head
 
 $admin = require_admin();
 
@@ -352,6 +353,13 @@ if ($report && !$error) {
     } catch (SupabaseError $ex) {
         $error = safe_error($ex);
     }
+}
+
+// The chat head's live refresh asks for just its conversations (12 Nov 2026), never the whole page.
+if (!$error && isset($report['id']) && ($_GET['chat'] ?? '') === '1') {
+    header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: no-store');
+    echo case_chat_body(case_chat_conversations($report, $dispatches, $thread, $threadMedia, $messages, $status), $id);
+    exit;
 }
 
 layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
@@ -827,101 +835,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
   </section>
   <?php endif; ?>
-    <?php
-    // The dispatch window (0069): what the tanod sent from the field, the
-    // steps, and the barangay's replies — newest dispatch first, only
-    // those with a thread or still open for one.
-    $threaded = array_values(array_filter(
-        $dispatches,
-        fn($d) => !empty($thread[$d['id']]) || ($d['state'] ?? '') === 'accepted'
-    ));
-    ?>
-    <?php if ($threaded): ?>
-      <div class="p-card p-card-pad p-thread-card">
-        <p class="p-eyebrow"><?= e(t('Dispatch Updates', 'Mga Update sa Dispatch')) ?></p>
-        <?php foreach ($threaded as $d): ?>
-          <?php $tanodName = $d['tanod']['full_name'] ?? t('Tanod', 'Tanod'); ?>
-          <p class="p-meta-line"><?= e($tanodName) ?></p>
-          <?php if (empty($thread[$d['id']])): ?>
-            <p class="p-none-line"><?= e(t('No updates yet.', 'Wala pang update.')) ?></p>
-          <?php else: ?>
-            <ol class="p-thread">
-              <?php foreach ($thread[$d['id']] as $u): ?>
-                <?php if ($u['kind'] === 'step'): ?>
-                  <li class="p-step">
-                    <?= e($u['step'] === 'arrived'
-                        ? t('Tanod arrived', 'Nakarating ang tanod')
-                        : t('Tanod on the way', 'Papunta na ang tanod')) ?>
-                    &middot; <?= e(long_datetime($u['created_at'])) ?>
-                  </li>
-                <?php else: ?>
-                  <?php $fromTanod = $u['author_id'] === ($d['tanod']['id'] ?? null); ?>
-                  <li class="p-bubble <?= $fromTanod ? 'p-them' : 'p-me' ?>">
-                    <span class="p-who-s"><?= e($fromTanod ? $tanodName : t('Barangay', 'Barangay')) ?></span>
-                    <?php if (!empty($u['body'])): ?>
-                      <p><?= nl2br(e($u['body'])) ?></p>
-                    <?php endif; ?>
-                    <?php if (!empty($threadMedia[$u['id']])): ?>
-                      <div class="p-thread-media">
-                        <?php foreach ($threadMedia[$u['id']] as $m): ?>
-                          <a href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">
-                            <img src="<?= e(cld_thumb($m['media_url'], 480)) ?>" alt="<?= e(t('Update photo', 'Larawan ng update')) ?>" loading="lazy">
-                          </a>
-                        <?php endforeach; ?>
-                      </div>
-                    <?php endif; ?>
-                    <time><?= e(long_datetime($u['created_at'])) ?></time>
-                  </li>
-                <?php endif; ?>
-              <?php endforeach; ?>
-            </ol>
-          <?php endif; ?>
-          <?php if (($d['state'] ?? '') === 'accepted'): ?>
-            <form method="post" class="p-composer">
-              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-              <input type="hidden" name="action" value="dispatch_reply">
-              <input type="hidden" name="dispatch" value="<?= e($d['id']) ?>">
-              <textarea class="p-note" name="body" rows="2" maxlength="2000" required
-                        placeholder="<?= e(t('Reply to the tanod…', 'Sumagot sa tanod…')) ?>"></textarea>
-              <button type="submit" class="p-btn p-btn-primary p-btn-sm"><?= e(t('Send', 'Ipadala')) ?></button>
-            </form>
-          <?php endif; ?>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-
-    <?php
-    // 0072: the resident's own questions about this complaint, and the
-    // barangay's answers — the resident sees all of it in their app.
-    $canMessage = !in_array($status, ['archived', 'cancelled'], true);
-    ?>
-    <?php if ($messages || $canMessage): ?>
-      <div class="p-card p-card-pad p-thread-card" id="resident-messages">
-        <p class="p-eyebrow"><?= e(t('Questions from the Resident', 'Mga Tanong ng Residente')) ?></p>
-        <?php if (!$messages): ?>
-          <p class="p-none-line"><?= e(t('No questions yet. The resident can ask from their app, and you can write to them first.', 'Wala pang tanong. Maaaring magtanong ang residente mula sa app, at maaari mo rin silang sulatan muna.')) ?><?= !empty($report['is_anonymous']) ? e(' ' . t('They filed as anonymous, and you can still write to them: only you see who they are.', 'Hindi sila nagpakilala, at maaari mo pa rin silang sulatan: ikaw lamang ang nakakakita kung sino sila.')) : '' ?></p>
-        <?php else: ?>
-          <ol class="p-thread">
-            <?php foreach ($messages as $m): ?>
-              <li class="p-bubble <?= !empty($m['from_barangay']) ? 'p-me' : 'p-them' ?>">
-                <span class="p-who-s"><?= e(!empty($m['from_barangay']) ? t('Barangay', 'Barangay') : t('Resident', 'Residente')) ?></span>
-                <p><?= nl2br(e($m['body'])) ?></p>
-                <time><?= e(long_datetime($m['created_at'])) ?></time>
-              </li>
-            <?php endforeach; ?>
-          </ol>
-        <?php endif; ?>
-        <?php if ($canMessage): ?>
-          <form method="post" class="p-composer">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="action" value="resident_reply">
-            <textarea class="p-note" name="body" rows="2" maxlength="1000" required
-                      placeholder="<?= e(t('Answer the resident…', 'Sagutin ang residente…')) ?>"></textarea>
-            <button type="submit" class="p-btn p-btn-primary p-btn-sm"><?= e(t('Send', 'Ipadala')) ?></button>
-          </form>
-        <?php endif; ?>
-      </div>
-    <?php endif; ?>
+    <?php // The tanod and resident conversations are the chat head now (includes/case_chat.php), not two cards down the page. ?>
   </div>
 
   <!-- ---------- admin controls ---------- -->
@@ -1847,6 +1761,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 })();
 </script>
 
+<?= case_chat_head(case_chat_conversations($report, $dispatches, $thread, $threadMedia, $messages, $status), $id, (string) $report['tracking_id']) ?>
 <script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
 <script>
 // Realtime, added 6 Sep 2026 — explicit ask: "the entire system needs to
@@ -1863,6 +1778,9 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
   const REPORT_ID = <?= json_encode($id) ?>;
   const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
+  // A message changes only the chat head, in place; the banner is for the rest of the page.
+  function chatPing() { if (window.ssChat) { window.ssChat.refresh(); } else { showBanner(); } }
+
   function showBanner() {
     document.getElementById('update-banner').classList.add('p-on');
   }
@@ -1875,12 +1793,12 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatches',
                                filter: 'report_id=eq.' + REPORT_ID }, showBanner)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'report_messages',
-                               filter: 'report_id=eq.' + REPORT_ID }, showBanner)
+                               filter: 'report_id=eq.' + REPORT_ID }, chatPing)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'escalation_requests',
                                filter: 'report_id=eq.' + REPORT_ID }, showBanner)
 <?php if (!empty($liveIds)): ?>
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dispatch_updates',
-                               filter: <?= json_encode('dispatch_id=in.(' . implode(',', $liveIds) . ')') ?> }, showBanner)
+                               filter: <?= json_encode('dispatch_id=in.(' . implode(',', $liveIds) . ')') ?> }, chatPing)
 <?php endif; ?>
     .subscribe(function (status) {
       var badge = document.getElementById('live-badge'),

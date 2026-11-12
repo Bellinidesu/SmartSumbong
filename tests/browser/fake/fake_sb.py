@@ -355,6 +355,27 @@ def apply_filters(rows, qs):
     return out
 
 
+# 12 Nov 2026: the case page's chat head has something to show, and a send is kept, so the preview behaves like the real thing.
+_CASE1 = 'c0000000-0000-0000-0000-000000000001'
+TABLES['report_messages'] = [
+    {'id': 'm1', 'report_id': _CASE1, 'from_barangay': False, 'body': 'Magandang umaga po, may update na ba sa nakalawit na kable sa tapat ng paaralan?', 'created_at': ago(5)},
+    {'id': 'm2', 'report_id': _CASE1, 'from_barangay': True, 'body': 'Magandang umaga po. Naipasa na po sa tanod at papunta na po sila.', 'created_at': ago(4.9)},
+    {'id': 'm3', 'report_id': _CASE1, 'from_barangay': False, 'body': 'Salamat po!', 'created_at': ago(4.85)},
+    {'id': 'm4', 'report_id': _CASE1, 'from_barangay': False, 'body': 'Medyo delikado po kasi malapit sa mga bata, sana po maayos agad.', 'created_at': ago(4.84)},
+    {'id': 'm5', 'report_id': _CASE1, 'from_barangay': False, 'body': 'Kuya, may dumating na po bang tanod?', 'created_at': ago(0.2)},
+]
+TABLES['dispatch_updates'] = [
+    {'id': 'du1', 'dispatch_id': 'd2', 'author_id': 'u2', 'kind': 'step', 'step': 'on_the_way', 'body': None, 'created_at': ago(0.45)},
+    {'id': 'du2', 'dispatch_id': 'd2', 'author_id': 'u2', 'kind': 'message', 'step': None, 'body': 'Nandito na po ako sa lugar, may sparks pa po sa poste.', 'created_at': ago(0.4)},
+    {'id': 'du3', 'dispatch_id': 'd2', 'author_id': ADMIN['id'], 'kind': 'message', 'step': None, 'body': 'Salamat Kuya Ace. Huwag po lumapit, tumawag na kami sa Meralco.', 'created_at': ago(0.38)},
+    {'id': 'du4', 'dispatch_id': 'd2', 'author_id': 'u2', 'kind': 'message', 'step': None, 'body': 'Copy po, nilagyan ko na ng harang ang kalsada.', 'created_at': ago(0.35)},
+    {'id': 'du5', 'dispatch_id': 'd2', 'author_id': 'u2', 'kind': 'step', 'step': 'arrived', 'body': None, 'created_at': ago(0.3)},
+]
+def _now(): return dt.datetime.now(dt.timezone.utc).isoformat()
+RPC['post_report_message'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': True, 'body': b.get('p_body'), 'created_at': _now()}) or {}
+RPC['fake_incoming'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': False, 'body': b.get('body') or 'Kuya, may bago po akong tanong.', 'created_at': _now()}) or {}   # the tests play the resident writing
+RPC['post_dispatch_update'] = lambda b: TABLES['dispatch_updates'].append({'id': 'du' + str(len(TABLES['dispatch_updates']) + 1), 'dispatch_id': b.get('p_dispatch'), 'author_id': ADMIN['id'], 'kind': 'message', 'step': None, 'body': b.get('p_body'), 'created_at': _now()}) or {}
+
 # FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for a distant database;
 # parallel requests wait at the same time, as a real batch does). Off by default.
 RTT = float(os.environ.get('FAKE_RTT_MS') or 0) / 1000
