@@ -112,7 +112,7 @@ $hoursLeft = function ($h): string {
           <td><span class="hm-risk hm-risk-<?= e((string) ($r['risk'] ?? 'medium')) ?>"><?= e($riskLabel((string) ($r['risk'] ?? ''))) ?></span></td></tr>
       <?php endforeach; ?></tbody></table>
     </section>
-<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [t('Likely to miss the deadline', 'Maaaring lumampas sa deadline'), t('Nothing at risk. Every open case is on pace for its deadline.', 'Walang nanganganib. Nasa tamang bilis ang bawat bukas na kaso.')]; endif; ?>
+<?php $hmCards[] = [ob_get_clean(), 3 + count($risk)]; else: $hmClear[] = [t('Likely to miss the deadline', 'Maaaring lumampas sa deadline'), t('Nothing at risk. Every open case is on pace for its deadline.', 'Walang nanganganib. Nasa tamang bilis ang bawat bukas na kaso.')]; endif; ?>
 <?php if ($quiet): ob_start(); ?>
 <section class="p-card hm-list">
       <div class="p-card-head"><h2><?= e(t('Quiet cases', 'Mga tahimik na kaso')) ?></h2><span class="p-badge-n p-badge-n--quiet"><?= count($quiet) ?></span></div>
@@ -125,7 +125,7 @@ $hoursLeft = function ($h): string {
           <td><?= e((string) ($q['last_activity'] ?? '')) ?></td></tr>
       <?php endforeach; ?></tbody></table>
     </section>
-<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [t('Quiet cases', 'Mga tahimik na kaso'), t('No open case has gone quiet.', 'Walang bukas na kasong natahimik.')]; endif; ?>
+<?php $hmCards[] = [ob_get_clean(), 3 + count($quiet)]; else: $hmClear[] = [t('Quiet cases', 'Mga tahimik na kaso'), t('No open case has gone quiet.', 'Walang bukas na kasong natahimik.')]; endif; ?>
 <?php if ((int) ($tn['total'] ?? 0) > 0): ob_start(); ?>
 <section class="p-card hm-tanods">
       <div class="p-card-head"><h2><?= e($isCom ? t('Your tanods now', 'Ang mga tanod mo ngayon') : t('The committee\'s tanods now', 'Ang mga tanod ng komite ngayon')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="personnel.php"><?= e(t('Personnel', 'Mga Tanod')) ?> &rarr;</a></div>
@@ -146,7 +146,7 @@ $hoursLeft = function ($h): string {
         <tr><td><?= e(category_label((string) $sp['category'])) ?></td><td class="n"><?= (int) $sp['this_week'] ?></td><td class="n"><?= e(rtrim(rtrim(number_format((float) $sp['usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($sp['place'] ?? '')) ?></td></tr>
       <?php endforeach; ?></tbody></table>
     </section>
-<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [t('Spikes this week', 'Biglang dami ngayong linggo'), t('Nothing is coming in more than usual.', 'Walang dumarating nang higit sa karaniwan.')]; endif; ?>
+<?php $hmCards[] = [ob_get_clean(), 3 + min(5, count($spikes))]; else: $hmClear[] = [t('Spikes this week', 'Biglang dami ngayong linggo'), t('Nothing is coming in more than usual.', 'Walang dumarating nang higit sa karaniwan.')]; endif; ?>
 <?php if ($pats): ob_start(); ?>
 <section class="p-card hm-list">
       <div class="p-card-head"><h2><?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="spatial.php"><?= e(t('On the map', 'Sa mapa')) ?> &rarr;</a></div>
@@ -156,9 +156,13 @@ $hoursLeft = function ($h): string {
         <tr><td><?= e(category_label((string) $pt['category'])) ?></td><td class="n"><?= (int) $pt['reports'] ?></td><td class="n"><?= (int) $pt['weeks'] ?></td><td class="n<?= (int) $pt['still_open'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $pt['still_open'] ?></td></tr>
       <?php endforeach; ?></tbody></table>
     </section>
-<?php $hmCards[] = ob_get_clean(); else: $hmClear[] = [t('Recurring problems', 'Paulit-ulit na problema'), t('No problem keeps coming back at the same spot.', 'Walang problemang paulit-ulit sa iisang lugar.')]; endif; ?>
+<?php $hmCards[] = [ob_get_clean(), 3 + count($pats)]; else: $hmClear[] = [t('Recurring problems', 'Paulit-ulit na problema'), t('No problem keeps coming back at the same spot.', 'Walang problemang paulit-ulit sa iisang lugar.')]; endif; ?>
 <?= $hmStrip ?? '' ?>
-<?php if ($hmCards): ?><div class="hm-cols"><?= implode('', $hmCards) ?></div><?php endif; ?>
+<?php if ($hmCards):   // two columns, each card to the lighter one in turn, the last card of each stretching so the two end level (12 Nov 2026)
+    $colA = $colB = ''; $wA = $wB = 0;
+    foreach ($hmCards as [$h, $w]) { if ($wA <= $wB) { $colA .= $h; $wA += $w; } else { $colB .= $h; $wB += $w; } } ?>
+<div class="hm-cols<?= $colB === '' ? ' hm-one' : '' ?>"><div class="hm-col"><?= $colA ?></div><?php if ($colB !== ''): ?><div class="hm-col"><?= $colB ?></div><?php endif; ?></div>
+<?php endif; ?>
 <?php if ($hmClear): ?>
 <section class="p-card hm-clear" aria-label="<?= e(t('All clear', 'Maayos lahat')) ?>">
   <div class="p-card-head"><h2><?= e(t('All clear', 'Maayos lahat')) ?></h2></div>
