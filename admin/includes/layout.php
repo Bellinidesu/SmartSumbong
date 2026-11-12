@@ -600,7 +600,9 @@ window.ssSupabase = function (url, key, initial) {
         <a href="<?= e($href) ?>" title="<?= e($label) ?>" class="<?= basename($href) === $active ? 'p-active' : '' ?>"<?= basename($href) === $active ? ' aria-current="page"' : '' ?>>
           <?= p_icon($icon) ?><span><?= e($label) ?></span>
           <?php $smartN = $href === 'notifications.php' ? (int) ($counts['notifications_smart'] ?? 0) : 0; ?>
-          <?php if ($n > 0 || $smartN > 0): ?>
+          <?php if ($href === 'inbox.php'): // 12 Nov 2026 (Ace): one pill with two faces that take turns: the chats' count with a bubble, then the mail's count with an envelope. The chats' count comes from chat-head.js. ?>
+            <span class="p-rt"><span class="p-pill p-ib" data-chat="0" data-mail="<?= (int) min($n, 99) ?>"><span class="ib-f ib-f-chat"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5A8.5 8.5 0 1 1 21 12z"/></svg><b>0</b></span><span class="ib-f ib-f-mail"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><b><?= $n > 99 ? '99+' : (int) $n ?></b></span><span class="p-sr" data-ib-sr><?= e(sprintf(t('%d unread mail', '%d hindi pa nababasang mail'), $n)) ?></span></span></span>
+          <?php elseif ($n > 0 || $smartN > 0): ?>
             <span class="p-rt"><?php if ($smartN > 0): ?><span class="p-brain-pill" title="<?= e(t('Unread notes from the SMART engine', 'May hindi pa nababasang abiso mula sa SMART engine')) ?>"><?= smart_brain(13) ?></span><?php endif; ?><?php if ($n > 0): ?><span class="p-pill<?= $href === 'notifications.php' ? ' p-pill--hot' : '' ?>" title="<?= e((string) $n) ?>"><?= $n > 99 ? '99+' : $n ?></span><?php endif; ?></span>
           <?php endif; ?>
         </a>

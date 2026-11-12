@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/case_chat.php';
 
 $admin = require_admin_api();
 
@@ -66,6 +67,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 session_write_close();
 
+// ?unread=1: how many messages are waiting in all of this person's case chats, for the Inbox's pill in the sidebar (chat-head.js asks once a minute)
+if (isset($_GET['unread'])) {
+    try {
+        $rows = case_chat_list_rows(db()->selectMany(case_chat_list_reads(300)), (string) $admin['id']);
+    } catch (SupabaseError $ex) {
+        http_response_code(503);
+        echo json_encode(['ok' => false]);
+        exit;
+    }
+    $n = 0;
+    foreach ($rows as $r) {
+        $s = (string) ($r['feed']['st'][$r['conv']]['s'] ?? '');
+        $since = strtotime($s !== '' ? $s : (string) ($r['feed']['out'][$r['conv']] ?? '')) ?: 0;
+        foreach ($r['feed']['in'] as $m) { if ((strtotime((string) $m['ts']) ?: 0) > $since) $n++; }
+    }
+    echo json_encode(['ok' => true, 'n' => $n]);
+    exit;
+}
 $ids = [];
 foreach (explode(',', (string) ($_GET['ids'] ?? '')) as $i) {
     $i = strtolower(trim($i));

@@ -46,6 +46,7 @@
     var key = 'ss-chat-seen-' + id, m = rd(key, {}), ch = false;
     Object.keys(st).forEach(function (k) { if (st[k] && st[k].s && ts(st[k].s) > ts(m[k])) { m[k] = st[k].s; ch = true; } });
     if (ch) { wr(key, m); }
+    Object.keys(m).forEach(function (k) { if (!st[k] || !st[k].s || ts(m[k]) > ts(st[k].s)) { save({ c: id, k: k, s: m[k] }); } });   // what only this browser had read goes up once
     var local = store.cases()[id], mine = local && typeof local.sound === 'boolean' ? local.sound : null;
     if (!pend[id + '|*']) {
       if (st.r) { if (mine !== !st.r.m) { store.patch(id, { sound: !st.r.m }, true); ch = true; } }
@@ -78,6 +79,21 @@
     } catch (e) { /* silent is fine */ }
   }
 
+  /* the Inbox's pill in the sidebar: the chats' count (the Inbox page tells it live, other pages ask once a minute) */
+  var ibPill = document.querySelector('.p-nav .p-ib');
+  function setNavChats(n) {
+    if (!ibPill) { return; }
+    ibPill.setAttribute('data-chat', String(Math.min(n, 99))); ibPill.querySelector('.ib-f-chat b').textContent = n > 99 ? '99+' : String(n);
+    var sr = ibPill.querySelector('[data-ib-sr]'), mail = ibPill.getAttribute('data-mail') || '0';
+    if (sr) { sr.textContent = n + tr(' unread chats, ', ' hindi pa nababasang chat, ') + mail + tr(' unread mail', ' hindi pa nababasang mail'); }
+  }
+  function pullNavChats() {
+    if (!ibPill || document.hidden || document.getElementById('mg')) { return; }
+    fetch('chat-feed.php?unread=1', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && j.ok) { setNavChats(j.n); } }).catch(function () { /* the next minute */ });
+  }
+  document.addEventListener('ss-chat-total', function (e) { setNavChats(e.detail || 0); });
+  if (ibPill) { pullNavChats(); setInterval(pullNavChats, 60000); document.addEventListener('visibilitychange', function () { if (!document.hidden) { pullNavChats(); } }); }
   window.ssChatCore = { store: store, ding: ding, soundFor: soundFor, merge: merge, pull: pull };
   document.dispatchEvent(new Event('ss-chat-ready'));   // for the Inbox's Case chats (msgr.js), which shares the seen map, the sound and the mute
 
