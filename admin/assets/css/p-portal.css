@@ -649,14 +649,11 @@ td.tc-cell { min-width: 260px; max-width: 300px; }
 @media (max-width: 640px) { .dh-stats { grid-template-columns: 1fr; } .dh-stats > div + div { border-left: 0; border-top: 1px solid var(--p-line); } .dh-kpi { grid-template-columns: 1fr; } }
 
 /* 0150: a committee admin's sidebar names the committee, in its colour */
-/* the committee's name under the mark (12 Nov 2026, Ace): a card tinted with the committee's colour, not a flat bar of it: the word "Committee" small above, the name large, a lit top edge */
-.p-side-com { position: relative; display: grid; justify-items: center; gap: 2px; margin: 2px 8px 16px; padding: 10px 12px 11px; border-radius: 16px; text-align: center; color: #fff;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--cc) 46%, transparent), color-mix(in srgb, var(--cc) 16%, transparent));
-  border: 1px solid color-mix(in srgb, var(--cc) 70%, #fff 6%); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 12px 24px -16px var(--cc); }
+/* the committee's name under the seal (12 Nov 2026, Ace's sketch): plain lettering, bold italic capitals, a soft glow of the committee's colour behind it; no card, no bar */
+.p-side-com { display: block; margin: 2px 6px 16px; padding: 0 4px; text-align: center; color: #fff; }
 .p-side-com i { display: none; }
-.p-side-com span { min-width: 0; display: grid; justify-items: center; gap: 1px; }
-.p-side-com small { font: 700 10px/1.2 Inter, sans-serif; letter-spacing: .16em; text-transform: uppercase; opacity: .78; }
-.p-side-com b { font: 800 15px/1.22 Inter Tight, Inter, sans-serif; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }   /* the committee's whole title, on two lines when it needs them */
+.p-side-com span { display: block; min-width: 0; }
+.p-side-com b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font: 800 italic 17px/1.18 'Inter Tight', Inter, sans-serif; text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; text-shadow: 0 2px 16px color-mix(in srgb, var(--cc) 85%, transparent); }   /* the committee's whole title, on two lines when it needs them */
 html[data-side="min"] .p-side-com, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com { padding: 8px; margin: 2px 6px 14px; }
 html[data-side="min"] .p-side-com i, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com i { display: block; width: 14px; height: 14px; border-radius: 50%; background: var(--cc); box-shadow: 0 0 0 2px #fff; }
 html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com span { display: none; }

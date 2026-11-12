@@ -284,8 +284,8 @@ function side_colour_style(): string
         if ($h < 0) $h += 360;
     }
     $hs = (int) round($h); $sl = (int) round(min($s * 100, 90)); $sd = (int) round(min($s * 100, 30));
-    $light = "--p-side-a:hsl($hs $sl% 28%);--p-side-b:hsl($hs $sl% 20%)";
-    $dark = "--p-side-a:hsl($hs $sd% 20%);--p-side-b:hsl($hs $sd% 11%)";
+    $light = "--p-side-a:hsl($hs $sl% 28%);--p-side-b:hsl($hs $sl% 20%);--p-side-glow:$hex";
+    $dark = "--p-side-a:hsl($hs $sd% 20%);--p-side-b:hsl($hs $sd% 11%);--p-side-glow:$hex";
     return "<style>:root{{$light}}@media (prefers-color-scheme: dark){:root:not([data-theme=\"light\"]){{$dark}}}:root[data-theme=\"dark\"]{{$dark}}</style>\n";
 }
 
@@ -347,11 +347,9 @@ function committee_logo_html(string $ck, string $class): string
  */
 function side_brand(): string
 {
-    $ck = is_scoped() ? (string) (current_admin()['committee'] ?? '') : '';
-    $pair = $ck !== '' && isset(committees_all()[$ck]);
-    return '<a class="p-brand p-brand-seal' . ($pair ? ' p-brand-pair' : '') . '" href="' . e(page_allowed('dashboard.php') ? 'dashboard.php' : landing_page()) . '">'
-         . ($pair ? committee_logo_html($ck, 'p-brand-com') . '<i class="p-brand-sep" aria-hidden="true"></i>' : '')
-         . brgy_seal_img('p-brand-img') . '</a>';
+    // 12 Nov 2026 (Ace's sketch): every rung has the barangay's seal, big and alone; a Kagawad's or staff member's committee is the lettering under it
+    // (side_colour(), the .p-side-com line) and its colour the glow behind the seal (side_colour_style())
+    return '<a class="p-brand p-brand-seal" href="' . e(page_allowed('dashboard.php') ? 'dashboard.php' : landing_page()) . '">' . brgy_seal_img('p-brand-img') . '</a>';
 }
 
 /** Black or white text on a colour, whichever reads. */
@@ -596,7 +594,7 @@ window.ssSupabase = function (url, key, initial) {
     <div class="p-side-top"><?= side_brand() ?></div>
     <?php $sideC = side_colour(); if ($sideC['label'] !== null): ?>
       <?php // 0150: a committee admin's sidebar names the committee, in its colour ?>
-      <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><small><?= e(t('Committee', 'Komite')) ?></small><b><?= e($sideC['label']) ?></b></span></div>
+      <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><b><?= e($sideC['label']) ?></b></span></div>
     <?php endif; ?>
     <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>

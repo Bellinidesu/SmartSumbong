@@ -1305,17 +1305,21 @@ test('0145 access: a captain reads a case but its controls are view only', async
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('0164 each rung: the seal alone for a super admin, the committee logo beside it for a Kagawad, Personnel view only for staff', async ({ page, context }) => {
+test('0164 each rung: the seal alone for everyone, a Kagawad and a staff member see their committee as the lettering and the glow under it, Personnel view only for staff', async ({ page, context }) => {
   const r = await open(page, 'notifications.php');
   await expect(page.locator('.p-side-top .p-brand-img')).toHaveCount(1);   // the barangay seal
   await expect(page.locator('.p-side-top .p-brand-com')).toHaveCount(0);
   await expect(page.locator('.p-sidebar img[src*="logo-wordmark"]')).toHaveCount(0);   // the wordmark is on the sign-in pages only
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'environment', url: 'http://127.0.0.1:8013' }]);
   await open(page, 'notifications.php');
-  await expect(page.locator('.p-side-top img.p-brand-com')).toHaveAttribute('alt', /Environment and Disaster Risk/);   // an uploaded logo
+  await expect(page.locator('.p-side-top .p-brand-img')).toHaveCount(1);                 // the seal, big and alone (Ace's sketch, 12 Nov)
+  await expect(page.locator('.p-side-top .p-brand-com')).toHaveCount(0);
+  await expect(page.locator('.p-side-com')).toContainText('Environment and Disaster Risk');
+  expect(await page.locator('.p-side-com b').evaluate(e => { const s = getComputedStyle(e); return s.fontStyle + ' ' + s.textTransform; }), 'italic capitals').toBe('italic uppercase');
+  expect(await page.locator('.p-sidebar').evaluate(e => getComputedStyle(e).backgroundImage), 'the committee colour glows from the top').toContain('radial-gradient');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const m = await open(page, 'personnel.php');
-  await expect(page.locator('.p-side-top .p-brand-com.p-brand-sym svg path').first()).toBeAttached();   // no logo yet: the committee's symbol
+  await expect(page.locator('.p-side-com')).toContainText('Peace and Order');
   await expect(page.locator('.p-sidebar a[href="personnel.php"]').first()).toBeVisible();
   await expect(page.locator('.tc-tabs a')).toHaveText(['Tanods', 'Committee staff']);
   await expect(page.locator('#tc-propose, #ss-bulk-tc, .quick-verify-form, .ss-requests')).toHaveCount(0);
