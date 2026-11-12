@@ -54,7 +54,7 @@ function module_brain_section(Supabase $db): string
         <p class="mb-h"><?= e(t('Waiting for you', 'Naghihintay sa iyo')) ?></p>
         <div class="ss-tiles">
           <?= $tile('notifications.php', t('Escalations to decide', 'Eskalasyong pagpapasyahan'), $dc['escalations'] ?? 0, true) ?>
-          <?= $tile('inbox.php', t('Tanods to pick', 'Tanod na pipiliin'), $dc['reroute'] ?? 0, true) ?>
+          <?= $tile('inbox.php?app=mail', t('Tanods to pick', 'Tanod na pipiliin'), $dc['reroute'] ?? 0, true) ?>
           <?php if (($m['module'] ?? '') === 'barangay'): ?>
             <?= $tile('notifications.php', t('Cases to place', 'Kasong ilalagay'), $dc['to_place'] ?? 0, true) ?>
             <?= $tile('personnel.php', t('Tanods proposed', 'Tanod na iminungkahi'), $dc['tanods_proposed'] ?? 0) ?>

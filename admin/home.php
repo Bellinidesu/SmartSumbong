@@ -72,7 +72,7 @@ $hoursLeft = function ($h): string {
   <div class="hm-row hm-row-4">
     <?php if ($isCom && $dc !== null): ?>
       <?= $tile('notifications.php', t('Escalations to approve', 'Eskalasyong aaprubahan'), $dc['escalations'] ?? 0, t('a tanod asked for an outside office', 'humingi ang tanod ng ibang tanggapan'), true) ?>
-      <?= $tile('inbox.php', t('Tanods to pick', 'Tanod na pipiliin'), $dc['reroute'] ?? 0, t('no tanod of yours was free', 'walang bakanteng tanod mo'), true) ?>
+      <?= $tile('inbox.php?app=mail', t('Tanods to pick', 'Tanod na pipiliin'), $dc['reroute'] ?? 0, t('no tanod of yours was free', 'walang bakanteng tanod mo'), true) ?>
       <?= $tile('cases.php?com=fwd', t('Forwarded to you', 'Ipinasa sa iyo'), $dc['forwarded'] ?? 0, t('from another committee', 'mula sa ibang komite')) ?>
       <?= $tile('cases.php?com=flagged', t('Staff flags', 'Mga flag ng kawani'), $dc['flags'] ?? 0, t('your staff ask to forward', 'hiling ng kawani na ipasa')) ?>
     <?php else: ?>

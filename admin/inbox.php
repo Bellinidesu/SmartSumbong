@@ -112,7 +112,11 @@ $openGot = [];
     $rows = []; $total = 0; $listError = null; $dueByQ = []; $chatRows = []; $chatOpen = null; $convId = '';
     try {
         // one wait (speed work, 7 Nov 2026): the unread count, and the page of the list with the total behind its pager
-        if ($box === 'in') {
+        if ($app === 'mail') {
+            // BarangayMail is the Gmail-style page: it asks mail.php for everything; here only the unread count for the tab
+            $got = $db->selectMany(['unread' => $unreadRead]);
+            $unread = is_int($got['unread'] ?? null) ? $got['unread'] : 0;
+        } elseif ($box === 'in') {
             $got = $db->selectMany($openReads + ['unread' => $unreadRead, 'rows' => ['inbox_messages', ['recipient' => 'eq.' . $me,
                 'select' => 'id,kind,subject,created_at,read_at,question_id,from:users!inbox_messages_sender_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id),q:reroute_questions!inbox_messages_question_id_fkey(id,state,due_at)',
                 'order' => 'created_at.desc', 'limit' => (string) $per, 'offset' => (string) (($page - 1) * $per)], false, 'total']]);
@@ -179,13 +183,6 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
   <a class="st-link<?= $app === 'chats' ? ' p-on' : '' ?>" href="inbox.php"<?= $app === 'chats' ? ' aria-current="page"' : '' ?>><?= e(t('Case chats', 'Mga chat sa kaso')) ?> <span class="p-badge-n" id="ib-chats-n" hidden>0</span></a>
   <a class="st-link<?= $app === 'mail' ? ' p-on' : '' ?>" href="inbox.php?app=mail"<?= $app === 'mail' ? ' aria-current="page"' : '' ?>>BarangayMail<?php if ($unread): ?> <span class="p-badge-n"><?= (int) $unread ?></span><?php endif; ?></a>
 </nav>
-<?php if ($app === 'mail'): ?>
-<nav class="st-tabs ib-tabs" aria-label="BarangayMail">
-  <a hx-boost="true" class="st-link<?= $box === 'in' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php?app=mail"><?= e(t('Inbox', 'Mga Liham')) ?></a>
-  <a hx-boost="true" class="st-link<?= $box === 'sent' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php?box=sent"><?= e(t('Sent', 'Naipadala')) ?></a>
-  <a hx-boost="true" class="st-link<?= $new ? ' p-on' : '' ?>" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a>
-</nav>
-<?php endif; ?>
 <?php if ($flash && $flash['text']): ?><div class="p-flash p-flash--<?= $flash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($flash['text']) ?></div><?php endif; ?>
 
 <?php if ($box === 'chats'):
@@ -214,188 +211,58 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 </div>
 <script src="assets/js/emoji.js?v=<?= e(asset_version('../js/emoji.js')) ?>" defer></script>
 <script src="assets/js/msgr.js?v=<?= e(asset_version('../js/msgr.js')) ?>" defer></script>
-<?php else: ?>
-<div class="ib-split<?= !$rows && !$new && !$open ? ' ib-empty' : '' ?>">
-<section class="ib-list" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
-  <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
-  <div class="p-card ib-rows-card">
-    <?php if (!$rows): ?><div class="ib-none-list"><span class="ib-none-ic" aria-hidden="true"><?= p_icon('i-send', 20) ?></span><b><?= e($box === 'in' ? t('Nothing here yet.', 'Wala pang laman.') : t('You have not sent anything yet.', 'Wala ka pang naipadala.')) ?></b></div><?php endif; ?>
-    <nav class="ib-rows" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
-    <?php foreach ($rows as $r):
-        $unreadRow = $box === 'in' && empty($r['read_at']);
-        $isSys = $box === 'in' && $r['kind'] === 'system';
-        $who = $box === 'in' ? inbox_from($r) : (implode(', ', array_slice($r['names'], 0, 3)) . (count($r['names']) > 3 ? ' +' . (count($r['names']) - 3) : ''));
-        $needs = !empty($r['question_id']) && $unreadRow; ?>
-      <a hx-boost="true" class="fr ib-row<?= $unreadRow ? ' ib-unread is-unread' : '' ?><?= $needs ? ' ib-needs' : '' ?><?= $open === (int) $r['id'] ? ' ib-sel' : '' ?>" data-sev="<?= $needs ? 'high' : ($isSys ? 'info' : ($unreadRow ? 'act' : 'info')) ?>" href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>">
-        <span class="ib-av<?= $isSys ? ' is-sys' : '' ?>" aria-hidden="true"><?= $isSys ? smart_brain(18) : e(admin_initials($box === 'in' ? (string) ($r['from']['full_name'] ?? '') : (string) ($r['names'][0] ?? ''))) ?></span>
-        <span class="ib-top"><b class="ib-name"><?= e($who) ?></b><span class="ib-when"><?= e(relative_time((string) $r['created_at'])) ?></span></span>
-        <span class="ib-line"><span class="ib-subj"><?= e((string) $r['subject']) ?></span><?php if (!empty($r['question_id'])): ?><span class="p-badge p-b-pending"><?= e(t('Needs your answer', 'Kailangan ng sagot mo')) ?></span><?php endif; ?><?php if (!empty($dueByQ[(int) ($r['question_id'] ?? 0)])): ?><span class="ib-due" data-due="<?= e($dueByQ[(int) $r['question_id']]) ?>"><?= p_icon('i-clock', 13) ?><b></b></span><?php endif; ?><?php if (!empty($r['report']['tracking_id'])): ?><span class="p-mono-id ib-case"><?= e($r['report']['tracking_id']) ?></span><?php endif; ?></span>
-      </a>
-    <?php endforeach; ?>
+<?php elseif ($app === 'mail'):
+    // ---------- BarangayMail, drawn like Gmail's web app (12 Nov 2026): a shell; assets/js/gmail.js fills it from mail.php ---------- ?>
+<link rel="stylesheet" href="assets/css/gmail.css?v=<?= e(asset_version('gmail.css')) ?>">
+<div class="gm" id="gm" data-csrf="<?= e(csrf_token()) ?>" data-me="<?= e($me) ?>" data-name="<?= e(formal_name((string) ($admin['full_name'] ?? ''))) ?>" data-m="<?= (int) $open ?>" data-new="<?= $new ? '1' : '0' ?>">
+  <aside class="gm-rail" aria-label="BarangayMail">
+    <button type="button" class="gm-compose" data-gm="compose"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg><?= e(t('Compose', 'Sumulat')) ?></button>
+    <nav class="gm-nav" aria-label="<?= e(t('Folders', 'Mga folder')) ?>">
+      <a href="#inbox" data-f="inbox"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/></svg><span><?= e(t('Inbox', 'Inbox')) ?></span><span class="gm-n" hidden></span></a>
+      <a href="#starred" data-f="starred"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1L3.2 9.6l6.1-.8z"/></svg><span><?= e(t('Starred', 'May bituin')) ?></span><span class="gm-n" hidden></span></a>
+      <a href="#snoozed" data-f="snoozed"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M5 4 3 6M19 4l2 2"/></svg><span><?= e(t('Snoozed', 'Naka-snooze')) ?></span><span class="gm-n" hidden></span></a>
+      <a href="#sent" data-f="sent"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20l18-8L3 4v6l11 2-11 2z"/></svg><span><?= e(t('Sent', 'Naipadala')) ?></span><span class="gm-n" hidden></span></a>
+      <a href="#drafts" data-f="drafts"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h10l4 4v14H5zM15 3v4h4M8 13h8M8 17h5"/></svg><span><?= e(t('Drafts', 'Mga draft')) ?></span><span class="gm-n" hidden></span></a>
+      <a href="#all" data-f="all"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span><?= e(t('All Mail', 'Lahat ng mail')) ?></span><span class="gm-n" hidden></span></a>
+      <a href="#trash" data-f="trash"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg><span><?= e(t('Trash', 'Basurahan')) ?></span><span class="gm-n" hidden></span></a>
     </nav>
-  </div>
-  <div hx-boost="true" hx-swap="outerHTML show:#ib-main:top"><?= pager($total, $page, 'page', $per) ?></div>
-</section>
-<div class="ib-pane">
-<?php if ($new):
-    // ---------- write ----------
-    $draft = $_SESSION['inbox_draft'] ?? []; unset($_SESSION['inbox_draft']);
-    try { $people = (array) $db->rpc('mail_recipients'); } catch (SupabaseError $ex) { $people = []; $error = safe_error($ex); }
-    $replyTo = null;
-    if (ctype_digit((string) ($_GET['reply'] ?? ''))) {
-        $rr = (array) $db->select('inbox_messages', ['select' => 'id,sender,subject,report:reports!inbox_messages_report_id_fkey(tracking_id)', 'id' => 'eq.' . (int) $_GET['reply'], 'limit' => '1']);
-        if ($rr) {
-            $replyTo = $rr[0];
-            $draft += ['to' => array_filter([(string) ($replyTo['sender'] ?? '')]), 'subject' => (str_starts_with((string) $replyTo['subject'], 'Re: ') ? '' : 'Re: ') . $replyTo['subject'],
-                       'case' => (string) ($replyTo['report']['tracking_id'] ?? ''), 'reply_to' => (string) $replyTo['id']];
-        }
-    }
-    $picked = array_flip((array) ($draft['to'] ?? []));
-    $tierLabel = ['super' => t('Super admins', 'Mga super admin'), 'committee' => t('Kagawads', 'Mga Kagawad'), 'moderator' => t('Staff', 'Mga kawani'), 'captain' => t('Captains', 'Mga kapitan')];
-    $byTier = [];
-    foreach ($people as $p) { $byTier[(string) $p['tier']][] = $p; } ?>
-  <?php if ($error): ?><div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div><?php endif; ?>
-  <form method="post" class="p-card p-card-pad ib-compose">
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="send">
-    <?php if (!empty($draft['reply_to'])): ?><input type="hidden" name="reply_to" value="<?= e((string) $draft['reply_to']) ?>"><?php endif; ?>
-    <fieldset class="ib-to">
-      <legend class="p-flabel"><?= e(t('To', 'Para kay')) ?></legend>
-      <?php if (!$people): ?><p class="p-hint"><?= e(t('There is nobody you can write to yet.', 'Wala ka pang masusulatan.')) ?></p><?php endif; ?>
-      <?php foreach ($byTier as $tier => $list): ?>
-        <div class="ib-group"><span class="ib-gl"><?= e($tierLabel[$tier] ?? $tier) ?></span>
-          <?php foreach ($list as $p): ?>
-            <label class="ib-person"><input type="checkbox" name="to[]" value="<?= e($p['id']) ?>"<?= isset($picked[$p['id']]) ? ' checked' : '' ?>>
-              <span><?= e(formal_name((string) $p['full_name'])) ?></span><?= !empty($p['committee']) ? committee_pill((string) $p['committee']) : '' ?></label>
-          <?php endforeach; ?>
-        </div>
-      <?php endforeach; ?>
-      <p class="p-hint"><?= e(t('Mail runs along the ladder: staff write to their Kagawad; a Kagawad to their staff, other Kagawads and the super admins; a super admin to anyone.',
-          'Sumusunod sa hagdan ang sulat: sumusulat ang kawani sa kanilang Kagawad; ang Kagawad sa kanilang kawani, ibang Kagawad at mga super admin; ang super admin sa kahit sino.')) ?></p>
-    </fieldset>
-    <div class="p-cfield"><label class="p-flabel" for="ib-subject"><?= e(t('Subject', 'Paksa')) ?></label>
-      <input class="p-input-plain" id="ib-subject" name="subject" maxlength="140" required value="<?= e((string) ($draft['subject'] ?? '')) ?>"></div>
-    <div class="p-cfield"><label class="p-flabel" for="ib-body"><?= e(t('Message', 'Mensahe')) ?></label>
-      <textarea class="p-input-plain" id="ib-body" name="body" rows="7" maxlength="4000" required><?= e((string) ($draft['body'] ?? '')) ?></textarea></div>
-    <div class="p-cfield"><label class="p-flabel" for="ib-case"><?= e(t('About a case (tracking ID, optional)', 'Tungkol sa kaso (tracking ID, opsyonal)')) ?></label>
-      <input class="p-input-plain" id="ib-case" name="case" maxlength="20" placeholder="SS-2610-1001" value="<?= e((string) ($draft['case'] ?? '')) ?>"></div>
-    <div class="ib-act"><a hx-boost="true" class="p-btn p-btn-ghost p-btn-sm" href="inbox.php"><?= e(t('Cancel', 'Kanselahin')) ?></a>
-      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= p_icon('i-send', 15) ?><?= e(t('Send', 'Ipadala')) ?></button></div>
-  </form>
-
-<?php elseif ($open):
-    // ---------- one message ----------
-    $m = null; $q = null; $roster = []; $thread = [];
-    try {
-        // from the list's batch above; read here only when that batch could not run
-        $inBatch = array_key_exists('om:msg', $openGot) && is_array($openGot['om:msg']);
-        $rowsM = $inBatch ? $openGot['om:msg'] : (array) $db->select('inbox_messages', ['select' => $msgSel, 'id' => 'eq.' . $open, 'limit' => '1']);
-        $m = $rowsM[0] ?? null;
-        if ($m && $m['recipient'] === $me) {
-            $marked = $inBatch ? ($openGot['om:mark'] ?? null) : (empty($m['read_at']) ? $db->rpc('mark_mail_read', ['p_ids' => '{' . (int) $m['id'] . '}']) : 0);
-            if (empty($m['read_at']) || (is_int($marked) && $marked > 0)) { unset($_SESSION['nav_counts']); }
-        }
-        if ($m) {
-            // the question this message asks came embedded with it; a row without the embed reads it on its own
-            $q = is_array($m['q'] ?? null) && array_key_exists('report_id', $m['q']) ? $m['q'] : null;
-            $second = [];
-            if (!empty($m['question_id']) && $q === null) {
-                $second['q'] = ['reroute_questions', ['select' => 'id,state,due_at,committee,report_id,answered_at,by:users!reroute_questions_answered_by_fkey(full_name)', 'id' => 'eq.' . (int) $m['question_id'], 'limit' => '1'], true];
-            }
-            if (!empty($m['reply_to'])) {
-                $second['parent'] = ['inbox_messages', ['select' => $tsel, 'id' => 'eq.' . (int) $m['reply_to'], 'limit' => '1'], true];
-            }
-            if ($q && ($q['state'] ?? '') === 'open') {
-                $second['roster'] = ['rpc/tanod_roster', ['p_report' => $q['report_id']], true];
-            }
-            $more = $second ? $db->selectMany($second) : [];
-            if (isset($second['q'])) {
-                $q = is_array($more['q'] ?? null) ? ($more['q'][0] ?? null) : null;
-                if ($q && ($q['state'] ?? '') === 'open') { try { $roster = (array) $db->rpc('tanod_roster', ['p_report' => $q['report_id']]); } catch (SupabaseError) { $roster = []; } }
-            } elseif (isset($second['roster'])) {
-                $roster = is_array($more['roster'] ?? null) ? $more['roster'] : [];
-            }
-            // the conversation: the message this one answers, and every reply to it (what the database lets this person read)
-            foreach (is_array($more['parent'] ?? null) ? $more['parent'] : [] as $tm) { if ((int) $tm['id'] === (int) $m['reply_to']) { $tm['dir'] = 'before'; $thread[] = $tm; } }
-            $replies = $inBatch ? (is_array($openGot['om:replies'] ?? null) ? $openGot['om:replies'] : [])
-                : (array) $db->select('inbox_messages', ['select' => $tsel, 'reply_to' => 'eq.' . (int) $m['id'], 'order' => 'created_at.asc', 'limit' => '20']);
-            $seenB = [];
-            foreach ($replies as $tm) {
-                if ((int) ($tm['reply_to'] ?? 0) !== (int) $m['id'] || isset($seenB[$tm['batch']])) { continue; }
-                $seenB[$tm['batch']] = true; $tm['dir'] = 'after'; $thread[] = $tm;
-            }
-        }
-    } catch (SupabaseError $ex) { $error = safe_error($ex); } ?>
-  <?php if ($error): ?><div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div><?php endif; ?>
-  <?php if (!$m): ?><div class="p-card p-empty"><?= e(t('That message is not yours to read.', 'Hindi para sa iyo ang mensaheng iyan.')) ?></div>
-  <?php else: ?>
-  <article class="p-card p-card-pad ib-read">
-    <a hx-boost="true" class="p-back" href="inbox.php<?= $m['sender'] === $me ? '?box=sent' : '' ?>"><?= p_icon('i-back', 18) ?><?= e($m['sender'] === $me ? t('Sent', 'Naipadala') : t('Inbox', 'Mga Liham')) ?></a>
-    <h2><?= e((string) $m['subject']) ?></h2>
-    <div class="ib-head"><span class="ib-av<?= $m['kind'] === 'system' ? ' is-sys' : '' ?>" aria-hidden="true"><?= $m['kind'] === 'system' ? smart_brain(18) : e(admin_initials((string) ($m['from']['full_name'] ?? ''))) ?></span>
-      <p class="ib-meta"><?php if ($m['kind'] === 'system'): ?><span class="p-badge p-b-grey"><?= e(t('System', 'Sistema')) ?></span> <?php endif; ?>
-        <?= e(t('From', 'Mula kay')) ?> <b><?= e(inbox_from($m)) ?></b> &middot; <?= e(t('to', 'para kay')) ?> <?= e(formal_name((string) ($m['to']['full_name'] ?? ''))) ?><br><span class="ib-date"><?= e(long_datetime((string) $m['created_at'])) ?></span></p></div>
-    <div class="ib-body"><?= nl2br(e((string) $m['body'])) ?></div>
-    <?php if ($thread): ?>
-      <section class="ib-thread" aria-label="<?= e(t('The conversation', 'Ang usapan')) ?>">
-        <p class="p-eyebrow"><?= e(t('The conversation', 'Ang usapan')) ?></p>
-        <?php foreach ($thread as $tm): $mine = ($tm['sender'] ?? '') === $me; ?>
-          <a hx-boost="true" class="ib-msg<?= $mine ? ' is-mine' : '' ?>" href="inbox.php?m=<?= (int) $tm['id'] ?>">
-            <span class="ib-av" aria-hidden="true"><?= e(admin_initials((string) ($tm['from']['full_name'] ?? ''))) ?></span>
-            <span class="ib-msg-top"><b><?= e($mine ? t('You', 'Ikaw') : inbox_from($tm)) ?></b><span class="ib-when"><?= e(($tm['dir'] === 'before' ? t('Earlier', 'Nauna') : t('Reply', 'Sagot')) . ' · ' . relative_time((string) $tm['created_at'])) ?></span></span>
-            <span class="ib-msg-body"><?= e(mb_strimwidth((string) $tm['body'], 0, 220, '…')) ?></span>
-          </a>
-        <?php endforeach; ?>
-      </section>
-    <?php endif; ?>
-    <?php if (!empty($m['report'])): ?>
-      <p><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($m['report']['id']) ?>"><?= p_icon('i-doc', 15) ?><?= e(sprintf(t('Open case %s', 'Buksan ang kaso %s'), $m['report']['tracking_id'])) ?></a></p>
-    <?php elseif (!empty($m['report_id'])): ?>
-      <p class="p-hint"><?= e(t('This message is about a case you can no longer see (it may have been forwarded).', 'Tungkol ito sa kasong hindi mo na nakikita (maaaring naipasa na).')) ?></p>
-    <?php endif; ?>
-
-    <?php if (!empty($m['question_id'])): ?>
-      <?php if ($q && $q['state'] === 'open'):
-          usort($roster, fn ($a, $b) => [!$a['assignable'], $a['metres'] ?? 1e9] <=> [!$b['assignable'], $b['metres'] ?? 1e9]); ?>
-        <form method="post" class="ib-q" id="ib-question">
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="answer">
-          <input type="hidden" name="question" value="<?= (int) $q['id'] ?>"><input type="hidden" name="m" value="<?= (int) $m['id'] ?>">
-          <p class="ib-q-due" data-due="<?= e((string) $q['due_at']) ?>"><?= p_icon('i-clock', 16) ?><span><?= e(sprintf(t('Answer by %s, or the nearest tanod from any committee is sent.', 'Sumagot bago mag-%s, o ipapadala ang pinakamalapit na tanod mula sa kahit anong komite.'),
-              (new DateTimeImmutable((string) $q['due_at']))->setTimezone(new DateTimeZone('Asia/Manila'))->format('g:i A'))) ?></span></p>
-          <label class="p-flabel" for="ib-tanod"><?= e(t('Send this tanod', 'Ipadala ang tanod na ito')) ?></label>
-          <div class="tc-row">
-            <select class="p-input-plain" id="ib-tanod" name="tanod">
-              <?php foreach ($roster as $tn): ?>
-                <option value="<?= e($tn['tanod_id']) ?>"<?= empty($tn['assignable']) ? ' disabled' : '' ?>><?= e(formal_name((string) $tn['full_name'])) ?><?= isset($tn['metres']) ? ' · ' . (int) round((float) $tn['metres']) . ' m' : '' ?><?= empty($tn['assignable']) && !empty($tn['unavailable_why']) ? ' · ' . e((string) $tn['unavailable_why']) : '' ?></option>
-              <?php endforeach; ?>
-            </select>
-            <button class="p-btn p-btn-primary p-btn-sm" type="submit" name="pick" value="tanod"><?= e(t('Send', 'Ipadala')) ?></button>
-          </div>
-          <button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="pick" value="any"><?= e(t('Send the nearest from any committee now', 'Ipadala na ang pinakamalapit mula sa kahit anong komite')) ?></button>
-        </form>
-      <?php elseif ($q): ?>
-        <p class="p-ctl-note ib-q-done"><?= e(match ($q['state']) {
-            'picked'    => sprintf(t('Answered by %s: they picked the tanod.', 'Sinagot ni %s: pumili sila ng tanod.'), formal_name((string) ($q['by']['full_name'] ?? ''))),
-            'any'       => sprintf(t('Answered by %s: the nearest from any committee was sent.', 'Sinagot ni %s: ipinadala ang pinakamalapit mula sa kahit anong komite.'), formal_name((string) ($q['by']['full_name'] ?? ''))),
-            'timed_out' => t('Nobody answered in time: the nearest tanod from any committee was sent.', 'Walang sumagot sa oras: ipinadala ang pinakamalapit na tanod mula sa kahit anong komite.'),
-            default     => t('No longer needed: the case already has a tanod, or was closed.', 'Hindi na kailangan: may tanod na ang kaso, o naisara na.'),
-        }) ?></p>
-      <?php endif; ?>
-    <?php endif; ?>
-
-    <?php if ($m['kind'] === 'mail' && $m['recipient'] === $me): ?>
-      <div class="ib-act"><a hx-boost="true" class="p-btn p-btn-primary p-btn-sm" href="inbox.php?reply=<?= (int) $m['id'] ?>"><?= e(t('Reply', 'Sumagot')) ?></a></div>
-    <?php endif; ?>
-  </article>
-  <?php endif; ?>
-
-<?php else: ?>
-  <div class="p-card ib-none"><span class="ib-none-ic" aria-hidden="true"><?= p_icon('i-send', 22) ?></span><?php if ($rows): ?><b><?= e(t('Pick a message to read it here', 'Pumili ng mensahe para mabasa rito')) ?></b>
-    <span><?= e(t('Or write a new one.', 'O sumulat ng bago.')) ?></span><?php else: ?><b><?= e(t('No messages yet', 'Wala pang mensahe')) ?></b>
-    <span><?= e(t('Replies from your team, forwards and questions from the system land here.', 'Dito lalabas ang mga sagot ng koponan, ipinasa at tanong ng sistema.')) ?></span><?php endif; ?><a hx-boost="true" class="p-btn p-btn-primary p-btn-sm" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a></div>
-<?php endif; ?>
+    <div class="gm-lh"><span><?= e(t('Labels', 'Mga label')) ?></span><button type="button" data-gm="newlabel" aria-label="<?= e(t('Create new label', 'Gumawa ng bagong label')) ?>">+</button></div>
+    <nav id="gm-labels" aria-label="<?= e(t('Labels', 'Mga label')) ?>"></nav>
+    <button type="button" class="gm-help-link" data-gm="help"><?= e(t('Keyboard shortcuts (?)', 'Mga shortcut sa keyboard (?)')) ?></button>
+  </aside>
+  <section class="gm-main" id="gm-main" aria-label="<?= e(t('Mail', 'Mail')) ?>">
+    <div class="gm-searchbar" role="search">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="gm-q" type="search" placeholder="<?= e(t('Search mail', 'Maghanap sa mail')) ?>" aria-label="<?= e(t('Search mail', 'Maghanap sa mail')) ?>" autocomplete="off">
+      <button type="button" id="gm-qx" aria-label="<?= e(t('Clear search', 'Burahin ang hinahanap')) ?>"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button type="button" id="gm-optsbtn" aria-expanded="false" aria-controls="gm-opts" aria-label="<?= e(t('Show search options', 'Ipakita ang mga opsyon sa paghahanap')) ?>"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
+      <form class="gm-opts" id="gm-opts" hidden>
+        <label><?= e(t('From', 'Mula kay')) ?><input type="text" name="from"></label>
+        <label><?= e(t('To', 'Para kay')) ?><input type="text" name="to"></label>
+        <label><?= e(t('Subject', 'Paksa')) ?><input type="text" name="subject"></label>
+        <label><?= e(t('Has the words', 'May mga salitang')) ?><input type="text" name="words"></label>
+        <label><?= e(t('Label', 'Label')) ?><select name="label"></select></label>
+        <label><?= e(t('Date after', 'Petsa pagkatapos ng')) ?><input type="date" name="after"></label>
+        <label><?= e(t('Date before', 'Petsa bago ang')) ?><input type="date" name="before"></label>
+        <div class="gm-chk"><label><input type="checkbox" name="unread"> <?= e(t('Unread', 'Hindi pa nababasa')) ?></label><label><input type="checkbox" name="starred"> <?= e(t('Starred', 'May bituin')) ?></label></div>
+        <div class="gm-opts-act"><button type="button" class="gm-btn" data-gm="optsclear"><?= e(t('Clear', 'Burahin')) ?></button><button type="submit" class="gm-btn gm-btn--blue"><?= e(t('Search', 'Hanapin')) ?></button></div>
+      </form>
+    </div>
+    <div class="gm-toolbar" id="gm-tb"></div>
+    <div class="gm-tabs" id="gm-tabs" role="tablist" hidden>
+      <button type="button" role="tab" data-tab="people" class="on"><?= e(t('Primary', 'Pangunahin')) ?> <span class="gm-n" hidden></span></button>
+      <button type="button" role="tab" data-tab="updates"><?= e(t('Updates', 'Mga update')) ?> <span class="gm-n" hidden></span></button>
+    </div>
+    <div class="gm-list" id="gm-list" role="list" aria-label="<?= e(t('Conversations', 'Mga usapan')) ?>"></div>
+    <div class="gm-reader" id="gm-reader" hidden></div>
+  </section>
+  <div class="gm-wins" id="gm-wins"></div>
+  <div class="gm-snack" id="gm-snack" role="status" hidden></div>
 </div>
-</div>
-<?php endif; // the case chats, or the mail ?>
+<script src="assets/js/emoji.js?v=<?= e(asset_version('../js/emoji.js')) ?>" defer></script>
+<script src="assets/js/gmail-compose.js?v=<?= e(asset_version('../js/gmail-compose.js')) ?>" defer></script>
+<script src="assets/js/gmail.js?v=<?= e(asset_version('../js/gmail.js')) ?>" defer></script>
+<?php endif; // Case chats, or BarangayMail ?>
 </div><?php // #ib-main ?>
 <script>
 // the countdown on messages that wait for an answer
