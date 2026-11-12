@@ -4,14 +4,14 @@
    time; a pill field with the emoji button inside and a blue arrow once there is a letter; Details as grouped lists with a switch. Light and dark
    share the roles below. */
 .mg {
-  --mg-bg: var(--p-surface); --mg-side: #F5F5F7; --mg-line: rgba(60, 60, 67, .18); --mg-field: rgba(118, 118, 128, .12); --mg-hover: rgba(118, 118, 128, .1);
-  --mg-in: #E9E9EB; --mg-in-ink: #000; --mg-out: #007AFF; --mg-out-ink: #fff; --mg-blue: #007AFF; --mg-sub: #8E8E93; --mg-group: #F2F2F7; --mg-card: #fff; --mg-sel: #007AFF;
+  --mg-bg: var(--p-surface); --mg-side: #F3F5FB; --mg-line: rgba(60, 60, 67, .18); --mg-field: rgba(118, 118, 128, .12); --mg-hover: rgba(118, 118, 128, .1);
+  --mg-in: #E8ECF6; --mg-in-ink: #141B34; --mg-out: #00308F; --mg-out-ink: #fff; --mg-blue: #00308F; --mg-sub: #5B6580; --mg-group: #EEF1F8; --mg-card: #fff; --mg-sel: #00308F;
   display: grid; grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); height: clamp(520px, calc(100vh - 235px), 920px);
   background: var(--mg-bg); border: 1px solid var(--mg-line); border-radius: 16px; overflow: hidden; position: relative;
   font-family: Inter, system-ui, "Segoe UI", sans-serif; color: var(--p-ink);
 }
-:root[data-theme="dark"] .mg { --mg-side: #1C1C1E; --mg-line: rgba(84, 84, 88, .55); --mg-field: rgba(118, 118, 128, .24); --mg-hover: rgba(118, 118, 128, .22);
-  --mg-in: #3A3A3C; --mg-in-ink: #fff; --mg-out: #0A84FF; --mg-blue: #0A84FF; --mg-sub: #98989F; --mg-group: #0B0B0D; --mg-card: #1C1C1E; --mg-sel: #0A84FF; }
+:root[data-theme="dark"] .mg { --mg-side: #13162B; --mg-line: rgba(120, 128, 170, .28); --mg-field: rgba(118, 118, 128, .24); --mg-hover: rgba(118, 118, 128, .22);
+  --mg-in: #2A2F4A; --mg-in-ink: #F1F3FF; --mg-out: #2F55D4; --mg-blue: #7FA0FF; --mg-sub: #A3ABC9; --mg-group: #0B0D1C; --mg-card: #171A30; --mg-sel: #2F55D4; }
 .mg [hidden] { display: none !important; }
 
 /* ---------- the sidebar ---------- */

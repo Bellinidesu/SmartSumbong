@@ -41,6 +41,8 @@ Changes on `main` not yet deployed belong here.
 **Home without dead space; the DEV menu without Super admin (12 Nov)**
 - Home: a list with nothing in it no longer takes a card. Likely to miss the deadline, Quiet cases, Spikes and Recurring problems that have rows fill two even columns; the ones with none become one line each in a single All clear panel with a green check; the tanods are one wide strip (the bar and its legend beside the title) above the lists. Nothing is removed: the same numbers, the same links.
 - The DEV See as menu lists only Captain, Councilor (Kagawad) and Staff: the Super admin one is the person's own account, which Back to my own account returns to.
+**The Inbox as one full page (12 Nov)**
+- Case chats and BarangayMail no longer sit in a box under a page title: each fills the whole page beside the sidebar, edge to edge, with the section switch as the app's own header bar (the section in use in orange). They wear the portal's colours instead of the look of the apps they were modelled on: navy sent bubbles and selected chat, orange Compose, soft indigo greys, in light and dark. How they work is unchanged.
 **Inbox: two sections, Case chats and BarangayMail (12 Nov)**
 - The Inbox is now two sections. Case chats does what Messenger's web app does, drawn the way Apple's Messages is: a sidebar of conversations (a search field, a segmented
   All / Unread / Cases I handle, one row per person with a round picture, the last words and a blue dot when unread, the open one filled blue); the person centred over the thread,

@@ -177,9 +177,10 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 <div class="p-topbar"><h1><?= e(t('Inbox', 'Mga Liham')) ?></h1></div>
 <?php // The press flow (7 Nov 2026): the tabs, the list, opening a message and the pager swap in place; the address follows. Only the
       // Inbox's own links are boosted (a link to a case stays an ordinary page change); the forms post as before. ?>
+<link rel="stylesheet" href="assets/css/inbox.css?v=<?= e(asset_version('inbox.css')) ?>">
 <div id="ib-main" class="press-region" hx-target="#ib-main" hx-select="#ib-main" hx-swap="outerHTML" hx-push-url="true" hx-sync="#ib-main:replace"
      data-announce="<?= e(t('Inbox updated', 'Na-update ang mga liham')) ?>">
-<nav class="st-tabs ib-apps" aria-label="<?= e(t('Inbox sections', 'Mga bahagi ng Inbox')) ?>">
+<nav class="st-tabs ib-apps" data-title="<?= e(t('Inbox', 'Mga Liham')) ?>" aria-label="<?= e(t('Inbox sections', 'Mga bahagi ng Inbox')) ?>">
   <a class="st-link<?= $app === 'chats' ? ' p-on' : '' ?>" href="inbox.php"<?= $app === 'chats' ? ' aria-current="page"' : '' ?>><?= e(t('Case chats', 'Mga chat sa kaso')) ?> <span class="p-badge-n" id="ib-chats-n" hidden>0</span></a>
   <a class="st-link<?= $app === 'mail' ? ' p-on' : '' ?>" href="inbox.php?app=mail"<?= $app === 'mail' ? ' aria-current="page"' : '' ?>>BarangayMail<?php if ($unread): ?> <span class="p-badge-n"><?= (int) $unread ?></span><?php endif; ?></a>
 </nav>

@@ -2158,3 +2158,19 @@ test('The folded sidebar (12 Nov 2026, Ace): the seal on top, no committee dot, 
     await expect(page.locator('.p-side-user .p-side-me')).toBeVisible();
   }
 });
+
+test('The Inbox is one full page (12 Nov 2026, Ace): Case chats and BarangayMail fill the page beside the sidebar, light and dark, in the portal colours', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  for (const th of ['light', 'dark']) {
+    await page.goto('cases.php', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(x => { try { localStorage.setItem('ss-theme', x); } catch (e) {} }, th);
+    for (const [url, app] of [['inbox.php', '.mg'], ['inbox.php?app=mail', '.gm']]) {
+      await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(1000);
+      const g = await page.evaluate(a => { const r = document.querySelector(a).getBoundingClientRect(), m = document.querySelector('main.p-main').getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), vh: innerHeight, left: Math.round(r.left), mleft: Math.round(m.left), right: Math.round(r.right), mright: Math.round(m.right), radius: getComputedStyle(document.querySelector(a)).borderTopLeftRadius }; }, app);
+      expect(g.bottom, url + ' ' + th + ': reaches the foot of the window').toBeGreaterThanOrEqual(g.vh - 2);
+      expect([g.left, g.right], url + ' ' + th + ': edge to edge beside the sidebar').toEqual([g.mleft, g.mright]);
+      expect(g.radius, 'no box corners').toBe('0px');
+      expect(await page.locator('.ib-apps .st-link.p-on').evaluate(e => getComputedStyle(e).backgroundColor), 'the section in use is orange').toBe('rgb(255, 152, 0)');
+    }
+  }
+});

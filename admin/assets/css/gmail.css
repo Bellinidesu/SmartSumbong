@@ -3,13 +3,14 @@
    rows that are bold and white when unread and soft blue-grey when read; a reading view with the older messages folded; floating compose
    windows with a dark header at the foot of the screen; the dark bar with Undo at the bottom left. Light and dark share the roles below. */
 .gm {
-  --gm-bg: var(--p-surface); --gm-ink: #1F1F1F; --gm-sub: #5F6368; --gm-line: #E0E3E7; --gm-hover: rgba(60, 64, 67, .08); --gm-sel: #D3E3FD; --gm-read: #F2F6FC; --gm-unread: #fff;
-  --gm-rowsel: #C2DBFF; --gm-blue: #0B57D0; --gm-compose: #C2E7FF; --gm-compose-ink: #001D35; --gm-search: #EAF1FB; --gm-star: #F4B400; --gm-chip: #E8EAED;
+  --gm-bg: var(--p-surface); --gm-ink: #1F1F1F; --gm-sub: #5F6368; --gm-line: #DDE2EF; --gm-hover: rgba(60, 64, 67, .08); --gm-sel: #FFE7C2; --gm-read: #F3F5FA; --gm-unread: #fff;
+  --gm-rowsel: #FFE0B0; --gm-blue: #00308F; --gm-compose: #FF9800; --gm-compose-ink: #2B1A00; --gm-search: #EEF1F8; --gm-star: #F4B400; --gm-chip: #E6EAF3;
   display: grid; grid-template-columns: 256px minmax(0, 1fr); height: clamp(560px, calc(100vh - 235px), 940px); position: relative;
   background: var(--gm-bg); color: var(--gm-ink); border: 1px solid var(--gm-line); border-radius: 16px; overflow: hidden; font: 14px/1.4 Inter, system-ui, "Segoe UI", sans-serif;
 }
-:root[data-theme="dark"] .gm { --gm-bg: #1F1F1F; --gm-ink: #E3E3E3; --gm-sub: #9AA0A6; --gm-line: #3C4043; --gm-hover: rgba(232, 234, 237, .08); --gm-sel: #004A77; --gm-read: #1F1F1F; --gm-unread: #2A2B2D;
-  --gm-rowsel: #0B3D6B; --gm-blue: #A8C7FA; --gm-compose: #004A77; --gm-compose-ink: #C2E7FF; --gm-search: #2D2F31; --gm-star: #F4B400; --gm-chip: #3C4043; }
+:root[data-theme="dark"] .gm { --gm-bg: #14172B; --gm-ink: #E9ECFA; --gm-sub: #9AA3C4; --gm-line: #2A2F4A; --gm-hover: rgba(232, 234, 250, .08); --gm-sel: #4A3410; --gm-read: #14172B; --gm-unread: #1B1F38;
+  --gm-rowsel: #3A2A10; --gm-blue: #7FA0FF; --gm-compose: #FF9800; --gm-compose-ink: #2B1A00; --gm-search: #1F2440; --gm-star: #F4B400; --gm-chip: #2A2F4A; }
+:root[data-theme="dark"] .gm-btn--blue { color: #0B1230; }
 .gm [hidden] { display: none !important; }
 .gm button { font-family: inherit; }
 
