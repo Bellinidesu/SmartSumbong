@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Spatial Distribution, the current look (12 Nov)**
+- The Layers tile is back at the map's bottom left with its row of pictures (Rose's 5 Nov move into the floating tab is undone; the lock fix stays).
+- The map's floating surfaces follow the portal's cards: by night the near-black card with a lit edge and a top sheen instead of frosted glass, by day a solid white card with a
+  thin edge and one soft elevation, one corner radius, and the main action (Turn on Flood Watch and the other primary buttons) in orange with the second outlined.
+  New `sd-skin.css`, loaded only on this page after the map's own styles. Pins, heat and every colour that carries meaning are unchanged.
+
 **The case page, and the chat head (12 Nov, looks pass)**
 - Case page: the owner first, a labelled "Where the case is" ladder, the ownership history folded, "Field responder" instead of "Currently with", the
   resident in the header; the SMART "Why this level" card is readable again in light mode (a later stylesheet had painted it white) (#372).

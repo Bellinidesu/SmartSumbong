@@ -1346,7 +1346,7 @@ test('Settings for a Kagawad and staff: their look, their committee read only, t
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
-test('Rose, 2 Nov: the lock holds when the map is pressed, the layers stay in their tile at the map's bottom left (Ace, 12 Nov), and the first day picked can be taken back', async ({ page }) => {
+test('Rose, 2 Nov: the lock holds when the map is pressed, the layers stay in their tile at the bottom left of the map (Ace, 12 Nov), and the first day picked can be taken back', async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'spatial.php');
   await expect(page.locator('#map-search .p-row-lyr')).toHaveCount(0);                       // not a row of the floating tab
