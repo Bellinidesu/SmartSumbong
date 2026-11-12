@@ -649,16 +649,13 @@ td.tc-cell { min-width: 260px; max-width: 300px; }
 @media (max-width: 640px) { .dh-stats { grid-template-columns: 1fr; } .dh-stats > div + div { border-left: 0; border-top: 1px solid var(--p-line); } .dh-kpi { grid-template-columns: 1fr; } }
 
 /* 0150: a committee admin's sidebar names the committee, in its colour */
-/* the committee's name under the mark (12 Nov 2026, Ace): a card tinted with the committee's colour, not a flat bar of it: the word "Committee" small above, the name large, a lit top edge */
-.p-side-com { position: relative; display: grid; justify-items: center; gap: 2px; margin: 2px 8px 16px; padding: 10px 12px 11px; border-radius: 16px; text-align: center; color: #fff;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--cc) 46%, transparent), color-mix(in srgb, var(--cc) 16%, transparent));
-  border: 1px solid color-mix(in srgb, var(--cc) 70%, #fff 6%); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 12px 24px -16px var(--cc); }
+/* the committee's name under the seal (12 Nov 2026, Ace's sketch): plain lettering, bold capitals in the portal's own face (the sketch's italic was only its editor's font), a soft glow of the committee's colour behind it; no card, no bar */
+.p-side-com { display: block; margin: 2px 6px 16px; padding: 0 4px; text-align: center; color: #fff; }
 .p-side-com i { display: none; }
-.p-side-com span { min-width: 0; display: grid; justify-items: center; gap: 1px; }
-.p-side-com small { font: 700 10px/1.2 Inter, sans-serif; letter-spacing: .16em; text-transform: uppercase; opacity: .78; }
-.p-side-com b { font: 800 15px/1.22 Inter Tight, Inter, sans-serif; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }   /* the committee's whole title, on two lines when it needs them */
-html[data-side="min"] .p-side-com, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com { padding: 8px; margin: 2px 6px 14px; }
-html[data-side="min"] .p-side-com i, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com i { display: block; width: 14px; height: 14px; border-radius: 50%; background: var(--cc); box-shadow: 0 0 0 2px #fff; }
+.p-side-com span { display: block; min-width: 0; }
+.p-side-com b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font: 800 16.5px/1.2 'Inter Tight', Inter, sans-serif; text-transform: uppercase; letter-spacing: .03em; text-wrap: balance; text-shadow: 0 2px 16px color-mix(in srgb, var(--cc) 85%, transparent); }   /* the committee's whole title, on two lines when it needs them */
+/* the folded sidebar has no committee dot (Ace, 12 Nov): the seal on top is enough */
+html[data-side="min"] .p-side-com, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com { display: none; }
 html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com span { display: none; }
 /* 0150: colours on the Committees tab */
 .acc-col input[type=color] { width: 40px; height: 32px; padding: 2px; border-radius: 8px; border: 1px solid var(--p-line-2); background: var(--p-surface); cursor: pointer; }
@@ -886,3 +883,15 @@ td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: 
 .ss-win .dw-com .dh-bar { max-width: 100%; }
 .ss-win .ss-two > *, .ss-win .ss-stack, .ss-win .ss-stack > * { min-width: 0; }
 .ss-win .ss-table.ss-nowrap { display: block; overflow-x: auto; }   /* its rows stay on one line and scroll inside the card */
+/* a committee's sidebar (12 Nov 2026, Ace): no contour pattern; the gradient does the work (the committee colour glows from the top and again from the foot), and the committee's own logo
+   lies across the foot, big, slanted and faded into the colour. The seal sits in a halo of the colour. */
+.p-sidebar.has-mark::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: auto; left: 50%; bottom: -34px; width: 270px; height: 270px; margin-left: -118px;
+  background: var(--p-side-mark) center / contain no-repeat; opacity: .34; transform: rotate(-19deg); transform-origin: 50% 50%;
+  -webkit-mask: radial-gradient(closest-side, #000 52%, transparent 100%); mask: radial-gradient(closest-side, #000 52%, transparent 100%); -webkit-mask-composite: source-over; mask-composite: add; }
+.p-sidebar.has-mark .p-brand-img { filter: drop-shadow(0 0 24px color-mix(in srgb, var(--p-side-glow, transparent) 75%, transparent)) drop-shadow(0 6px 14px rgba(0,0,0,.3)); }
+/* dark: the sidebar stays tinted with the committee's hue all the way down (it was black under a glow, which made the glow look like a spotlight with a hard fall-off); the logo is lit into it */
+:root[data-theme="dark"] .p-sidebar.has-mark { background:
+  radial-gradient(170% 280px at 50% 0%, color-mix(in srgb, var(--p-side-glow, transparent) 62%, transparent), transparent 100%),
+  radial-gradient(150% 380px at 30% 100%, color-mix(in srgb, var(--p-side-glow, transparent) 42%, transparent), transparent 100%),
+  linear-gradient(180deg, color-mix(in srgb, var(--p-side-glow, #0B0F19) 22%, #0B0F19) 0%, color-mix(in srgb, var(--p-side-glow, #05070C) 13%, #05070C) 100%); }
+:root[data-theme="dark"] .p-sidebar.has-mark::before { opacity: .36; mix-blend-mode: screen; }

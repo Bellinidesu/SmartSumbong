@@ -99,7 +99,7 @@
 
 #app{ display: none; min-height: 100vh; }
 #app.p-on{ display: grid; grid-template-columns: var(--p-sidebar-w) 1fr; }
-.p-sidebar{ position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; background: linear-gradient(180deg, var(--p-side-a) 0%, var(--p-side-b) 100%); color: #fff; display: flex; flex-direction: column; padding: 24px 16px; gap: 6px; }
+.p-sidebar{ position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; background: radial-gradient(160% 235px at 50% 0%, color-mix(in srgb, var(--p-side-glow, transparent) 82%, transparent), transparent 100%), radial-gradient(150% 330px at 30% 100%, color-mix(in srgb, var(--p-side-glow, transparent) 50%, transparent), transparent 100%), linear-gradient(180deg, var(--p-side-a) 0%, var(--p-side-b) 100%); color: #fff; display: flex; flex-direction: column; padding: 24px 16px; gap: 6px; }
 .p-sidebar .p-brand{ display: grid; place-items: center; padding: 4px 0 22px; }
 .p-sidebar .p-brand img{ width: 108px; }
 .p-nav{ display: grid; gap: 4px; }
