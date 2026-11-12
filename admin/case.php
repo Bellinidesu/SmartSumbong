@@ -453,7 +453,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?= sensitive_badge($report) ?>
       <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
       <?php if (!empty($report['referred_to'])): ?>
-        <span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($report['referred_to']) ?></span>
+        <span class="p-badge p-b-violet" title="<?= e(t('Escalated to ', 'In-escalate sa ') . $report['referred_to']) ?>"><?= e(t('Escalated to ', 'In-escalate sa ')) . e(referral_short((string) $report['referred_to'])) ?></span>
       <?php endif; ?>
       <?php if (!empty($report['resolution_submitted_at'])): ?>
         <span class="p-badge p-b-pending"><?= e(t('Resolution awaiting approval', 'Naghihintay ng pag-apruba ang resolusyon')) ?></span>
