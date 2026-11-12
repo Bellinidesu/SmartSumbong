@@ -33,6 +33,7 @@ fn _guard_case_committee() anon=call authenticated=call
 fn _guard_official_fields() anon=call authenticated=call
 fn _id_reading_save(p_user uuid, p_type id_document_type, p_name text, p_number text) anon=- authenticated=-
 fn _inbox_alert() anon=- authenticated=call
+fn _inbox_thread() anon=- authenticated=-
 fn _is_sensitive_text(p_text text) anon=call authenticated=call
 fn _kagawad_of_staff(p_user uuid) anon=- authenticated=call
 fn _kagawad_of_tanod(p_tanod uuid) anon=- authenticated=call
@@ -148,6 +149,7 @@ fn catalogue_fill() anon=- authenticated=call
 fn category_save(p_key text, p_label_en text, p_label_fil text, p_colour text, p_icon text, p_active boolean, p_sort integer) anon=- authenticated=call
 fn chain_account_audit() anon=call authenticated=call
 fn chain_status_log() anon=call authenticated=call
+fn chat_state_set(p_report uuid, p_conv text, p_seen timestamp with time zone, p_muted boolean, p_pinned boolean, p_archived boolean) anon=- authenticated=call
 fn check_login_lockout(p_mobile text) anon=call authenticated=call
 fn check_system_health() anon=- authenticated=-
 fn clear_login_attempts(p_mobile text) anon=- authenticated=call
@@ -215,7 +217,15 @@ fn latest_app_release() anon=call authenticated=call
 fn location_is_fresh(p_at timestamp with time zone) anon=- authenticated=call
 fn log_duty_change() anon=- authenticated=-
 fn log_portal_error(p_source text, p_page text, p_message text, p_detail text) anon=call authenticated=call
+fn mail_batch_people(p_batch uuid) anon=- authenticated=call
+fn mail_draft_delete(p_id bigint) anon=- authenticated=call
+fn mail_draft_save(p_id bigint, p_to uuid[], p_cc uuid[], p_bcc uuid[], p_subject text, p_body text, p_report uuid, p_reply_to bigint) anon=- authenticated=call
+fn mail_flag(p_batches uuid[], p_starred boolean, p_archived boolean, p_trashed boolean, p_purged boolean, p_snooze timestamp with time zone, p_unsnooze boolean) anon=- authenticated=call
+fn mail_label_apply(p_batches uuid[], p_label bigint, p_on boolean) anon=- authenticated=call
+fn mail_label_delete(p_id bigint) anon=- authenticated=call
+fn mail_label_save(p_id bigint, p_name text, p_colour text) anon=- authenticated=call
 fn mail_recipients() anon=- authenticated=call
+fn mail_set_read(p_ids bigint[], p_read boolean) anon=- authenticated=call
 fn mark_mail_read(p_ids bigint[]) anon=- authenticated=call
 fn media_trash_done(p_urls text[]) anon=- authenticated=-
 fn media_trash_due(p_limit integer) anon=- authenticated=-
@@ -288,7 +298,7 @@ fn revoke_user_sessions(p_user uuid) anon=- authenticated=-
 fn run_admin_handover_expirations() anon=- authenticated=-
 fn run_media_cleanup() anon=- authenticated=-
 fn search_places(p_q text, p_lat double precision, p_lng double precision, p_limit integer) anon=- authenticated=call
-fn send_mail(p_to uuid[], p_subject text, p_body text, p_report uuid, p_reply_to bigint) anon=- authenticated=call
+fn send_mail(p_to uuid[], p_subject text, p_body text, p_report uuid, p_reply_to bigint, p_cc uuid[], p_bcc uuid[], p_draft bigint) anon=- authenticated=call
 fn set_accept_deadline() anon=call authenticated=call
 fn set_account_suspension(p_user uuid, p_suspend boolean, p_reason text) anon=- authenticated=call
 fn set_admin_access(p_user uuid, p_tier text, p_committee text, p_dev boolean) anon=- authenticated=call
@@ -393,6 +403,8 @@ seq complaint_options_id_seq anon=usage,select,update authenticated=usage,select
 seq dev_level_switches_id_seq anon=usage,select,update authenticated=usage,select,update
 seq hazard_zones_id_seq anon=usage,select,update authenticated=usage,select,update
 seq inbox_messages_id_seq anon=usage,select,update authenticated=usage,select,update
+seq mail_drafts_id_seq anon=usage,select,update authenticated=usage,select,update
+seq mail_labels_id_seq anon=usage,select,update authenticated=usage,select,update
 seq places_id_seq anon=usage,select,update authenticated=usage,select,update
 seq portal_errors_id_seq anon=usage,select,update authenticated=usage,select,update
 seq portal_outages_id_seq anon=usage,select,update authenticated=usage,select,update
@@ -411,6 +423,7 @@ table barangay_boundary anon=select,insert,update,delete,truncate,references,tri
 table barangay_profile anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table case_forwards anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table case_handler_log anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table chat_state anon=- authenticated=select rls=on
 table checkpoint_scans anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
 table command_checklist anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table command_checks anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
@@ -448,6 +461,10 @@ table inbox_messages anon=select,insert,update,delete,truncate,references,trigge
 table login_attempts anon=- authenticated=- rls=on
 table login_failure_sources anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table look_shares anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,delete,truncate,references,trigger rls=on
+table mail_drafts anon=- authenticated=select rls=on
+table mail_label_links anon=- authenticated=select rls=on
+table mail_labels anon=- authenticated=select rls=on
+table mail_state anon=- authenticated=select rls=on
 table media_trash anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table notifications anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
 table operational_settings anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
