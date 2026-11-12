@@ -25,6 +25,7 @@ a { color: inherit; }
 
 .p-live.p-down { background: var(--p-red-bg); color: var(--p-red); }
 .p-live.p-down i { background: var(--p-red); animation: none; }
+.p-live.p-down i::after { display: none; }
 .p-deny-row { margin-top: 8px; text-align: left; }
 .p-deny-row form { display: grid; gap: 8px; }
 .p-band .p-badge-n[hidden] { display: none !important; }

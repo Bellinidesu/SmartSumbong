@@ -478,7 +478,7 @@
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ct) 55%, transparent); font: 800 11.5px Inter, sans-serif; letter-spacing: .02em;
 }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ct); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct) 60%, transparent); animation: cmPulse 2.2s ease-out infinite; }
-@keyframes cmPulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
+@keyframes cmPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: .7; } }
 
 /* ---- the faint symbol is alive: it leans in and brightens on hover, and squeezes on press ---- */
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > .cm-bg { transform-origin: 62% 62%; transition: transform .45s cubic-bezier(.2,1.4,.35,1), opacity .3s ease; will-change: transform; }
@@ -588,16 +588,15 @@
 :root[data-theme="dark"] .p-live:not(.p-down):not(.p-cnt) i { filter: drop-shadow(0 0 6px #5CF58E); }
 
 /* the engine button: a rainbow frame that travels, a brain that beats; in the dark the brain glows the logo's lime */
-@property --ss-ang { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
-.ss-brain-btn { background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, conic-gradient(from var(--ss-ang), #356CF9, #FF9800, #EDFA04, #34C759, #356CF9) border-box; animation: ssRing 6s linear infinite, ssGlowCycle 6s linear infinite; }
+@property --ss-ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }   /* 12 Nov: not inherited, so a turn of the ring does not restyle what is inside the button */
+.ss-brain-btn { background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, conic-gradient(from var(--ss-ang), #356CF9, #FF9800, #EDFA04, #34C759, #356CF9) border-box; animation: ssRing 6s steps(90) 1; box-shadow: 0 8px 20px -8px rgba(255,152,0,.7); }   /* 12 Nov: the ring turns once when the page opens, then rests; it turns again while the button is pointed at, focused or nudged. The glow no longer cycles colours (a repaint of its blur every frame) */
+.ss-brain-btn:is(:hover, :focus-visible) { animation: ssRing 6s steps(90) infinite; }
 @keyframes ssRing { to { --ss-ang: 360deg; } }
-@keyframes ssGlowCycle { 0%, 100% { box-shadow: 0 6px 20px -6px rgba(53,108,249,.75); } 25% { box-shadow: 0 6px 20px -6px rgba(255,152,0,.75); } 50% { box-shadow: 0 6px 20px -6px rgba(237,250,4,.7); } 75% { box-shadow: 0 6px 20px -6px rgba(52,199,89,.75); } }
 .ss-brain-btn .ss-brain-ico { transform-origin: 50% 55%; animation: ssBeat 2.6s ease-in-out infinite; }
-.ss-brain-btn .ss-brain-ico path:nth-child(3) { stroke-dasharray: 2.4 2.6; animation: ssFlow 1.4s linear infinite; }
+.ss-brain-btn .ss-brain-ico path:nth-child(3) { stroke-dasharray: 2.4 2.6; }
+
 @keyframes ssBeat { 0%, 100% { transform: scale(1); } 14% { transform: scale(1.1); } 28% { transform: scale(1); } 42% { transform: scale(1.06); } 56% { transform: scale(1); } }
-@keyframes ssFlow { to { stroke-dashoffset: -5; } }
-:root[data-theme="dark"] .ss-brain-btn .ss-brain-ico { color: #EDFA04; animation: ssBeat 2.6s ease-in-out infinite, ssLime 2.6s ease-in-out infinite; }
-@keyframes ssLime { 0%, 100% { filter: drop-shadow(0 0 2px rgba(237,250,4,.55)) drop-shadow(0 0 6px rgba(237,250,4,.3)); } 50% { filter: drop-shadow(0 0 4px rgba(237,250,4,.95)) drop-shadow(0 0 12px rgba(237,250,4,.6)); } }
+:root[data-theme="dark"] .ss-brain-btn .ss-brain-ico { color: #EDFA04; animation: ssBeat 2.6s ease-in-out infinite; filter: drop-shadow(0 0 3px rgba(237,250,4,.75)) drop-shadow(0 0 9px rgba(237,250,4,.45)); }
 
 /* the engine's bar: it slides in on a long ease, its parts rise one after another, and it leaves faster than it came */
 .ss-win { border-radius: 22px 0 0 22px; overflow: hidden; transform: translateX(104%); transition: transform .26s cubic-bezier(.5, 0, .9, .45), visibility 0s .26s; }
@@ -617,10 +616,8 @@
 .ss-win-head { position: relative; overflow: hidden; }
 .ss-win-head::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 30%, rgba(237,250,4,.09) 50%, transparent 70%); transform: translateX(-100%); animation: ssSheen 5.5s ease-in-out infinite; }
 @keyframes ssSheen { 0%, 55% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-.ss-win-head .ss-engine img { animation: ssLogoGlow 3.4s ease-in-out infinite; }
-:root[data-theme="dark"] .ss-win-head .ss-engine img { animation-name: ssLogoGlowDark; }
-@keyframes ssLogoGlow { 0%, 100% { filter: drop-shadow(0 0 3px rgba(237,250,4,.45)) drop-shadow(0 0 8px rgba(53,108,249,.5)); } 50% { filter: drop-shadow(0 0 6px rgba(237,250,4,.85)) drop-shadow(0 0 16px rgba(53,108,249,.75)); } }
-@keyframes ssLogoGlowDark { 0%, 100% { filter: drop-shadow(0 0 4px rgba(237,250,4,.6)) drop-shadow(0 0 12px rgba(237,250,4,.28)); } 50% { filter: drop-shadow(0 0 8px rgba(237,250,4,1)) drop-shadow(0 0 22px rgba(237,250,4,.55)); } }
+.ss-win-head .ss-engine img { filter: drop-shadow(0 0 4px rgba(237,250,4,.65)) drop-shadow(0 0 12px rgba(53,108,249,.6)); }   /* 12 Nov: a still glow; the moving one repainted a blur every frame */
+:root[data-theme="dark"] .ss-win-head .ss-engine img { filter: drop-shadow(0 0 6px rgba(237,250,4,.8)) drop-shadow(0 0 16px rgba(237,250,4,.4)); }
 @media (prefers-reduced-motion: reduce) {
   .ss-brain-btn, .ss-brain-btn .ss-brain-ico, .ss-brain-btn .ss-brain-ico path, .ss-win-head::after, .ss-win-head .ss-engine img, .p-donut svg.is-empty .trk { animation: none !important; }
   .ss-win.is-open :is(.ss-engine, .ss-win-ttl, .ss-win-x, .ss-panel-in > *) { animation: none; }
@@ -827,7 +824,7 @@
 .rs-banner .p-btn { flex: none; }
 .rs-banner-x { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; background: transparent; color: inherit; cursor: pointer; opacity: .75; transition: background-color .18s, opacity .18s; }
 .rs-banner-x:hover { background: color-mix(in srgb, currentColor 14%, transparent); opacity: 1; }
-.ss-brain-btn.is-nudged { animation: ssRing 6s linear infinite, ssGlowCycle 6s linear infinite, ssNudge .9s cubic-bezier(.3, 1.6, .5, 1) 1; }
+.ss-brain-btn.is-nudged { animation: ssRing 6s steps(90) infinite, ssNudge .9s cubic-bezier(.3, 1.6, .5, 1) 1; }
 @keyframes ssNudge { 0% { transform: scale(1); } 30% { transform: scale(1.28) rotate(-8deg); } 60% { transform: scale(.94) rotate(4deg); } 100% { transform: scale(1); } }
 
 /* the engine's rows for Residents: a number, what it is, a button that filters the list */

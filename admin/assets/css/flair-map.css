@@ -73,7 +73,7 @@
 .fw-chip[aria-expanded="true"] .fw-car { transform: rotate(180deg); }
 .fw-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--fw); box-shadow: 0 0 0 4px color-mix(in srgb, var(--fw) 22%, transparent); }
 .fw[data-live="1"] .fw-dot { animation: fwPulse 2s ease-in-out infinite; }
-@keyframes fwPulse { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--fw) 8%, transparent); } }
+@keyframes fwPulse { 50% { transform: scale(1.25); } }   /* 12 Nov: by size, not by repainting a shadow */
 .fw-card { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);
   box-shadow: 0 2px 6px rgba(20,27,52,.12), 0 10px 30px rgba(20,27,52,.14); font-size: 13px; display: grid; gap: 10px; }
 .fw-level { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--fw) 14%, var(--p-surface)); border: 1px solid color-mix(in srgb, var(--fw) 40%, transparent); }
@@ -1030,7 +1030,7 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 #s-spatial .p-legend-count { margin: 8px 4px 0; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.1); font: 700 11.5px Inter, sans-serif; }
 /* Flood watch */
 .fw-chip { transition: transform .3s cubic-bezier(.2,1.5,.4,1), box-shadow .3s; } .fw-chip:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px color-mix(in srgb, var(--fw) 55%, transparent), 0 0 18px color-mix(in srgb, var(--fw) 40%, transparent); }
-.fw-chip .fw-dot, .fw-level .fw-dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--fw) 26%, transparent), 0 0 12px var(--fw); animation: fwBeat 2.4s ease-in-out infinite; } @keyframes fwBeat { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--fw) 8%, transparent), 0 0 16px var(--fw); } }
+.fw-chip .fw-dot, .fw-level .fw-dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--fw) 26%, transparent), 0 0 12px var(--fw); animation: fwBeat 2.4s ease-in-out infinite; } @keyframes fwBeat { 50% { transform: scale(1.2); } }   /* 12 Nov: it beats by size (the compositor) instead of repainting its shadows */
 .fw-level { position: relative; overflow: hidden; isolation: isolate; background: linear-gradient(135deg, color-mix(in srgb, var(--fw) 26%, transparent), color-mix(in srgb, var(--fw) 8%, transparent)); border-color: color-mix(in srgb, var(--fw) 48%, transparent); }
 .fw-level::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 22px; z-index: -1; opacity: .55; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 22' preserveAspectRatio='none'%3E%3Cpath d='M0 11C20 3 40 19 60 11S100 3 120 11V22H0Z' fill='%23fff' fill-opacity='.35'/%3E%3C/svg%3E") 0 0 / 60px 22px repeat-x; animation: fwWave 5s linear infinite; }
 @keyframes fwWave { to { background-position-x: -60px; } }

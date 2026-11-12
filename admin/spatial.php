@@ -1674,6 +1674,9 @@ window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 98
   const place = () => {
     if (!main.offsetHeight) return;       // offsets ignore the box's entrance transform, so the number is its real place
     info.style.top = (main.offsetTop + main.offsetHeight + 10) + 'px';
+    // the SMART suggestion hangs under them the same way (12 Nov 2026): under the filter box, and under the layer note when that is showing
+    const sug = document.getElementById('cc-suggest');
+    if (sug) sug.style.top = ((!info.hidden && info.offsetHeight ? info.offsetTop + info.offsetHeight : main.offsetTop + main.offsetHeight) + 10) + 'px';
   };
   place();
   if (window.ResizeObserver) new ResizeObserver(place).observe(main);

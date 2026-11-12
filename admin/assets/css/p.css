@@ -131,8 +131,11 @@
 .p-topbar .p-crumb{ color: var(--p-muted); font-size: 14px; font-weight: 600; }
 .p-topbar .p-spacer{ flex: 1; }
 .p-live{ display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 99px; background: var(--p-green-bg); color: var(--p-green); font-weight: 700; font-size: 13px; }
-.p-live i{ width: 8px; height: 8px; border-radius: 50%; background: #34C759; box-shadow: 0 0 0 0 rgba(52,199,89,.6); animation: pulse 2s infinite; }
-@keyframes pulse { 70%{ box-shadow: 0 0 0 7px rgba(52,199,89,0); } 100%{ box-shadow: 0 0 0 0 rgba(52,199,89,0); } }
+/* 12 Nov 2026: the pulse is a ring that scales and fades (the compositor does that); it used to repaint a growing shadow on every frame */
+.p-live i, .p-watching i{ position: relative; }
+.p-live i{ width: 8px; height: 8px; border-radius: 50%; background: #34C759; }
+.p-live i::after, .p-watching i::after{ content: ""; position: absolute; inset: 0; border-radius: 50%; background: #34C759; opacity: 0; animation: pulseRing 2s ease-out infinite; }
+@keyframes pulseRing { 0% { transform: scale(1); opacity: .55; } 70%, 100% { transform: scale(2.4); opacity: 0; } }
 .p-updated{ color: var(--p-faint); font-size: 12.5px; font-style: italic; }
 .p-icon-btn{ width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--p-r); border: 1px solid var(--p-line); background: var(--p-surface); position: relative; color: var(--p-ink-2); }
 .p-icon-btn .p-dot{ position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--p-red); border: 2px solid var(--p-surface); }
@@ -473,7 +476,7 @@
 .p-period-row{ display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .p-period-row h2{ margin: 0 6px 0 0; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
 .p-watching{ font-family: Inter, system-ui, sans-serif; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 99px; background: var(--p-green-bg); color: var(--p-green); font-size: 12px; font-weight: 700; cursor: help; }
-.p-watching i{ width: 7px; height: 7px; border-radius: 50%; background: #34C759; animation: pulse 2s infinite; }
+.p-watching i{ width: 7px; height: 7px; border-radius: 50%; background: #34C759; }
 .p-period-row .p-pill-select input{ border: 0; outline: 0; background: transparent; font-weight: 600; color: var(--p-ink); }
 .p-period-row .p-to{ color: var(--p-muted); font-size: 13px; font-weight: 600; }
 .p-chips-q{ display: flex; flex-wrap: wrap; gap: 6px; }
