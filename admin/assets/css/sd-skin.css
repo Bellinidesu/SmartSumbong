@@ -54,7 +54,8 @@
 #s-spatial .p-map-dock.sd-snap { transition: left .34s cubic-bezier(.2, 1.2, .4, 1), top .34s ease; }
 #s-spatial .p-map-dock.sd-left { justify-items: start; }
 #s-spatial .p-map-dock.sd-left .sd-grip { justify-self: start; }
-/* while a panel is open on the right, the buttons on the right keep to their icons: their words would land on the panel */
-#s-spatial#s-spatial:has(.p-map-stats:not([hidden])) .p-map-dock:not(.sd-left):is(:hover, :focus-within) .p-dock-btn:has(.dl) { width: 42px; padding: 0; gap: 0; justify-content: center; }
-#s-spatial#s-spatial:has(.p-map-stats:not([hidden])) .p-map-dock:not(.sd-left):is(:hover, :focus-within) .p-dock-btn .dl { max-width: 0; opacity: 0; }
+/* while a panel is open (the box beside the buttons, or any button's popup: Search, Saved views, Legend, Incidents, SMART...), the buttons keep to their
+   squares even under the pointer: their words would land on the panel, and the press that opened it has done its work (Ace, 12 Nov) */
+#s-spatial#s-spatial:is(:has(.p-map-stats:not([hidden])), :has(.p-map-dock [aria-expanded="true"])) .p-map-dock:is(:hover, :focus-within) .p-dock-btn:has(.dl) { width: 42px; padding: 0; gap: 0; justify-content: center; }
+#s-spatial#s-spatial:is(:has(.p-map-stats:not([hidden])), :has(.p-map-dock [aria-expanded="true"])) .p-map-dock:is(:hover, :focus-within) .p-dock-btn .dl { max-width: 0; opacity: 0; }
 @media (prefers-reduced-motion: reduce) { #s-spatial .p-map-dock.sd-snap, #s-spatial .p-map-dock .sd-grip { transition: none; } }

@@ -1891,6 +1891,15 @@ test('Spatial Distribution (12 Nov 2026): the SMART panel stays navy by day; the
   expect((await btn.boundingBox()).width).toBeLessThan(60);
   await page.locator('#smart-toggle').click();
   await expect(page.locator('#smart-side')).toBeHidden();
+  // any button's popup does the same (Ace, 12 Nov): with Search open the others stay square under the pointer; shut, they widen with their words again
+  await page.locator('#search-btn').click();
+  await expect(page.locator('#search-btn')).toHaveAttribute('aria-expanded', 'true');
+  await page.locator('#views-btn').hover(); await page.waitForTimeout(400);
+  expect((await page.locator('#views-btn').boundingBox()).width, 'square while a popup is open').toBeLessThan(60);
+  await page.locator('#search-btn').click();
+  await expect(page.locator('#search-btn')).toHaveAttribute('aria-expanded', 'false');
+  await page.locator('#views-btn').hover(); await page.waitForTimeout(400);
+  expect((await page.locator('#views-btn').boundingBox()).width, 'wide again once it is shut').toBeGreaterThan(80);
   // the grip: drag the column to the left side, mid height; it settles on the left and is remembered
   const grip = page.locator('.p-map-dock .sd-grip'); await expect(grip).toBeVisible();
   const g = await grip.boundingBox();
