@@ -79,13 +79,12 @@
     } catch (e) { /* silent is fine */ }
   }
 
-  /* the Inbox's pill in the sidebar: the chats' count (the Inbox page tells it live, other pages ask once a minute) */
-  var ibPill = document.querySelector('.p-nav .p-ib');
+  /* the Inbox's chats pill in the sidebar (the Inbox page tells it live, other pages ask once a minute); the mail pill comes with the page */
+  var ibPill = document.querySelector('.p-nav .p-ib-chat');
   function setNavChats(n) {
     if (!ibPill) { return; }
-    ibPill.setAttribute('data-chat', String(Math.min(n, 99))); ibPill.querySelector('.ib-f-chat b').textContent = n > 99 ? '99+' : String(n);
-    var sr = ibPill.querySelector('[data-ib-sr]'), mail = ibPill.getAttribute('data-mail') || '0';
-    if (sr) { sr.textContent = n + tr(' unread chats, ', ' hindi pa nababasang chat, ') + mail + tr(' unread mail', ' hindi pa nababasang mail'); }
+    ibPill.setAttribute('data-n', String(Math.min(n, 99))); ibPill.querySelector('b').textContent = n > 99 ? '99+' : String(n); ibPill.hidden = n <= 0;
+    ibPill.setAttribute('title', n + tr(' unread case chats', ' hindi pa nababasang chat sa kaso'));
   }
   function pullNavChats() {
     if (!ibPill || document.hidden || document.getElementById('mg')) { return; }

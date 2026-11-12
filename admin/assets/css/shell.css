@@ -84,18 +84,12 @@ html[data-side="min"] .p-nav .p-brain-badge{left:auto;right:8px}
 .p-nav a.p-active .p-brain-pill{box-shadow:0 0 0 2px rgba(255,255,255,.55)}
 html[data-side="min"] .p-nav .p-rt{position:absolute;right:5px;top:2px;gap:2px}
 html[data-side="min"] .p-nav .p-pill{min-width:17px;height:17px;padding:0 4px;font-size:9.5px}
-/* the Inbox's pill (Ace, 12 Nov): the chats' count with a bubble and the mail's count with an envelope take turns in one pill; a face with nothing in it is not shown, and with nothing in either the pill is gone */
-.p-nav .p-ib{display:inline-grid;grid-template-areas:"f";align-items:center;justify-items:center;padding:0 7px;overflow:hidden;background:#E5383B}
-.p-nav .p-ib .ib-f{grid-area:f;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-.p-nav .p-ib .ib-f b{font-weight:700}
-.p-nav .p-ib[data-chat="0"] .ib-f-chat,.p-nav .p-ib[data-mail="0"] .ib-f-mail{display:none}
-.p-nav .p-ib[data-chat="0"][data-mail="0"]{display:none}
-.p-nav .p-ib:not([data-chat="0"]):not([data-mail="0"]) .ib-f-chat{animation:ibA 6s infinite}
-.p-nav .p-ib:not([data-chat="0"]):not([data-mail="0"]) .ib-f-mail{animation:ibB 6s infinite}
-@keyframes ibA{0%,42%{opacity:1;transform:none}50%,92%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:none}}
-@keyframes ibB{0%,42%{opacity:0;transform:translateY(8px)}50%,92%{opacity:1;transform:none}100%{opacity:0;transform:translateY(8px)}}
-@media (prefers-reduced-motion:reduce){.p-nav .p-ib:not([data-chat="0"]):not([data-mail="0"]){grid-template-areas:none;display:inline-flex;gap:8px}.p-nav .p-ib .ib-f{grid-area:auto}.p-nav .p-ib .ib-f-chat,.p-nav .p-ib .ib-f-mail{animation:none!important}}
-html[data-side="min"] .p-nav .p-ib{padding:0 4px}html[data-side="min"] .p-nav .p-ib .ib-f svg{display:none}
+/* the Inbox's two pills (Ace, 12 Nov: two, like Notifications, so nothing is confused): the chats' unread with a bubble, the mail's unread with an envelope */
+.p-nav .p-ib{display:inline-flex;align-items:center;gap:4px;padding:0 7px;white-space:nowrap}
+.p-nav .p-ib[hidden]{display:none}
+.p-nav .p-ib b{font-weight:700}
+.p-nav .p-ib-chat{background:#E5383B}
+html[data-side="min"] .p-nav .p-ib{padding:0 4px}html[data-side="min"] .p-nav .p-ib svg{display:none}
 html[data-side="min"] .p-nav .p-brain-pill{width:17px;height:17px}
 html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
 @media (min-width:981px){

@@ -2112,29 +2112,24 @@ test('Case chats keep where a person was in the database (12 Nov 2026): read and
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('The Inbox in the sidebar (12 Nov 2026): one pill, the chats count with a bubble and the mail count with an envelope take turns; it is read on any page and kept live on the Inbox', async ({ page }) => {
+test('The Inbox in the sidebar (12 Nov 2026): two pills like Notifications, the chats count with a bubble and the mail count with an envelope; read on any page and kept live on the Inbox', async ({ page }) => {
   const FAKE = 'http://127.0.0.1:54399/rest/v1/rpc/';
   const r = await open(page, 'cases.php');
   await page.waitForTimeout(1200);
   await page.evaluate(u => fetch(u + 'fake_reset_chat_state', { method: 'POST', body: '{}' }), FAKE);
   await page.evaluate(u => fetch(u + 'fake_incoming', { method: 'POST', body: '{"body":"Kuya, may balita na po ba?"}' }), FAKE);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  const pill = page.locator('.p-nav a[href="inbox.php"] .p-ib');
-  await expect(pill).toHaveAttribute('data-chat', /^[1-9]/, { timeout: 6000 });         // the chats' count came from the server
-  const mail = Number(await pill.getAttribute('data-mail')); expect(mail, 'unread mail in the demo data').toBeGreaterThan(0);
-  // both have something: the two faces take turns (one animation each)
-  expect(await pill.locator('.ib-f-chat').evaluate(e => getComputedStyle(e).animationName)).toBe('ibA');
-  expect(await pill.locator('.ib-f-mail').evaluate(e => getComputedStyle(e).animationName)).toBe('ibB');
-  await expect(pill.locator('[data-ib-sr]')).toContainText('unread chats');
-  // reduced motion: both are shown together, nothing moves
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  expect(await pill.locator('.ib-f-chat').evaluate(e => getComputedStyle(e).animationName)).toBe('none');
-  await expect(pill.locator('.ib-f-chat')).toBeVisible(); await expect(pill.locator('.ib-f-mail')).toBeVisible();
+  const chat = page.locator('.p-nav a[href="inbox.php"] .p-ib-chat'), mail = page.locator('.p-nav a[href="inbox.php"] .p-ib-mail');
+  await expect(chat).toBeVisible({ timeout: 6000 });                                   // the chats' count came from the server
+  await expect(mail).toBeVisible();                                                    // and the mail's came with the page: two pills, side by side, both still
+  const a = await chat.boundingBox(), b = await mail.boundingBox();
+  expect(Math.abs(a.y - b.y), 'on one line').toBeLessThan(2); expect(Math.abs(a.x - b.x), 'beside each other, not stacked').toBeGreaterThan(15);
+  expect(await chat.evaluate(e => getComputedStyle(e).animationName)).toBe('none');
+  const n1 = Number(await chat.getAttribute('data-n')); expect(n1).toBeGreaterThan(0);
   // on the Inbox itself the number follows what is read there
   await page.goto('inbox.php', { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(800);
-  const n1 = Number(await pill.getAttribute('data-chat')); expect(n1).toBeGreaterThan(0);
+  await expect(chat).toBeVisible({ timeout: 5000 });
   await page.locator('[data-mg-row]').filter({ hasText: 'Garcia' }).click();
-  await expect.poll(async () => Number(await pill.getAttribute('data-chat')), { timeout: 5000 }).toBeLessThan(n1);
+  await expect.poll(async () => Number(await chat.getAttribute('data-n')), { timeout: 5000 }).toBeLessThan(n1);
   expect(r.errors, 'console errors').toEqual([]);
 });
