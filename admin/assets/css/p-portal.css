@@ -654,8 +654,8 @@ td.tc-cell { min-width: 260px; max-width: 300px; }
 .p-side-com i { display: none; }
 .p-side-com span { display: block; min-width: 0; }
 .p-side-com b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font: 800 16.5px/1.2 'Inter Tight', Inter, sans-serif; text-transform: uppercase; letter-spacing: .03em; text-wrap: balance; text-shadow: 0 2px 16px color-mix(in srgb, var(--cc) 85%, transparent); }   /* the committee's whole title, on two lines when it needs them */
-html[data-side="min"] .p-side-com, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com { padding: 8px; margin: 2px 6px 14px; }
-html[data-side="min"] .p-side-com i, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com i { display: block; width: 14px; height: 14px; border-radius: 50%; background: var(--cc); box-shadow: 0 0 0 2px #fff; }
+/* the folded sidebar has no committee dot (Ace, 12 Nov): the seal on top is enough */
+html[data-side="min"] .p-side-com, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com { display: none; }
 html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com span { display: none; }
 /* 0150: colours on the Committees tab */
 .acc-col input[type=color] { width: 40px; height: 32px; padding: 2px; border-radius: 8px; border: 1px solid var(--p-line-2); background: var(--p-surface); cursor: pointer; }

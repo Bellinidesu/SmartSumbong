@@ -2138,3 +2138,18 @@ test('The Inbox in the sidebar (12 Nov 2026): two pills like Notifications, the 
   await expect.poll(async () => Number(await chat.getAttribute('data-n')), { timeout: 5000 }).toBeLessThan(n1);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('The folded sidebar (12 Nov 2026, Ace): the seal on top, no committee dot, only the profile picture at the foot and no exit button, for a committee person and a super admin', async ({ page, context }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  for (const [tier, com] of [['committee', 'peace_order'], ['super', '']]) {
+    await context.addCookies([{ name: 'ss_tier', value: tier, url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: com, url: 'http://127.0.0.1:8013' }]);
+    await page.goto('cases.php', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => document.documentElement.setAttribute('data-side', 'min'));
+    await page.waitForTimeout(400);
+    await expect(page.locator('.p-side-top .p-brand-img'), tier + ': the seal shows').toBeVisible();
+    expect((await page.locator('.p-side-top .p-brand-img').boundingBox()).width, tier + ': small').toBeLessThan(60);
+    if (tier === 'committee') await expect(page.locator('.p-side-com'), 'no committee dot').toBeHidden();
+    await expect(page.locator('.p-side-user > button'), tier + ': no exit button').toBeHidden();
+    await expect(page.locator('.p-side-user .p-side-me')).toBeVisible();
+  }
+});
