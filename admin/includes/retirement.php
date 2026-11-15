@@ -492,18 +492,23 @@ function render_retirement_queue(): void
               T('Approve', 'Aprubahan') + '|blue">' +
               T('Approve', 'Aprubahan') +
             '</button>' +
-          '</form>' +
-          '<div class="p-reveal p-deny-row" id="deny-' + escapeHtml(r.id) + '" hidden>' +
-            '<form method="post">' +
-              '<input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '">' +
-              '<input type="hidden" name="id" value="' + escapeHtml(r.id) + '">' +
-              '<label class="p-field" style="margin:0"><span>' + T('Reason — the tanod sees this', 'Dahilan — makikita ito ng tanod') + '</span>' +
-              '<textarea class="p-note" id="reason-' + escapeHtml(r.id) + '" name="reason" rows="2" maxlength="200" ' +
-                'placeholder="' + T('e.g. Please see the barangay captain before this request can be decided.', 'hal. Mangyaring kausapin muna ang kapitan bago mapagpasyahan ang kahilingang ito.') + '"></textarea></label>' +
-              '<button class="p-btn p-btn-danger-solid p-btn-sm" type="submit" name="action" value="deny">' + T('Confirm decline', 'Kumpirmahin ang pagtanggi') + '</button>' +
-            '</form>' +
-          '</div>'
+          '</form>'
         );
+      }
+
+      // 15 Nov 2026 (Rose): the reason for declining opens as a row of its own under the request, the whole width of the table, the box and its two buttons the same height
+      function denyRow(r) {
+        if (r.status !== 'pending') return '';
+        return '<tr class="ret-denytr" id="deny-' + escapeHtml(r.id) + '" hidden><td colspan="5">' +
+          '<form method="post" class="ret-deny">' +
+            '<input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '">' +
+            '<input type="hidden" name="id" value="' + escapeHtml(r.id) + '">' +
+            '<label class="ret-deny-f" for="reason-' + escapeHtml(r.id) + '"><span>' + T('Reason: the tanod sees this', 'Dahilan: makikita ito ng tanod') + '</span>' +
+            '<textarea class="p-note" id="reason-' + escapeHtml(r.id) + '" name="reason" rows="1" maxlength="200" ' +
+              'placeholder="' + T('e.g. Please see the barangay captain before this request can be decided.', 'hal. Mangyaring kausapin muna ang kapitan bago mapagpasyahan ang kahilingang ito.') + '"></textarea></label>' +
+            '<button class="p-btn p-btn-ghost" type="button" data-reveal="deny-' + escapeHtml(r.id) + '">' + T('Cancel', 'Kanselahin') + '</button>' +
+            '<button class="p-btn p-btn-danger-solid" type="submit" name="action" value="deny">' + T('Confirm decline', 'Kumpirmahin ang pagtanggi') + '</button>' +
+          '</form></td></tr>';
       }
 
       function renderRequests(rows) {
@@ -538,7 +543,7 @@ function render_retirement_queue(): void
             '<td>' + statusPill(r.status) + '</td>' +
             '<td>' + decisionCell(r) + '</td>' +
             '<td class="p-right">' + actionCell(r) + '</td>' +
-            '</tr>';
+            '</tr>' + denyRow(r);
         }).join('');
       }
       document.getElementById('ret-filter').addEventListener('change', function () { renderRequests(window.__retRows || []); });

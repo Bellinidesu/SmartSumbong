@@ -2,7 +2,7 @@
 /**
  * Forwarding a case between committees (0152; docs/ROLES_AND_PAGES.md, "Case Reports: forwarding").
  *
- * A super admin forwards a case to a committee; a Kagawad forwards to another committee or to the super admins to place it;
+ * A super admin forwards a case to a committee; a Kagawad forwards to another committee or to the barangay chairman to place it;
  * a staff member (moderator) flags it with the reason and their Kagawad decides. The database does the work and keeps the log
  * (forward_case, flag_case_for_forward, dismiss_forward_flag, the case_forwards table); this file draws it.
  *
@@ -66,7 +66,7 @@ function forward_options(?string $except = null): string
 {
     $o = '';
     if (my_tier() === 'committee') {
-        $o .= '<option value="__super">' . e(t('The super admins, to place it', 'Ang mga super admin, para ilagay')) . '</option>';
+        $o .= '<option value="__super">' . e(t('The barangay chairman', 'Ang punong barangay')) . '</option>';
     }
     foreach (committees_active() as $k => $label) {
         if ($k === $except) continue;

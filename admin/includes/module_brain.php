@@ -106,7 +106,7 @@ function module_brain(Supabase $db, bool $homeLink = true): string
 {
     $m = smart_module_read($db);
     $n = module_brain_count($m);
-    $home = !$homeLink ? null : (is_scoped() ? ['home.php', t('Open Home', 'Buksan ang Home')] : (page_allowed('dashboard.php') ? ['dashboard.php', t('Open the Dashboard', 'Buksan ang Dashboard')] : null));
+    $home = !$homeLink ? null : (is_scoped() ? null : (page_allowed('dashboard.php') ? ['dashboard.php', t('Open the Dashboard', 'Buksan ang Dashboard')] : null));
     ob_start(); ?>
 <button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($n > 0): ?><b class="ss-brain-n"><?= $n > 99 ? '99+' : $n ?></b><?php endif; ?></button>
 <div class="ss-win-scrim" id="ss-win-scrim"></div>

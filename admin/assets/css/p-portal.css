@@ -895,3 +895,36 @@ td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: 
   radial-gradient(150% 380px at 30% 100%, color-mix(in srgb, var(--p-side-glow, transparent) 42%, transparent), transparent 100%),
   linear-gradient(180deg, color-mix(in srgb, var(--p-side-glow, #0B0F19) 22%, #0B0F19) 0%, color-mix(in srgb, var(--p-side-glow, #05070C) 13%, #05070C) 100%); }
 :root[data-theme="dark"] .p-sidebar.has-mark::before { opacity: .36; mix-blend-mode: screen; }
+/* viewing mode (15 Nov 2026, Rose): the switch above the profile and the bar at the top */
+.p-side-vm { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 8px; padding: 9px 12px; border: 1px dashed rgba(255, 255, 255, .35); border-radius: var(--p-r); background: transparent; color: #fff; font: 700 12.5px/1.25 Inter, sans-serif; text-align: left; cursor: pointer; opacity: .9; }
+.p-side-vm:hover { opacity: 1; background: rgba(255, 255, 255, .1); }
+.p-side-vm svg { flex: none; }
+.vm-band { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin: 0 0 14px; padding: 10px 16px; border-radius: 14px; background: #141B34; color: #fff; font-size: 13.5px; }
+.vm-band b { font-family: 'Inter Tight', Inter, sans-serif; font-size: 15px; }
+.vm-band span { flex: 1; min-width: 200px; opacity: .88; }
+.vm-band form { margin: 0; }
+.vm-band .p-btn { background: #FF9800; border-color: #FF9800; color: #2B1A00; }
+/* declining a retirement request (15 Nov 2026, Rose): the reason opens as a row under the request, the box and the two buttons one height, level */
+.ret-denytr > td { padding: 12px 16px; background: var(--p-surface-2); }
+.ret-denytr[hidden] { display: none; }
+.ret-deny { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: end; }
+.ret-deny-f { display: grid; gap: 6px; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--p-muted); }
+.ret-deny-f textarea { height: 42px; min-height: 42px; margin: 0; resize: vertical; padding: 10px 12px; }
+.ret-deny .p-btn { height: 42px; }
+@media (max-width: 760px) { .ret-deny { grid-template-columns: 1fr 1fr; } .ret-deny-f { grid-column: 1 / -1; } }
+/* the Request in focus bar on a report with several requests (15 Nov 2026, Rose) */
+.cf { display: grid; gap: 8px; margin: 0 0 14px; padding: 12px; border: 1px solid var(--p-line); border-radius: var(--p-r); background: var(--p-surface-2); }
+.cf .ss-zl { margin: 0; }
+.cf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cf-chip { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 0 12px 0 10px; border: 1px solid var(--p-line-2); border-radius: 999px; background: var(--p-surface); color: var(--p-ink); font: 700 12.5px Inter, sans-serif; cursor: pointer; text-align: left; transition: background-color .14s, border-color .14s, transform .14s; }
+.cf-chip i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--p-amber, #E6A100); }
+.cf-chip.is-done i { background: var(--p-green, #1F8A45); }
+.cf-chip.on { background: #FF9800; border-color: #FF9800; color: #2B1A00; }
+.cf-chip.on i { background: #2B1A00; }
+.cf-chip:focus-visible { outline: 3px solid rgba(255, 152, 0, .55); outline-offset: 2px; }
+.cf-now { display: grid; gap: 4px; min-height: 22px; font-size: 13px; }
+.cf-st { margin: 0; font-weight: 800; }
+.cf-note { margin: 0; color: var(--p-muted); }
+.cf-act { display: flex; flex-wrap: wrap; gap: 8px; }
+.cf-hint { margin: 0; font-size: 12px; }
+.ss-concern-list li.is-focus { box-shadow: inset 3px 0 0 #FF9800; background: color-mix(in srgb, #FF9800 9%, transparent); border-radius: 8px; }

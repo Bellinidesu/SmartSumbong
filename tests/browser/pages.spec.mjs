@@ -226,19 +226,6 @@ test('SMART Iteration 3: rules need a reason, can be tested first, and have a hi
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('SMART Iteration 3: planning (forecast, roster, work orders, sharing)', async ({ page }) => {
-  const r = await open(page, 'settings.php#plan');
-  await expect(page.locator('#plan-forecast .st-uptime-tile')).toHaveCount(3);
-  await expect(page.locator('#plan-forecast')).toContainText('does not guess');
-  await expect(page.locator('#plan-roster li')).toHaveCount(2);
-  await expect(page.locator('#plan-roster')).toContainText('needs +1');
-  await expect(page.locator('#plan-hotspots .ss-vlist li').first()).toBeVisible();
-  await expect(page.locator('#plan-fair')).toContainText('One tanod had most of the dispatches');
-  await expect(page.locator('#plan-fair')).toContainText('One administrator holds most of the open cases');
-  expect(await axe(page), 'Settings > Planning').toEqual([]);
-  expect(r.errors, 'console errors').toEqual([]);
-});
-
 test('SMART Iteration 4: the command center (suggest, look, turn on, hand over, turn off)', async ({ page }) => {
   await page.request.get('http://127.0.0.1:54399/__cmd_reset');
   const r = await open(page, 'spatial.php');
@@ -395,7 +382,7 @@ test('0149 wording: a super admin finds a label and rewords it; the portal shows
 
 test('Roles and pages 1a: Administrative Services and the Control Room take their tabs from Settings', async ({ page }) => {
   let r = await open(page, 'settings.php');
-  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['System status', 'Plan and usage', 'SMART', 'Planning', 'Appearance']);
+  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['System status', 'Plan and usage', 'SMART', 'Appearance']);   // no Planning tab (Rose, 15 Nov)
   await expect(page.locator('.p-sidebar a[href="administrative-services.php"]')).toContainText('Administrative Services');
   await expect(page.locator('.p-sidebar a[href="control-room.php"]')).toContainText('Control Room');
   r = await open(page, 'administrative-services.php');
@@ -442,7 +429,7 @@ test('Roles and Escalation, peak: the position chooser filters the table, the ba
   await page.setViewportSize({ width: 2048, height: 1000 });
   const r = await open(page, 'administrative-services.php');
   await page.locator('.st-tabs [data-st="admins"]').click();
-  await expect(page.locator('.ad-roles .cm-chip')).toHaveCount(5);   // All, Chairman, Councilor, Secretary, Staff
+  await expect(page.locator('.ad-roles .cm-chip')).toHaveCount(4);   // All, Chairman, Councilor, Staff (no Secretary, Rose 15 Nov)
   const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(); return { a: Math.round(R('.page-administrative-services .ss-pband').bottom), b: Math.round(R('.ad-roles').top), c: Math.round(R('.ad-roles').bottom), d: Math.round(R('#ss-people').top), th: getComputedStyle(document.querySelector('#ss-people thead th')).backgroundColor }; });
   expect(Math.min(g.b - g.a, g.d - g.c), 'the band, the chooser and the table are three objects with a gap between them').toBeGreaterThanOrEqual(10);
   expect(await page.locator('.ad-roles .cm-ind').evaluate(e => e.offsetWidth > 0), 'the chooser pill is drawn, even though its tab was hidden at load').toBe(true);
@@ -636,7 +623,7 @@ test('Roles and pages 2: staff are moderators of a committee; the Administrators
   for (const href of ['dashboard.php', 'administrative-services.php', 'control-room.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
   await expect(page.locator('.p-sidebar a[href="settings.php"]')).toHaveCount(1);   // their own Settings (4 Nov 2026)
   await page.goto('control-room.php');
-  await expect(page).toHaveURL(/home\.php/);
+  await expect(page).toHaveURL(/notifications\.php/);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
@@ -652,6 +639,15 @@ test('Roles and pages 3: forwarding between committees (chips, Committee column,
   await page.locator('.fw-btn').first().click();
   await expect(page.locator('#fw-dlg')).toBeVisible();
   await expect(page.locator('#fw-dlg select[name="to"] option[value="__super"]')).toHaveCount(0);   // a super admin places; only a Kagawad hands up
+  // the committees can be chosen (15 Nov, Rose): the list opens inside the dialog, on top of it, not behind it
+  const pick = page.locator('#fw-dlg .sdp-btn').first();
+  await expect(pick).toBeVisible();
+  await pick.click();
+  const hit = await page.evaluate(() => { const p = document.querySelector('.sdp-pop'); if (!p) return 'no list'; const r = p.getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(40, r.height / 2)); return p.contains(e) && !!p.closest('dialog') ? 'on top' : 'behind'; });
+  expect(hit, 'the committee list is drawn above the dialog').toBe('on top');
+  expect(await page.locator('.sdp-pop .sdp-opt').count(), 'every active committee to choose from').toBeGreaterThanOrEqual(4);
+  await page.locator('.sdp-pop .sdp-opt').nth(1).click();
+  expect(await page.locator('#fw-dlg select[name="to"]').inputValue(), 'a committee was chosen').not.toBe('');
   expect(await axe(page), 'Case Reports, forward dialog open').toEqual([]);
   await page.locator('#fw-dlg [data-fw-close]').click();
   await expect(page.locator('#fw-dlg')).toBeHidden();
@@ -1159,10 +1155,9 @@ test('Roles and pages 6b: Report Summary by committee, and the committee form si
   await expect(page.locator('.doc-signs')).toContainText('Kagawad, Committee Head');
   await expect(page.locator('.doc-title')).toContainText('Peace and Order');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
-  const m = await open(page, 'summary.php?range=month');
-  await expect(page.locator('select#com')).toHaveCount(0);
-  await expect(page.locator('.rs-scope')).toContainText('Peace and Order');
-  expect(s.errors.concat(c.errors, f.errors, m.errors), 'console errors').toEqual([]);
+  await page.goto('summary.php?range=month', { waitUntil: 'domcontentloaded' });         // staff have no Report Summary since 15 Nov (Rose): it sends them to Notifications
+  await expect(page).toHaveURL(/notifications\.php/);
+  expect(s.errors.concat(c.errors, f.errors), 'console errors').toEqual([]);
 });
 
 test('Roles and pages 6c: Notifications by committee, a dot on each case, engine warnings grouped', async ({ page, context }) => {
@@ -1226,15 +1221,16 @@ test('The ladder (0166): an escalation names who it reaches; staff ask to retire
   const s = await open(page, 'profile.php');
   await expect(page.locator('.ss-pf-row', { hasText: 'Retirement' }).locator('button[data-native-confirm]')).toHaveText('Ask to retire');
   expect(await axe(page), 'Profile, staff').toEqual([]);
-  // the Kagawad's Retirement requests: tanod and staff, each labelled
+  // retirement requests belong to the highest authority only (Rose, 15 Nov): a Kagawad's Personnel has Tanods and My staff, no Retirement requests
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }]);
-  const k = await open(page, 'personnel.php?view=retire');
-  await expect(page.locator('#rt-k tbody tr').nth(1)).toContainText('Staff');
-  await expect(page.locator('#rt-k tbody tr').nth(0)).toContainText('Tanod');
+  const k = await open(page, 'personnel.php');
+  await expect(page.locator('.tc-tabs a')).toHaveText(['Tanods', 'My staff']);
+  await page.goto('personnel.php?view=retire');
+  await expect(page.locator('.tc-tabs a')).toHaveText(['Tanods', 'My staff']);   // the old address shows the ordinary Personnel
   expect(c.errors.concat(s.errors, k.errors), 'console errors').toEqual([]);
 });
 
-test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card) and a Kagawad endorsing a retirement', async ({ page, context }) => {
+test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card)', async ({ page, context }) => {
   const p = await open(page, 'profile.php');
   for (const k of ['case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail']) await expect(page.locator(`.ss-al-kinds input[data-kind="${k}"]`)).toHaveCount(1);
   await expect(page.locator('.ss-pf-who .rank')).toHaveCount(1);
@@ -1248,12 +1244,7 @@ test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card
   const k = await open(page, 'profile.php');
   await expect(page.locator('.pf-punch')).toContainText('Still in');
   await expect(page.locator('.ss-pf-who')).toContainText('Peace and Order');
-  const r = await open(page, 'personnel.php?view=retire');
-  await expect(page.locator('#rt-k tbody tr')).toHaveCount(2);
-  await expect(page.locator('.rt-endorse button')).toHaveCount(1);
-  await expect(page.locator('#rt-k')).toContainText('Endorsed by Dela Cruz, Ramon');
-  expect(await axe(page), 'Personnel, retirement requests (Kagawad)').toEqual([]);
-  expect(p.errors.concat(e.errors, k.errors, r.errors), 'console errors').toEqual([]);
+  expect(p.errors.concat(e.errors, k.errors), 'console errors').toEqual([]);
 });
 
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
@@ -1264,9 +1255,9 @@ test('0145 access: a committee admin sees only its pages, and no SMART drawer', 
   await expect(page.locator('.p-sidebar a[href="cases.php"]').first()).toBeVisible();
   await expect(page.locator('#side-user')).toContainText('Peace and Order');
   await page.goto('dashboard.php');
-  await expect(page).toHaveURL(/home\.php/);
+  await expect(page).toHaveURL(/notifications\.php/);
   await page.goto('control-room.php');
-  await expect(page).toHaveURL(/home\.php/);
+  await expect(page).toHaveURL(/notifications\.php/);
   const s = await open(page, 'spatial.php');
   await expect(page.locator('#smart-toggle')).toHaveCount(0);
   await expect(page.locator('#smart-side')).toHaveCount(0);
@@ -1280,7 +1271,8 @@ test('0145 access: a captain reads a case but its controls are view only', async
   await expect(page.locator('.p-controls.ss-viewonly')).toHaveCount(1);
   await expect(page.locator('.p-controls')).toContainText('View only');
   await expect(page.locator('.p-sidebar a[href="settings.php"]')).toHaveCount(0);
-  await expect(page.locator('.p-sidebar a[href="residents.php"]')).toHaveCount(1);
+  await expect(page.locator('.p-sidebar a[href="residents.php"]'), 'a view-only account sees only the four pages').toHaveCount(0);
+  for (const href of ['dashboard.php', 'summary.php', 'spatial.php', 'cases.php']) await expect(page.locator(`.p-nav a[href="${href}"]`)).toHaveCount(1);
   await expect(page.locator('#side-user')).toContainText('Captain');
   expect(await axe(page), 'Case page, captain').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
@@ -1370,38 +1362,31 @@ test('Rose, 2 Nov: the lock holds when the map is pressed, the layers stay in th
   expect(r.errors.concat(s.errors), 'console errors').toEqual([]);
 });
 
-test('Home for a Kagawad and staff: they land there, it reads their SMART module, and the Dashboard stays with the super admins (part 3)', async ({ page, context }) => {
+test('Rose, 15 Nov: no Home for anyone; a Kagawad and staff land on Notifications; staff have no Report Summary', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   await page.goto('index.php');
-  await expect(page).toHaveURL(/home\.php/);   // where they land after signing in
-  const r = await open(page, 'home.php');
-  await expect(page.locator('.p-sidebar .p-nav a').first()).toHaveAttribute('href', 'home.php');
-  await expect(page.locator('.hm-banner')).toContainText('Peace and Order');
-  await expect(page.locator('.hm-lead .hm-tile')).toHaveCount(4);
-  await expect(page.locator('.hm-lead .hm-tile').first()).toContainText('Escalations to approve');
-  await expect(page.locator('.hm-lead + .hm-h + .hm-row-4 .hm-tile')).toHaveCount(4);   // Right now: four tiles under the four decisions
-  const g = await page.evaluate(() => { const x = s => Math.round(document.querySelector(s).getBoundingClientRect().left), r = s => Math.round(document.querySelector(s).getBoundingClientRect().right);
-    const cols = [...document.querySelectorAll('.hm-cols .hm-col')].map(c => Math.round(c.getBoundingClientRect().bottom));
-    return { a: x('.hm-lead .hm-tile'), b: x('.hm-lead + .hm-h + .hm-row-4 .hm-tile'), ar: r('.hm-lead .hm-tile:last-child'), br: r('.hm-lead + .hm-h + .hm-row-4 .hm-tile:last-child'), cols }; });
-  expect(g.a, 'the decisions and the numbers start at the same edge').toBe(g.b); expect(g.ar, 'and end at the same edge').toBe(g.br);
-  if (g.cols.length === 2) expect(Math.abs(g.cols[0] - g.cols[1]), 'the two columns of lists end level').toBeLessThanOrEqual(2);
-  await expect(page.locator('.hm-list tr[data-href^="case.php?id="]').first()).toBeAttached();
-  expect(await axe(page), 'Home, Kagawad').toEqual([]);
+  await expect(page).toHaveURL(/notifications\.php/);   // where they land after signing in
+  const r = await open(page, 'notifications.php');
+  await expect(page.locator('.p-sidebar a[href="home.php"]')).toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="summary.php"]')).toHaveCount(1);   // a Kagawad keeps Report Summary
+  await page.goto('home.php');
+  await expect(page).toHaveURL(/notifications\.php/);   // the old address goes to Notifications
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
-  const m = await open(page, 'home.php');
-  await expect(page.locator('.hm-lead .hm-tile').first()).toContainText('Yours');   // staff: their work, not decisions
-  await expect(page.locator('.hm-lead')).not.toContainText('Escalations to approve');
+  const m = await open(page, 'notifications.php');
+  await expect(page.locator('.p-sidebar a[href="home.php"]')).toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="summary.php"]'), 'staff have no Report Summary').toHaveCount(0);
+  await page.goto('summary.php');
+  await expect(page).toHaveURL(/notifications\.php/);
   await context.addCookies([{ name: 'ss_tier', value: 'super', url: 'http://127.0.0.1:8013' }]);
   await page.goto('home.php');
-  await expect(page).toHaveURL(/notifications\.php/);   // a super admin has the Dashboard
-  await expect(page.locator('.p-sidebar a[href="home.php"]')).toHaveCount(0);
+  await expect(page).toHaveURL(/notifications\.php/);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
-test('The brain button answers from the person\'s SMART module on Case Reports, Notifications, Report Summary and Home (part 4)', async ({ page, context }) => {
+test('The brain button answers from the person\'s SMART module on Case Reports, Notifications, and Report Summary (part 4)', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const errs = [];
-  for (const p of ['cases.php', 'notifications.php', 'summary.php', 'home.php']) {
+  for (const p of ['cases.php', 'notifications.php', 'summary.php']) {
     const r = await open(page, p);
     errs.push(...r.errors);
     await page.locator('#ss-win-open').click();
@@ -1412,7 +1397,6 @@ test('The brain button answers from the person\'s SMART module on Case Reports, 
       await expect(page.locator('.ss-brain-n')).toHaveText('5');   // the decisions waiting on the Kagawad
       expect(await axe(page), 'engine window on Case Reports, Kagawad').toEqual([]);
     }
-    if (p === 'home.php') await expect(page.locator('#ss-panel .mb-home')).toHaveCount(0);   // already home
     if (p === 'summary.php') await expect(page.locator('#ss-panel .rs-w-card').first()).toBeAttached();   // the report's own notes follow
     await page.keyboard.press('Escape');
     await expect(page.locator('#ss-panel')).not.toHaveClass(/is-open/);
@@ -2045,4 +2029,84 @@ test('The Inbox is one full page (12 Nov 2026, Ace): Case chats fill the page be
       expect(await page.locator('.ib-apps .ib-sub').evaluate(e => getComputedStyle(e).backgroundColor), 'the title chip is orange').toBe('rgb(255, 152, 0)');
     }
   }
+});
+
+test('Rose, 15 Nov: the Chairman can switch to viewing (confirm dialog, four pages, every form refused) and back to editing', async ({ page, context }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  await context.addCookies([{ name: 'ss_tier', value: 'super', url: 'http://127.0.0.1:8013' }, { name: 'ss_role', value: 'chairman', url: 'http://127.0.0.1:8013' }]);
+  const r = await open(page, 'cases.php');
+  await expect(page.locator('.p-side-vm')).toContainText('Would you like to switch to viewing?');
+  await page.locator('.p-side-vm').click();
+  await expect(page.locator('#p-m-viewmode')).toBeVisible();
+  await expect(page.locator('#p-m-viewmode')).toContainText('nothing can be changed');
+  expect(await axe(page), 'the viewing dialog').toEqual([]);
+  await page.locator('#p-m-viewmode [data-p-close]').click();                       // Cancel: nothing changed
+  await expect(page.locator('.vm-band')).toHaveCount(0);
+  await page.locator('.p-side-vm').click();
+  await page.locator('#p-m-viewmode button[type="submit"]').click();
+  await expect(page).toHaveURL(/dashboard\.php/);
+  await expect(page.locator('.vm-band')).toContainText('not editable');
+  for (const href of ['dashboard.php', 'summary.php', 'spatial.php', 'cases.php']) await expect(page.locator(`.p-nav a[href="${href}"]`)).toHaveCount(1);
+  for (const href of ['residents.php', 'personnel.php', 'settings.php', 'notifications.php', 'inbox.php', 'administrative-services.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  await page.goto('settings.php');
+  await expect(page).toHaveURL(/dashboard\.php/);                                    // not a page of viewing mode
+  const refused = await page.evaluate(async () => { const f = new FormData(); f.set('csrf', 'x'); f.set('action', 'noop'); const x = await fetch('cases.php', { method: 'POST', body: f, redirect: 'manual' }); return x.status + ' ' + x.type; });
+  expect(refused, 'a form sent in viewing mode is refused').toMatch(/^(0 opaqueredirect|303|403)/);
+  await page.locator('.vm-band button').click();                                     // back to editing
+  await expect(page.locator('.vm-band')).toHaveCount(0);
+  await expect(page.locator('.p-side-vm')).toContainText('switch to viewing');
+  await expect(page.locator('.p-sidebar a[href="notifications.php"]')).toHaveCount(1);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Rose, 15 Nov: declining a retirement is a level full-width row, a Kagawad hands a case up to the barangay chairman, staff have no complaint type filter', async ({ page, context }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'retirement-requests.php');
+  await page.locator('[data-reveal^="deny-"]').first().click();
+  const row = page.locator('.ret-denytr:not([hidden])');
+  await expect(row).toHaveCount(1);
+  const g = await page.evaluate(() => { const tr = document.querySelector('.ret-denytr:not([hidden])'), tb = tr.closest('table').getBoundingClientRect(), b = tr.getBoundingClientRect(), ta = tr.querySelector('textarea').getBoundingClientRect(), bs = [...tr.querySelectorAll('.p-btn')].map(x => Math.round(x.getBoundingClientRect().height)); return { full: Math.round(b.width) === Math.round(tb.width), ta: Math.round(ta.height), bs }; });
+  expect(g.full, 'the whole width of the table').toBe(true);
+  expect([g.ta, ...g.bs], 'the box and the two buttons are one height').toEqual([42, 42, 42]);
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const k = await open(page, 'cases.php');
+  await expect(page.locator('#fw-dlg select[name="to"] option[value="__super"]')).toHaveText('The barangay chairman');
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'spatial.php');
+  await expect(page.locator('#f-category')).toBeHidden();
+  await expect(page.locator('#f-status')).toBeAttached();
+  await context.addCookies([{ name: 'ss_tier', value: 'super', url: 'http://127.0.0.1:8013' }]);
+  await open(page, 'spatial.php');
+  await expect(page.locator('#f-category')).toBeAttached();
+  expect(r.errors.concat(k.errors, m.errors), 'console errors').toEqual([]);
+});
+
+test('Rose, 15 Nov: where the case is shows the Councilor when a Kagawad handles it, and a Kagawad is not offered a Kagawad to hand it to', async ({ page, context }) => {
+  // a case a super admin handles at the first rung: Staff and tanods
+  const a = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000003');
+  await expect(page.locator('.ss-ladder li.now')).toHaveAttribute('data-r', 'staff');
+  // the same kind of case, but its handler is a Kagawad: the Councilor is where it is, whatever rung is stored
+  await page.route('**/rest/v1/reports*', async route => route.continue());
+  const b = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000001');
+  const now = await page.locator('.ss-ladder li.now').getAttribute('data-r');
+  expect(['kagawad', 'chair'], 'a Kagawad handles it, so it is not with staff and tanods').toContain(now);
+  expect(a.errors.concat(b.errors), 'console errors').toEqual([]);
+});
+
+test('Rose, 15 Nov: a report with several requests has a Request in focus bar over the controls; picking one lights it in the list and Next request moves on', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000001');
+  const n = await page.locator('.ss-concern-list li').count();
+  expect(n, 'the case has several requests').toBeGreaterThan(1);
+  await expect(page.locator('#cf .cf-chip')).toHaveCount(n);
+  await expect(page.locator('#cf .cf-chip.on')).toHaveCount(1);
+  await page.locator('#cf .cf-chip').nth(1).click();
+  await expect(page.locator('#cf .cf-chip').nth(1)).toHaveClass(/on/);
+  await expect(page.locator('.ss-concern-list li').nth(1)).toHaveClass(/is-focus/);
+  await expect(page.locator('.ss-concern-list li.is-focus')).toHaveCount(1);
+  await page.locator('#cf [data-cf="next"]').click();
+  await expect(page.locator('#cf .cf-chip.on')).toHaveCount(1);
+  expect(await page.locator('#cf').evaluate(e => e.getBoundingClientRect().top < document.querySelector('#assign-form, #review-form, .ss-ladder').getBoundingClientRect().top + 2000), 'the bar is in the controls').toBe(true);
+  expect(await axe(page), 'Case page with the focus bar').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
 });

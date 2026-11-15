@@ -627,6 +627,14 @@ window.ssSupabase = function (url, key, initial) {
       <?php endforeach; ?>
     </nav>
     <div class="p-side-foot">
+      <?php if (can_view_mode()): // 15 Nov 2026 (Rose): the Chairman can switch to looking only ?>
+        <?php if (view_mode_on()): ?>
+          <form method="post" action="view-mode.php"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="off">
+            <button type="submit" class="p-side-vm"><?= p_icon('i-eye', 16) ?><span><?= e(t('Back to editing', 'Bumalik sa pag-edit')) ?></span></button></form>
+        <?php else: ?>
+          <button type="button" class="p-side-vm" data-p-open="p-m-viewmode"><?= p_icon('i-eye', 16) ?><span><?= e(t('Would you like to switch to viewing?', 'Gusto mo bang lumipat sa pagtingin lamang?')) ?></span></button>
+        <?php endif; ?>
+      <?php endif; ?>
       <div class="p-side-user<?= $active === 'profile.php' ? ' p-active' : '' ?>" id="side-user">
         <a class="p-side-me" href="profile.php" title="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">
           <?= admin_avatar_html($admin) ?>
@@ -639,6 +647,8 @@ window.ssSupabase = function (url, key, initial) {
 
   <main class="p-main">
   <?= dev_view_banner() ?>
+  <?php if (view_mode_on()): ?><div class="vm-band" role="status"><b><?= e(t('Viewing mode', 'Pagtingin lamang')) ?></b><span><?= e(t('This page is not editable: nothing can be changed. You can still export data.', 'Hindi ito mae-edit: walang mababago. Makakapag-export ka pa rin ng data.')) ?></span>
+    <form method="post" action="view-mode.php"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="off"><button type="submit" class="p-btn p-btn-sm"><?= e(t('Back to editing', 'Bumalik sa pag-edit')) ?></button></form></div><?php endif; ?>
 <?php
     $storm = storm_state();
     if ($storm): ?>
@@ -871,6 +881,18 @@ window.SS_PRESENCE = <?= json_encode([
 <?php // 12 Nov 2026: the chat head (a floating bubble for a case's chat) works on every page, so its style and script ride with the footer. ?>
 <link rel="stylesheet" href="assets/css/chat-head.css?v=<?= e(asset_version('chat-head.css')) ?>">
 <script src="assets/js/chat-head.js?v=<?= e(asset_version('../js/chat-head.js')) ?>" data-csrf="<?= e(csrf_token()) ?>" defer></script>
+<?php endif; ?>
+<?php if (can_view_mode() && !view_mode_on()): ?>
+<div class="p-scrim" id="p-m-viewmode"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="p-mv-t">
+  <div class="p-m-ico" style="background:var(--p-blue-50);color:var(--p-link)"><?= p_icon('i-eye', 26) ?></div>
+  <h3 id="p-mv-t"><?= e(t('Switch to viewing?', 'Lumipat sa pagtingin lamang?')) ?></h3>
+  <p><?= e(t('In viewing mode nothing can be changed: no case, person, setting or message. You can still export data. Only the Dashboard, Report Summary, Spatial Distribution and Case Reports are shown. Switch back any time from the bar at the top.', 'Sa viewing mode, walang mababago: walang kaso, tao, setting o mensahe. Makakapag-export ka pa rin ng data. Ang Dashboard, Report Summary, Spatial Distribution at Case Reports lang ang makikita. Bumalik anumang oras mula sa bar sa itaas.')) ?></p>
+  <form class="p-actions" method="post" action="view-mode.php">
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="on">
+    <button class="p-btn p-btn-ghost" type="button" data-p-close><?= e(t('Cancel', 'Kanselahin')) ?></button>
+    <button class="p-btn p-btn-primary" type="submit"><?= e(t('Switch to viewing', 'Lumipat sa pagtingin')) ?></button>
+  </form>
+</div></div>
 <?php endif; ?>
 <?php if (current_admin()): ?>
 <div class="p-scrim" id="p-m-logout"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="p-ml-t">
