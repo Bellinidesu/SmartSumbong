@@ -43,12 +43,12 @@
 .cc-track .done i { background: #1E9E56; } .cc-track .cur i { background: var(--p-orange); } .cc-track .cur span { color: var(--p-ink); }
 
 /* ---- 2. SMART: a button, and a drawer ---- */
-.p-acc-flags .ss-smartbtn { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 8px; border: 0; border-radius: 999px; color: #fff; cursor: pointer;
+.p-acc-flags .ss-smartbtn { order: 99; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 11px 0 5px; border: 0; border-radius: 999px; color: #fff; cursor: pointer;
   background: linear-gradient(145deg, #1B2342, #0E1428); box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 3px 8px rgba(53,108,249,.45); font: 700 12.5px Inter, sans-serif; transition: box-shadow .2s; }
 .p-acc-flags .ss-smartbtn:hover { box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(53,108,249,.6); }
 .p-acc-flags .ss-smartbtn:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 2px; }
 .p-acc-flags .ss-smartbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--p-orange), 0 3px 8px rgba(53,108,249,.45); }
-.ss-smartbtn svg, .ss-smartbtn img { height: 22px; width: auto; }
+.ss-smartbtn svg, .ss-smartbtn img { height: 16px; width: auto; }
 .ss-smartbtn b { font-weight: 800; color: #6C9BFF; }
 .ss-smartbtn.ss-lv-urgent b { color: #FF7A7A; } .ss-smartbtn.ss-lv-high b { color: #FFB84D; } .ss-smartbtn.ss-lv-low b { color: #6BE39A; }
 dialog.ss-smartcard:not([open]) { display: none !important; }
