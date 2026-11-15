@@ -2184,10 +2184,10 @@ test('Rose, 15 Nov: the Chairman can switch to viewing (confirm dialog, four pag
   await expect(page.locator('.vm-band')).toHaveCount(0);
   await expect(page.locator('.p-side-vm')).toContainText('switch to viewing');
   await expect(page.locator('.p-sidebar a[href="notifications.php"]')).toHaveCount(1);
-test('Rose, 15 Nov: declining a retirement is a level full-width row, a Kagawad hands a case up to the barangay chairman, staff have no complaint type filter', async ({ page, context }) => {
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Rose, 15 Nov: declining a retirement is a level full-width row, a Kagawad hands a case up to the barangay chairman, staff have no complaint type filter', async ({ page, context }) => {
   await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'retirement-requests.php');
   await page.locator('[data-reveal^="deny-"]').first().click();
