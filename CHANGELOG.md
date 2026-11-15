@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The case page's admin controls, the full swap (15 Nov, Ace: "complete the entire swap")**
+- What the case needs from you now is one **Next step** card at the top of the controls: the stage's own block (Accept or Deny, Assign a tanod and Dispatch, the field responder and Reroute, Approve or Return the resolution, the escalation request). Nothing in those blocks changed.
+- Everything secondary is under **More**, as tiles two to a row that open in place into a full-width sheet: Update status, Forward or Flag for forwarding, Escalate up the ladder, Escalate to an outside office, Send it back down, Mark as sensitive, Ownership history, with the residents' map switch below them.
+- The same 23 forms and actions are on the page (checked against the file before the swap). Take over stays beside the case owner, where it is the next step when someone else holds the case.
+
 **The case page on one screen (15 Nov, Ace: "proceed with LIVE")**
 - The case card keeps its live look (cream, navy labels, the Validated pill). "Why this level" is now a button beside the status pill (the SMART mark, the level and the score); pressing it opens the SMART card as a drawer on the right (a dialog: Escape, its close button or a click outside shut it, focus is held inside and returns to the button). Change level is still inside it.
 - The Admin Controls panel is never taller than the window and scrolls inside itself (so a long panel no longer runs off the screen or leaves dead space beside a long case); a stage track at its top says where the case is (Review, Assign, Dispatch, Approve, Closed); the secondary actions (Take over, Forward, Flag, Ownership history, Reroute, Return to the tanod, Update status, Hand to a higher official, Escalate, Send it back down, Sensitive) are compact tiles with an icon, each opening in place.
