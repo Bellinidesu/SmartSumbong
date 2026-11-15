@@ -126,3 +126,74 @@ dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
 .cc-act-h b { font-weight: 700; }
 .cc-act-t, .cc-act-n { margin: 3px 0 0; font-size: 13px; color: var(--p-muted); }
 .cc-act-n { color: var(--p-ink-2); }
+
+/* ===== the preview's styling on the live layout (16 Nov 2026, Ace: "apply the stylization but the layout is still like live") ===== */
+@media (min-width: 1101px) {
+  /* no dead space: the case card is as tall as the controls beside it */
+  :root:root .p-case-grid { align-items: stretch; }
+  :root:root .p-case-grid > .p-controls { align-self: start; }
+  :root:root .p-case-grid > .p-case-left { display: flex; flex-direction: column; }
+  :root:root .p-case-grid > .p-case-left > div { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+  :root:root .p-case-left .p-report { flex: 1 1 auto; min-height: 0; }
+}
+/* the progress track: gradient bars, a lit current stage, a tick on the done ones */
+.cc-track { gap: 6px; margin-top: 4px; }
+.cc-track i { height: 7px; box-shadow: inset 0 1px 1px rgba(0,0,0,.08); }
+.cc-track .done i { background: linear-gradient(180deg, #4BD68A, #1E9E56); box-shadow: 0 1px 3px rgba(30,158,86,.45); }
+.cc-track .cur i { background: linear-gradient(180deg, #FFB43A, #FF9800); box-shadow: 0 2px 7px rgba(255,152,0,.6); }
+.cc-track .done span { color: #1E9E56; } .cc-track .done span::before { content: "\2713\00a0"; font-weight: 800; }
+:root[data-theme="dark"] .cc-track .done span { color: #4BD68A; }
+.cc-track .cur span { font-weight: 800; }
+/* the small labels over each block */
+:root:root .p-controls .ss-zl { font: 700 10.5px Inter, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--p-muted); margin: 8px 0 -4px; }
+/* the case owner and the committee are cards that sit on the panel */
+:root:root .ss-handler { background: var(--p-surface); border: 0; border-radius: 14px; padding: 12px 14px; box-shadow: inset 0 0 0 1px var(--p-line), var(--cc-sh1, 0 1px 3px rgba(20,27,52,.18)); }
+:root:root .ss-handler b { font-weight: 800; letter-spacing: -.005em; }
+:root:root .fw-case-row { background: var(--p-surface); border-radius: 14px; padding: 10px 14px; box-shadow: inset 0 0 0 1px var(--p-line), var(--cc-sh1, 0 1px 3px rgba(20,27,52,.18)); }
+:root:root .fw-case-row .p-flabel { margin: 0; }
+:root:root .fw-case-from { margin: 2px 4px 0; font-size: 12.5px; color: var(--p-muted); }
+/* where the case is: three steps with the rank's colour lit on the current one */
+:root:root .ss-ladder { gap: 8px; margin: 6px 0 2px; }
+:root:root .ss-ladder li { min-height: 44px; border: 0; border-radius: 12px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line), var(--cc-sh1, 0 1px 3px rgba(20,27,52,.18)); font-weight: 700; }
+:root:root .ss-ladder li.past { color: var(--p-ink); background: color-mix(in srgb, var(--rc, var(--p-blue)) 10%, var(--p-surface)); }
+:root:root .ss-ladder li.now[data-r] { border: 0; color: #fff; background: linear-gradient(180deg, color-mix(in srgb, var(--rc) 78%, #fff), var(--rc)); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 6px 14px -6px color-mix(in srgb, var(--rc) 85%, transparent); }
+/* the next step: a title, and buttons with their own light */
+:root:root .cc-next .p-eyebrow { font: 800 16px/1.25 "Inter Tight", Inter, sans-serif; letter-spacing: -.01em; text-transform: none; color: var(--p-ink); }
+:root:root .cc-next .p-eyebrow + .p-hint, :root:root .cc-next .p-req-card > .p-eyebrow + p { margin-top: 2px; }
+:root:root .p-controls .p-btn-success { border: 0; color: #fff; background: linear-gradient(180deg, #34C759, #1E9E56); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 18px -8px rgba(30,158,86,.75); }
+:root:root .p-controls .p-btn-success:hover { filter: brightness(1.05); }
+:root:root .p-controls :is(.p-btn-orange, .p-btn-primary) { border: 0; color: #2B1A00; background: linear-gradient(180deg, #FFB43A 0%, #FF9800 58%, #F28700 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 8px 18px -8px rgba(240,122,0,.75); }
+:root:root .p-controls :is(.p-btn-orange, .p-btn-primary):hover { filter: brightness(1.04); }
+:root:root .p-controls :is(.p-btn-success, .p-btn-orange, .p-btn-primary)[disabled] { opacity: .5; box-shadow: none; }
+:root:root .p-controls .p-btn-ghost { background: var(--p-surface); border: 0; box-shadow: inset 0 0 0 1px var(--p-line), var(--cc-sh1, 0 1px 3px rgba(20,27,52,.18)); }
+/* tiles: an icon in its own rounded box, lifted a little; the odd one out spans the row */
+.p-controls details.p-fix { box-shadow: inset 0 0 0 1px var(--p-line), var(--cc-sh1, 0 1px 3px rgba(20,27,52,.18)); }
+.p-controls details.p-fix > summary { grid-template-columns: 30px minmax(0, 1fr) auto; }
+.p-controls details.p-fix:not([data-ic]) > summary { grid-template-columns: minmax(0, 1fr) auto; }
+.p-controls details.p-fix > summary::before { width: 30px; height: 30px; border-radius: 9px; background-color: var(--p-surface-2); background-position: center; background-size: 16px 16px; background-repeat: no-repeat; -webkit-mask: none; mask: none; }
+.cc-tiles > details.p-fix:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.p-controls details.p-fix[data-ic="user"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%2012a4%204%200%20100-8%204%204%200%20000%208zM4%2021a8%208%200%200116%200'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="send"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M22%202L11%2013M22%202l-7%2020-4-9-9-4%2020-7z'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="flag"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M5%2021V4M5%204h11l-2%204%202%204H5'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="hist"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3%2012a9%209%200%20109-9%209%209%200%2000-7%203.5M3%204v5h5M12%208v4l3%202'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="route"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M6%2019a2%202%200%20100-4%202%202%200%20000%204zM18%209a2%202%200%20100-4%202%202%200%20000%204zM8%2017h6a4%204%200%20000-8h-2'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="back"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M15%205l-7%207%207%207'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="up"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%2019V5M5%2012l7-7%207%207'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="down"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%205v14M5%2012l7%207%207-7'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="x"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M6%206l12%2012M18%206L6%2018'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="pen"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M4%2020h4L19%209l-4-4L4%2016v4z'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="bld"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3%2021h18M5%2021V8l7-5%207%205v13M9%2012h2M13%2012h2M9%2016h2M13%2016h2'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="shield"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%203l8%203v6c0%205-3.5%208-8%209-4.5-1-8-4-8-9V6l8-3z'/%3E%3C/svg%3E"); }
+
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="user"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%2012a4%204%200%20100-8%204%204%200%20000%208zM4%2021a8%208%200%200116%200'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="send"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M22%202L11%2013M22%202l-7%2020-4-9-9-4%2020-7z'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="flag"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M5%2021V4M5%204h11l-2%204%202%204H5'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="hist"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3%2012a9%209%200%20109-9%209%209%200%2000-7%203.5M3%204v5h5M12%208v4l3%202'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="route"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M6%2019a2%202%200%20100-4%202%202%200%20000%204zM18%209a2%202%200%20100-4%202%202%200%20000%204zM8%2017h6a4%204%200%20000-8h-2'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="back"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M15%205l-7%207%207%207'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="up"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%2019V5M5%2012l7-7%207%207'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="down"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%205v14M5%2012l7%207%207-7'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="x"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M6%206l12%2012M18%206L6%2018'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="pen"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M4%2020h4L19%209l-4-4L4%2016v4z'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="bld"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3%2021h18M5%2021V8l7-5%207%205v13M9%2012h2M13%2012h2M9%2016h2M13%2016h2'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="shield"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%203l8%203v6c0%205-3.5%208-8%209-4.5-1-8-4-8-9V6l8-3z'/%3E%3C/svg%3E"); }
