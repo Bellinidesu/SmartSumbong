@@ -298,7 +298,7 @@
 :root:root .p-body.st-smart-on .p-topbar h1, :root:root .p-body.st-smart-on .p-main > h1 { color: var(--p-ink); }
 :root:root .p-body.st-smart-on .st-pane[data-pane="smart"] { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
 :root:root .p-body.st-smart-on .p-card { background: color-mix(in srgb, #fff 7%, var(--p-surface)); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm); color: var(--p-ink); }
-:root:root .p-body.st-smart-on :is(h1, h2, h3, h4, label, b, strong) { color: inherit; }
+:root:root .p-body.st-smart-on :is(h1, h2, h3, h4) { color: inherit; }
 :root:root .p-body.st-smart-on :is(.p-input-plain, input:not([type="checkbox"]):not([type="radio"]), textarea, select) { background: rgba(5, 15, 60, .45); border-color: var(--p-line-2); color: var(--p-ink); }
 :root:root .p-body.st-smart-on ::placeholder { color: var(--p-faint); }
 :root:root .p-body.st-smart-on .st-tabs { background: rgba(5, 15, 60, .5); border-color: var(--p-line); }
@@ -307,3 +307,8 @@
 :root:root .p-body.st-smart-on .st-pane[data-pane="smart"] .p-btn:not(.p-btn-primary):not(.p-btn-orange) { background: rgba(255, 255, 255, .1); border-color: var(--p-line-2); color: var(--p-ink); }
 :root:root .p-body.st-smart-on .st-pane[data-pane="smart"] .ss-engine img { filter: drop-shadow(0 0 3px rgba(237, 250, 4, .9)) drop-shadow(0 0 12px rgba(237, 250, 4, .5)) drop-shadow(0 0 28px rgba(237, 250, 4, .22)); }
 :root:root .p-body.st-smart-on .st-pane[data-pane="smart"] .ss-head p { color: var(--p-ink-3); }
+/* the SMART room in dark mode is a darker navy than by day (15 Nov 2026, Ace) */
+:root:root[data-theme="dark"] .p-body.st-smart-on .p-main {
+  --p-surface: #0B1D52; --p-surface-2: #081644; --p-bg: #050F36; --p-line: rgba(140, 165, 245, .18); --p-line-2: rgba(140, 165, 245, .3);
+  background: radial-gradient(110% 60% at 8% 0%, #0C2A78 0%, #07194E 46%, #040C2E 100%);
+}

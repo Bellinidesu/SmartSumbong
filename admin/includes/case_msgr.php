@@ -1,12 +1,12 @@
 <?php
 /**
- * The Inbox's Case chats (12 Nov 2026, Ace: "Messenger one to one, but the looks from Apple").
+ * The Inbox's Case chats (12 Nov 2026, Ace; neutral graphite and no bubble tails since 15 Nov, so the chat is the focus).
  *
- * What Messenger does, in Apple's Messages look: a sidebar of conversations (a search field, a segmented filter, one row per person with a
- * round picture, the last words, the time and a blue dot when unread, the open one filled blue); the conversation in the middle (the
- * person centred over the thread, blue bubbles for the barangay and grey for them, tails on the last bubble of a run, the day in bold
- * before the time, a pill field that grows with an emoji button, and an arrow that appears with the first letter); and Details on the
- * right (grouped lists, "Hide Alerts" as a switch, the photos). The data is the chat head's (report_messages, dispatch_updates);
+ * A community chat: a sidebar of conversations (a search field, a segmented filter, one profile per person that opens to a bubble chat per case,
+ * the last words, the time and a small blue dot when unread); the conversation in the middle (the person centred over the thread, dark bubbles for
+ * the barangay and light for them, the day in bold before the time, a pill field that grows with an emoji button, and an arrow that appears with the
+ * first letter); and Details on the right (grouped lists, "Mute this case" as a switch, the photos). The data is the chat head's (report_messages,
+ * dispatch_updates);
  * sending goes through the same two case actions, so the handler lock still applies. Only what is true is drawn: no "Delivered",
  * "Read", typing dots or reactions, because nothing records them.
  */
@@ -147,7 +147,7 @@ function msgr_composer(array $conv, string $caseId): string
     return (string) ob_get_clean();
 }
 
-/** Details, on the right: who this is, then grouped lists the way Apple draws them. */
+/** Details, on the right: who this is, then grouped lists. */
 function msgr_info(array $conv, array $report, array $evidence, string $caseId): string
 {
     $name = $conv['name'];
@@ -162,8 +162,8 @@ function msgr_info(array $conv, array $report, array $evidence, string $caseId):
         <span class="mg-isub"><?= e($conv['sub']) ?></span>
       </div>
       <ul class="mg-grp">
-        <li class="mg-li"><span><?= e(t('Hide Alerts', 'Itago ang mga alerto')) ?></span>
-          <button type="button" class="mg-sw" role="switch" aria-checked="false" data-mg="mute" aria-label="<?= e(t('Hide Alerts for this case', 'Itago ang mga alerto para sa kasong ito')) ?>"><i></i></button></li>
+        <li class="mg-li"><span><?= e(t('Mute this case', 'I-mute ang kasong ito')) ?></span>
+          <button type="button" class="mg-sw" role="switch" aria-checked="false" data-mg="mute" aria-label="<?= e(t('Mute this case', 'I-mute ang kasong ito')) ?>"><i></i></button></li>
         <li class="mg-li mg-li--btn"><button type="button" data-mg="find"><?= e(t('Search in conversation', 'Hanapin sa usapan')) ?></button></li>
         <li class="mg-li mg-li--btn"><a href="case.php?id=<?= e($caseId) ?>"><?= e(t('Open the case', 'Buksan ang kaso')) ?></a></li>
       </ul>

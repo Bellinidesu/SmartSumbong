@@ -1,17 +1,17 @@
-/* The Inbox's Case chats, drawn the way Apple's Messages is (12 Nov 2026: Messenger's behaviour, Apple's looks). Markup: includes/case_msgr.php,
+/* The Inbox's Case chats: a list of conversations, the open thread and its details (12 Nov 2026; neutral graphite since 15 Nov, so the chat is the focus). Markup: includes/case_msgr.php,
    behaviour: msgr.js, emoji.js. A grey sidebar with a search field and a segmented filter; rows with a round picture and a blue dot when unread,
    the open one filled blue; the person centred over the thread; blue and grey bubbles, the tail on the last of a run, the day in bold before the
    time; a pill field with the emoji button inside and a blue arrow once there is a letter; Details as grouped lists with a switch. Light and dark
    share the roles below. */
 .mg {
   --mg-bg: var(--p-surface); --mg-side: #F3F5FB; --mg-line: rgba(60, 60, 67, .18); --mg-field: rgba(118, 118, 128, .12); --mg-hover: rgba(118, 118, 128, .1);
-  --mg-in: #E8ECF6; --mg-in-ink: #141B34; --mg-out: #00308F; --mg-out-ink: #fff; --mg-blue: #00308F; --mg-sub: #5B6580; --mg-group: #EEF1F8; --mg-card: #fff; --mg-sel: #00308F;
+  --mg-in: #ECEEF2; --mg-in-ink: #171A20; --mg-out: #2E333C; --mg-out-ink: #fff; --mg-blue: #4A5262; --mg-dot: #2F6BFF; --mg-sub: #5F6673; --mg-group: #F1F2F5; --mg-card: #fff; --mg-sel: #E4E7EC;
   display: grid; grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); height: clamp(520px, calc(100vh - 235px), 920px);
   background: var(--mg-bg); border: 1px solid var(--mg-line); border-radius: 16px; overflow: hidden; position: relative;
   font-family: Inter, system-ui, "Segoe UI", sans-serif; color: var(--p-ink);
 }
-:root[data-theme="dark"] .mg { --mg-side: #13162B; --mg-line: rgba(120, 128, 170, .28); --mg-field: rgba(118, 118, 128, .24); --mg-hover: rgba(118, 118, 128, .22);
-  --mg-in: #2A2F4A; --mg-in-ink: #F1F3FF; --mg-out: #2F55D4; --mg-blue: #7FA0FF; --mg-sub: #A3ABC9; --mg-group: #0B0D1C; --mg-card: #171A30; --mg-sel: #2F55D4; }
+:root[data-theme="dark"] .mg { --mg-side: #1B1E23; --mg-line: rgba(120, 128, 170, .28); --mg-field: rgba(118, 118, 128, .24); --mg-hover: rgba(118, 118, 128, .22);
+  --mg-in: #2D3037; --mg-in-ink: #F1F3F7; --mg-out: #454B56; --mg-blue: #C3C9D4; --mg-dot: #6EA0FF; --mg-sub: #A4AAB6; --mg-group: #121417; --mg-card: #1F2227; --mg-sel: #2C3038; }
 .mg [hidden] { display: none !important; }
 
 /* ---------- the sidebar ---------- */
@@ -31,7 +31,7 @@
 .mg-conv + .mg-conv::before { content: ""; position: absolute; left: 76px; right: 10px; top: 0; border-top: .5px solid var(--mg-line); }
 .mg-conv:hover { background: var(--mg-hover); }
 .mg-conv:focus-visible { outline: 3px solid color-mix(in srgb, var(--mg-blue) 50%, transparent); outline-offset: -2px; }
-.mg-conv.mg-sel, .mg-conv.mg-sel:hover { background: var(--mg-sel); color: #fff; }
+.mg-conv.mg-sel, .mg-conv.mg-sel:hover { background: var(--mg-sel); color: var(--p-ink); }
 .mg-conv.mg-sel + .mg-conv::before, .mg-conv.mg-sel::before, .mg-conv:hover::before, .mg-conv:hover + .mg-conv::before { border-color: transparent; }
 .mg-ctext { display: grid; gap: 1px; min-width: 0; flex: 1; }
 .mg-cname { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
@@ -39,15 +39,15 @@
 .mg-cname time { flex: none; font-size: 13px; color: var(--mg-sub); }
 .mg-ctag { font: 600 11px Inter, sans-serif; letter-spacing: .02em; color: var(--mg-sub); }
 .mg-cprev { font-size: 14px; line-height: 1.25; color: var(--mg-sub); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.mg-sel .mg-cname time, .mg-sel .mg-ctag, .mg-sel .mg-cprev { color: rgba(255, 255, 255, .82); }
-.mg-udot { position: absolute; left: 5px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: var(--mg-blue); }
-.mg-sel .mg-udot { background: #fff; }
+.mg-sel .mg-cname time, .mg-sel .mg-ctag, .mg-sel .mg-cprev { color: var(--mg-sub); }
+.mg-udot { position: absolute; left: 5px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: var(--mg-dot); }
+.mg-sel .mg-udot { background: var(--mg-dot); }
 .mg-nomatch { margin: 18px 22px; font-size: 13.5px; line-height: 1.45; color: var(--mg-sub); text-align: center; }
 
 /* ---------- pictures: the grey contact circle with initials; the tanod leans blue, the resident orange ---------- */
 .mg-av { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; color: #fff; font: 600 15px Inter, sans-serif; background: linear-gradient(180deg, #A5ABB8, #7F8696); user-select: none; }
-.mg-av--tanod { background: linear-gradient(180deg, #5B83E6, #2F5BC4); }
-.mg-av--resident { background: linear-gradient(180deg, #FFB547, #F08A00); color: #141B34; }
+.mg-av--tanod { background: linear-gradient(180deg, #7F8998, #5D6675); }
+.mg-av--resident { background: linear-gradient(180deg, #A2A8B4, #7B8290); }
 .mg-av--sm { width: 36px; height: 36px; font-size: 13px; }
 .mg-av--lg { width: 50px; height: 50px; font-size: 18px; }
 .mg-av--xl { width: 76px; height: 76px; font-size: 27px; }
@@ -91,14 +91,6 @@
 .mg-ph { display: block; }
 .mg-ph img { display: block; max-width: 100%; width: 260px; border-radius: 16px; }
 .mg-b p + .mg-ph { margin-top: 6px; }
-/* Apple's tails: a small curl on the last bubble of a run, cut out in the thread's own colour */
-.mg-last .mg-b::before, .mg-only .mg-b::before { content: ""; position: absolute; bottom: 0; height: 18px; width: 20px; }
-.mg-last .mg-b::after, .mg-only .mg-b::after { content: ""; position: absolute; bottom: 0; width: 26px; height: 18px; background: var(--mg-bg); }
-.mg-out.mg-last .mg-b::before, .mg-out.mg-only .mg-b::before { right: -8px; background: var(--mg-out); border-bottom-left-radius: 16px 14px; }
-.mg-out.mg-last .mg-b::after, .mg-out.mg-only .mg-b::after { right: -26px; border-bottom-left-radius: 10px; }
-.mg-in.mg-last .mg-b::before, .mg-in.mg-only .mg-b::before { left: -8px; background: var(--mg-in); border-bottom-right-radius: 16px 14px; }
-.mg-in.mg-last .mg-b::after, .mg-in.mg-only .mg-b::after { left: -26px; border-bottom-right-radius: 10px; }
-.mg-failed.mg-last .mg-b::before, .mg-failed.mg-only .mg-b::before { background: #B42318; }
 .mg-more { align-self: center; display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 50%; background: transparent; color: var(--mg-sub); cursor: pointer; opacity: 0; transition: opacity .12s ease; }
 .mg-out .mg-more { order: -1; }
 .mg-row:hover .mg-more, .mg-more:focus-visible { opacity: 1; }
@@ -187,8 +179,8 @@
 .mg-phead:hover { background: var(--mg-hover); }
 .mg-phead:focus-visible { outline: 3px solid color-mix(in srgb, var(--mg-blue) 50%, transparent); outline-offset: -2px; }
 .mg-punread .mg-cname b { font-weight: 800; }
-.mg-pn { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--mg-blue); color: #fff; font: 800 11.5px/1 Inter, sans-serif; }
-:root[data-theme="dark"] .mg-pn { color: #0B0D1C; }
+.mg-pn { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--mg-dot); color: #fff; font: 800 11.5px/1 Inter, sans-serif; }
+:root[data-theme="dark"] .mg-pn { color: #121417; }
 .mg-chev { flex: none; color: var(--mg-sub); transition: transform .18s ease; }
 .mg-pop > .mg-phead .mg-chev { transform: rotate(180deg); }
 .mg-threads { display: none; margin: 0 0 6px 29px; padding-left: 10px; border-left: 2px solid var(--mg-line); }
@@ -198,5 +190,5 @@
 .mg-thr .mg-cname b { font-size: 13.5px; font-variant-numeric: tabular-nums; }
 .mg-thr .mg-ctag { font-size: 12px; font-weight: 500; letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mg-bub { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--mg-field); color: var(--mg-blue); }
-.mg-sel .mg-bub { background: rgba(255, 255, 255, .22); color: #fff; }
+.mg-sel .mg-bub { background: var(--mg-card); color: var(--mg-blue); }
 @media (prefers-reduced-motion: reduce) { .mg-chev { transition: none; } }

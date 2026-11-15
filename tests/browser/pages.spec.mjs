@@ -1094,7 +1094,7 @@ test('Roles and pages 5: the reroute question opens the case, and the Inbox is t
   const i = await open(page, 'inbox.php');
   await expect(page.locator('.p-sidebar a[href="inbox.php"]'), 'Inbox is a section of the sidebar (Ace, 12 Nov)').toHaveCount(1);
   await expect(page.locator('.mg')).toBeVisible();
-  await expect(page.locator('.gm, .ib-apps a'), 'no BarangayMail').toHaveCount(0);
+  await expect(page.locator('.gm, .ib-apps'), 'no BarangayMail, no header bar').toHaveCount(0);
   await expect(page.locator('.p-nav .p-ib-mail'), 'no envelope pill in the sidebar').toHaveCount(0);
   const old = await page.request.get('inbox.php?app=mail'); expect(old.status(), 'the old mail link still opens the chats').toBe(200);
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
@@ -1236,7 +1236,7 @@ test('The ladder (0166): an escalation names who it reaches; staff ask to retire
 
 test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card)', async ({ page, context }) => {
   const p = await open(page, 'profile.php');
-  for (const k of ['case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail']) await expect(page.locator(`.ss-al-kinds input[data-kind="${k}"]`)).toHaveCount(1);
+  for (const k of ['case_forwarded', 'forward_flag', 'reroute_question']) await expect(page.locator(`.ss-al-kinds input[data-kind="${k}"]`)).toHaveCount(1);
   await expect(page.locator('.ss-pf-who .rank')).toHaveCount(1);
   const e = await open(page, 'profile.php');
   await page.locator('.ss-pf-head').hover(); await page.locator('.pf-cvbtn').click();
@@ -1900,7 +1900,8 @@ test('Inbox, Case chats like Messenger (12 Nov 2026): a conversation per person 
   await page.evaluate(() => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_reset_chat_state', { method: 'POST', body: '{}' }));   // nothing read or muted yet, for anybody
   await page.evaluate(() => { try { Object.keys(localStorage).filter(k => k.startsWith('ss-chat-') || k.startsWith('ss-msgr') || k.startsWith('ss-emoji')).forEach(k => localStorage.removeItem(k)); } catch (e) {} });
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.locator('.ib-apps .ib-sub')).toHaveText(/Case chats/);             // one section: BarangayMail is gone
+  await expect(page.locator('.mg-lhead h2')).toHaveText('Inbox');                     // the list's title is Inbox (15 Nov), no header bar above it
+  await expect(page.locator('.mg-lhead .ib-sub')).toContainText('Case chats');       // with the Case chats chip beside it
   await expect(page.locator('.gm, a[href*="app=mail"]')).toHaveCount(0);
   const rows = page.locator('[data-mg-row]');
   const people = page.locator('.mg-person');
@@ -1946,7 +1947,7 @@ test('Inbox, Case chats like Messenger (12 Nov 2026): a conversation per person 
   await page.keyboard.press('Escape');
   await expect(page.locator('.em-pop')).toHaveCount(0);
   await page.locator('[data-mg="mute"]').click();
-  await expect(page.locator('[data-mg="mute"]')).toHaveAttribute('aria-checked', 'true');      // Hide Alerts, a switch
+  await expect(page.locator('[data-mg="mute"]')).toHaveAttribute('aria-checked', 'true');      // Mute this case, a switch
   await page.locator('[data-mg="info"]').click();                                       // the information column closes
   await expect(page.locator('.mg-info')).toBeHidden();
   expect(await axe(page), 'axe on Case chats').toEqual([]);
@@ -2030,7 +2031,7 @@ test('The Inbox is one full page (12 Nov 2026, Ace): Case chats fill the page be
       expect(g.bottom, url + ' ' + th + ': reaches the foot of the window').toBeGreaterThanOrEqual(g.vh - 2);
       expect([g.left, g.right], url + ' ' + th + ': edge to edge beside the sidebar').toEqual([g.mleft, g.mright]);
       expect(g.radius, 'no box corners').toBe('0px');
-      expect(await page.locator('.ib-apps .ib-sub').evaluate(e => getComputedStyle(e).backgroundColor), 'the title chip is orange').toBe('rgb(255, 152, 0)');
+      expect(await page.locator('.mg-lhead .ib-sub').evaluate(e => getComputedStyle(e).backgroundColor), 'the chip is quiet, not orange').not.toBe('rgb(255, 152, 0)');
     }
   }
 });

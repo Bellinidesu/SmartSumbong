@@ -71,3 +71,8 @@
 .pl-head h2 { margin: 0; font: 800 20px/1.2 'Inter Tight', Inter, sans-serif; letter-spacing: -.01em; }
 .pl-body { padding: 18px 22px 22px; overflow: auto; }
 .pl-body .p-eyebrow { margin-top: 0; }
+
+/* "All time" on the map in dark mode (15 Nov 2026, Ace): readable lettering; checked, it is the orange fill with its dark brown word */
+:root[data-theme="dark"] #s-spatial#s-spatial .p-tog { color: var(--p-ink); }
+:root[data-theme="dark"] #s-spatial#s-spatial .p-tog:has(input:checked) { background: #FF9800; border-color: #FF9800; color: #2B1A00; }
+:root[data-theme="dark"] #s-spatial#s-spatial .p-tog:has(input:checked) input { accent-color: #2B1A00; }

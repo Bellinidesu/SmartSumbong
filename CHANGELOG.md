@@ -10,6 +10,7 @@ is in its commit and pull request.
 Changes on `main` not yet deployed belong here.
 
 **The looks batch (15 Nov, Ace's stack)**
+- The Inbox: no header bar, the list's title is "Inbox" with a quiet "Case chats" chip; the chat is neutral graphite (small blue only for unread), no bubble tails, "Mute this case" instead of "Hide Alerts". Dark mode everywhere is graphite (neutral greys, three steps of lift) instead of blue-black; the SMART room is a darker navy in dark mode.
 - Pill stacks: at most four pills show in a cell; "+N more" opens the rest (every page and role, `pill-stack.js`). The "Duplicate?" flag is now a pill of the status stack, no longer beside the score.
 - Dropdowns: the handler list shows each person's picture or initials in their position frame; the status list and the Report Summary category list carry colour dots.
 - The red row action (Review): white lettering at rest, a vibrant glowing red when held; never faded.
@@ -73,7 +74,7 @@ Changes on `main` not yet deployed belong here.
 **Pills, one system (12 Nov)**
 - Position chips (Staff, Secretary, Councilor, Chairman) are a deep fill with white lettering in light and dark, one height with the status pills (the bright cyan and purple with dark lettering, which read at 2.8:1, were the odd ones out; a Councilor chip had dark lettering because its class never matched). The red counts in the sidebar and on the SMART button are a red white reads on. The SMART level shows its score inside the pill where the dot was ("74 High"), the duplicate flag is "Duplicate?" on its own line under it, "Escalated to Lupong Tagapamayapaya" is "Escalated to Lupon" (long names are cut at 16 characters; the title has the whole name), the TEST tag is a small tag, and the Roles table says the role in the access chip and the committee in its own column for staff too. New `pills.css`, loaded on every page; a test keeps every filled pill at 4.5:1 and 24px in both modes.
 **Inbox: two sections, Case chats and BarangayMail (12 Nov)**
-- The Inbox is now two sections. Case chats does what Messenger's web app does, drawn the way Apple's Messages is: a sidebar of conversations (a search field, a segmented
+- The Inbox is now two sections. Case chats is a conversation view: a sidebar of conversations (a search field, a segmented
   All / Unread / Cases I handle, one row per person with a round picture, the last words and a blue dot when unread, the open one filled blue); the person centred over the thread,
   blue and grey bubbles with a tail on the last of a run and the day in bold before the time; a pill field with an emoji picker and an arrow that appears with the first letter;
   and Details on the right as grouped lists with Hide Alerts as a switch, a search in the conversation and the photos. Conversations open without a reload and stay current
