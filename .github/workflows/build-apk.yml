@@ -1,0 +1,95 @@
+# Builds the signed release APKs in GitHub (15 Nov 2026).
+#
+# Why: nothing that can sign an update may live only on one person's PC. The signing key and its passwords are secrets of the protected "release" environment
+# (usable only from the main branch, never printed, never readable back), they exist on the runner for the minutes of one build, and the job refuses to publish
+# anything that is not signed by the app's real key (the fingerprint below), so every phone that has the app keeps accepting the update.
+#
+# How: GitHub > Actions > "Build signed APK" > Run workflow (on main). When it finishes, download the artifact from the run and upload app-arm64-v8a-release.apk
+# in Control Room > App updates, as before. The repo is public: this runs only by hand (workflow_dispatch), never on a pull request, so a fork can never reach the key.
+name: Build signed APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: release
+    env:
+      # the app's release certificate (public information): what every installed phone expects
+      EXPECTED_SHA1: 8C:AD:8F:D8:04:19:77:2C:FC:86:6A:8F:2E:23:D0:FD:DA:44:0E:25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - name: Put the signing key in place (for this run only)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.p12"
+            echo "storePassword=$STORE_PW"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PW"
+          } > mobile/resident/android/key.properties
+      - name: Build the release APKs
+        working-directory: mobile/resident
+        run: |
+          flutter pub get
+          flutter build apk --release --split-per-abi --dart-define-from-file=dart_defines.json
+      - name: Refuse anything not signed by the app's real key
+        working-directory: mobile/resident
+        run: |
+          set -euo pipefail
+          apksigner="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          want="$(echo "$EXPECTED_SHA1" | tr -d ':' | tr 'A-F' 'a-f')"
+          shopt -s nullglob
+          apks=(build/app/outputs/flutter-apk/app-*-release.apk)
+          [ "${#apks[@]}" -gt 0 ] || { echo "::error::no release APK was built"; exit 1; }
+          for apk in "${apks[@]}"; do
+            got="$("$apksigner" verify --print-certs "$apk" | grep -m1 'certificate SHA-1 digest' | sed 's/.*: //' | tr -d ':' | tr 'A-F' 'a-f')"
+            if [ "$got" != "$want" ]; then echo "::error::$apk is signed by a different key ($got)"; exit 1; fi
+            echo "ok  $apk  signed by the app's real key"
+          done
+          (cd build/app/outputs/flutter-apk && sha256sum app-*-release.apk > SHA256SUMS.txt)
+          {
+            echo "### Signed APKs"
+            echo "Version: \`$(grep -m1 '^version:' pubspec.yaml | sed 's/version: //')\` from \`${GITHUB_SHA::7}\`"
+            echo "Certificate SHA-1: \`$EXPECTED_SHA1\` (verified on every file)"
+            echo '```'; cat build/app/outputs/flutter-apk/SHA256SUMS.txt; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: smartsumbong-signed-apks-${{ github.run_number }}
+          path: |
+            mobile/resident/build/app/outputs/flutter-apk/app-*-release.apk
+            mobile/resident/build/app/outputs/flutter-apk/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Remove the key from the runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.p12" mobile/resident/android/key.properties
