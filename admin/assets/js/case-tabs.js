@@ -19,6 +19,7 @@
     document.getElementById('cc-body').setAttribute('aria-labelledby', 'cc-tab-' + name);
     var body = document.getElementById('cc-body'); if (body && !focus) { body.scrollTop = 0; }
     try { sessionStorage.setItem(key, name); } catch (e) { /* private mode: the tab just is not remembered */ }
+    if (name === 'report') { try { window.dispatchEvent(new Event('resize')); } catch (e) { /* the map keeps its size */ } }   // the map (Where) was hidden while another tab showed
   }
   window.ccShowTab = show;
   bar.addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-cc-go]') : null; if (b) { show(b.getAttribute('data-cc-go'), false); } });
