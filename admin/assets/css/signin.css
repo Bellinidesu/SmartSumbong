@@ -6,17 +6,18 @@
       card's corner, and the card in the new look with blue links. The theme switch keeps its sun-and-cloud pill; the language is two circle flags. */
 
 /* ================= the side panel ================= */
-.gl { --s1: #2C78E8; --s2: #4F9BF2; --s3: #A9D0FF; --shp: 100%; --lit: 0; --sx: 165px; --sy: 150px; --ss: 1.55; --cl: #fff; --co: .55; }   /* the moods below override these */
+.gl { --s1: #2C78E8; --s2: #4F9BF2; --s3: #A9D0FF; --shp: 100%; --lit: 0; --sx: 165px; --sy: 138px; --ss: 1.55; --cl: #fff; --co: .55; --gh: 500px; --dh: 0px; }   /* the moods below override these */
 :root:root .login-rail.gl {
-  position: relative; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0;
-  padding: 452px 22px 16px; overflow: hidden; min-height: calc(100vh / var(--z, 1)); border-right: 0;
-  background: linear-gradient(180deg, #0B2468 0, #0B2468 444px, #071747 100%); color: #F4F7FF; font-family: var(--font-body);
+  display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0;
+  padding: calc(var(--gh) + 8px) 22px 14px; overflow: hidden; border-right: 0;
+  position: sticky; top: 0; align-self: start; height: calc(100vh / var(--z, 1)); min-height: 0;   /* the page does not scroll with the hotlines: the rows below do */
+  background: linear-gradient(180deg, #0B2468 0, #0B2468 var(--gh), #071747 100%); color: #F4F7FF; font-family: var(--font-body);
 }
 :root:root .login-rail.gl::before { display: none; }
-.gl[data-phase="dawn"]   { --s1: #22306E; --s2: #7A5AA0; --s3: #FF9A5A; --shp: 82%; --lit: 1; --sx: 40px;  --sy: 372px; --ss: 1; }
-.gl[data-phase="day"]    { --s1: #2C78E8; --s2: #4F9BF2; --s3: #A9D0FF; --shp: 100%; --lit: 0; --sx: 165px; --sy: 150px; --ss: 1.22; }
-.gl[data-phase="golden"] { --s1: #33509E; --s2: #E58A4C; --s3: #FFB454; --shp: 96%; --lit: 0; --sx: 290px; --sy: 262px; --ss: 1; }
-.gl[data-phase="dusk"]   { --s1: #151F5C; --s2: #7A3F7F; --s3: #FF6F3C; --shp: 70%; --lit: 1; --sx: 300px; --sy: 362px; --ss: 1; }
+.gl[data-phase="dawn"]   { --s1: #22306E; --s2: #7A5AA0; --s3: #FF9A5A; --shp: 82%; --lit: 1; --sx: 268px; --sy: calc(404px + var(--dh)); --ss: 1; }
+.gl[data-phase="day"]    { --s1: #2C78E8; --s2: #4F9BF2; --s3: #A9D0FF; --shp: 100%; --lit: 0; --sx: 165px; --sy: 138px; --ss: 1.22; }
+.gl[data-phase="golden"] { --s1: #33509E; --s2: #E58A4C; --s3: #FFB454; --shp: 96%; --lit: 0; --sx: 290px; --sy: calc(300px + var(--dh) * .5); --ss: 1; }
+.gl[data-phase="dusk"]   { --s1: #151F5C; --s2: #7A3F7F; --s3: #FF6F3C; --shp: 70%; --lit: 1; --sx: 296px; --sy: calc(420px + var(--dh)); --ss: 1; }
 .gl[data-phase="night"]  { --s1: #050F36; --s2: #0A1B58; --s3: #0F2A72; --shp: 52%; --lit: 1; }
 .gl[data-wx="cloudy"][data-phase="day"] { --s1: #4A6AA8; --s2: #7F9BCB; --s3: #B7C9E6; }
 :is(.gl[data-wx="rain"], .gl[data-wx="storm"])[data-phase="dawn"]   { --s1: #2A3A72; --s2: #4A5C94; --s3: #6C7FB0; }
@@ -29,7 +30,7 @@
 .gl[data-wx="storm"]  { --cl: #4A5684; --co: .96; }
 .gl[data-wx="clear"]  { --cl: #fff; --co: .55; }
 
-.gl-scene { position: absolute; left: 0; right: 0; top: 0; height: 444px; overflow: hidden; }
+.gl-scene { position: absolute; left: 0; right: 0; top: 0; height: var(--gh); overflow: hidden; }
 .gl-sky { position: absolute; inset: 0; background: linear-gradient(180deg, var(--s1), var(--s2) 55%, var(--s3)); }
 .gl-scene > *:not(.gl-sky):not(.gl-foot):not(.gl-veil):not(.gl-city):not(.gl-cloud) { left: calc(50% - 165px); width: 330px; }
 .gl-cloud { left: calc(50% - 165px); }
@@ -71,7 +72,7 @@
 :is(.gl[data-wx="rain"], .gl[data-wx="storm"]) .gl-cloud.c2 .bd { display: block; }
 
 /* rain: two layers of falling streaks; thunder: a bolt that flashes now and then */
-.gl-rain { position: absolute; top: 0; height: 444px; overflow: hidden; display: none; }
+.gl-rain { position: absolute; top: 0; height: var(--gh); overflow: hidden; display: none; }
 :is(.gl[data-wx="rain"], .gl[data-wx="storm"]) .gl-rain { display: block; }
 .gl-rain i { position: absolute; left: -10%; width: 120%; height: 200%; top: -100%; transform: rotate(12deg); background: rgba(200, 215, 255, .6);
   -webkit-mask: linear-gradient(90deg, #000 1.5px, transparent 1.5px) 0 0 / 26px 100%, linear-gradient(180deg, #000 22px, transparent 22px) 0 0 / 100% 40px; -webkit-mask-composite: source-in;
@@ -82,7 +83,7 @@
 .gl[data-wx="storm"] .gl-bolt { display: block; }
 
 /* an eased veil, so the name and the reading sit on a calm ground on every sky */
-.gl-veil { position: absolute; left: 0; right: 0; top: 196px; height: 204px; background: linear-gradient(180deg, rgba(7, 23, 71, 0) 0%, rgba(7, 23, 71, .1) 12%, rgba(7, 23, 71, .28) 28%, rgba(7, 23, 71, .48) 46%, rgba(7, 23, 71, .62) 64%, rgba(7, 23, 71, .66) 100%); }
+.gl-veil { position: absolute; left: 0; right: 0; top: calc(var(--gh) - 250px); height: 250px; background: linear-gradient(180deg, rgba(7, 23, 71, 0) 0%, rgba(7, 23, 71, .1) 12%, rgba(7, 23, 71, .28) 28%, rgba(7, 23, 71, .48) 46%, rgba(7, 23, 71, .62) 64%, rgba(7, 23, 71, .66) 100%); }
 /* the city along the foot: the seal's own scene, redrawn */
 .gl-city { position: absolute; left: calc(50% - 165px); bottom: 0; width: 330px; height: 150px; overflow: visible; }
 .gl-city .hill { fill: #0D3560; } .gl-city .arena { fill: #112F86; } .gl-city .tw { fill: #0B2072; }
@@ -102,11 +103,11 @@
 .gl-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 34px; background: linear-gradient(180deg, rgba(11, 36, 104, 0), rgba(11, 36, 104, .35) 30%, rgba(11, 36, 104, .8) 68%, #0B2468); }
 
 /* the seal, in the middle of the weather */
-.gl-seal { position: absolute; left: 50%; top: 84px; width: 132px; height: 132px; margin-left: -66px; object-fit: contain; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .4)); }
-.gl-name { position: absolute; left: 0; right: 0; top: 222px; display: flex; flex-direction: column; gap: 3px; text-align: center; text-shadow: 0 2px 8px rgba(5, 16, 52, .85); }
+.gl-seal { position: absolute; left: 50%; top: 72px; width: 132px; height: 132px; margin-left: -66px; object-fit: contain; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .4)); }
+.gl-name { position: absolute; left: 0; right: 0; top: 212px; display: flex; flex-direction: column; gap: 3px; text-align: center; text-shadow: 0 2px 8px rgba(5, 16, 52, .85); }
 .gl-name b { font: 800 19px/1.1 var(--font-display); letter-spacing: -.01em; }
 .gl-name span { font: 600 12px var(--font-body); color: #DCE5FF; }
-.gl-read { position: absolute; top: 272px; left: calc(50% - 165px); width: 330px; box-sizing: border-box; padding: 0 26px; display: flex; flex-direction: column; gap: 3px; text-shadow: 0 2px 8px rgba(5, 16, 52, .8); }
+.gl-read { position: absolute; top: calc(var(--gh) - 160px); left: 22px; right: 22px; box-sizing: border-box; padding: 0; z-index: 1; text-align: left; display: flex; flex-direction: column; gap: 3px; text-shadow: 0 2px 8px rgba(5, 16, 52, .8); }
 .gl-read > div { display: flex; align-items: baseline; gap: 10px; }
 .gl-read b { font: 800 44px/1 var(--font-display); letter-spacing: -.03em; }
 .gl-read span { font: 700 16px/1.2 var(--font-display); }
@@ -114,8 +115,8 @@
 .gl-read .gl-when { font: 700 11px var(--font-body); letter-spacing: .12em; }
 
 /* the rows */
-.gl-rows { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 1; }
-.gl-rows [hidden] { display: none !important; }
+.gl-rows { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 1; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1px 2px 4px 0; margin-right: -2px; scrollbar-width: thin; scrollbar-color: rgba(160, 185, 255, .45) transparent; }
+.gl-rows [hidden] { display: none !important; } .gl-rows > * { flex: none; }
 .gl-warn, .gl-row, .gl-hot { border-radius: 14px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(160, 185, 255, .22); color: #F4F7FF; }
 .gl-warn { display: flex; gap: 10px; align-items: center; padding: 9px 12px; background: rgba(255, 178, 40, .18); border-color: rgba(255, 200, 90, .55); color: #FFE3A6; }
 .gl-warn svg { flex: none; color: #FFD27A; }
@@ -145,7 +146,7 @@
 .gl-news a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .gl-news a + a { color: #DCE5FF; }
 .gl-news em { font: 500 11px var(--font-body); font-style: normal; color: #AEBCE8; }
-.gl-note { margin: auto 0 0; padding-top: 12px; font: 500 11px var(--font-body); color: #AEBCE8; text-align: center; }
+.gl-note { margin: 0; padding-top: 10px; font: 500 11px var(--font-body); color: #AEBCE8; text-align: center; }
 .gl-powered { display: flex; align-items: center; gap: 12px; margin: 6px 0 0; position: relative; z-index: 1; }
 .gl-powered span { font: 700 11px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: #B9C6F0; white-space: nowrap; }
 .gl-powered i { flex: 1; height: 1px; background: rgba(160, 185, 255, .3); }
@@ -204,9 +205,12 @@
 :root:root .prefs--login .pref-lang button[aria-pressed="true"] { background: transparent; box-shadow: 0 0 0 3px #FF9800; }
 :root:root .prefs--login .pref-lang button:focus-visible { outline: 3px solid #00308F; outline-offset: 3px; }
 
+/* a short window: the picture is shorter so the rows below keep room to scroll */
+@media (max-height: 820px) and (min-width: 981px) { .gl { --gh: 420px; --dh: -80px; } }
+
 /* ================= narrow screens: the panel becomes a slim bar ================= */
 @media (max-width: 980px) {
-  :root:root .login-rail.gl { min-height: 0; flex-direction: row; align-items: center; gap: 14px; padding: 16px 18px; background: #0B2468; }
+  :root:root .login-rail.gl { position: relative; height: auto; min-height: 0; flex-direction: row; align-items: center; gap: 14px; padding: 16px 18px; background: #0B2468; }
   .gl-scene, .gl-read, .gl-rows, .gl-note, .gl-powered { display: none; }
   .gl-seal { position: static; width: 64px; height: 64px; margin: 0; }
   .gl-name { position: static; text-align: left; }
