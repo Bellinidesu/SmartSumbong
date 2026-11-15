@@ -180,3 +180,23 @@
 @media (max-width: 640px) { .em-pop { width: calc(100vw - 16px); } }
 @media (prefers-reduced-motion: reduce) { .mg-more, .mg-sw, .mg-sw i, .mg-send { transition: none; } }
 @media print { .mg, .em-pop { display: none; } }
+
+/* ---------- the community chat (15 Nov 2026, Rose): a profile per person, a bubble chat per case under it ---------- */
+.mg-person + .mg-person { margin-top: 2px; }
+.mg-phead { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px 9px 12px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.mg-phead:hover { background: var(--mg-hover); }
+.mg-phead:focus-visible { outline: 3px solid color-mix(in srgb, var(--mg-blue) 50%, transparent); outline-offset: -2px; }
+.mg-punread .mg-cname b { font-weight: 800; }
+.mg-pn { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--mg-blue); color: #fff; font: 800 11.5px/1 Inter, sans-serif; }
+:root[data-theme="dark"] .mg-pn { color: #0B0D1C; }
+.mg-chev { flex: none; color: var(--mg-sub); transition: transform .18s ease; }
+.mg-pop > .mg-phead .mg-chev { transform: rotate(180deg); }
+.mg-threads { display: none; margin: 0 0 6px 29px; padding-left: 10px; border-left: 2px solid var(--mg-line); }
+.mg-pop > .mg-threads { display: block; }
+.mg-thr { padding: 8px 10px 8px 22px; }
+.mg-thr + .mg-thr::before { left: 40px; }
+.mg-thr .mg-cname b { font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.mg-thr .mg-ctag { font-size: 12px; font-weight: 500; letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mg-bub { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--mg-field); color: var(--mg-blue); }
+.mg-sel .mg-bub { background: rgba(255, 255, 255, .22); color: #fff; }
+@media (prefers-reduced-motion: reduce) { .mg-chev { transition: none; } }

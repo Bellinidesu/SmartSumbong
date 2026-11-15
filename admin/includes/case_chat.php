@@ -234,7 +234,7 @@ function case_chat_load(Supabase $db, string $id): ?array
  */
 function case_chat_list_reads(int $keep = 300): array
 {
-    $rep = 'id,tracking_id,subject,status,handler_id';
+    $rep = 'id,tracking_id,subject,status,handler_id,resident_id';
     return [
         'msgs' => ['report_messages', ['select' => 'report_id,from_barangay,body,created_at,report:reports!report_messages_report_id_fkey(' . $rep . ',resident:users!reports_resident_id_fkey(full_name))',
                                        'order' => 'created_at.desc', 'limit' => (string) $keep]],
@@ -249,11 +249,11 @@ function case_chat_list_rows(array $got, string $me): array
 {
     $iso = static function (?string $s): string { $t = $s !== null ? strtotime($s) : false; return $t ? gmdate('Y-m-d\TH:i:s\Z', $t) : ''; };
     $rows = [];
-    $put = static function (array $r, string $conv, string $kind, string $name, bool $incoming, string $ts, string $text) use (&$rows, $me): void {
+    $put = static function (array $r, string $conv, string $kind, string $name, bool $incoming, string $ts, string $text, string $pid = '') use (&$rows, $me): void {
         if (empty($r['id']) || $ts === '') return;
         $key = $r['id'] . '|' . $conv;
         $c = &$rows[$key];
-        $c ??= ['key' => $key, 'case' => (string) $r['id'], 'conv' => $conv, 'kind' => $kind, 'name' => $name, 'tracking' => (string) ($r['tracking_id'] ?? ''),
+        $c ??= ['key' => $key, 'case' => (string) $r['id'], 'conv' => $conv, 'kind' => $kind, 'name' => $name, 'pkey' => $kind . ':' . ($pid !== '' ? $pid : mb_strtolower($name)), 'tracking' => (string) ($r['tracking_id'] ?? ''),
                 'subject' => (string) ($r['subject'] ?? ''), 'status' => (string) ($r['status'] ?? ''), 'mine' => ($r['handler_id'] ?? null) === $me,
                 'last' => '', 'text' => '', 'out' => false, 'feed' => ['in' => [], 'out' => []]];
         if ($ts > $c['last']) { $c['last'] = $ts; $c['text'] = mb_substr(trim($text), 0, 140); $c['out'] = !$incoming; }
@@ -262,12 +262,12 @@ function case_chat_list_rows(array $got, string $me): array
     };
     foreach ((array) ($got['msgs'] ?? []) as $m) {
         $r = (array) ($m['report'] ?? []);
-        $put($r, 'r', 'resident', formal_or($r['resident']['full_name'] ?? null, t('Resident', 'Residente')), empty($m['from_barangay']), $iso($m['created_at'] ?? null), (string) ($m['body'] ?? ''));
+        $put($r, 'r', 'resident', formal_or($r['resident']['full_name'] ?? null, t('Resident', 'Residente')), empty($m['from_barangay']), $iso($m['created_at'] ?? null), (string) ($m['body'] ?? ''), (string) ($r['resident_id'] ?? ''));
     }
     foreach ((array) ($got['ups'] ?? []) as $u) {
         $d = (array) ($u['d'] ?? []);
         $put((array) ($d['report'] ?? []), 'd-' . $u['dispatch_id'], 'tanod', (string) ($d['tanod']['full_name'] ?? t('Tanod', 'Tanod')),
-             ($u['author_id'] ?? null) === ($d['tanod_id'] ?? '?'), $iso($u['created_at'] ?? null), (string) ($u['body'] ?? ''));
+             ($u['author_id'] ?? null) === ($d['tanod_id'] ?? '?'), $iso($u['created_at'] ?? null), (string) ($u['body'] ?? ''), (string) ($d['tanod_id'] ?? ''));
     }
     // where this person was in each conversation (chat_state, 0173): rides each row so the page starts from the database, not only this browser
     $st = [];

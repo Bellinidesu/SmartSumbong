@@ -46,23 +46,54 @@ function msgr_avatar(string $name, string $kind, string $size = ''): string
     return '<span class="mg-av mg-av--' . e($kind) . ($size !== '' ? ' mg-av--' . e($size) : '') . '" aria-hidden="true">' . e(case_chat_initials($name)) . '</span>';
 }
 
-/** The sidebar's rows. */
+/**
+ * The sidebar, drawn as a community chat (15 Nov 2026, Rose): one profile per person (a resident, a tanod) and, under it, one bubble chat
+ * per case. A profile opens and closes; its unread count is the sum of its chats. Every chat row keeps its markup (data-mg-row), so
+ * the list's search, chips, unread dots and opening in place work as before; msgr.js groups the counts and the open/closed state.
+ */
 function msgr_list(array $rows, string $selKey): string
 {
+    $people = [];
+    foreach ($rows as $r) {
+        $k = (string) ($r['pkey'] ?? $r['key']);
+        $people[$k] ??= ['key' => $k, 'name' => $r['name'], 'kind' => $r['kind'], 'last' => '', 'rows' => []];
+        $people[$k]['rows'][] = $r;
+        if ($r['last'] > $people[$k]['last']) { $people[$k]['last'] = $r['last']; }
+    }
+    uasort($people, static fn ($a, $b) => strcmp($b['last'], $a['last']));
     ob_start();
-    foreach ($rows as $r):
-        $sel = $r['key'] === $selKey;
-        $href = 'inbox.php?app=chats&c=' . e($r['case']) . '&k=' . e($r['conv']); ?>
-      <a class="mg-conv<?= $sel ? ' mg-sel' : '' ?>" href="<?= $href ?>" data-mg-row data-key="<?= e($r['key']) ?>" data-report="<?= e($r['case']) ?>" data-conv="<?= e($r['conv']) ?>"
-         data-mine="<?= $r['mine'] ? '1' : '0' ?>" data-search="<?= e(mb_strtolower($r['name'] . ' ' . $r['tracking'] . ' ' . $r['subject'])) ?>" data-feed="<?= e((string) json_encode($r['feed'])) ?>"<?= $sel ? ' aria-current="true"' : '' ?>>
-        <i class="mg-udot" hidden aria-hidden="true"></i><span class="p-sr mg-usr" hidden><?= e(t('Unread', 'Hindi pa nababasa')) ?></span>
-        <?= msgr_avatar($r['name'], $r['kind'], 'lg') ?>
-        <span class="mg-ctext">
-          <span class="mg-cname"><b><?= e($r['name']) ?></b><time><?= e(msgr_short($r['last'])) ?></time></span>
-          <span class="mg-ctag"><?= e($r['tracking']) ?></span>
-          <span class="mg-cprev"><?= $r['out'] ? e(t('You: ', 'Ikaw: ')) : '' ?><?= e($r['text']) ?></span>
-        </span>
-      </a>
+    foreach ($people as $pk => $pe):
+        $hasSel = false; foreach ($pe['rows'] as $r) { if ($r['key'] === $selKey) { $hasSel = true; } }
+        $n = count($pe['rows']);
+        $role = $pe['kind'] === 'tanod' ? t('Tanod', 'Tanod') : t('Resident', 'Residente');
+        $pid = 'mgp-' . substr(md5($pk), 0, 10); ?>
+      <section class="mg-person<?= $hasSel ? ' mg-pop' : '' ?>" data-person="<?= e($pk) ?>">
+        <button type="button" class="mg-phead" data-mg="person" aria-expanded="<?= $hasSel ? 'true' : 'false' ?>" aria-controls="<?= e($pid) ?>">
+          <?= msgr_avatar($pe['name'], $pe['kind'], 'lg') ?>
+          <span class="mg-ctext">
+            <span class="mg-cname"><b><?= e($pe['name']) ?></b><time><?= e(msgr_short($pe['last'])) ?></time></span>
+            <span class="mg-ctag"><?= e($role) ?> · <?= e(sprintf($n === 1 ? t('%d case', '%d kaso') : t('%d cases', '%d kaso'), $n)) ?></span>
+          </span>
+          <span class="mg-pn" hidden aria-hidden="true">0</span><span class="p-sr mg-pnsr" hidden></span>
+          <svg class="mg-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="mg-threads" id="<?= e($pid) ?>" role="group" aria-label="<?= e(sprintf(t('Cases with %s', 'Mga kaso kasama si %s'), $pe['name'])) ?>">
+        <?php foreach ($pe['rows'] as $r):
+            $sel = $r['key'] === $selKey;
+            $href = 'inbox.php?app=chats&c=' . e($r['case']) . '&k=' . e($r['conv']); ?>
+          <a class="mg-conv mg-thr<?= $sel ? ' mg-sel' : '' ?>" href="<?= $href ?>" data-mg-row data-key="<?= e($r['key']) ?>" data-report="<?= e($r['case']) ?>" data-conv="<?= e($r['conv']) ?>"
+             data-mine="<?= $r['mine'] ? '1' : '0' ?>" data-search="<?= e(mb_strtolower($r['name'] . ' ' . $r['tracking'] . ' ' . $r['subject'])) ?>" data-feed="<?= e((string) json_encode($r['feed'])) ?>"<?= $sel ? ' aria-current="true"' : '' ?>>
+            <i class="mg-udot" hidden aria-hidden="true"></i><span class="p-sr mg-usr" hidden><?= e(t('Unread', 'Hindi pa nababasa')) ?></span>
+            <span class="mg-bub" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.5 1.3 4.7 3.4 6.2-.2 1.3-.8 2.6-1.7 3.6a.5.5 0 0 0 .5.8c2-.3 3.7-1.1 4.9-2A11.7 11.7 0 0 0 12 20c5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/></svg></span>
+            <span class="mg-ctext">
+              <span class="mg-cname"><b><?= e($r['tracking']) ?></b><time><?= e(msgr_short($r['last'])) ?></time></span>
+              <?php if ($r['subject'] !== ''): ?><span class="mg-ctag"><?= e($r['subject']) ?></span><?php endif; ?>
+              <span class="mg-cprev"><?= $r['out'] ? e(t('You: ', 'Ikaw: ')) : '' ?><?= e($r['text']) ?></span>
+            </span>
+          </a>
+        <?php endforeach; ?>
+        </div>
+      </section>
     <?php endforeach;
     return (string) ob_get_clean();
 }
