@@ -895,3 +895,11 @@ td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: 
   radial-gradient(150% 380px at 30% 100%, color-mix(in srgb, var(--p-side-glow, transparent) 42%, transparent), transparent 100%),
   linear-gradient(180deg, color-mix(in srgb, var(--p-side-glow, #0B0F19) 22%, #0B0F19) 0%, color-mix(in srgb, var(--p-side-glow, #05070C) 13%, #05070C) 100%); }
 :root[data-theme="dark"] .p-sidebar.has-mark::before { opacity: .36; mix-blend-mode: screen; }
+/* declining a retirement request (15 Nov 2026, Rose): the reason opens as a row under the request, the box and the two buttons one height, level */
+.ret-denytr > td { padding: 12px 16px; background: var(--p-surface-2); }
+.ret-denytr[hidden] { display: none; }
+.ret-deny { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: end; }
+.ret-deny-f { display: grid; gap: 6px; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--p-muted); }
+.ret-deny-f textarea { height: 42px; min-height: 42px; margin: 0; resize: vertical; padding: 10px 12px; }
+.ret-deny .p-btn { height: 42px; }
+@media (max-width: 760px) { .ret-deny { grid-template-columns: 1fr 1fr; } .ret-deny-f { grid-column: 1 / -1; } }

@@ -225,19 +225,6 @@ test('SMART Iteration 3: rules need a reason, can be tested first, and have a hi
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('SMART Iteration 3: planning (forecast, roster, work orders, sharing)', async ({ page }) => {
-  const r = await open(page, 'settings.php#plan');
-  await expect(page.locator('#plan-forecast .st-uptime-tile')).toHaveCount(3);
-  await expect(page.locator('#plan-forecast')).toContainText('does not guess');
-  await expect(page.locator('#plan-roster li')).toHaveCount(2);
-  await expect(page.locator('#plan-roster')).toContainText('needs +1');
-  await expect(page.locator('#plan-hotspots .ss-vlist li').first()).toBeVisible();
-  await expect(page.locator('#plan-fair')).toContainText('One tanod had most of the dispatches');
-  await expect(page.locator('#plan-fair')).toContainText('One administrator holds most of the open cases');
-  expect(await axe(page), 'Settings > Planning').toEqual([]);
-  expect(r.errors, 'console errors').toEqual([]);
-});
-
 test('SMART Iteration 4: the command center (suggest, look, turn on, hand over, turn off)', async ({ page }) => {
   await page.request.get('http://127.0.0.1:54399/__cmd_reset');
   const r = await open(page, 'spatial.php');
@@ -394,7 +381,7 @@ test('0149 wording: a super admin finds a label and rewords it; the portal shows
 
 test('Roles and pages 1a: Administrative Services and the Control Room take their tabs from Settings', async ({ page }) => {
   let r = await open(page, 'settings.php');
-  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['System status', 'Plan and usage', 'SMART', 'Planning', 'Appearance']);
+  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['System status', 'Plan and usage', 'SMART', 'Appearance']);   // no Planning tab (Rose, 15 Nov)
   await expect(page.locator('.p-sidebar a[href="administrative-services.php"]')).toContainText('Administrative Services');
   await expect(page.locator('.p-sidebar a[href="control-room.php"]')).toContainText('Control Room');
   r = await open(page, 'administrative-services.php');
@@ -441,7 +428,7 @@ test('Roles and Escalation, peak: the position chooser filters the table, the ba
   await page.setViewportSize({ width: 2048, height: 1000 });
   const r = await open(page, 'administrative-services.php');
   await page.locator('.st-tabs [data-st="admins"]').click();
-  await expect(page.locator('.ad-roles .cm-chip')).toHaveCount(5);   // All, Chairman, Councilor, Secretary, Staff
+  await expect(page.locator('.ad-roles .cm-chip')).toHaveCount(4);   // All, Chairman, Councilor, Staff (no Secretary, Rose 15 Nov)
   const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(); return { a: Math.round(R('.page-administrative-services .ss-pband').bottom), b: Math.round(R('.ad-roles').top), c: Math.round(R('.ad-roles').bottom), d: Math.round(R('#ss-people').top), th: getComputedStyle(document.querySelector('#ss-people thead th')).backgroundColor }; });
   expect(Math.min(g.b - g.a, g.d - g.c), 'the band, the chooser and the table are three objects with a gap between them').toBeGreaterThanOrEqual(10);
   expect(await page.locator('.ad-roles .cm-ind').evaluate(e => e.offsetWidth > 0), 'the chooser pill is drawn, even though its tab was hidden at load').toBe(true);
@@ -651,6 +638,15 @@ test('Roles and pages 3: forwarding between committees (chips, Committee column,
   await page.locator('.fw-btn').first().click();
   await expect(page.locator('#fw-dlg')).toBeVisible();
   await expect(page.locator('#fw-dlg select[name="to"] option[value="__super"]')).toHaveCount(0);   // a super admin places; only a Kagawad hands up
+  // the committees can be chosen (15 Nov, Rose): the list opens inside the dialog, on top of it, not behind it
+  const pick = page.locator('#fw-dlg .sdp-btn').first();
+  await expect(pick).toBeVisible();
+  await pick.click();
+  const hit = await page.evaluate(() => { const p = document.querySelector('.sdp-pop'); if (!p) return 'no list'; const r = p.getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(40, r.height / 2)); return p.contains(e) && !!p.closest('dialog') ? 'on top' : 'behind'; });
+  expect(hit, 'the committee list is drawn above the dialog').toBe('on top');
+  expect(await page.locator('.sdp-pop .sdp-opt').count(), 'every active committee to choose from').toBeGreaterThanOrEqual(4);
+  await page.locator('.sdp-pop .sdp-opt').nth(1).click();
+  expect(await page.locator('#fw-dlg select[name="to"]').inputValue(), 'a committee was chosen').not.toBe('');
   expect(await axe(page), 'Case Reports, forward dialog open').toEqual([]);
   await page.locator('#fw-dlg [data-fw-close]').click();
   await expect(page.locator('#fw-dlg')).toBeHidden();
@@ -1245,15 +1241,16 @@ test('The ladder (0166): an escalation names who it reaches; staff ask to retire
   const s = await open(page, 'profile.php');
   await expect(page.locator('.ss-pf-row', { hasText: 'Retirement' }).locator('button[data-native-confirm]')).toHaveText('Ask to retire');
   expect(await axe(page), 'Profile, staff').toEqual([]);
-  // the Kagawad's Retirement requests: tanod and staff, each labelled
+  // retirement requests belong to the highest authority only (Rose, 15 Nov): a Kagawad's Personnel has Tanods and My staff, no Retirement requests
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }]);
-  const k = await open(page, 'personnel.php?view=retire');
-  await expect(page.locator('#rt-k tbody tr').nth(1)).toContainText('Staff');
-  await expect(page.locator('#rt-k tbody tr').nth(0)).toContainText('Tanod');
+  const k = await open(page, 'personnel.php');
+  await expect(page.locator('.tc-tabs a')).toHaveText(['Tanods', 'My staff']);
+  await page.goto('personnel.php?view=retire');
+  await expect(page.locator('.tc-tabs a')).toHaveText(['Tanods', 'My staff']);   // the old address shows the ordinary Personnel
   expect(c.errors.concat(s.errors, k.errors), 'console errors').toEqual([]);
 });
 
-test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card) and a Kagawad endorsing a retirement', async ({ page, context }) => {
+test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card)', async ({ page, context }) => {
   const p = await open(page, 'profile.php');
   for (const k of ['case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail']) await expect(page.locator(`.ss-al-kinds input[data-kind="${k}"]`)).toHaveCount(1);
   await expect(page.locator('.ss-pf-who .rank')).toHaveCount(1);
@@ -1267,12 +1264,7 @@ test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card
   const k = await open(page, 'profile.php');
   await expect(page.locator('.pf-punch')).toContainText('Still in');
   await expect(page.locator('.ss-pf-who')).toContainText('Peace and Order');
-  const r = await open(page, 'personnel.php?view=retire');
-  await expect(page.locator('#rt-k tbody tr')).toHaveCount(2);
-  await expect(page.locator('.rt-endorse button')).toHaveCount(1);
-  await expect(page.locator('#rt-k')).toContainText('Endorsed by Dela Cruz, Ramon');
-  expect(await axe(page), 'Personnel, retirement requests (Kagawad)').toEqual([]);
-  expect(p.errors.concat(e.errors, k.errors, r.errors), 'console errors').toEqual([]);
+  expect(p.errors.concat(e.errors, k.errors), 'console errors').toEqual([]);
 });
 
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
@@ -2173,4 +2165,26 @@ test('The Inbox is one full page (12 Nov 2026, Ace): Case chats and BarangayMail
       expect(await page.locator('.ib-apps .st-link.p-on').evaluate(e => getComputedStyle(e).backgroundColor), 'the section in use is orange').toBe('rgb(255, 152, 0)');
     }
   }
+});
+
+test('Rose, 15 Nov: declining a retirement is a level full-width row, a Kagawad hands a case up to the barangay chairman, staff have no complaint type filter', async ({ page, context }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'retirement-requests.php');
+  await page.locator('[data-reveal^="deny-"]').first().click();
+  const row = page.locator('.ret-denytr:not([hidden])');
+  await expect(row).toHaveCount(1);
+  const g = await page.evaluate(() => { const tr = document.querySelector('.ret-denytr:not([hidden])'), tb = tr.closest('table').getBoundingClientRect(), b = tr.getBoundingClientRect(), ta = tr.querySelector('textarea').getBoundingClientRect(), bs = [...tr.querySelectorAll('.p-btn')].map(x => Math.round(x.getBoundingClientRect().height)); return { full: Math.round(b.width) === Math.round(tb.width), ta: Math.round(ta.height), bs }; });
+  expect(g.full, 'the whole width of the table').toBe(true);
+  expect([g.ta, ...g.bs], 'the box and the two buttons are one height').toEqual([42, 42, 42]);
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const k = await open(page, 'cases.php');
+  await expect(page.locator('#fw-dlg select[name="to"] option[value="__super"]')).toHaveText('The barangay chairman');
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'spatial.php');
+  await expect(page.locator('#f-category')).toBeHidden();
+  await expect(page.locator('#f-status')).toBeAttached();
+  await context.addCookies([{ name: 'ss_tier', value: 'super', url: 'http://127.0.0.1:8013' }]);
+  await open(page, 'spatial.php');
+  await expect(page.locator('#f-category')).toBeAttached();
+  expect(r.errors.concat(k.errors, m.errors), 'console errors').toEqual([]);
 });

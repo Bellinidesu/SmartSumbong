@@ -33,7 +33,7 @@
     pop.style.transformOrigin = (up ? 'bottom' : 'top') + ' left';
   }
   function show(btn, pop, key) {
-    close(false); (document.fullscreenElement || document.webkitFullscreenElement || document.body).appendChild(pop); place(btn, pop);   // in full screen only that element is drawn
+    close(false); (btn.closest('dialog[open]') || document.fullscreenElement || document.webkitFullscreenElement || document.body).appendChild(pop); place(btn, pop);   // in an open dialog (the top layer) the list must live inside it or it is drawn behind it (the Forward dialog showed no committees, 15 Nov); in full screen only that element is drawn
     void pop.offsetWidth; pop.classList.add('in');
     btn.setAttribute('aria-expanded', 'true'); btn.classList.add('open');
     open = { btn: btn, pop: pop, key: key }; document.documentElement.classList.add('sdp-live');

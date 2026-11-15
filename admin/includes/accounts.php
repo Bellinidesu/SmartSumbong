@@ -62,11 +62,6 @@ function render_account_screen(string $role): void
             render_staff_profile($db, (string) $_GET['staff']);
             return;
         }
-        if (($_GET['view'] ?? '') === 'retire' && is_committee()) {
-            require_once __DIR__ . '/retirement.php';
-            render_retire_page($db);
-            return;
-        }
     }
 
     $flash = $_SESSION['flash'] ?? null;
