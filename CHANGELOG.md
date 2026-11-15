@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The looks sweep (16 Nov, every role, both themes, every page and popup)**
+- A Captain account (the view-only tier) is sent to the Dashboard when a page is not for it. It was sent to Notifications, which it may not open, so every refused page, and the sign-in itself, looped ("too many redirects"). The landing page can no longer be one the person cannot open.
+- A dropdown of statuses wears the status pills' colours on every page (it was only on Case Reports); categories and committees already did.
+- No frosted glass anywhere: the certificate editor's inspector and toolbar at night were the last two (they are solid now). The Workspace widget rail's chosen tab at night is a lift in its orange, not a halo.
+- A row of badges wraps instead of squeezing a badge past its words ("Verified" + "Deleted by Resident" on Personnel); the Profile banner presets end their rows evenly; on a narrow laptop the Spatial Distribution filters sit three to a row.
+- tests/browser/look-sweep.spec.mjs (LS=1) checks every role, both themes, every page and every popup for frosting, halos, see-through popups, text past its edge and a lone item on a row; mat-audit.spec.mjs (MAT=1) writes into test-results.
+
 **The admin controls wear the preview's styling (16 Nov, Ace)**
 - The layout is the live one; the styling is the preview's: the progress track is gradient bars with a lit current stage and a tick on the done ones; Case owner and Committee are cards that sit on the panel; Where the case is lights the current rung in its colour; the Next step has a bold title and its buttons carry their own light (Approve in green, Dispatch and the main actions in orange); every tile has its icon in a rounded box and a small lift, and an odd last tile spans the row.
 - No dead space: the cream case card is as tall as the controls beside it on every tab.

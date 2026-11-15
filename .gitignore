@@ -47,3 +47,8 @@ tests/browser/lighthouse/
 
 admin/includes/vendor/
 tests/browser/shots/
+
+# a Playwright run started from the repo root leaves its results here
+/test-results/
+# the app capture harness is a local tool (it writes PNGs of every screen; see its header): never committed
+mobile/resident/test/capture_screens_test.dart
