@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The admin controls wear the preview's styling (16 Nov, Ace)**
+- The layout is the live one; the styling is the preview's: the progress track is gradient bars with a lit current stage and a tick on the done ones; Case owner and Committee are cards that sit on the panel; Where the case is lights the current rung in its colour; the Next step has a bold title and its buttons carry their own light (Approve in green, Dispatch and the main actions in orange); every tile has its icon in a rounded box and a small lift, and an odd last tile spans the row.
+- No dead space: the cream case card is as tall as the controls beside it on every tab.
+
 **The case page, as decided (16 Nov, Ace)**
 - The SMART pill is gone: the brain button of this case sits in the cream card's header corner (navy, with the score on its badge in the level's colour) and opens "Why this level". The automatic "request in focus" pick no longer scrolls the card's body on load (it hid the Subject).
 - The map is the **Where** block of the Report tab (it left the controls panel, which is shorter now).

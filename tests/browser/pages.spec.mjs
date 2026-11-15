@@ -2637,3 +2637,23 @@ test('Case page, as decided (16 Nov): the portal\'s brain button in the top bar 
   await expect(page.locator('.cc-acts')).toBeHidden();
   expect(await axe(page), 'the case page, light').toEqual([]);
 });
+
+test('Case page, styled and without dead space (16 Nov): the cream card is as tall as the controls beside it on every tab, the track, owner, ladder and tiles carry the preview\'s styling', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, `case.php?id=${CASE}`);
+  for (const tab of ['report', 'evidence', 'timeline', 'feedback']) {
+    await page.locator(`[data-cc-go="${tab}"]`).click();
+    const g = await page.evaluate(() => { const r = document.querySelector('.p-report').getBoundingClientRect(), c = document.querySelector('.p-controls').getBoundingClientRect(); return { r: r.bottom, c: c.bottom }; });
+    expect(Math.abs(g.r - g.c), tab + ': no empty page under the case card').toBeLessThan(10);
+  }
+  const s = await page.evaluate(() => {
+    const done = document.querySelector('.cc-track .done i'), cur = document.querySelector('.cc-track .cur i'), tile = document.querySelector('.p-controls details.p-fix[data-ic] > summary'), now = document.querySelector('.ss-ladder li.now');
+    const ico = tile && getComputedStyle(tile, '::before');
+    return { done: done && getComputedStyle(done).backgroundImage, cur: cur && getComputedStyle(cur).backgroundImage, ico: ico && [ico.width, ico.height, ico.backgroundImage.slice(0, 4)], now: now && getComputedStyle(now).backgroundImage };
+  });
+  expect(s.done, 'done stages are a gradient').toContain('gradient');
+  expect(s.cur, 'the current stage is lit').toContain('gradient');
+  expect(s.ico[0] + ' ' + s.ico[1] + ' ' + s.ico[2], 'a tile\'s icon sits in a 30px box').toBe('30px 30px url(');
+  expect(s.now, 'the ladder\'s current rung is lit').toContain('gradient');
+  expect(await axe(page), 'the case page, light').toEqual([]);
+});
