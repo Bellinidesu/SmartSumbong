@@ -8,11 +8,10 @@
 .page-inbox .p-topbar { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }   /* the page's heading stays for a screen reader; the app's header is the visible one */
 .page-inbox .ss-storm--page { margin: 10px 16px 0; flex: none; }
 .page-inbox #ib-main { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.page-inbox .ib-apps { display: flex; align-items: center; gap: 6px; flex: none; margin: 0; padding: 10px 18px; border: 0; border-bottom: 1px solid var(--p-line); border-radius: 0; background: var(--p-surface); box-shadow: none; }
-.page-inbox .ib-apps::before { content: attr(data-title); margin-right: 12px; font: 800 20px/1 'Inter Tight', Inter, sans-serif; color: var(--p-ink); letter-spacing: -.01em; }
-.page-inbox .ib-apps .ib-sub { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 16px; border-radius: 999px; font: 600 13.5px Inter, sans-serif; background: #FF9800; color: #2B1A00; box-shadow: 0 6px 16px -8px #FF9800; }
-.page-inbox .ib-apps .p-badge-n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font: 800 11.5px/1 Inter, sans-serif; background: var(--p-grey-bg); color: var(--p-muted); }
-.page-inbox .ib-apps .ib-sub .p-badge-n { background: #2B1A00; color: #fff; }
+/* 15 Nov 2026 (Ace): no header bar; the list's title is "Inbox" with the "Case chats" chip beside it */
+.page-inbox .mg-lhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.page-inbox .ib-sub { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px; border-radius: 999px; font: 600 12.5px Inter, sans-serif; background: var(--p-grey-bg); color: var(--p-ink-2); border: 1px solid var(--p-line); }
+.page-inbox .ib-sub .p-badge-n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font: 800 11.5px/1 Inter, sans-serif; background: #2F6BFF; color: #fff; }
 .page-inbox .p-flash { margin: 10px 18px 0; flex: none; }
 /* the app takes the rest of the page, edge to edge */
 .page-inbox .mg { flex: 1; min-height: 0; height: auto; border: 0; border-radius: 0; }

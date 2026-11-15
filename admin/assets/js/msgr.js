@@ -1,9 +1,9 @@
-/* The Inbox's Case chats, the way Messenger's web app behaves (12 Nov 2026). Markup: includes/case_msgr.php.
+/* The Inbox's Case chats (12 Nov 2026). Markup: includes/case_msgr.php.
    - the left list is a community chat (15 Nov 2026, Rose): a profile per person that opens to a bubble chat per case, with the unread
      of its chats added up on the profile; searching or choosing a chip opens the profiles that match;
    - the left list filters as you type and by chip; an unread dot per conversation, read from what this browser last looked at;
    - a conversation opens without a page reload (the address follows), its thread keeps itself current every 15 seconds;
-   - Enter sends (Shift+Enter is a new line), the thumbs-up becomes Send once there is text, the emoji button opens the picker;
+   - Enter sends (Shift+Enter is a new line), the Send arrow appears once there is text, the emoji button opens the picker;
    - the information panel opens and closes, Mute turns the sound of the case off, Search finds words in the conversation.
    Strict CSP: no inline handlers. The seen map is the chat head's (ss-chat-seen-<case>), so a bubble and this page agree. */
 (function () {
@@ -197,7 +197,7 @@
   function paintMute() {
     var c = detail.querySelector('.mg-center'), b = detail.querySelector('[data-mg="mute"]'); if (!c || !b) { return; }
     var muted = !soundOn(c.getAttribute('data-report'));
-    b.setAttribute('aria-checked', muted ? 'true' : 'false');                // Hide Alerts, a switch
+    b.setAttribute('aria-checked', muted ? 'true' : 'false');                // Mute this case, a switch
   }
   function find(q) {
     var msgs = detail.querySelector('.mg-msgs'), n = 0, first = null; q = (q || '').trim().toLowerCase();

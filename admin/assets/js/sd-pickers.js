@@ -49,11 +49,26 @@
     var lab = sel.closest('label'), name = lab && lab.querySelector('.p-sr'); if (name) btn.setAttribute('aria-label', name.textContent.trim());
     sel.parentNode.insertBefore(btn, sel); hideNative(sel);
     // a select whose options are colour-coded (the categories, the committees) shows each one's dot; "All" gets the whole spectrum
-    function hasDots() { return !!opts.dot && Array.prototype.some.call(sel.options, function (o) { return o.value && opts.dot(o.value); }); }
-    function dotFor(o) { if (!opts.dot) return ''; if (o.value) { var c = opts.dot(o.value); return c ? '<i class="sdp-dot" style="--c:' + c + '"></i>' : '<i class="sdp-dot none"></i>'; } return hasDots() && !o.disabled ? '<i class="sdp-dot all"></i>' : ''; }
+    // 15 Nov 2026 (Ace): an option may carry its own colour (data-dot: the statuses) or a person (data-av = initials, data-r = rank for the frame, data-img = picture: the people lists)
+    function colourOf(o) { var d = o.dataset && o.dataset.dot; if (d && /^#[0-9a-f]{3,8}$/i.test(d)) return d; return opts.dot && o.value ? opts.dot(o.value) : null; }
+    function hasDots() { return Array.prototype.some.call(sel.options, function (o) { return o.value && colourOf(o); }); }
+    function hasPeople() { return Array.prototype.some.call(sel.options, function (o) { return o.dataset && o.dataset.av !== undefined; }); }
+    function personFor(o) {
+      if (o.dataset && o.dataset.av !== undefined) {
+        var r = /^[a-z]+$/.test(o.dataset.r || '') ? o.dataset.r : 'staff';
+        return o.dataset.img ? '<img class="sdp-av" data-r="' + r + '" src="' + esc(o.dataset.img) + '" alt="">' : '<span class="sdp-av" data-r="' + r + '" aria-hidden="true">' + esc(o.dataset.av) + '</span>';
+      }
+      return '<span class="sdp-av gen" aria-hidden="true"></span>';   // "Anyone", "Assigned to nobody": the same slot, a plain circle, so the names line up
+    }
+    function dotFor(o) {
+      if (hasPeople()) return personFor(o);
+      if (!hasDots()) return '';
+      if (o.value) { var c = colourOf(o); return c ? '<i class="sdp-dot" style="--c:' + c + '"></i>' : '<i class="sdp-dot none"></i>'; }
+      return !o.disabled ? '<i class="sdp-dot all"></i>' : '';
+    }
     function paint() {
       var o = sel.options[sel.selectedIndex];
-      btn.innerHTML = (o ? dotFor(o) : '') + '<span>' + esc(o ? o.textContent.trim() : '') + '</span>' + CHEV;
+      btn.innerHTML = (o ? (hasPeople() ? (o.dataset && o.dataset.av !== undefined ? personFor(o) : '') : dotFor(o)) : '') + '<span>' + esc(o ? o.textContent.trim() : '') + '</span>' + CHEV;
       btn.classList.toggle('set', !!(o && o.value && !o.disabled));
     }
     if (opts.field) btn.classList.add('sdp-field');
@@ -73,7 +88,7 @@
         row.type = 'button'; row.className = 'sdp-opt' + (i === sel.selectedIndex ? ' on' : '') + (o.disabled ? ' off' : ''); row.setAttribute('role', 'option'); row.setAttribute('aria-selected', String(i === sel.selectedIndex)); row.dataset.i = i;
         if (o.disabled) row.setAttribute('aria-disabled', 'true');
         row.style.setProperty('--d', (i * 18) + 'ms');
-        row.innerHTML = (opts.dot ? (dotFor(o) || '<i class="sdp-dot none"></i>') : '') + '<span>' + esc(o.textContent.trim()) + '</span>' + TICK;
+        row.innerHTML = ((opts.dot || hasDots() || hasPeople()) ? (dotFor(o) || '<i class="sdp-dot none"></i>') : '') + '<span>' + esc(o.textContent.trim()) + '</span>' + TICK;
         pop.appendChild(row); return row;
       });
       var cur = sel.selectedIndex;

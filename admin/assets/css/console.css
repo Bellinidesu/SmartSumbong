@@ -283,3 +283,32 @@
 :root[data-theme="dark"] .sm-tile.sm-hot b { color: #FF6B6B; }
 @media (max-width: 1100px) { .my-mod-what { grid-template-columns: 1fr; } .my-com-dl { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .my-com-id { flex-direction: column; align-items: flex-start; } }
+
+/* Settings > SMART in navy (15 Nov 2026, Ace): while the SMART tab is open the WHOLE page is the engine's navy room, edge to edge beside the sidebar (the class st-smart-on is put on the body by
+   the tab script), in light and dark alike; the logo only glows the engine's green (no dark outline). The page redefines the portal's colour variables inside itself, so every title, tab, card,
+   field and button in it follows without being restyled one by one. */
+:root:root .p-body.st-smart-on .p-main {
+  --p-ink: #F4F7FF; --p-ink-2: #DCE5FF; --p-ink-3: #B9C6F0; --p-muted: #AEBCE8; --p-faint: #8A9AD0;
+  --p-surface: #112B6E; --p-surface-2: #0D2260; --p-bg: #0A1D55; --p-line: rgba(160, 185, 255, .2); --p-line-2: rgba(160, 185, 255, .34);
+  --p-grey-bg: rgba(255, 255, 255, .09); --p-blue-50: rgba(120, 160, 255, .18); --p-link: #A9C1FF; --p-sky: #A9C1FF; --p-sky-bg: rgba(120, 160, 255, .18);
+  --p-green: #5BE38A; --p-green-bg: rgba(91, 227, 138, .14); --p-red: #FF8A8A; --p-red-bg: rgba(255, 110, 110, .16); --p-amber: #FFD27A; --p-amber-bg: rgba(255, 200, 90, .16);
+  --p-shadow-sm: 0 1px 2px rgba(0, 8, 40, .4); --p-shadow: 0 8px 24px rgba(0, 8, 40, .35);
+  color: var(--p-ink); background: radial-gradient(110% 60% at 8% 0%, #14409F 0%, #0B2468 46%, #071747 100%);
+}
+:root:root .p-body.st-smart-on .p-topbar h1, :root:root .p-body.st-smart-on .p-main > h1 { color: var(--p-ink); }
+:root:root .p-body.st-smart-on .st-pane[data-pane="smart"] { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+:root:root .p-body.st-smart-on .p-card { background: color-mix(in srgb, #fff 7%, var(--p-surface)); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm); color: var(--p-ink); }
+:root:root .p-body.st-smart-on :is(h1, h2, h3, h4) { color: inherit; }
+:root:root .p-body.st-smart-on :is(.p-input-plain, input:not([type="checkbox"]):not([type="radio"]), textarea, select) { background: rgba(5, 15, 60, .45); border-color: var(--p-line-2); color: var(--p-ink); }
+:root:root .p-body.st-smart-on ::placeholder { color: var(--p-faint); }
+:root:root .p-body.st-smart-on .st-tabs { background: rgba(5, 15, 60, .5); border-color: var(--p-line); }
+:root:root .p-body.st-smart-on .st-tabs .st-link, :root:root .p-body.st-smart-on .st-tabs [data-st] { color: var(--p-ink-3); }
+:root:root .p-body.st-smart-on .st-tabs .st-link.p-on, :root:root .p-body.st-smart-on .st-tabs [data-st].p-on { background: rgba(255, 255, 255, .14); color: #fff; box-shadow: none; }
+:root:root .p-body.st-smart-on .st-pane[data-pane="smart"] .p-btn:not(.p-btn-primary):not(.p-btn-orange) { background: rgba(255, 255, 255, .1); border-color: var(--p-line-2); color: var(--p-ink); }
+:root:root .p-body.st-smart-on .st-pane[data-pane="smart"] .ss-engine img { filter: drop-shadow(0 0 3px rgba(237, 250, 4, .9)) drop-shadow(0 0 12px rgba(237, 250, 4, .5)) drop-shadow(0 0 28px rgba(237, 250, 4, .22)); }
+:root:root .p-body.st-smart-on .st-pane[data-pane="smart"] .ss-head p { color: var(--p-ink-3); }
+/* the SMART room in dark mode is a darker navy than by day (15 Nov 2026, Ace) */
+:root:root[data-theme="dark"] .p-body.st-smart-on .p-main {
+  --p-surface: #0B1D52; --p-surface-2: #081644; --p-bg: #050F36; --p-line: rgba(140, 165, 245, .18); --p-line-2: rgba(140, 165, 245, .3);
+  background: radial-gradient(110% 60% at 8% 0%, #0C2A78 0%, #07194E 46%, #040C2E 100%);
+}

@@ -39,7 +39,7 @@
 .wx-src{font:600 11px Inter,sans-serif;color:var(--wx-mute)}.wx-foot-src{font:600 11px Inter,sans-serif;color:var(--wx-mute);letter-spacing:.01em}
 .wx-body>*{animation:wxRise .5s var(--wx-ease) both;animation-delay:calc(var(--i,0) * 55ms)}
 .wx-body{display:grid;gap:12px;align-content:start}
-.wx-skel{display:grid;gap:12px;padding:6px 0}.wx-skel i{display:block;height:64px;border-radius:16px;background:linear-gradient(100deg,var(--wx-tile) 30%,var(--wx-tile2) 50%,var(--wx-tile) 70%);background-size:300% 100%;animation:wxShine 1.4s linear infinite}.wx-skel i:first-child{height:96px}
+.wx-skel{display:grid;gap:12px;padding:6px 0}.wx-skel i{display:block;height:64px;border-radius:16px;background:linear-gradient(100deg,var(--wx-tile) 30%,var(--wx-tile2) 50%,var(--wx-tile) 70%);background-size:300% 100%;animation:wxShine 1.6s steps(16) infinite}.wx-skel i:first-child{height:96px}
 .wx-empty{display:grid;justify-items:center;align-content:center;gap:6px;min-height:170px;padding:18px;text-align:center;color:var(--wx-mute);border-radius:16px;background:var(--wx-tile)}
 .wx-empty svg{color:var(--wx-grn);opacity:.9}.wx-empty.is-bad svg{color:var(--p-amber)}.wx-empty b{font:800 15px Inter,sans-serif;color:var(--wx-ink)}.wx-empty span{font-size:13px;max-width:44ch}
 

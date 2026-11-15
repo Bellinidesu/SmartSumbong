@@ -56,16 +56,16 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 <link rel="stylesheet" href="assets/css/inbox.css?v=<?= e(asset_version('inbox.css')) ?>">
 <div id="ib-main" class="press-region" hx-target="#ib-main" hx-select="#ib-main" hx-swap="outerHTML" hx-push-url="true" hx-sync="#ib-main:replace"
      data-announce="<?= e(t('Inbox updated', 'Na-update ang mga liham')) ?>">
-<nav class="st-tabs ib-apps" data-title="<?= e(t('Inbox', 'Mga Liham')) ?>" aria-label="<?= e(t('Inbox', 'Mga Liham')) ?>"><span class="ib-sub"><?= e(t('Case chats', 'Mga chat sa kaso')) ?> <span class="p-badge-n" id="ib-chats-n" hidden>0</span></span></nav>
+
 <?php if ($flash && $flash['text']): ?><div class="p-flash p-flash--<?= $flash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($flash['text']) ?></div><?php endif; ?>
 
 <?php
-    // ---------- Case chats, drawn like Messenger: the conversations, the open one, its information ----------
+    // ---------- Case chats: the conversations, the open one, its information ----------
     $selKey = $chatOpen ? $chatId . '|' . $convId : ''; ?>
 <link rel="stylesheet" href="assets/css/msgr.css?v=<?= e(asset_version('msgr.css')) ?>">
 <div class="mg" id="mg" data-list-url="inbox.php?app=chats&amp;part=list" data-detail-url="inbox.php?app=chats&amp;part=detail">
   <section class="mg-left" aria-label="<?= e(t('Chats', 'Mga chat')) ?>">
-    <header class="mg-lhead"><h2><?= e(t('Chats', 'Mga chat')) ?></h2></header>
+    <header class="mg-lhead"><h2><?= e(t('Inbox', 'Mga Liham')) ?></h2><span class="ib-sub"><?= e(t('Case chats', 'Mga chat sa kaso')) ?> <span class="p-badge-n" id="ib-chats-n" hidden>0</span></span></header>
     <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
     <label class="mg-search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="p-sr"><?= e(t('Search chats', 'Hanapin ang mga chat')) ?></span><input type="search" id="mg-q" placeholder="<?= e(t('Search chats', 'Hanapin ang mga chat')) ?>" autocomplete="off"></label>
     <div class="mg-chips" role="group" aria-label="<?= e(t('Show', 'Ipakita')) ?>">

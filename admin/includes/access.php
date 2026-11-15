@@ -28,6 +28,7 @@ const PAGE_TIERS = [
     'activity.php'            => ['super'],
     'summary.php'             => ['super', 'captain', 'committee'],   // not staff (Rose, 15 Nov)
     'spatial.php'             => ['super', 'captain', 'committee', 'moderator'],
+    'places.php'              => ['super'],   // 15 Nov 2026 (Ace): the barangay's places, moved from Settings to a button on the side of Spatial Distribution
     'cases.php'               => ['super', 'captain', 'committee', 'moderator'],
     'case.php'                => ['super', 'captain', 'committee', 'moderator'],
     'notifications.php'       => ['super', 'committee', 'moderator'],

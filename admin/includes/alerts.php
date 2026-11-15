@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-const ALERT_KINDS = ['escalation', 'sla_warning', 'status_change', 'reroute', 'retirement', 'case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail'];
+const ALERT_KINDS = ['escalation', 'sla_warning', 'status_change', 'reroute', 'retirement', 'case_forwarded', 'forward_flag', 'reroute_question'];   // 15 Nov 2026 (Ace): no Inbox messages switch any more; BarangayMail is gone
 
 /** kind => [name, what it is about], in the reader's language. */
 function alert_kinds(): array
@@ -20,6 +20,5 @@ function alert_kinds(): array
         'case_forwarded'   => [t('Forwards', 'Mga ipinasa'), t('A case was forwarded to your committee, or to the super admins to place.', 'May kasong ipinasa sa iyong komite, o sa mga super admin para ilagay.')],
         'forward_flag'     => [t('Flags', 'Mga flag'), t('Staff flagged a case for forwarding, or your flag was answered.', 'May in-flag ang kawani para ipasa, o sinagot ang iyong flag.')],
         'reroute_question' => [t('Reroute questions', 'Mga tanong sa reroute'), t('None of your committee\'s tanods is free: pick one before the wait runs out.', 'Walang bakanteng tanod ang iyong komite: pumili bago maubos ang palugit.')],
-        'inbox_mail'       => [t('Inbox messages', 'Mga mensahe sa Inbox'), t('Someone wrote to you in the Inbox.', 'May sumulat sa iyo sa Inbox.')],
     ];
 }

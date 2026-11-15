@@ -109,8 +109,11 @@ function render_tc_strip(Supabase $db, array $tc, array $accounts): void
     $myCom = (string) (current_admin()['committee'] ?? '');
     try { $pick = (array) $db->rpc('tanod_pick_list'); } catch (SupabaseError) { $pick = []; }
     $pick = array_values(array_filter($pick, fn ($p) => !isset($tc[(string) $p['id']]))); ?>
-      <details class="p-card p-card-pad tc-strip" id="tc-propose">
-        <summary><?= e(sprintf(t('Propose a tanod for %s', 'Magmungkahi ng tanod para sa %s'), (string) (committees_all()[$myCom]['short_en'] ?? ''))) ?></summary>
+      <?php $tpHex = committee_colour($myCom); // 15 Nov 2026 (Ace): the bar is a card with the committee's colour, an icon, a line saying what it does and an arrow ?>
+      <details class="p-card p-card-pad tc-strip tc-propose" id="tc-propose" style="--cc:<?= e($tpHex) ?>;--ci:<?= e(ink_on($tpHex)) ?>">
+        <summary><span class="tp-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0"/><path d="M19 8v6M16 11h6"/></svg></span>
+          <span class="tp-t"><b><?= e(sprintf(t('Propose a tanod for %s', 'Magmungkahi ng tanod para sa %s'), (string) (committees_all()[$myCom]['short_en'] ?? ''))) ?></b><small><?= e(t('Bring a tanod into your committee. A super admin approves it.', 'Magdagdag ng tanod sa iyong komite. Aaprubahan ito ng super admin.')) ?></small></span>
+          <svg class="tp-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
         <?php if (!$pick): ?>
           <p class="p-hint"><?= e(t('Every active tanod is already in your committee or waiting for approval.', 'Nasa komite mo na o naghihintay ng pag-apruba ang bawat aktibong tanod.')) ?></p>
         <?php else: ?>
@@ -224,11 +227,12 @@ function render_punch_page(Supabase $db): void
         <small><?= e(t('by all of them together', 'ng lahat nang magkakasama')) ?></small></a>
     </div>
     <?php if (!$groups): ?><div class="p-card pc-none"><b><?= e(t('No one here right now.', 'Walang tao rito ngayon.')) ?></b></div><?php endif; ?>
+    <div class="pc-groups" data-tiles="staff">
     <?php foreach ($groups as $ck => $people):
         $label = $ck !== '' ? (string) (committees_all()[$ck]['short_en'] ?? $ck) : t('No committee yet', 'Wala pang komite');
         $inNow = count(array_filter($people, fn ($c) => $stateOf($c) === 'in')); ?>
-      <section class="pc-group" aria-label="<?= e($label) ?>">
-        <div class="cm-chips pc-gh">
+      <section class="pc-group" aria-label="<?= e($label) ?>" data-tile="<?= e((string) $ck) ?>">
+        <div class="cm-chips pc-gh" data-tile-head>
           <?php if ($ck !== ''): ?>
             <a class="cm-chip cm-sd" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" title="<?= e($label) ?>"><?= cm_sym_tag($ck, $sdTypes, $label) ?><span class="cm-n"><?= e($label) ?><small class="pc-gn">· <?= e(sprintf(t('%d in now', '%d pasok ngayon'), $inNow)) ?></small></span><b><?= count($people) ?></b></a>
           <?php else: ?>
@@ -265,6 +269,8 @@ function render_punch_page(Supabase $db): void
         </div>
       </section>
     <?php endforeach; ?>
+    </div>
+    <script src="assets/js/tiles.js?v=<?= e(asset_version('../js/tiles.js')) ?>" defer></script>
     <?= committee_banner_script() ?>
     <?php endif;
     layout_foot();

@@ -189,7 +189,7 @@
       '<ul class="sh-rows"><li>' + sdIcon('ruler') + '<span>' + esc(fmtM(dHall)) + T(' from Barangay 183 Hall', ' mula sa Barangay 183 Hall') + '<small>' + esc(T('About ' + walkMin(dHall) + ' min on foot · straight line', 'Mga ' + walkMin(dHall) + ' min lakad · tuwid na linya')) + '</small></span></li>' +
       '<li>' + sdIcon('radar') + '<span>' + cases + T(cases === 1 ? ' case within 100 m' : ' cases within 100 m', ' kaso sa loob ng 100 m') + '<small>' + esc(T('Counting every complaint, any status', 'Kasama ang lahat ng sumbong, anumang katayuan')) + '</small></span></li></ul>' +
       '<div class="sh-acts' + (canLook ? ' four' : '') + '"><button type="button" data-do="zoom">' + sdIcon('zoom') + '<b>' + esc(T('Zoom here', 'Lapitan')) + '</b></button>' +
-      (canLook ? '<button type="button" data-do="look">' + sdIcon('view360') + '<b>' + esc(T('Look around', 'Luminga')) + '</b></button>' : '') +
+      (canLook ? '<button type="button" data-do="look">' + sdIcon('view360') + '<b>' + esc(T('StreetLook', 'StreetLook')) + '</b></button>' : '') +
       '<a href="' + gUrl(lat, lng) + '" target="_blank" rel="noopener">' + sdIcon('external') + '<b>Google Maps</b></a>' +
       '<a href="' + aUrl(lat, lng, street || '') + '" target="_blank" rel="noopener">' + sdIcon('external') + '<b>Apple Maps</b></a></div>' +
       // a place no map has: the barangay names it here and search finds it (0134); places only, never a home

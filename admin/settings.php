@@ -594,30 +594,6 @@ if (($_GET['usage'] ?? '') === '1') {
     exit;
 }
 
-// The barangay's own places (0134): what search finds that no map has, by the names residents and tanods use.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['place_save', 'place_remove'], true)) {
-    session_start_once();
-    if (!csrf_check($_POST['csrf'] ?? null)) {
-        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
-    } else {
-        try {
-            if ($_POST['action'] === 'place_remove') {
-                $db->rpc('place_remove', ['p_id' => (int) ($_POST['id'] ?? 0)]);
-                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Removed. Search no longer finds it.', 'Inalis. Hindi na ito mahahanap.')];
-            } else {
-                $aliases = array_values(array_filter(array_map('trim', explode(',', (string) ($_POST['aliases'] ?? ''))), fn ($a) => $a !== ''));
-                $db->rpc('place_save', ['p_id' => (int) ($_POST['id'] ?? 0) ?: null, 'p_name' => trim((string) ($_POST['name'] ?? '')),
-                    'p_grp' => (string) ($_POST['grp'] ?? ''), 'p_lat' => (float) ($_POST['lat'] ?? 0), 'p_lng' => (float) ($_POST['lng'] ?? 0),
-                    'p_aliases' => array_slice($aliases, 0, 8)]);
-                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Saved. Search finds it now.', 'Na-save. Mahahanap na ito.')];
-            }
-        } catch (SupabaseError $ex) {
-            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
-        }
-    }
-    header('Location: ' . st_url('places'));
-    exit;
-}
 /**
  * Every read the tabs on this page make, by tab (speed work, 7 Nov 2026). The three pages this file draws (Settings,
  * Administrative Services, Control Room) used to read tab by tab, one wait after another: up to fourteen. Now the reads of the
@@ -631,11 +607,7 @@ function st_reads(string $stPage): array
 {
     $g = [];
     if ($stPage !== 'mine') {
-        // the barangay's places are a super admin's to keep
-        $g['places'] = [
-            'places' => ['places', ['select' => 'id,name,grp,aliases,lat,lng', 'source' => 'eq.barangay', 'active' => 'eq.true', 'order' => 'name.asc', 'limit' => '200'], true],
-            'kinds'  => ['place_kinds', ['select' => 'grp,label', 'order' => 'label.asc'], true],
-        ];
+        // 15 Nov 2026 (Ace): the barangay's places moved to Spatial Distribution (a button on its side; places.php)
         // the administrators, tanods and committee map are for the super admins' tabs
         $g['people'] = [
             'admins' => ['users', ['select' => 'id,full_name,email,must_change_password,is_suspended,created_at,official_role,committee,admin_tier,is_dev,is_test',
@@ -774,12 +746,6 @@ $stFlash = $_SESSION['st_flash'] ?? null;
 unset($_SESSION['st_flash']);
 // every visible tab's reads, in one wait (st_reads above); each tab below takes its own from the request's read memo
 $stReachable = st_prefetch($db, $stPage);
-$places = []; $kinds = [];
-if ($stPage !== 'mine') try {
-    $got = $db->selectMany(st_group('places'));
-    $places = is_array($got['places'] ?? null) ? $got['places'] : [];
-    $kinds  = is_array($got['kinds'] ?? null) ? $got['kinds'] : [];
-} catch (SupabaseError $ex) { /* the card says so below */ }
 $admins = []; $tanods = []; $cmap = [];
 if ($stPage !== 'mine') try {
     $got = $db->selectMany(st_group('people'));
@@ -1089,11 +1055,12 @@ endif;
     <?php else: ?>
       <div class="cmx-note cmx-ok" role="note"><?= e(t('Every kind of complaint is seen by at least one committee.', 'Ang bawat uri ng reklamo ay nakikita ng kahit isang komite.')) ?></div>
     <?php endif; ?>
-    <div class="cmx-grid">
-    <?php foreach (committees_all() as $ck => $cc): $ticked = $cmCats[$ck] ?? []; $lead = $cmLead[$ck] ?? []; $nT = (int) ($cmTanods[$ck] ?? 0); $cHex = committee_colour($ck); ?>
-      <form method="post" class="acc-row cmx-card<?= empty($cc['active']) ? ' acc-off' : '' ?>" enctype="multipart/form-data">
+    <?php // 15 Nov 2026 (Ace): committees that are turned off are not laid out with the live ones; they wait in a closed list at the foot (turn one on there and Save, and it comes back). From four live committees on they become tiles (assets/js/tiles.js). $offHtml = ''; $offN = 0; ?>
+    <div class="cmx-grid" data-tiles="committees">
+    <?php foreach (committees_all() as $ck => $cc): $ticked = $cmCats[$ck] ?? []; $lead = $cmLead[$ck] ?? []; $nT = (int) ($cmTanods[$ck] ?? 0); $cHex = committee_colour($ck); $isOff = empty($cc['active']); if ($isOff) { ob_start(); } ?>
+      <form method="post" class="acc-row cmx-card<?= $isOff ? ' acc-off' : '' ?>" enctype="multipart/form-data"<?= $isOff ? '' : ' data-tile="' . e((string) $ck) . '"' ?>>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
-        <div class="cm-chips cmx-banner" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cc['short_en']) ?><span class="cm-n"><?= e((string) $cc['short_en']) ?></span><b><?= $nT ?></b></a></div>
+        <div class="cm-chips cmx-banner" aria-hidden="true" data-tile-head><a class="cm-chip cm-sd" tabindex="-1" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cc['short_en']) ?><span class="cm-n"><?= e((string) $cc['short_en']) ?></span><b><?= $nT ?></b></a></div>
         <div class="cmx-body">
           <div class="acc-meta"><span class="<?= $lead ? '' : 'acc-warn' ?>"><?= $lead ? e(t('Led by', 'Pinangungunahan ni')) . ' <b>' . e(implode(', ', $lead)) . '</b>' : e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></span><span><?= e($nT === 0 ? t('No tanods', 'Walang tanod') : ($nT === 1 ? t('1 tanod', 'Isang tanod') : sprintf(t('%d tanods', '%d tanod'), $nT))) ?></span></div>
           <div class="cmx-names">
@@ -1124,8 +1091,15 @@ endif;
           </div>
         </div>
       </form>
-    <?php endforeach; ?>
+    <?php if ($isOff) { $offHtml .= ob_get_clean(); $offN++; } endforeach; ?>
     </div>
+    <?php if ($offHtml !== ''): ?>
+    <details class="cmx-offd">
+      <summary><?= e(sprintf(t('Turned off (%d)', 'Naka-off (%d)'), $offN)) ?></summary>
+      <div class="cmx-grid"><?= $offHtml ?></div>
+    </details>
+    <?php endif; ?>
+    <script src="assets/js/tiles.js?v=<?= e(asset_version('../js/tiles.js')) ?>" defer></script>
     <details class="cmx-newd">
       <summary><span class="cmx-plus" aria-hidden="true">+</span><?= e(t('Add a committee', 'Magdagdag ng komite')) ?></summary>
       <form method="post" class="acc-row acc-new cmx-card cmx-card-new" enctype="multipart/form-data">
@@ -2009,14 +1983,6 @@ endif;
     <p class="chp-none" id="chp-none"><?= e(t('No case is floating. Right-click the chat bubble of a case and choose Float on every page.', 'Walang lumulutang na kaso. I-right-click ang chat bubble ng kaso at piliin ang Ilutang sa lahat ng pahina.')) ?></p>
     <div class="chp-foot"><button type="button" class="p-btn p-btn-ghost p-btn-sm" id="chp-reset"><?= e(t('Put the bubbles back at the edge', 'Ibalik ang mga bubble sa gilid')) ?></button></div>
   </div>
-  <div class="p-card p-card-pad st-look">
-    <p class="p-eyebrow"><?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?></p>
-    <p class="st-note" style="margin-top:0"><?= e(t('How the panels and buttons floating on the Spatial Distribution map are drawn. Glass lets the map show through; Solid is flat and plain, easier on older screens and in bright rooms. This is kept on this computer.', 'Kung paano iginuhit ang mga panel at button sa mapa. Hinahayaan ng Glass na makita ang mapa; ang Solid ay patag at simple, mas magaan sa lumang screen at sa maliwanag na silid. Nakatago ito sa computer na ito.')) ?></p>
-    <div class="st-surfs" role="radiogroup" aria-label="<?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?>">
-      <button type="button" class="st-surf" role="radio" data-surf="glass" aria-checked="true"><span class="sv-pic g"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Glass', 'Salamin')) ?></b><small><?= e(t('Frosted panels, lit edges', 'Frosted na panel, may ilaw ang gilid')) ?></small></span></button>
-      <button type="button" class="st-surf" role="radio" data-surf="solid" aria-checked="false"><span class="sv-pic s"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Solid', 'Buo')) ?></b><small><?= e(t('Flat graphite, no blur or gloss', 'Patag na graphite, walang blur o kinang')) ?></small></span></button>
-    </div>
-  </div>
   <?php if ($stPage === 'mine'): ?>
   <div class="p-card p-card-pad st-look my-alerts">
     <p class="p-eyebrow"><?= e(t('Alerts and your profile', 'Mga alerto at ang profile mo')) ?></p>
@@ -2024,35 +1990,6 @@ endif;
     <a class="p-btn p-btn-ghost p-btn-sm" href="profile.php#alerts"><?= e(t('Open Edit Profile', 'Buksan ang Edit Profile')) ?></a>
   </div>
   <?php else: ?>
-  <div class="p-card p-card-pad st-places" id="places">
-    <p class="p-eyebrow"><?= e(t('The barangay\'s places', 'Mga lugar ng barangay')) ?><em><?= count($places) ?></em></p>
-    <p class="st-note" style="margin-top:0"><?= e(t('Search on the map and in the app finds these first: the landmarks the barangay keeps, and any place no map has, by the names people use (Other names, separated by commas). To add one, open Spatial Distribution, right-click the spot (or press and hold), and choose Add a place here. Places only, never anyone\'s home.', 'Ito ang unang nahahanap sa mapa at sa app: ang mga landmark ng barangay, at anumang lugar na wala sa mapa, sa pangalang ginagamit ng mga tao (Ibang pangalan, pinaghihiwalay ng kuwit). Para magdagdag, buksan ang Spatial Distribution, i-right-click ang lugar (o pindutin nang matagal), at piliin ang Magdagdag ng lugar dito. Mga lugar lamang, hindi kailanman ang bahay ng sinuman.')) ?></p>
-    <?php if (!$places): ?>
-      <p class="st-note"><?= e(t('No places yet, or they could not be read just now.', 'Wala pang lugar, o hindi mabasa ngayon.')) ?></p>
-    <?php else: ?>
-    <ul class="st-plist">
-      <?php foreach ($places as $pl): ?>
-        <li>
-          <form method="post" class="st-prow">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="place_save">
-            <input type="hidden" name="id" value="<?= (int) $pl['id'] ?>"><input type="hidden" name="lat" value="<?= e((string) $pl['lat']) ?>"><input type="hidden" name="lng" value="<?= e((string) $pl['lng']) ?>">
-            <label class="p-sr" for="pl-n-<?= (int) $pl['id'] ?>"><?= e(t('Name', 'Pangalan')) ?></label>
-            <input class="p-input-plain" id="pl-n-<?= (int) $pl['id'] ?>" name="name" maxlength="120" required value="<?= e((string) $pl['name']) ?>">
-            <label class="p-sr" for="pl-k-<?= (int) $pl['id'] ?>"><?= e(t('Kind', 'Uri')) ?></label>
-            <select class="p-input-plain" id="pl-k-<?= (int) $pl['id'] ?>" name="grp"><?php foreach ($kinds as $k): ?><option value="<?= e((string) $k['grp']) ?>"<?= $k['grp'] === $pl['grp'] ? ' selected' : '' ?>><?= e((string) $k['label']) ?></option><?php endforeach; ?></select>
-            <label class="p-sr" for="pl-a-<?= (int) $pl['id'] ?>"><?= e(t('Other names', 'Ibang pangalan')) ?></label>
-            <input class="p-input-plain" id="pl-a-<?= (int) $pl['id'] ?>" name="aliases" maxlength="300" placeholder="<?= e(t('Other names', 'Ibang pangalan')) ?>" value="<?= e(implode(', ', (array) ($pl['aliases'] ?? []))) ?>">
-            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
-          </form>
-          <form method="post" class="st-prm">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="place_remove"><input type="hidden" name="id" value="<?= (int) $pl['id'] ?>">
-            <button class="p-btn p-btn-ghost p-btn-sm" type="submit" aria-label="<?= e(t('Remove ', 'Alisin ang ') . $pl['name']) ?>"><?= e(t('Remove', 'Alisin')) ?></button>
-          </form>
-        </li>
-      <?php endforeach; ?>
-    </ul>
-    <?php endif; ?>
-  </div>
   <?php endif; ?>
 </section>
 <?php endif; ?>
@@ -2208,6 +2145,7 @@ endif;
   document.querySelectorAll('.st-tabs [data-st]').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.st-tabs [data-st]').forEach(x => x.classList.toggle('p-on', x === b));
     document.querySelectorAll('.st-pane').forEach(p => p.hidden = p.dataset.pane !== b.dataset.st);
+    document.body.classList.toggle('st-smart-on', b.dataset.st === 'smart');   // 15 Nov 2026 (Ace): the SMART tab turns the whole page navy
     const live = b.dataset.st === 'status' || b.dataset.st === 'usage'; $('st-check').hidden = !live; $('st-checked').hidden = !live;
   }));
   $('st-check').addEventListener('click', () => { check(); usage(); });
@@ -2219,6 +2157,7 @@ endif;
 document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEventListener('click', function () {
   document.querySelectorAll('.st-tabs [data-st]').forEach(function (x) { x.classList.toggle('p-on', x === b); });
   document.querySelectorAll('.st-pane').forEach(function (p) { p.hidden = p.dataset.pane !== b.dataset.st; });
+  document.body.classList.toggle('st-smart-on', b.dataset.st === 'smart');
 }); });
 </script>
 <?php endif; ?>
@@ -2296,19 +2235,5 @@ if (stTab === 'smart' && document.querySelector('.st-tabs [data-st="module"]')) 
 if (stTab && stOwner[stTab] && stOwner[stTab] !== location.pathname.split('/').pop() && !document.querySelector('.st-tabs [data-st="' + stTab + '"]')) { location.replace(stOwner[stTab] + location.search + location.hash); }
 else if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
 if (!document.querySelector('.st-pane:not([hidden])')) { var f = document.querySelector('.st-tabs [data-st]'); if (f) f.click(); }
-</script>
-<script>
-// Map surfaces: Glass or Solid, kept in this browser.
-(function () {
-  var btns = document.querySelectorAll('.st-surf'); if (!btns.length) return;
-  function paint() { var solid = document.documentElement.getAttribute('data-surface') === 'solid'; btns.forEach(function (b) { b.setAttribute('aria-checked', String((b.dataset.surf === 'solid') === solid)); }); }
-  btns.forEach(function (b) { b.addEventListener('click', function () {
-    var solid = b.dataset.surf === 'solid';
-    if (solid) document.documentElement.setAttribute('data-surface', 'solid'); else document.documentElement.removeAttribute('data-surface');
-    try { localStorage.setItem('ss-surface', solid ? 'solid' : 'glass'); } catch (e) { /* kept for this visit only */ }
-    paint();
-  }); });
-  paint();
-})();
 </script>
 <?php if ($stPage === 'control') { app_editor_end($catOpts ?? [], $hlTop ?? [], $hlKids ?? [], $hlNums ?? [], $switches ?? []); } echo sd_chip_script(); layout_foot(); ?>
