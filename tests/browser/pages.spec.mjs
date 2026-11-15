@@ -1178,10 +1178,9 @@ test('Roles and pages 6b: Report Summary by committee, and the committee form si
   await expect(page.locator('.doc-signs')).toContainText('Kagawad, Committee Head');
   await expect(page.locator('.doc-title')).toContainText('Peace and Order');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
-  const m = await open(page, 'summary.php?range=month');
-  await expect(page.locator('select#com')).toHaveCount(0);
-  await expect(page.locator('.rs-scope')).toContainText('Peace and Order');
-  expect(s.errors.concat(c.errors, f.errors, m.errors), 'console errors').toEqual([]);
+  await page.goto('summary.php?range=month', { waitUntil: 'domcontentloaded' });         // staff have no Report Summary since 15 Nov (Rose): it sends them to Notifications
+  await expect(page).toHaveURL(/notifications\.php/);
+  expect(s.errors.concat(c.errors, f.errors), 'console errors').toEqual([]);
 });
 
 test('Roles and pages 6c: Notifications by committee, a dot on each case, engine warnings grouped', async ({ page, context }) => {
