@@ -2558,6 +2558,8 @@ test('Case page (15 Nov): "Why this level" is a button beside the status pill an
   await expect(btn).toHaveAttribute('aria-expanded', 'true');
   const box = await page.locator('#smart-card').boundingBox();
   expect(box.x + box.width, 'it is a drawer on the right edge').toBeGreaterThan(1430);
+  const paint = await page.locator('#smart-card').evaluate(e => { const c = getComputedStyle(e); return { img: c.backgroundImage, col: c.backgroundColor }; });
+  expect(paint.img !== 'none' || !/rgba\(0, 0, 0, 0\)|transparent/.test(paint.col), 'the drawer is a solid card, never see-through (the cream card flattening must not reach it)').toBe(true);
   expect(await axe(page), 'the drawer, light').toEqual([]);
   await page.keyboard.press('Escape');
   await expect(page.locator('#smart-card')).toBeHidden();
