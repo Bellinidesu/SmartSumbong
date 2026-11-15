@@ -120,9 +120,9 @@ function forwarding_pins_reads(): array
     }
     // 0155: a reroute waiting on this Kagawad (or, for a super admin, on any): pick a tanod before the wait runs out
     if ($tier === 'super' || $isCom) {
-        // with the Inbox message that asks it of this person, embedded (7 Nov 2026: was a second wait)
-        $rq = ['select' => 'id,report_id,due_at,report:reports!reroute_questions_report_id_fkey(tracking_id),msgs:inbox_messages!inbox_messages_question_id_fkey(id)',
-               'msgs.recipient' => 'eq.' . ($me['id'] ?? '0'), 'msgs.order' => 'id.asc', 'state' => 'eq.open', 'order' => 'due_at.asc', 'limit' => '20'];
+        // the pin opens the case, where Assign tanod answers the question (15 Nov 2026: the Inbox message that asked it is gone with BarangayMail)
+        $rq = ['select' => 'id,report_id,due_at,report:reports!reroute_questions_report_id_fkey(tracking_id)',
+               'state' => 'eq.open', 'order' => 'due_at.asc', 'limit' => '20'];
         if ($isCom) { $rq['committee'] = 'eq.' . $me['committee']; }
         $first['reroute'] = ['reroute_questions', $rq, true];
     }
@@ -154,21 +154,14 @@ function forwarding_pins(Supabase $db): array
     $places = $list('place'); $questions = $list('reroute'); $flags = $list('flags'); $fwd = $list('fwd');
 
     $second = [];
-    $msgOf = [];
     $track = [];
-    foreach ($questions as $q) { if (array_key_exists('msgs', $q)) { foreach ((array) $q['msgs'] as $mm) { $msgOf[(int) $q['id']] ??= (int) $mm['id']; } } }
     foreach (array_merge($flags, $fwd) as $r) { if (is_array($r['report'] ?? null) && isset($r['report']['tracking_id'])) { $track[(string) $r['report_id']] = (string) $r['report']['tracking_id']; } }
-    $qids = array_values(array_filter(array_map(fn ($q) => array_key_exists('msgs', $q) ? 0 : (int) ($q['id'] ?? 0), $questions)));
-    if ($qids) {
-        $second['msgs'] = ['inbox_messages', ['select' => 'id,question_id', 'question_id' => 'in.(' . implode(',', $qids) . ')', 'recipient' => 'eq.' . ($me['id'] ?? '0'), 'order' => 'id.asc'], true];
-    }
     // tracking numbers still to look up: rows that came without the embedded case
     $ids = array_values(array_unique(array_filter(array_map(fn ($r) => array_key_exists('report', $r) ? null : ($r['report_id'] ?? null), array_merge($flags, $fwd)))));
     if ($ids) {
         $second['track'] = ['reports', ['select' => 'id,tracking_id', 'id' => 'in.(' . implode(',', $ids) . ')'], true];
     }
     try { $more = $second ? $db->selectMany($second) : []; } catch (SupabaseError) { $more = []; }
-    foreach (isset($more['msgs']) && is_array($more['msgs']) ? $more['msgs'] : [] as $m) { $msgOf[(int) $m['question_id']] ??= (int) $m['id']; }
     foreach (isset($more['track']) && is_array($more['track']) ? $more['track'] : [] as $r) { $track[(string) $r['id']] = (string) $r['tracking_id']; }
 
     foreach ($places as $r) {
@@ -176,9 +169,7 @@ function forwarding_pins(Supabase $db): array
                    'text' => t('Forwarded to the super admins: place it with a committee.', 'Ipinasa sa mga super admin: ilagay ito sa isang komite.')];
     }
     foreach ($questions as $q) {
-        $mid = $msgOf[(int) $q['id']] ?? null;
         $pins[] = ['report' => (string) $q['report_id'], 'tracking' => (string) ($q['report']['tracking_id'] ?? ''), 'kind' => 'reroute', 'at' => (string) $q['due_at'],
-                   'href' => $mid ? 'inbox.php?m=' . $mid : null,
                    'text' => sprintf(t('No tanod of the committee is free. Pick one by %s, or the nearest from any committee is sent.', 'Walang bakanteng tanod ang komite. Pumili bago mag-%s, o ipapadala ang pinakamalapit mula sa kahit anong komite.'),
                                      (new DateTimeImmutable((string) $q['due_at']))->setTimezone(new DateTimeZone('Asia/Manila'))->format('g:i A'))];
     }

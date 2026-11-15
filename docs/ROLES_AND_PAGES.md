@@ -165,7 +165,9 @@ The development team's test accounts never receive a real escalation.
   a time), and `_notifications_scope` keeping system alerts from a
   committee's admins.
 
-### Inbox (new)
+### Inbox (new; mail removed 15 Nov 2026)
+
+> **15 Nov 2026 (Rose):** BarangayMail is gone. The Inbox is the case chats alone, drawn as a community chat (a profile per resident or tanod, a bubble chat per case under it). The reroute question is answered on the case page (Assign tanod). The paragraphs below describe the 0155 mail as it was built; the database objects stay, unused.
 
 An intranet mail inside the portal. System messages (reroute questions,
 flags, forwards) arrive there and can be answered; admins can also write to

@@ -17,7 +17,7 @@ function nav_items(): array
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
         ['workspace.php',  t('Workspace', 'Tablero ng Gawain'),               'i-board'],
         ['notifications.php', t('Notifications', 'Mga Abiso'),                'i-bell'],
-        ['inbox.php',      t('Inbox', 'Mga Liham'),                               'i-send'],   // its own section again (Ace, 12 Nov): Case chats and BarangayMail make chatting within a case easier
+        ['inbox.php',      t('Inbox', 'Mga Liham'),                               'i-send'],   // its own section again (Ace, 12 Nov): Case chats make chatting within a case easier
         ['residents.php',  t('Residents', 'Mga Residente'),                   'i-users'],
         ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'i-shield'],
         ['administrative-services.php', t('Administrative Services', 'Mga Serbisyong Pang-admin'), 'i-brief'],
@@ -618,8 +618,8 @@ window.ssSupabase = function (url, key, initial) {
         <a href="<?= e($href) ?>" title="<?= e($label) ?>" class="<?= basename($href) === $active ? 'p-active' : '' ?>"<?= basename($href) === $active ? ' aria-current="page"' : '' ?>>
           <?= p_icon($icon) ?><span><?= e($label) ?></span>
           <?php $smartN = $href === 'notifications.php' ? (int) ($counts['notifications_smart'] ?? 0) : 0; ?>
-          <?php if ($href === 'inbox.php'): // 12 Nov 2026 (Ace): two pills side by side, like Notifications: the chats' unread (a bubble) and the mail's unread (an envelope). The chats' count comes from chat-head.js. ?>
-            <span class="p-rt"><span class="p-pill p-ib p-ib-chat" data-n="0" hidden title="<?= e(t('Unread case chats', 'Mga hindi pa nababasang chat sa kaso')) ?>"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5A8.5 8.5 0 1 1 21 12z"/></svg><b>0</b></span><?php if ($n > 0): ?><span class="p-pill p-ib p-ib-mail" data-n="<?= (int) min($n, 99) ?>" title="<?= e(t('Unread mail', 'Mga hindi pa nababasang mail')) ?>"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><b><?= $n > 99 ? '99+' : (int) $n ?></b></span><?php endif; ?></span>
+          <?php if ($href === 'inbox.php'): // 12 Nov 2026 (Ace): the chats' unread count (a bubble); it comes from chat-head.js (BarangayMail was removed on 15 Nov 2026, Rose). ?>
+            <span class="p-rt"><span class="p-pill p-ib p-ib-chat" data-n="0" hidden title="<?= e(t('Unread case chats', 'Mga hindi pa nababasang chat sa kaso')) ?>"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5A8.5 8.5 0 1 1 21 12z"/></svg><b>0</b></span></span>
           <?php elseif ($n > 0 || $smartN > 0): ?>
             <span class="p-rt"><?php if ($smartN > 0): ?><span class="p-brain-pill" title="<?= e(t('Unread notes from the SMART engine', 'May hindi pa nababasang abiso mula sa SMART engine')) ?>"><?= smart_brain(13) ?></span><?php endif; ?><?php if ($n > 0): ?><span class="p-pill<?= $href === 'notifications.php' ? ' p-pill--hot' : '' ?>" title="<?= e((string) $n) ?>"><?= $n > 99 ? '99+' : $n ?></span><?php endif; ?></span>
           <?php endif; ?>
@@ -833,7 +833,6 @@ function nav_counts_entries(): array
             'notifications.php'       => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
             'notifications_smart'     => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.like.SMART*,message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
             'residents.php'           => ['users', ['role' => 'eq.resident', 'verification_status' => 'eq.pending'], true],
-            'inbox.php'               => ['inbox_messages', ['recipient' => 'eq.' . (current_admin()['id'] ?? '0'), 'read_at' => 'is.null'], true],
             'administrative-services.php' => ['retirement_requests', ['status' => 'eq.pending'], true],
             'spatial.php'             => ['reports', ['deleted_at' => 'is.null',
                                            'status' => 'in.(pending_review,validated,assigned,in_progress,offline_investigation)'], true],

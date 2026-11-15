@@ -1,4 +1,6 @@
 /* The Inbox's Case chats, the way Messenger's web app behaves (12 Nov 2026). Markup: includes/case_msgr.php.
+   - the left list is a community chat (15 Nov 2026, Rose): a profile per person that opens to a bubble chat per case, with the unread
+     of its chats added up on the profile; searching or choosing a chip opens the profiles that match;
    - the left list filters as you type and by chip; an unread dot per conversation, read from what this browser last looked at;
    - a conversation opens without a page reload (the address follows), its thread keeps itself current every 15 seconds;
    - Enter sends (Shift+Enter is a new line), the thumbs-up becomes Send once there is text, the emoji button opens the picker;
@@ -12,7 +14,7 @@
   var tr = function (en, fil) { return typeof window.T === 'function' ? window.T(en, fil) : en; };
   var ts = function (s) { var n = Date.parse(s || ''); return isNaN(n) ? 0 : n; };
   var filter = 'all', sending = 0, polling = null;
-  var kInfo = 'ss-msgr-info';
+  var kInfo = 'ss-msgr-info', kOpen = 'ss-msgr-open';
 
   function rd(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v && typeof v === 'object' ? v : d; } catch (e) { return d; } }
   function wr(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window */ } }
@@ -30,6 +32,22 @@
     return n;
   }
   function rows() { return [].slice.call(list.querySelectorAll('[data-mg-row]')); }
+  var openP = rd(kOpen, {});                      // which profiles are open, remembered; the one with the open chat starts open
+  function persons() { return [].slice.call(list.querySelectorAll('.mg-person')); }
+  persons().forEach(function (p) { if (p.classList.contains('mg-pop')) { openP[p.getAttribute('data-person')] = true; } });
+  function paintPeople(searching) {
+    persons().forEach(function (p) {
+      var k = p.getAttribute('data-person'), rs = [].slice.call(p.querySelectorAll('[data-mg-row]'));
+      var seen = rs.filter(function (r) { return !r.hidden; }).length, unread = rs.filter(function (r) { return r.classList.contains('mg-unread'); }).length;
+      var pn = p.querySelector('.mg-pn'), sr = p.querySelector('.mg-pnsr'), head = p.querySelector('.mg-phead');
+      pn.textContent = unread > 9 ? '9+' : String(unread); pn.hidden = unread === 0;
+      sr.textContent = unread ? unread + ' ' + tr('unread', 'hindi pa nababasa') : ''; sr.hidden = unread === 0;
+      p.classList.toggle('mg-punread', unread > 0);
+      p.hidden = seen === 0;
+      var on = searching ? seen > 0 : !!openP[k];
+      p.classList.toggle('mg-pop', on); head.setAttribute('aria-expanded', on ? 'true' : 'false');
+    });
+  }
   function paint() {
     var total = 0, q = (qIn.value || '').trim().toLowerCase(), shown = 0;
     rows().forEach(function (r) {
@@ -38,6 +56,7 @@
       var ok = (!q || (r.getAttribute('data-search') || '').indexOf(q) >= 0) && (filter !== 'unread' || n > 0) && (filter !== 'mine' || r.getAttribute('data-mine') === '1');
       r.hidden = !ok; if (ok) { shown++; }
     });
+    paintPeople(q !== '' || filter !== 'all');
     if (rows().length) { none.textContent = tr('No chats match.', 'Walang tumutugong chat.'); none.hidden = shown > 0; } else { none.hidden = false; }
     document.dispatchEvent(new CustomEvent('ss-chat-total', { detail: total }));
     var b = document.getElementById('ib-chats-n'); if (b) { b.textContent = total > 9 ? '9+' : String(total); b.hidden = total === 0; }
@@ -69,6 +88,7 @@
   }
   function open(row, push) {
     var r = row.getAttribute('data-report'), k = row.getAttribute('data-conv');
+    var pr = row.closest('.mg-person'); if (pr) { openP[pr.getAttribute('data-person')] = true; wr(kOpen, openP); }
     rows().forEach(function (x) { var on = x === row; x.classList.toggle('mg-sel', on); if (on) { x.setAttribute('aria-current', 'true'); } else { x.removeAttribute('aria-current'); } });
     var url = 'inbox.php?app=chats&c=' + encodeURIComponent(r) + '&k=' + encodeURIComponent(k);
     if (push) { history.pushState({ r: r, k: k }, '', url); }
@@ -80,6 +100,11 @@
       .catch(function () { /* the link is a real link: a reload shows it */ location.href = url; });
   }
   list.addEventListener('click', function (e) {
+    var head = e.target.closest('[data-mg="person"]');
+    if (head) {                                   // a profile opens or closes (while searching or filtering the matches stay open)
+      if ((qIn.value || '').trim() !== '' || filter !== 'all') { return; }
+      var pk = head.closest('.mg-person').getAttribute('data-person'); openP[pk] = !openP[pk]; wr(kOpen, openP); paint(); return;
+    }
     var row = e.target.closest('[data-mg-row]');
     if (!row || e.metaKey || e.ctrlKey || e.shiftKey || e.button) { return; }
     e.preventDefault(); open(row, true);

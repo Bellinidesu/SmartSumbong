@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The Inbox is a community chat; BarangayMail is gone (15 Nov, Rose's list)**
+- Case chats are grouped by person: each resident or tanod is a profile with the unread of their chats added up, and under it one bubble chat per case. A profile opens and closes (remembered), a search or the
+  Unread / Cases I handle chips open the profiles that match, and a chat still opens in place.
+- BarangayMail is removed: the Gmail-style page, its files and tests, the envelope pill in the sidebar, and the mail link on the Home tiles. The old `?app=mail` links open the chats. The reroute question
+  ("Pick a tanod") now opens the case, where Assign tanod answers it; nothing in the database changed (the mail tables stay, unused).
+
 **Case chats: where each person was follows them (12 Nov)**
 - Read-up-to and Hide Alerts for a case's chats are now kept per person in the database (`chat_state`, 0173) as well as in the browser: a second browser or the phone-sized window starts from
   what the person already read and muted. The browser stays the quick copy; the two are joined when a page opens (reading only moves forward, the case's mute follows the database unless
