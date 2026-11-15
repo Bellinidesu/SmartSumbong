@@ -354,7 +354,7 @@ try {
     ];
     if ($tab === 'all') {
         $sel['reports'] = ['reports', $query, false, $view === 'attention' ? '' : 'total'];
-        $sel['admins']  = ['users', ['select' => 'id,full_name', 'role' => 'eq.admin', 'order' => 'full_name.asc'], true];
+        $sel['admins']  = ['users', ['select' => 'id,full_name,avatar_url,official_role', 'role' => 'eq.admin', 'order' => 'full_name.asc'], true];
         // the chip counts what needs attention across ALL open cases, not only this page
         $sel['open']    = ['reports', ['select' => 'status,due_at,followed_up_at,resolution_submitted_at,awaiting_unit_since,handler_id,case_committee', 'deleted_at' => 'is.null',
                                        'status' => 'in.(' . implode(',', OPEN_STATES) . ')', 'limit' => '500'], true];
@@ -770,7 +770,7 @@ $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '
         <option value=""><?= e(t('Anyone', 'Kahit sino')) ?></option>
         <option value="unclaimed" <?= $who === 'unclaimed' ? 'selected' : '' ?>><?= e(t('Assigned to nobody', 'Walang hawak')) ?></option>
         <?php foreach ($adminList as $ad): ?>
-          <option value="<?= e($ad['id']) ?>" <?= $who === $ad['id'] ? 'selected' : '' ?>><?= e($ad['id'] === $admin['id'] ? t('You', 'Ikaw') : display_name($ad['full_name'])) ?></option>
+          <option value="<?= e($ad['id']) ?>" data-av="<?= e(admin_initials((string) $ad['full_name'])) ?>" data-r="<?= e(admin_ranks()[(string) $ad['id']] ?? rank_of($ad['official_role'] ?? null)) ?>"<?= !empty($ad['avatar_url']) ? ' data-img="' . e(cld_thumb($ad['avatar_url'], 64, true)) . '"' : '' ?> <?= $who === $ad['id'] ? 'selected' : '' ?>><?= e($ad['id'] === $admin['id'] ? t('You', 'Ikaw') : display_name($ad['full_name'])) ?></option>
         <?php endforeach; ?>
       </select></label>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Tanod', 'Tanod')) ?></span>
@@ -782,7 +782,8 @@ $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
       <select name="status" data-autosubmit>
         <option value=""><?= e(t('All', 'Lahat')) ?></option>
-        <?php foreach ([
+        <?php $statusDot = ['under_review' => '#FFB300', 'in_progress' => '#2457E6', 'resolved' => '#087F31', 'rejected' => '#C4172A', 'overdue' => '#C4172A', 'escalated' => '#6A3FD1', 'sensitive' => '#B31B7E'];   // the colours of the pills in the Status column
+              foreach ([
             'under_review' => t('Under Review', 'Nirerepaso'),
             'in_progress'  => t('In Progress', 'Isinasagawa'),
             'resolved'     => t('Resolved/Completed', 'Nalutas/Nakumpleto'),
@@ -793,7 +794,7 @@ $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '
             'with_chairman' => t('With the Chairman', 'Nasa Punong Barangay'),
             'sensitive'     => t('Sensitive', 'Sensitibo'),
         ] as $s => $lbl): ?>
-          <option value="<?= e($s) ?>" <?= $filter === $s ? 'selected' : '' ?>><?= e($lbl) ?></option>
+          <option value="<?= e($s) ?>"<?= isset($statusDot[$s]) ? ' data-dot="' . e($statusDot[$s]) . '"' : '' ?> <?= $filter === $s ? 'selected' : '' ?>><?= e($lbl) ?></option>
         <?php endforeach; ?>
       </select></label>
   </form>
@@ -871,6 +872,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
             <?php if (!empty($r['followed_up_at']) && !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?><span class="p-badge p-b-pending"><?= e(t('Followed up', 'Nag-follow up')) ?></span><?php endif; ?>
             <?php if (($r['reopened_count'] ?? 0) > 0): ?><span class="p-badge p-b-pending"><?= e(t('Reopened', 'Binuksang muli')) ?> <?= (int) $r['reopened_count'] ?>&times;</span><?php endif; ?>
             <?php if (!empty($r['appealed_at'])): ?><span class="p-badge p-b-pending" title="<?= e(t('Reinstated on appeal', 'Ibinalik dahil sa apela')) ?>"><?= e(t('Appealed', 'Inapela')) ?></span><?php endif; ?>
+            <?= duplicate_pill($r['triage'] ?? null) ?>
           </div></td>
           <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
           <td class="ss-smart"><?= smart_badge($r['triage'] ?? null) ?></td>
@@ -1009,8 +1011,11 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     const lv = escapeHtml(LEVEL_LABEL[tr.effective_level] || tr.effective_level);
     let o = '<span class="p-badge p-b-' + (LEVEL_CLASS[tr.effective_level] || 'grey') + ' p-b-score" title="' + lv + ' · ' + (tr.score | 0) + '"><b class="ss-score-n">' + (tr.score | 0) + '</b>' + lv + '</span>';
     if (tr.override_level) o += '<small class="ss-set" title="' + T('Set by an admin', 'Itinakda ng admin') + '">' + T('set by admin', 'itinakda ng admin') + '</small>';
-    if ((tr.possible_duplicates | 0) > 0) o += '<span class="p-badge p-b-violet ss-dup" title="' + T('Possible duplicate', 'Maaaring doble') + '">' + T('Duplicate?', 'Doble?') + '</span>';
     return o;
+  }
+  // the duplicate flag is a pill of the status stack (15 Nov 2026, Ace)
+  function duplicatePill(tr) {
+    return tr && (tr.possible_duplicates | 0) > 0 ? '<span class="p-badge p-b-violet ss-dup" title="' + T('Possible duplicate', 'Maaaring doble') + '">' + T('Duplicate?', 'Doble?') + '</span>' : '';
   }
   // The pager, as pager() draws it, for the pages the live refresh redraws.
   function pagerHtml(total, page, param) {
@@ -1128,7 +1133,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
           (r.location_label ? '<div class="p-sub">' + escapeHtml(r.location_label) + '</div>' : '') + forwardedTag(r) + '</td>' +
         (SEES_ALL ? '<td>' + committeePill(r) + '</td>' : '') +
         '<td><div class="p-badges">' + (r.is_sensitive ? SENSITIVE_BADGE : '') + '<span class="p-badge p-b-' + statusClass(r.status) + '">' +
-          escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</div></td>' +
+          escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + duplicatePill(r.triage) + '</div></td>' +
         '<td class="p-num">' + shortDate(r.created_at) + '</td>' +
         '<td class="ss-smart">' + smartBadge(r.triage) + '</td>' +
         '<td>' + handlerCell(r) + '<span class="ss-open" data-report="' + escapeHtml(r.id) + '"></span></td>' +

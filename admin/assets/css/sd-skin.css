@@ -62,3 +62,12 @@
 /* the filter box opens downward when pointed at; it opens over the SMART suggestion under it, not under it (12 Nov: the suggestion used to sit on the lower half of the filters) */
 #s-spatial#s-spatial .p-map-search:is(:hover, :focus-within) { z-index: 9; }
 #s-spatial#s-spatial .cc-suggest { transition: top .25s cubic-bezier(.2, .7, .2, 1); }   /* it rides down with the box (spatial.php places it, as the layer cards are placed) */
+
+/* The barangay's places, a panel opened from the dock (15 Nov 2026, Ace: moved here from Settings, for now) */
+.pl-dlg { width: min(1040px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 1px solid var(--ae-edge, var(--p-line)); border-radius: 20px; background: var(--p-surface); color: var(--p-ink); box-shadow: 0 30px 80px rgba(8, 14, 40, .45); overflow: hidden; }
+.pl-dlg::backdrop { background: rgba(8, 14, 40, .5); }
+.pl-dlg[open] { display: flex; flex-direction: column; }
+.pl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--p-line); }
+.pl-head h2 { margin: 0; font: 800 20px/1.2 'Inter Tight', Inter, sans-serif; letter-spacing: -.01em; }
+.pl-body { padding: 18px 22px 22px; overflow: auto; }
+.pl-body .p-eyebrow { margin-top: 0; }

@@ -104,6 +104,13 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
   <p class="p-map-empty" id="map-empty" hidden><?= e(t('No spatial indices found for selected parameters', 'Walang nakitang lokasyon para sa napiling mga parameter')) ?></p>
   <p class="p-map-empty p-map-empty--error" id="map-failed" hidden><?= e(t('Map unavailable. Please reload.', 'Hindi available ang mapa. Paki-reload.')) ?></p>
 
+  <?php if (is_super()): // 15 Nov 2026 (Ace): the barangay's places moved here from Settings, for now: a button on the side that opens them in a panel (places.php) ?>
+  <dialog class="pl-dlg" id="pl-dlg" aria-labelledby="pl-ttl">
+    <div class="pl-head"><h2 id="pl-ttl"><?= e(t('The barangay’s places', 'Mga lugar ng barangay')) ?></h2><button type="button" class="p-btn p-btn-ghost p-btn-sm" data-pl-close><?= e(t('Close', 'Isara')) ?></button></div>
+    <div class="pl-body" id="pl-body"></div>
+  </dialog>
+  <script src="assets/js/places-panel.js?v=<?= e(asset_version('../js/places-panel.js')) ?>" defer></script>
+  <?php endif; ?>
   <aside class="p-map-detail" id="pin-detail" hidden></aside>
   <aside class="cs-sheet" id="case-sheet" hidden aria-label="<?= e(t('Complaint details', 'Detalye ng sumbong')) ?>"></aside>
   <aside class="cs-sheet" id="safe-sheet" hidden aria-label="<?= e(t('Safe point details', 'Detalye ng ligtas na lugar')) ?>"></aside>
@@ -226,6 +233,10 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     <?php if (HOTSPOTS_ENABLED): ?>
     <button class="p-dock-btn" id="hotspot-toggle" aria-expanded="false" aria-controls="hotspot-side" title="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>" aria-label="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1.3 3.4 5 4.8 5 9.5a5 5 0 0 1-10 0c0-2 .8-3.6 2-4.8.3 1.8 1.1 2.9 2.2 3.3C10.8 8.6 10.7 5.6 12 3z"/></svg><span class="p-cnt" id="hotspot-count">0</span></button>
+    <?php endif; ?>
+    <?php if (is_super()): ?>
+    <button class="p-dock-btn" id="pl-open" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="pl-dlg" title="<?= e(t('The barangay’s places', 'Mga lugar ng barangay')) ?>" aria-label="<?= e(t('The barangay’s places', 'Mga lugar ng barangay')) ?>">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"/><path d="M9.5 11l1.7 1.7 3.3-3.4"/></svg></button>
     <?php endif; ?>
   </div>
 </section>
@@ -1663,7 +1674,7 @@ window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 98
 (function () {
   const dock = document.querySelector('#s-spatial .p-map-dock'); if (!dock) return;
   const L = { 'search-btn': ['Search', 'Hanapin'], 'expand-btn': ['Full screen', 'Buong screen'], 'fit-btn': ['Frame all', 'Ipakita lahat'], 'tl-btn': ['Timeline', 'Timeline'],
-              'views-btn': ['Saved views', 'Mga view'], 'legend-toggle': ['Legend', 'Alamat'], 'incident-toggle': ['Incidents', 'Insidente'], 'smart-toggle': ['SMART', 'SMART'], 'hotspot-toggle': ['Hotspots', 'Hotspot'] };
+              'views-btn': ['Saved views', 'Mga view'], 'legend-toggle': ['Legend', 'Alamat'], 'incident-toggle': ['Incidents', 'Insidente'], 'smart-toggle': ['SMART', 'SMART'], 'hotspot-toggle': ['Hotspots', 'Hotspot'], 'pl-open': ['Places', 'Mga lugar'] };
   const label = () => dock.querySelectorAll('.p-dock-btn').forEach(b => { const l = L[b.id]; if (!l || b.querySelector('.dl')) return;
     const s = document.createElement('span'); s.className = 'dl'; s.textContent = T(l[0], l[1]); b.appendChild(s); });
   label(); if (window.MutationObserver) new MutationObserver(label).observe(dock, { childList: true });

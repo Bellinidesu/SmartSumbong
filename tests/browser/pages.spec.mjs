@@ -128,11 +128,15 @@ test('dark mode: dashboard and cases', async ({ page }) => {
   }
 });
 
-test('the barangay\'s places: listed in Settings, added from the map', async ({ page }) => {
-  let r = await open(page, 'settings.php#places');
-  await expect(page.locator('#places .st-plist li')).toHaveCount(2);
-  expect(await axe(page), 'Settings > Appearance').toEqual([]);
+test('the barangay\'s places: listed in a panel on Spatial Distribution (moved from Settings, 15 Nov), added from the map', async ({ page }) => {
+  let r = await open(page, 'settings.php');
+  await expect(page.locator('#places'), 'no longer in Settings').toHaveCount(0);
   r = await open(page, 'spatial.php');
+  await page.locator('#pl-open').click();
+  await expect(page.locator('#pl-dlg #places .st-plist li')).toHaveCount(2);
+  expect(await axe(page), 'Spatial Distribution, places panel open').toEqual([]);
+  await page.locator('#pl-dlg [data-pl-close]').click();
+  await expect(page.locator('#pl-dlg')).toBeHidden();
   const box = await page.locator('#s-spatial canvas').first().boundingBox();
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { button: 'right' });
   await page.locator('[data-do=add]').click();
@@ -2109,4 +2113,131 @@ test('Rose, 15 Nov: a report with several requests has a Request in focus bar ov
   expect(await page.locator('#cf').evaluate(e => e.getBoundingClientRect().top < document.querySelector('#assign-form, #review-form, .ss-ladder').getBoundingClientRect().top + 2000), 'the bar is in the controls').toBe(true);
   expect(await axe(page), 'Case page with the focus bar').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
+});
+
+
+// ---------- the looks batch of 15 Nov 2026 (Ace's stack) ----------
+test('Looks 15 Nov: a stack of pills holds four and opens the rest; the duplicate flag is in the stack', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  await page.locator('.ss-cases-t .p-badges').first().evaluate(box => { for (let i = 0; i < 6; i++) { const s = document.createElement('span'); s.className = 'p-badge p-b-grey ps-test'; s.textContent = 'Extra ' + i; box.appendChild(s); } });
+  const box = page.locator('.ss-cases-t .p-badges').first();
+  await expect(box.locator('.ps-more')).toContainText(/^\+\d+ more/);
+  expect(await box.locator('.p-badge:visible').count(), 'four show').toBe(4);
+  await box.locator('.ps-more').click();
+  await expect(box.locator('.ps-more')).toHaveAttribute('aria-expanded', 'true');
+  expect(await box.locator('.p-badge:visible').count(), 'all show when opened').toBeGreaterThan(4);
+  await box.locator('.ps-more').click();
+  expect(await box.locator('.p-badge:visible').count()).toBe(4);
+  expect(await page.url(), 'the row did not open').toContain('cases.php');
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Looks 15 Nov: the handler list shows people in their role frames, the status list its colours, Report Summary categories theirs', async ({ page }) => {
+  await open(page, 'cases.php');
+  await page.locator('.p-pill-select:has(select[name="who"]) .sdp-btn').click();
+  expect(await page.locator('.sdp-pop .sdp-av[data-r]').count(), 'people with a frame').toBeGreaterThan(1);
+  expect(await page.locator('.sdp-pop .sdp-av').first().evaluate(e => e.getBoundingClientRect().width), 'a round picture, not stretched').toBeLessThan(40);
+  await page.keyboard.press('Escape');
+  await page.locator('.p-pill-select:has(select[name="status"]) .sdp-btn').click();
+  expect(await page.locator('.sdp-pop .sdp-dot[style*="--c"]').count(), 'a dot for each status that has a colour').toBeGreaterThanOrEqual(6);
+  await expect(page.locator('.sdp-pop .sdp-opt', { hasText: 'With a Kagawad' }).locator('.sdp-dot.none')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await open(page, 'summary.php?range=month');
+  await page.locator('.p-pill-select:has(#category) .sdp-btn').click();
+  expect(await page.locator('.sdp-pop .sdp-dot[style*="--c"]').count(), 'every category has its dot').toBeGreaterThanOrEqual(7);
+});
+
+test('Looks 15 Nov: the red row action is white lettering at rest and a vibrant red when held', async ({ page }) => {
+  await open(page, 'notifications.php');
+  const b = page.locator('.p-notif-card .p-n-act .p-btn').first();
+  await expect(b).toBeVisible();
+  const at = async () => b.evaluate(e => { const s = getComputedStyle(e); return { c: s.color, bg: s.backgroundImage, o: s.opacity }; });
+  const rest = await at();
+  expect(rest.c).toBe('rgb(255, 255, 255)'); expect(rest.o).toBe('1');
+  await b.hover(); await page.waitForTimeout(350);
+  const held = await at();
+  expect(held.c, 'still white when held').toBe('rgb(255, 255, 255)');
+  expect(held.bg, 'a different, brighter red when held').not.toBe(rest.bg);
+});
+
+test('Looks 15 Nov: from four committees they become tiles; one open and wide, the rest tidy; turned-off ones wait in a closed list', async ({ page }) => {
+  const r = await open(page, 'administrative-services.php');
+  const grid = page.locator('#acc-committees .cmx-grid[data-tiles]').first();
+  await expect(grid).toHaveClass(/ss-tiles/);
+  await expect(grid.locator('> .tile-open')).toHaveCount(1);
+  const cards = grid.locator('> [data-tile]'); const n = await cards.count(); expect(n).toBeGreaterThanOrEqual(4);
+  expect(await grid.locator('> [data-tile]:not(.tile-open) .cmx-body:visible').count(), 'the others show only their banner').toBe(0);
+  const closed = grid.locator('> [data-tile]:not(.tile-open)').first();
+  const was = await grid.locator('> .tile-open').getAttribute('data-tile');
+  await closed.locator('[data-tile-head]').click();
+  await expect(grid.locator('> .tile-open')).toHaveCount(1);
+  expect(await grid.locator('> .tile-open').getAttribute('data-tile'), 'the clicked tile opened').not.toBe(was);
+  await expect(page.locator('.cmx-offd summary')).toContainText('Turned off');
+  expect(await page.locator('.cmx-offd').evaluate(e => e.open), 'closed by default').toBe(false);
+  expect(await page.locator('#acc-committees > .cmx-grid[data-tiles] form.acc-off').count(), 'no turned-off committee among the live ones').toBe(0);
+  expect(await axe(page), 'Administrative Services, committees as tiles').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Looks 15 Nov: the Roles tag TEST is small and Online now wraps inside its column', async ({ page }) => {
+  await open(page, 'administrative-services.php');
+  await page.locator('.st-tabs').getByText('Roles', { exact: true }).first().click();
+  await page.waitForTimeout(500);
+  const h = await page.evaluate(() => {
+    const row = document.querySelector('.ss-arow'), span = row.querySelector('.p-person > span');
+    const t = document.createElement('span'); t.className = 'p-badge dv-test'; t.textContent = 'TEST'; span.appendChild(t);
+    const on = row.querySelector('td.ss-online'); on.textContent = 'Has open: BRG-2026-1234567890-LONG';
+    const e = row.querySelector('.ss-edit-btn').getBoundingClientRect(), o = on.getBoundingClientRect();
+    return { test: Math.round(t.getBoundingClientRect().height), overlap: o.right > e.left + 1 };
+  });
+  expect(h.test, 'a small tag').toBeLessThanOrEqual(20);
+  expect(h.overlap, 'the online text ends before the Edit button').toBe(false);
+});
+
+test('Looks 15 Nov: Settings > SMART is a navy room and its logo only glows green (no outline), light and dark', async ({ page }) => {
+  for (const th of ['light', 'dark']) {
+    await page.goto('settings.php', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(x => { try { localStorage.setItem('ss-theme', x); } catch (e) {} document.documentElement.setAttribute('data-theme', x); }, th);
+    await page.locator('.st-tabs').getByText('SMART', { exact: true }).first().click();
+    await page.waitForTimeout(600);
+    const s = await page.evaluate(() => { const p = document.querySelector('.st-pane[data-pane="smart"]'), c = getComputedStyle(p), f = getComputedStyle(p.querySelector('.ss-engine img')).filter; const card = getComputedStyle(p.querySelector('.p-card')); return { bg: c.backgroundImage, color: c.color, filter: f, card: card.backgroundColor }; });
+    expect(s.bg, th + ': a navy gradient').toContain('gradient');
+    expect(s.color, th + ': light lettering').toBe('rgb(244, 247, 255)');
+    expect(s.filter, th + ': the green glow').toContain('237, 250, 4');
+    expect(s.filter, th + ': no dark outline').not.toContain('20, 33, 61');
+  }
+});
+
+test('Looks 15 Nov: Profile has no empty space under the shorter column; Ask to retire sits level in its row; Propose a tanod is a card', async ({ page, context }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  await open(page, 'profile.php');
+  const g = await page.evaluate(() => { const l = document.querySelector('.pf-left > .p-card:last-child').getBoundingClientRect(), r = document.querySelector('.pf-right > .ss-al').getBoundingClientRect(); return { l: Math.round(l.bottom), r: Math.round(r.bottom) }; });
+  expect(Math.abs(g.l - g.r), 'both columns end together').toBeLessThanOrEqual(3);
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  await open(page, 'profile.php');
+  const row = await page.evaluate(() => { const r = document.querySelector('.ss-pf-act').closest('.ss-pf-row').getBoundingClientRect(); return Math.round(r.height); });
+  expect(row, 'the Retirement row is not stretched by the old top padding').toBeLessThan(110);
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }, { name: 'ss_role', value: 'kagawad', url: 'http://127.0.0.1:8013' }]);
+  await open(page, 'personnel.php');
+  await expect(page.locator('#tc-propose .tp-ico')).toBeVisible();
+  await expect(page.locator('#tc-propose .tp-t small')).toBeVisible();
+  await page.locator('#tc-propose > summary').click();
+  await expect(page.locator('#tc-propose form')).toBeVisible();
+  expect(await axe(page), 'Personnel, propose open').toEqual([]);
+});
+
+test('Looks 15 Nov: Personnel > Committee staff turns into tiles from four committees (one wide, the rest small rectangles beneath)', async ({ page }) => {
+  await open(page, 'personnel.php?view=staff');
+  const wrap = page.locator('.pc-groups[data-tiles]');
+  await expect(wrap, 'one or two committees stay wide').not.toHaveClass(/ss-tiles/);
+  await wrap.evaluate(w => { const g = w.querySelector('.pc-group'); for (let i = 1; i < 4; i++) { const c = g.cloneNode(true); c.setAttribute('data-tile', 'x' + i); w.appendChild(c); } window.ssTiles(document); });
+  await expect(wrap).toHaveClass(/ss-tiles/);
+  await expect(wrap.locator('> .tile-open')).toHaveCount(1);
+  expect(await wrap.locator('> [data-tile]:not(.tile-open) .pc-grid:visible').count(), 'the others are small rectangles').toBe(0);
+  expect(await wrap.locator('> .tile-open .pc-grid').isVisible(), 'the open one shows its cards').toBe(true);
+  const first = await wrap.locator('> [data-tile]:not(.tile-open)').first().evaluate(e => e.getBoundingClientRect().height);
+  expect(first, 'a tile is a small rectangle').toBeLessThan(120);
+  await wrap.locator('> [data-tile]:not(.tile-open) [data-tile-head]').first().click();
+  await expect(wrap.locator('> .tile-open')).toHaveCount(1);
+  expect(await wrap.locator('> .tile-open .pc-grid').isVisible()).toBe(true);
 });

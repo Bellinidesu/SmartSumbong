@@ -851,7 +851,8 @@ $tlTone = function (array $l): string {
       f.dataset.cal = '1';
       var lb = b.closest('label'), to = f.querySelector('.p-to'); if (lb) lb.hidden = true; if (to) to.hidden = true;
       sdPickers.range(a, { from: a, to: b, onApply: function () { f.requestSubmit ? f.requestSubmit() : f.submit(); } });
-      sdPickers.select(document.getElementById('category'));
+      var CATCOL = <?= json_encode(category_colours()) ?>;   // 15 Nov 2026 (Ace): each category in the dropdown wears its colour dot
+      sdPickers.select(document.getElementById('category'), { dot: function (v) { return CATCOL[v] || null; } });
     }
     setUp();
     document.addEventListener('htmx:afterSettle', setUp);

@@ -32,12 +32,12 @@ test('every filled pill and position chip reads and is one height, in light and 
   expect(bad, 'pills that do not read or are not one height').toEqual([]);
 });
 
-test('the SMART level carries its score inside the pill, and the duplicate flag is short and on its own line', async ({ page }) => {
+test('the SMART level carries its score inside the pill, and the duplicate flag is short and a pill of the status stack (15 Nov)', async ({ page }) => {
   await page.goto('cases.php', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(1500);
   const lvl = page.locator('td.ss-smart .p-b-score').first();
   await expect(lvl).toBeVisible();
   await expect(lvl.locator('.ss-score-n')).toHaveText(/^\d+$/);
   expect(await lvl.evaluate(e => getComputedStyle(e, '::before').display), 'no dot beside the number').toBe('none');
   const dup = page.locator('.ss-dup').first();
-  if (await dup.count()) { await expect(dup).toHaveText('Duplicate?'); await expect(dup).toHaveAttribute('title', 'Possible duplicate'); }
+  if (await dup.count()) { await expect(dup).toHaveText('Duplicate?'); await expect(dup).toHaveAttribute('title', 'Possible duplicate'); expect(await dup.evaluate(e => e.parentElement.classList.contains('p-badges')), 'in the status stack, not beside the score').toBe(true); }
 });

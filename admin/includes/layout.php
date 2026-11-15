@@ -195,8 +195,12 @@ function smart_badge(?array $tr): string
     // 12 Nov 2026 (Ace): the score sits inside the pill, where the dot was
     $o = '<span class="p-badge p-b-' . $cls . ' p-b-score" title="' . e($lab . ' · ' . (int) $tr['score']) . '"><b class="ss-score-n">' . (int) $tr['score'] . '</b>' . e($lab) . '</span>';
     if (!empty($tr['override_level'])) { $o .= '<small class="ss-set" title="' . e(t('Set by an admin', 'Itinakda ng admin')) . '">' . e(t('set by admin', 'itinakda ng admin')) . '</small>'; }
-    if ((int) ($tr['possible_duplicates'] ?? 0) > 0) { $o .= '<span class="p-badge p-b-violet ss-dup" title="' . e(t('Possible duplicate', 'Maaaring doble')) . '">' . e(t('Duplicate?', 'Doble?')) . '</span>'; }
-    return $o;
+    return $o;   // 15 Nov 2026 (Ace): the duplicate flag is a pill in the status stack now (duplicate_pill()), not beside the score
+}
+/** The "possible duplicate" flag, a pill of the status stack. */
+function duplicate_pill(?array $tr): string
+{
+    return (int) ($tr['possible_duplicates'] ?? 0) > 0 ? '<span class="p-badge p-b-violet ss-dup" title="' . e(t('Possible duplicate', 'Maaaring doble')) . '">' . e(t('Duplicate?', 'Doble?')) . '</span>' : '';
 }
 /** A referral's name as a short pill word: the Lupon is "Lupon", anything else is cut at 16 characters (the pill's title carries the whole name). */
 function referral_short(string $s): string
@@ -573,7 +577,7 @@ window.ssSupabase = function (url, key, initial) {
 <?php endif; ?>
 <link href="assets/css/motion.css?v=<?= e(asset_version('motion.css')) ?>" rel="stylesheet">
 <link href="assets/css/pills.css?v=<?= e(asset_version('pills.css')) ?>" rel="stylesheet">
-<?= side_colour_style() ?><script src="assets/js/motion.js?v=<?= e(asset_version('../js/motion.js')) ?>" defer></script><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
+<?= side_colour_style() ?><script src="assets/js/motion.js?v=<?= e(asset_version('../js/motion.js')) ?>" defer></script><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script><script src="assets/js/pill-stack.js?v=<?= e(asset_version('../js/pill-stack.js')) ?>" defer></script>
 <?php // The press flow (7 Nov 2026): htmx swaps only what a press changes. No eval, no scripts from swapped HTML, no page HTML in
       // localStorage (Back fetches the page fresh), same-origin only; assets/js/press.js is the portal's layer over it. ?>
 <meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"refreshOnHistoryMiss":true,"selfRequestsOnly":true,"includeIndicatorStyles":false,"scrollIntoViewOnBoost":false,"defaultSettleDelay":0,"getCacheBusterParam":false}'>

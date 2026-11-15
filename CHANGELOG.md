@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The looks batch (15 Nov, Ace's stack)**
+- Pill stacks: at most four pills show in a cell; "+N more" opens the rest (every page and role, `pill-stack.js`). The "Duplicate?" flag is now a pill of the status stack, no longer beside the score.
+- Dropdowns: the handler list shows each person's picture or initials in their position frame; the status list and the Report Summary category list carry colour dots.
+- The red row action (Review): white lettering at rest, a vibrant glowing red when held; never faded.
+- Personnel > Committee staff and Administrative Services > Committees: up to three stay wide; from four, one is wide and open and the rest are small tiles beneath (`tiles.js`). Committees that are turned off wait in a closed "Turned off" list.
+- Administrative Services > Roles: the TEST tag is small, and the Online now text wraps inside its column.
+- The barangay's places moved from Settings to a button in the Spatial Distribution dock (`places.php`, a panel).
+- Settings > SMART is a navy room in light and dark, and the engine logo only glows green (no outline).
+- Profile: the shorter column's last card grows to the foot of the taller one; the Retirement row has no stray top padding. Personnel: "Propose a tanod" is a card in the committee's colour.
+
 **The Inbox is a community chat; BarangayMail is gone (15 Nov, Rose's list)**
 - Case chats are grouped by person: each resident or tanod is a profile with the unread of their chats added up, and under it one bubble chat per case. A profile opens and closes (remembered), a search or the
   Unread / Cases I handle chips open the profiles that match, and a chat still opens in place.
