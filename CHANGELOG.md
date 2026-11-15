@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The case page on one screen (15 Nov, Ace: "proceed with LIVE")**
+- The case card keeps its live look (cream, navy labels, the Validated pill). "Why this level" is now a button beside the status pill (the SMART mark, the level and the score); pressing it opens the SMART card as a drawer on the right (a dialog: Escape, its close button or a click outside shut it, focus is held inside and returns to the button). Change level is still inside it.
+- The Admin Controls panel is never taller than the window and scrolls inside itself (so a long panel no longer runs off the screen or leaves dead space beside a long case); a stage track at its top says where the case is (Review, Assign, Dispatch, Approve, Closed); the secondary actions (Take over, Forward, Flag, Ownership history, Reroute, Return to the tanod, Update status, Hand to a higher official, Escalate, Send it back down, Sensitive) are compact tiles with an icon, each opening in place.
+- The activity timeline is a panel that scrolls inside itself (focusable by keyboard, labelled).
+- Nothing about what a control does, who may use it, or any form changed: the same 23 forms and actions are on the page.
+
 **The portal is Material (15 Nov, Ace: "we are going Material", the stylisation and the glow stay)**
 - `material.css` (loaded last on every signed-in page): no frosted glass anywhere (the Workspace board columns and bar, the Report Summary jump bar, the weather card, the pickers, the certificate editor panels, the SMART map side panel and the dark sign-in card, rail and switches are solid fills); modal scrims dim without blurring; the glows keep their colour but become coloured elevation (a small sharp shadow and a wider soft one, dropped a little) instead of a halo: the SMART brain pill, the weather button, the live and weather dots, the flood level dots, the dock count badge.
 - Spatial Distribution at night: the active dock button, the play button, the open layer tile and a pressed case action are lifted with a tinted shadow in their own colour.

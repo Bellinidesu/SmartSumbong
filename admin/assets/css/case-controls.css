@@ -1,0 +1,66 @@
+/* The case page, one screen (15 Nov 2026, Ace: "proceed with LIVE"). Loaded on the case page only, after the page's own styles.
+   1. The controls panel is as tall as the window at most and scrolls inside itself, so a long panel never runs off the screen or leaves dead space beside a
+      long case; the secondary actions are compact tiles with an icon (a tile opens into a sheet in place); a stage track says where the case is.
+   2. "Why this level" is a button beside the status pill; the SMART card opens as a drawer only when it is wanted.
+   3. The activity timeline is a panel that scrolls inside itself.
+   Nothing here changes what a control does: the forms, the actions and who may use them are the page's own. */
+:root { --cc-sh1: 0 1px 2px rgba(20,27,52,.22), 0 1px 3px 1px rgba(20,27,52,.12); --cc-sh2: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); }
+:root[data-theme="dark"] { --cc-sh1: 0 1px 2px rgba(0,0,0,.62), 0 1px 3px 1px rgba(0,0,0,.4); --cc-sh2: 0 1px 2px rgba(0,0,0,.62), 0 2px 6px 2px rgba(0,0,0,.46); }
+
+/* ---- 1. the controls ---- */
+@media (min-width: 1101px) {
+  :root:root .p-controls { max-height: calc((100vh - 40px) / var(--z, 1)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+}
+.p-controls details.p-fix { margin: 0; border-radius: 14px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); }
+.p-controls details.p-fix:not([open]):hover { box-shadow: inset 0 0 0 1px var(--p-line); }
+.p-controls details.p-fix > summary { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 52px; padding: 10px 12px; border: 0; border-radius: 14px; background: transparent; font-weight: 700; font-size: 13px; line-height: 1.25; }
+.p-controls details.p-fix:not([data-ic]) > summary { grid-template-columns: minmax(0, 1fr) auto; }
+.p-controls details.p-fix > summary::before { content: ""; width: 18px; height: 18px; background: var(--p-link, #00308F); -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
+.p-controls details.p-fix:not([data-ic]) > summary::before { display: none; }
+.p-controls details.p-fix > summary::after { font-size: 11px; transition: transform .15s; }
+.p-controls details.p-fix[open] > summary::after { transform: rotate(180deg); }
+.p-controls details.p-fix[open] { box-shadow: inset 0 0 0 1px var(--p-line), var(--cc-sh1, 0 1px 3px rgba(20,27,52,.2)); }
+.p-controls details.p-fix[open] > summary { border-radius: 14px 14px 0 0; border-bottom: 1px solid var(--p-line); margin-bottom: 0; }
+.p-controls details.p-fix[open] > :not(summary) { margin: 10px 12px 12px; }
+.p-controls details.p-fix[data-ic="user"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%2012a4%204%200%20100-8%204%204%200%20000%208zM4%2021a8%208%200%200116%200'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="send"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M22%202L11%2013M22%202l-7%2020-4-9-9-4%2020-7z'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="flag"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M5%2021V4M5%204h11l-2%204%202%204H5'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="hist"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3%2012a9%209%200%20109-9%209%209%200%2000-7%203.5M3%204v5h5M12%208v4l3%202'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="route"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M6%2019a2%202%200%20100-4%202%202%200%20000%204zM18%209a2%202%200%20100-4%202%202%200%20000%204zM8%2017h6a4%204%200%20000-8h-2'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="back"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M15%205l-7%207%207%207'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="up"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%2019V5M5%2012l7-7%207%207'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="down"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%205v14M5%2012l7%207%207-7'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="x"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M6%206l12%2012M18%206L6%2018'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="pen"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M4%2020h4L19%209l-4-4L4%2016v4z'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="bld"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3%2021h18M5%2021V8l7-5%207%205v13M9%2012h2M13%2012h2M9%2016h2M13%2016h2'/%3E%3C/svg%3E"); }
+.p-controls details.p-fix[data-ic="shield"] > summary { --ic: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%203l8%203v6c0%205-3.5%208-8%209-4.5-1-8-4-8-9V6l8-3z'/%3E%3C/svg%3E"); }
+
+/* where the case is */
+.cc-track { list-style: none; margin: 2px 0 0; padding: 0; display: flex; gap: 4px; }
+.cc-track li { flex: 1; min-width: 0; }
+.cc-track i { display: block; height: 5px; border-radius: 99px; background: var(--p-line); margin-bottom: 5px; }
+.cc-track span { display: block; font: 700 10.5px Inter, sans-serif; color: var(--p-muted); letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-track .done i { background: #1E9E56; } .cc-track .cur i { background: var(--p-orange); } .cc-track .cur span { color: var(--p-ink); }
+
+/* ---- 2. SMART: a button, and a drawer ---- */
+.p-acc-flags .ss-smartbtn { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 8px; border: 0; border-radius: 999px; color: #fff; cursor: pointer;
+  background: linear-gradient(145deg, #1B2342, #0E1428); box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 3px 8px rgba(53,108,249,.45); font: 700 12.5px Inter, sans-serif; transition: box-shadow .2s; }
+.p-acc-flags .ss-smartbtn:hover { box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(53,108,249,.6); }
+.p-acc-flags .ss-smartbtn:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 2px; }
+.p-acc-flags .ss-smartbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--p-orange), 0 3px 8px rgba(53,108,249,.45); }
+.ss-smartbtn svg, .ss-smartbtn img { height: 22px; width: auto; }
+.ss-smartbtn b { font-weight: 800; color: #6C9BFF; }
+.ss-smartbtn.ss-lv-urgent b { color: #FF7A7A; } .ss-smartbtn.ss-lv-high b { color: #FFB84D; } .ss-smartbtn.ss-lv-low b { color: #6BE39A; }
+dialog.ss-smartcard:not([open]) { display: none !important; }
+dialog.ss-smartcard[open] { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(560px, 100vw); max-width: 100vw; height: 100vh; max-height: 100vh; overflow: auto; z-index: 70; border-radius: 22px 0 0 22px; animation: ccSlide .2s ease; }
+dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
+.ss-sc-x { margin-left: auto; width: 32px; height: 32px; border: 0; border-radius: 10px; background: rgba(255,255,255,.1); color: #fff; display: grid; place-items: center; cursor: pointer; flex: none; }
+.ss-sc-x:hover { background: rgba(255,255,255,.18); } .ss-sc-x:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 2px; }
+@keyframes ccSlide { from { transform: translateX(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { dialog.ss-smartcard[open] { animation: none; } .p-controls details.p-fix > summary::after { transition: none; } }
+
+/* ---- 3. the timeline scrolls inside itself ---- */
+.cc-timeline { max-height: min(640px, calc((100vh - 120px) / var(--z, 1))); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.cc-timeline > .p-eyebrow { position: sticky; top: 0; z-index: 2; background: var(--p-surface); padding-bottom: 8px; margin-bottom: 0; }
+@media (max-width: 1100px) { .cc-timeline { max-height: 70vh; } }
+.cc-timeline:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 2px; }
