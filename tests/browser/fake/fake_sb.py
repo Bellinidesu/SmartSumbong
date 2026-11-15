@@ -45,6 +45,7 @@ REPORTS[2].update(committee='environment', case_committee='environment',
                   forwards=[{'kind': 'forward', 'from_committee': 'peace_order', 'to_super': False, 'created_at': ago(1)}])
 REPORTS[3].update(case_committee=None, awaiting_placement=True)
 REPORTS[4].update(case_committee=None)
+REPORTS[5].update(resolution_submitted_at=ago(2))   # a tanod's resolution waits for approval (case 6, deadline still ahead); case 8 is in progress and overdue
 
 TABLES = {
     'users': [ADMIN, KAG, CHAIR, tanod(1, 'Bautista, Jose'), tanod(2, 'Mendoza, Liza', True), tanod(3, 'Cruz, Ben')],
