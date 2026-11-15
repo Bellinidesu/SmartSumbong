@@ -2393,3 +2393,56 @@ test('Sign-in 15 Nov: when the server cannot read the weather, the browser asks 
   await c2.close();
   await ctx.close();
 });
+
+test('Sign-in 15 Nov: the panel arrives drawn by the server (no blink between the signed-out pages), and the pages ask the browser to keep it still', async ({ browser }) => {
+  const ctx = await browser.newContext();
+  for (const pg of ['login.php', 'forgot-password.php', 'request-access.php']) {
+    const r = await ctx.request.get(pg + '?demo=day-rain&via=login.php');
+    const html = await r.text();
+    expect(html, pg + ': the weather is already in the page').toMatch(/id="gl-temp">26°</);
+    expect(html, pg + ': the picture already follows the weather').toContain('data-wx="rain"');
+    expect(html, pg + ': the warning row is already shown').toMatch(/id="gl-warn"(?! hidden)/);
+    expect(html, pg + ': its words are in the page').toContain('Orange rainfall warning');
+  }
+  const css = await (await ctx.request.get('assets/css/signin.css')).text();
+  expect(css).toContain('@view-transition');
+  expect(css).toContain('view-transition-name: gl');
+  // the script's refresh writes the same words, so nothing changes when it arrives
+  await ctx.close();
+  const c2 = await browser.newContext();   // the requests above gave that context a session
+  const page = await c2.newPage();
+  await page.goto('login.php?demo=day-rain', { waitUntil: 'domcontentloaded' });
+  const before = await page.locator('#gl .gl-read').innerText();
+  await page.waitForTimeout(900);
+  expect(await page.locator('#gl .gl-read').innerText()).toBe(before);
+  await c2.close();
+});
+
+test('Spatial Distribution 15 Nov: Material at night too (solid graphite, no frosting, no border, no sheen, no glow on pins)', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await open(page, 'spatial.php');
+  await page.evaluate(() => { document.documentElement.setAttribute('data-theme', 'dark'); });
+  await page.waitForTimeout(500);
+  const m = await page.evaluate(() => {
+    const out = {};
+    for (const sel of ['.p-map-search', '.fw-chip', '#layers-btn', '.maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button']) {
+      const el = document.querySelector('#s-spatial ' + sel); if (!el) continue;
+      const c = getComputedStyle(el);
+      out[sel] = { blur: c.backdropFilter, border: c.borderTopWidth, shadow: c.boxShadow, bg: c.backgroundColor, img: c.backgroundImage };
+    }
+    return out;
+  });
+  const keys = Object.keys(m);
+  expect(keys.length, 'surfaces found').toBeGreaterThan(1);
+  for (const k of keys) {
+    expect(m[k].blur === 'none' || m[k].blur === '', k + ': no frosting').toBe(true);
+    expect(m[k].border, k + ": no border " + JSON.stringify(m[k])).toBe("0px");
+    expect(m[k].shadow, k + ': lifted by a shadow, not lit').not.toMatch(/inset/);
+    expect(m[k].img, k + ': a flat fill').toBe('none');
+  }
+  // the pins' glow is gone: a pin's filter holds only black shadows
+  const css = await (await page.request.get('assets/css/sd-dark.css')).text();
+  expect(css).toContain('.dm svg { filter: drop-shadow(0 1px 1px rgba(0,0,0,.7))');
+  const html = await (await page.request.get('spatial.php')).text();
+  expect(html, 'the cluster pin is no longer a glass orb').not.toContain('radialGradient id="og"');
+});

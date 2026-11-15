@@ -1,0 +1,93 @@
+/* Spatial Distribution at night is Material too (Ace, 15 Nov 2026: "light mode is material, dark mode too should be, even the pins").
+   The same grammar as sd-light.css, drawn for a dark ground: solid graphite surfaces, no border, no sheen, no blur and no glow; depth is the
+   surface's tone (the higher a surface sits, the lighter it is) plus layered black shadows (panels level 2, the case sheet and pop-ups level 3,
+   controls level 1); the active control is solid brand orange; pins are solid discs with a white edge, lifted by shadow. Loaded last, only on this page.
+   What a glow MEANS stays lit: the heat, flood and air layers, the SMART engine's own mark, the live dots. */
+:root[data-theme="dark"] #s-spatial#s-spatial {
+  --md1: 0 1px 2px rgba(0,0,0,.62), 0 1px 3px 1px rgba(0,0,0,.4);
+  --md2: 0 1px 2px rgba(0,0,0,.62), 0 2px 6px 2px rgba(0,0,0,.46);
+  --md3: 0 4px 8px 3px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.7);
+  --mt1: #22242A; --mt2: #272930; --mt3: #2D3037; --mt-hover: #33363E;
+}
+
+/* panels: level 2 */
+:root[data-theme="dark"] #s-spatial#s-spatial :is(.p-map-search, .cc-suggest, .p-map-stats:not(.ss-drawer), .p-map-legend, .fw-card, .lyc, .ss-lyr),
+:root[data-theme="dark"] #s-spatial#s-spatial :is(.p-map-search, .p-map-stats:not(.ss-drawer), .p-map-legend, .fw-card, .lyc):is(:hover, :focus-within) {
+  background: var(--mt2); background-image: none; border: 0; box-shadow: var(--md2); -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+/* the case sheet, the Zoom here box, a marker's pop-up and the pickers: level 3 */
+:root[data-theme="dark"] #s-spatial#s-spatial :is(.cs-sheet, .ss-qv, .ss-pop),
+:root[data-theme="dark"][data-surface] .sdp-pop {
+  background: var(--mt3, #2D3037); background-image: none; border: 0; box-shadow: 0 4px 8px 3px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.7); -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root[data-theme="dark"] .ss-spop .maplibregl-popup-content { background: #2D3037; box-shadow: 0 4px 8px 3px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.7); border: 0; }
+:root[data-theme="dark"] .ss-spop .maplibregl-popup-tip { border-top-color: #2D3037; border-bottom-color: #2D3037; }
+/* no sheen layers and no lit top edge in Material */
+:root[data-theme="dark"] #s-spatial#s-spatial :is(.p-map-search, .p-map-stats, .p-map-legend, .fw-card, .lyc, .ss-qv, .ss-pop, .cc-suggest)::after,
+:root[data-theme="dark"] #s-spatial#s-spatial .ss-lyr::after, :root[data-theme="dark"] .sdp-pop::after { display: none; }
+:root[data-theme="dark"] #s-spatial#s-spatial .cs-sheet::before { opacity: 0; }
+:root[data-theme="dark"] .cs-foot { background: var(--mt3, #2D3037); border-top: 1px solid rgba(255,255,255,.09); box-shadow: none; }
+:root[data-theme="dark"] .cs-quote, :root[data-theme="dark"] .cs-sla, :root[data-theme="dark"] .cs-last { background: rgba(255,255,255,.06); }
+:root[data-theme="dark"] .cs-rows li { border-bottom-color: rgba(255,255,255,.08); }
+
+/* controls: level 1, rising to 2 on hover; the dock buttons are small surfaces */
+:root[data-theme="dark"] #s-spatial#s-spatial :is(.fw-chip, .p-dock-btn:not(.on):not(.ss-dock-logo):not(.cc-dock), .maplibregl-ctrl-group, .maplibregl-ctrl-scale),
+:root[data-theme="dark"] #s-spatial#s-spatial .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button {
+  background: var(--mt1); background-image: none; border: 0; box-shadow: var(--md1); -webkit-backdrop-filter: none; backdrop-filter: none; color: #E9EBF2;
+}
+:root[data-theme="dark"] #s-spatial#s-spatial .maplibregl-ctrl-group button { background: transparent; border-radius: 0; box-shadow: none; }
+:root[data-theme="dark"] #s-spatial#s-spatial .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button { background: var(--mt1); border-radius: 12px; box-shadow: var(--md1); }
+:root[data-theme="dark"] #s-spatial#s-spatial .maplibregl-ctrl-group button + button { border-top: 1px solid rgba(255,255,255,.1); }
+:root[data-theme="dark"] #s-spatial#s-spatial .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button + button { border-top: 0; }
+:root[data-theme="dark"] #s-spatial#s-spatial :is(.p-dock-btn:not(.on):not(.ss-dock-logo):not(.cc-dock), .fw-chip):hover,
+:root[data-theme="dark"] #s-spatial#s-spatial .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button:hover { background: var(--mt-hover); box-shadow: var(--md2); }
+:root[data-theme="dark"] #s-spatial#s-spatial .p-dock-btn { transition: box-shadow .2s ease, background-color .2s ease; }
+:root[data-theme="dark"] #s-spatial#s-spatial .p-dock-btn.on { background: var(--p-orange); background-image: none; color: #2B1A00; border: 0; box-shadow: var(--md2); }
+:root[data-theme="dark"] #s-spatial#s-spatial .maplibregl-ctrl-scale { border: 1px solid rgba(255,255,255,.45); border-top: 0; box-shadow: none; background: transparent; }
+:root[data-theme="dark"] #s-spatial#s-spatial .p-map-search .p-pill-select { background: rgba(255,255,255,.07); }
+
+/* pins and clusters at night: solid discs lifted off the map by layered shadows and held by a white edge (the orange glow is gone) */
+:root[data-theme="dark"] .dm svg { filter: drop-shadow(0 1px 1px rgba(0,0,0,.7)) drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
+:root[data-theme="dark"] .dm:hover svg { filter: drop-shadow(0 2px 2px rgba(0,0,0,.7)) drop-shadow(0 6px 9px rgba(0,0,0,.55)); }
+/* the pressed pin: a solid disc in its colour, a white edge, level-3 height, a quiet ripple instead of a glow */
+:root[data-theme="dark"] .sel-pin .sp-d { background: var(--c); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 0 0 3px #fff, 0 4px 8px 3px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.7); }
+:root[data-theme="dark"] .sel-pin .sp-d::before { display: none; }
+:root[data-theme="dark"] .sel-pin .sp-d svg { filter: none; }
+:root[data-theme="dark"] .sel-pin .sp-h { box-shadow: none; border-width: 2px; }
+:root[data-theme="dark"] .sh-pin b { box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(0,0,0,.6); }
+/* the category badges in lists and the legend: solid discs, no gloss */
+:root[data-theme="dark"] .lv-ic, :root[data-theme="dark"] .lg-ic { background: var(--c); box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 1px 3px 1px rgba(0,0,0,.35); }
+:root[data-theme="dark"] .lv-ic::after, :root[data-theme="dark"] .lg-ic::after { display: none; }
+
+/* the layer tile, the layer pictures and the play button: elevation and a solid orange edge, not glow */
+:root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile { border: 0; background: var(--mt1, #22242A); color: #E9EBF2; box-shadow: var(--md1); -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile:hover { box-shadow: var(--md2); }
+:root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile.on, :root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--p-orange), var(--md2); }
+:root[data-theme="dark"] .ss-lyr .map-sw:has(input:checked) .scene, :root[data-theme="dark"] .ss-lyr .lyr-list .map-sw.tile:has(input:checked) .scene { box-shadow: 0 0 0 3px var(--p-orange), 0 2px 6px 2px rgba(0,0,0,.5); animation: none; }
+:root[data-theme="dark"] .ss-lyr .map-sw .scene { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 1px 3px 1px rgba(0,0,0,.35); }
+:root[data-theme="dark"] .tl-play { background: var(--p-orange); color: #2B1A00; box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 2px 6px 2px rgba(0,0,0,.4); }
+
+/* the four case actions: the same small worlds, lifted by shadow instead of glowing */
+:root[data-theme="dark"] .cs-acts > * span { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 1px 3px 1px rgba(0,0,0,.35); }
+:root[data-theme="dark"] .cs-acts > *:hover span { box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 2px 6px 2px rgba(0,0,0,.5); }
+:root[data-theme="dark"] .cs-acts .ac-zoom.go span { box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 0 0 6px color-mix(in srgb, var(--cs-c) 22%, transparent); }
+:root[data-theme="dark"] .cs-acts .ac-copy.done span { box-shadow: 0 2px 6px 2px rgba(0,0,0,.5); }
+:root[data-theme="dark"] .cs-acts .ac-look span, :root[data-theme="dark"] .cs-acts .ac-look:hover span { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 2px 6px 2px rgba(0,0,0,.4); }
+/* the case sheet's colour is a solid, the lift is the shadow */
+:root[data-theme="dark"] .cs-sheet .cs-hero { background: var(--cs); }
+:root[data-theme="dark"] .cs-sheet .cs-hero.has-photo { background: #1C1D22; }
+:root[data-theme="dark"] .cs-sheet .cs-acts > * span { background: var(--cs); }
+:root[data-theme="dark"] .cs-sheet .cs-acts .ac-look span { background: none; }
+:root[data-theme="dark"] .cs-steps li.on:has(+ li.on)::after { box-shadow: none; }
+:root[data-theme="dark"] .cs-steps li.cur::before { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cv) 22%, transparent); }
+/* the main buttons: a solid fill at level 1, rising to 2 on hover; the quiet button is a tonal surface */
+:root[data-theme="dark"] .qv-act .p-btn-primary, :root[data-theme="dark"] .cs-foot .cs-open, :root[data-theme="dark"] .cs-sheet .cs-foot .p-btn-primary,
+:root[data-theme="dark"] #s-spatial#s-spatial :is(.cc-suggest, .cc-side, .p-map-stats) :is(.p-btn-primary, .cc-sug-on) { background: var(--p-orange); background-image: none; text-shadow: none; box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 1px 3px 1px rgba(0,0,0,.35); }
+:root[data-theme="dark"] .qv-act .p-btn-primary::before, :root[data-theme="dark"] .cs-foot .cs-open::before, :root[data-theme="dark"] .cs-foot .cs-open::after { display: none; }
+:root[data-theme="dark"] .qv-act .p-btn-primary:hover, :root[data-theme="dark"] .cs-foot .cs-open:hover, :root[data-theme="dark"] .cs-sheet .cs-foot .p-btn-primary:hover { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 2px 6px 2px rgba(0,0,0,.45); filter: none; }
+:root[data-theme="dark"] .qv-act [data-qvback] { background: rgba(255,255,255,.08); border: 0; color: var(--p-ink); box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+:root[data-theme="dark"] .qv-act [data-qvback]:hover { background: rgba(255,255,255,.13); }
+:root[data-theme="dark"] .qv-look { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 2px 6px 2px rgba(0,0,0,.4); }
+:root[data-theme="dark"] .qv-look:hover { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 4px 10px 3px rgba(0,0,0,.5); }
+
+@media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] #s-spatial#s-spatial * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }

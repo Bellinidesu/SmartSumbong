@@ -142,14 +142,11 @@ function glance_demo(string $spec): array
     ];
 }
 
-/** Everything the panel shows, as one small answer. A part that could not be read is left out (null or empty). */
-function glance_read(): array
+/** One answer from the parts: the weather, PAGASA's read, the hotlines and the headlines (each may be missing). */
+function glance_build(?array $wx, array $hz, array $hot, array $news): array
 {
-    if (env('GLANCE_OFFLINE', '') === '1') { return glance_demo((string) ($_GET['demo'] ?? '')); }
     $tz  = new DateTimeZone('Asia/Manila');
     $now = new DateTimeImmutable('now', $tz);
-    $wx  = glance_weather();
-    $hz  = function_exists('hazards_read') ? (array) hazards_read() : [];
     $w   = glance_warning($hz);
     $c   = $wx['current'] ?? null;
     return [
@@ -165,7 +162,35 @@ function glance_read(): array
         ] : null,
         'warn'  => $w['warn'],
         'flood' => $hz ? $w['flood'] : null,   // null: PAGASA could not be read, so nothing is claimed
-        'hot'   => glance_hotlines(),
-        'news'  => glance_news(),
+        'hot'   => $hot,
+        'news'  => $news,
     ];
+}
+
+/** Everything the panel shows, as one small answer. A part that could not be read is left out (null or empty). */
+function glance_read(): array
+{
+    if (env('GLANCE_OFFLINE', '') === '1') { return glance_demo((string) ($_GET['demo'] ?? '')); }
+    $hz = function_exists('hazards_read') ? (array) hazards_read() : [];
+    return glance_build(glance_weather(), $hz, glance_hotlines(), glance_news());
+}
+
+/**
+ * What the server already holds, with no request to any source: the panel is drawn from it with the page, so going from one signed-out page to another
+ * does not redraw it from empty (it used to blink). Null on a cold start (nothing kept yet); the script then fills it a moment after.
+ */
+function glance_peek(): ?array
+{
+    if (env('GLANCE_OFFLINE', '') === '1') { return glance_demo((string) ($_GET['demo'] ?? '')); }
+    $read = static function (string $file): ?array {
+        if (!is_file($file)) return null;
+        $j = json_decode((string) @file_get_contents($file), true);
+        return is_array($j) ? $j : null;
+    };
+    $wx   = $read(feed_cache_path('glance-wx-v1'))['data'] ?? null;
+    $hot  = $read(feed_cache_path('glance-hot-v1'))['data'] ?? null;
+    $news = $read(feed_cache_path('glance-news-v1'))['data'] ?? null;
+    $hz   = $read(sys_get_temp_dir() . '/ss-hazards-v2.json') ?? [];
+    if (!is_array($wx) && !is_array($hot) && !is_array($news)) return null;
+    return glance_build(is_array($wx) ? $wx : null, $hz, is_array($hot) ? $hot : [], is_array($news) ? $news : []);
 }
