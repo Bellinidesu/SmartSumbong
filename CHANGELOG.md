@@ -16,7 +16,7 @@ Changes on `main` not yet deployed belong here.
 - Personnel > Committee staff and Administrative Services > Committees: up to three stay wide; from four, one is wide and open and the rest are small tiles beneath (`tiles.js`). Committees that are turned off wait in a closed "Turned off" list.
 - Administrative Services > Roles: the TEST tag is small, and the Online now text wraps inside its column.
 - The barangay's places moved from Settings to a button in the Spatial Distribution dock (`places.php`, a panel).
-- Settings > SMART is a navy room in light and dark, and the engine logo only glows green (no outline).
+- Settings > SMART turns the whole page navy (edge to edge, no box) in light and dark, and the engine logo only glows green (no outline). Profile > Alerts no longer has an Inbox messages switch (BarangayMail is gone).
 - Profile: the shorter column's last card grows to the foot of the taller one; the Retirement row has no stray top padding. Personnel: "Propose a tanod" is a card in the committee's colour.
 
 **The Inbox is a community chat; BarangayMail is gone (15 Nov, Rose's list)**

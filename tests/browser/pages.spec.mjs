@@ -68,7 +68,7 @@ test('speed (7 Nov 2026): Server-Timing for administrators only, and a page read
   expect(await batchWith('cases.php', ['rpc/smart_module', 'reports', 'escalation_requests']), 'Case Reports: one batch').toBe(true);
   expect(await batchWith('summary.php', ['dispatches', 'attendance', 'rpc/smart_module']), 'Report Summary: one batch').toBe(true);
   expect(await batchWith('dashboard.php', ['rpc/dashboard_metrics', 'rpc/smart_summary', 'status_logs']), 'Dashboard: one batch').toBe(true);
-  expect(await batchWith('settings.php', ['places', 'rpc/portal_uptime_summary', 'users']), 'Settings: every tab in one batch').toBe(true);
+  expect(await batchWith('settings.php', ['rpc/portal_uptime_summary', 'users']), 'Settings: every tab in one batch').toBe(true);
   // the boot batch (7 Nov 2026): this test server keeps no caches, so every small cache is cold on every request; even so a page
   // waits at most twice (the boot batch, then its own), Notifications three times (its pins have a second step)
   for (const [url, most] of [['cases.php', 2], ['case.php?id=c0000000-0000-0000-0000-000000000003', 2], ['summary.php', 2], ['dashboard.php', 2],
@@ -148,7 +148,7 @@ test('the barangay\'s places: listed in a panel on Spatial Distribution (moved f
 
 test('alerts: each person sets up what reaches them (profile)', async ({ page }) => {
   const r = await open(page, 'profile.php#alerts');
-  await expect(page.locator('#ss-al [data-kind]')).toHaveCount(9);   // 0157 adds forwards, flags, reroute questions and Inbox messages
+  await expect(page.locator('#ss-al [data-kind]')).toHaveCount(8);   // 0157 adds forwards, flags and reroute questions; the Inbox messages switch went with BarangayMail (15 Nov)
   await page.locator('#ss-al [data-kind="escalation"]').uncheck();
   await expect(page.locator('#ss-al-saved')).toContainText('Saved');
   await page.locator('#ss-al-scope [data-scope="mine"]').click();
@@ -2194,13 +2194,17 @@ test('Looks 15 Nov: the Roles tag TEST is small and Online now wraps inside its 
   expect(h.overlap, 'the online text ends before the Edit button').toBe(false);
 });
 
-test('Looks 15 Nov: Settings > SMART is a navy room and its logo only glows green (no outline), light and dark', async ({ page }) => {
+test('Looks 15 Nov: Settings > SMART turns the WHOLE page navy (edge to edge, no box) and its logo only glows green, light and dark', async ({ page }) => {
   for (const th of ['light', 'dark']) {
     await page.goto('settings.php', { waitUntil: 'domcontentloaded' });
     await page.evaluate(x => { try { localStorage.setItem('ss-theme', x); } catch (e) {} document.documentElement.setAttribute('data-theme', x); }, th);
     await page.locator('.st-tabs').getByText('SMART', { exact: true }).first().click();
     await page.waitForTimeout(600);
-    const s = await page.evaluate(() => { const p = document.querySelector('.st-pane[data-pane="smart"]'), c = getComputedStyle(p), f = getComputedStyle(p.querySelector('.ss-engine img')).filter; const card = getComputedStyle(p.querySelector('.p-card')); return { bg: c.backgroundImage, color: c.color, filter: f, card: card.backgroundColor }; });
+    const s = await page.evaluate(() => { const m = document.querySelector('main.p-main'), p = document.querySelector('.st-pane[data-pane="smart"]'), c = getComputedStyle(m), f = getComputedStyle(p.querySelector('.ss-engine img')).filter, pc = getComputedStyle(p); const r = m.getBoundingClientRect(), sb = document.querySelector('.p-sidebar').getBoundingClientRect(); return { bg: c.backgroundImage, color: c.color, filter: f, box: pc.backgroundImage + '|' + pc.borderTopWidth, onBody: document.body.classList.contains('st-smart-on'), left: Math.round(r.left), sideRight: Math.round(sb.right), right: Math.round(r.right), vw: innerWidth }; });
+    expect(s.onBody, th + ': the page is in its navy state').toBe(true);
+    expect(s.box, th + ': the pane is not a box any more').toBe('none|0px');
+    expect(s.left, th + ': the navy starts at the sidebar').toBeLessThanOrEqual(s.sideRight + 1);
+    expect(s.right, th + ': and runs to the right edge of the window').toBeGreaterThanOrEqual(s.vw - 20);
     expect(s.bg, th + ': a navy gradient').toContain('gradient');
     expect(s.color, th + ': light lettering').toBe('rgb(244, 247, 255)');
     expect(s.filter, th + ': the green glow').toContain('237, 250, 4');

@@ -2153,6 +2153,7 @@ endif;
   document.querySelectorAll('.st-tabs [data-st]').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.st-tabs [data-st]').forEach(x => x.classList.toggle('p-on', x === b));
     document.querySelectorAll('.st-pane').forEach(p => p.hidden = p.dataset.pane !== b.dataset.st);
+    document.body.classList.toggle('st-smart-on', b.dataset.st === 'smart');   // 15 Nov 2026 (Ace): the SMART tab turns the whole page navy
     const live = b.dataset.st === 'status' || b.dataset.st === 'usage'; $('st-check').hidden = !live; $('st-checked').hidden = !live;
   }));
   $('st-check').addEventListener('click', () => { check(); usage(); });
@@ -2164,6 +2165,7 @@ endif;
 document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEventListener('click', function () {
   document.querySelectorAll('.st-tabs [data-st]').forEach(function (x) { x.classList.toggle('p-on', x === b); });
   document.querySelectorAll('.st-pane').forEach(function (p) { p.hidden = p.dataset.pane !== b.dataset.st; });
+  document.body.classList.toggle('st-smart-on', b.dataset.st === 'smart');
 }); });
 </script>
 <?php endif; ?>
