@@ -89,7 +89,7 @@ dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
 .cc-n { padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--p-orange-line) 45%, transparent); font-size: 11px; }
 .cc-body:focus-visible { outline: 3px solid var(--p-orange); outline-offset: -3px; }
 .cc-body > .p-sec:first-child { border-top: 0; margin-top: 0; }
-.cc-body > .p-card { background: transparent; border: 0; box-shadow: none; border-radius: 0; padding: 18px 0 4px; margin: 18px 0 0; border-top: 1px solid color-mix(in srgb, var(--p-orange-line) 70%, transparent); }
+.cc-body > .p-card:not(.ss-smartcard) { background: transparent; border: 0; box-shadow: none; border-radius: 0; padding: 18px 0 4px; margin: 18px 0 0; border-top: 1px solid color-mix(in srgb, var(--p-orange-line) 70%, transparent); }
 .cc-body > .cc-timeline { max-height: none; overflow: visible; margin-top: 0; border-top: 0; padding-top: 14px; }
 .cc-body > .cc-timeline > .p-eyebrow { position: static; background: transparent; padding-bottom: 0; }
 @media (min-width: 1101px) {
@@ -115,7 +115,7 @@ dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
 .cc-adv[open] > .p-cfield, .cc-adv[open] > .p-hint { margin: 0 12px 12px; }
 .cc-step2 { margin-top: 2px; }
 /* the concerns block is part of the cream card, not a white box inside it */
-:root:root .cc-body > .p-card { background: transparent !important; border: 0 !important; box-shadow: none !important; border-radius: 0; }
-:root:root .cc-body > .p-card + .p-card, :root:root .cc-body > .ss-concerns { border-top: 1px solid color-mix(in srgb, var(--p-orange-line) 70%, transparent) !important; }
+:root:root .cc-body > .p-card:not(.ss-smartcard) { background: transparent !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; }
+:root:root .cc-body > .p-card:not(.ss-smartcard) + .p-card:not(.ss-smartcard), :root:root .cc-body > .ss-concerns { border-top: 1px solid color-mix(in srgb, var(--p-orange-line) 70%, transparent) !important; }
 @media (min-width: 1101px) { :root:root .p-case-left .p-report { min-height: min(560px, calc((100vh - 130px) / var(--z, 1))); } }
 :root:root .cc-body > .cc-timeline > .p-eyebrow { margin-bottom: 10px; }

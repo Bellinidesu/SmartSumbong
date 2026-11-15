@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Case page fix (16 Nov)**
+- The "Why this level" drawer was see-through on the live page (the rule that flattens the cards inside the cream card also reached it); it is a solid navy card again, and a test now checks its paint. The concerns block lost its leftover rounded outline.
+
 **The case page, as previewed (15 Nov, Ace: "thought it'd look like this")**
 - The cream card now owns the header, **tabs** (Report, Evidence, Timeline, Feedback) and a body that scrolls inside it, so the page fits the window. Subject, description, the resident's evidence and the concerns are on Report; the barangay's photos and the field report on Evidence; the activity timeline and the resident feedback have their own tabs. The chosen tab is kept across a save, a link with #timeline (or #evidence, #feedback, #report) opens that tab, and the arrow keys move between tabs.
 - Next step: when a tanod's resolution is waiting, Approve and Return lead and "Send a different tanod" is one tap away (it used to sit above them). The assign form's deadline folds into one line, and stays open whenever the date is missing or has passed, so a required field is never hidden while invalid.
