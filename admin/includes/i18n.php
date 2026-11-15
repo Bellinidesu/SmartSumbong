@@ -129,8 +129,7 @@ function theme_head(bool $fit = true): string
         . '(function(){var t=null;try{t=localStorage.getItem("ss-theme");}catch(e){}'
         . 'if(t!=="light"&&t!=="dark"){t=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}'
         . 'document.documentElement.setAttribute("data-theme",t);'
-        . 'document.documentElement.setAttribute("data-bs-theme",t);var u=null;try{u=localStorage.getItem("ss-surface");}catch(e){}'
-        . 'if(u==="solid")document.documentElement.setAttribute("data-surface","solid");'
+        . 'document.documentElement.setAttribute("data-bs-theme",t);document.documentElement.setAttribute("data-surface","solid");'
         . 'try{var m=localStorage.getItem("ss-side-mode");if(m==="hover")document.documentElement.setAttribute("data-side","hover");else if(localStorage.getItem("ss-side")==="min")document.documentElement.setAttribute("data-side","min");}catch(e){}})();'
         // Screen fit (branch B): the design is drawn at 1440 wide, so on a
         // bigger screen the whole portal is scaled up rather than stretched

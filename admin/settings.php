@@ -1983,14 +1983,6 @@ endif;
     <p class="chp-none" id="chp-none"><?= e(t('No case is floating. Right-click the chat bubble of a case and choose Float on every page.', 'Walang lumulutang na kaso. I-right-click ang chat bubble ng kaso at piliin ang Ilutang sa lahat ng pahina.')) ?></p>
     <div class="chp-foot"><button type="button" class="p-btn p-btn-ghost p-btn-sm" id="chp-reset"><?= e(t('Put the bubbles back at the edge', 'Ibalik ang mga bubble sa gilid')) ?></button></div>
   </div>
-  <div class="p-card p-card-pad st-look">
-    <p class="p-eyebrow"><?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?></p>
-    <p class="st-note" style="margin-top:0"><?= e(t('How the panels and buttons floating on the Spatial Distribution map are drawn. Glass lets the map show through; Solid is flat and plain, easier on older screens and in bright rooms. This is kept on this computer.', 'Kung paano iginuhit ang mga panel at button sa mapa. Hinahayaan ng Glass na makita ang mapa; ang Solid ay patag at simple, mas magaan sa lumang screen at sa maliwanag na silid. Nakatago ito sa computer na ito.')) ?></p>
-    <div class="st-surfs" role="radiogroup" aria-label="<?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?>">
-      <button type="button" class="st-surf" role="radio" data-surf="glass" aria-checked="true"><span class="sv-pic g"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Glass', 'Salamin')) ?></b><small><?= e(t('Frosted panels, lit edges', 'Frosted na panel, may ilaw ang gilid')) ?></small></span></button>
-      <button type="button" class="st-surf" role="radio" data-surf="solid" aria-checked="false"><span class="sv-pic s"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Solid', 'Buo')) ?></b><small><?= e(t('Flat graphite, no blur or gloss', 'Patag na graphite, walang blur o kinang')) ?></small></span></button>
-    </div>
-  </div>
   <?php if ($stPage === 'mine'): ?>
   <div class="p-card p-card-pad st-look my-alerts">
     <p class="p-eyebrow"><?= e(t('Alerts and your profile', 'Mga alerto at ang profile mo')) ?></p>
@@ -2243,19 +2235,5 @@ if (stTab === 'smart' && document.querySelector('.st-tabs [data-st="module"]')) 
 if (stTab && stOwner[stTab] && stOwner[stTab] !== location.pathname.split('/').pop() && !document.querySelector('.st-tabs [data-st="' + stTab + '"]')) { location.replace(stOwner[stTab] + location.search + location.hash); }
 else if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
 if (!document.querySelector('.st-pane:not([hidden])')) { var f = document.querySelector('.st-tabs [data-st]'); if (f) f.click(); }
-</script>
-<script>
-// Map surfaces: Glass or Solid, kept in this browser.
-(function () {
-  var btns = document.querySelectorAll('.st-surf'); if (!btns.length) return;
-  function paint() { var solid = document.documentElement.getAttribute('data-surface') === 'solid'; btns.forEach(function (b) { b.setAttribute('aria-checked', String((b.dataset.surf === 'solid') === solid)); }); }
-  btns.forEach(function (b) { b.addEventListener('click', function () {
-    var solid = b.dataset.surf === 'solid';
-    if (solid) document.documentElement.setAttribute('data-surface', 'solid'); else document.documentElement.removeAttribute('data-surface');
-    try { localStorage.setItem('ss-surface', solid ? 'solid' : 'glass'); } catch (e) { /* kept for this visit only */ }
-    paint();
-  }); });
-  paint();
-})();
 </script>
 <?php if ($stPage === 'control') { app_editor_end($catOpts ?? [], $hlTop ?? [], $hlKids ?? [], $hlNums ?? [], $switches ?? []); } echo sd_chip_script(); layout_foot(); ?>

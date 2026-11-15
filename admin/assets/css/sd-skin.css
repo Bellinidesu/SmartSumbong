@@ -76,3 +76,26 @@
 :root[data-theme="dark"] #s-spatial#s-spatial .p-tog { color: var(--p-ink); }
 :root[data-theme="dark"] #s-spatial#s-spatial .p-tog:has(input:checked) { background: #FF9800; border-color: #FF9800; color: #2B1A00; }
 :root[data-theme="dark"] #s-spatial#s-spatial .p-tog:has(input:checked) input { accent-color: #2B1A00; }
+
+/* Look around (the street view) in the portal's current look (15 Nov 2026, Ace). Day: solid white cards with a thin edge and one soft elevation. Night: the graphite card with a lit edge and a top
+   sheen, no frosting (it was frosted glass over the street). The main action keeps the orange; the corners follow the portal's one radius. */
+#s-spatial#s-spatial .ss-lk { --e-bd: 1px solid var(--ae-edge, rgba(20, 27, 52, .07)); --e-sh: 0 1px 1px rgba(10, 30, 90, .06), 0 10px 26px rgba(10, 30, 90, .18), 0 24px 48px rgba(10, 30, 90, .1); }
+:root[data-theme="dark"] #s-spatial#s-spatial .ss-lk {
+  --e-bg: #181B20; --e-ink: #ECEFF4; --e-mute: #A4AAB6; --e-line: rgba(255, 255, 255, .09); --e-link: #FFB84D; --e-hover: rgba(255, 255, 255, .07);
+  --e-blur: none; --e-bd: 1px solid var(--ae-edge, rgba(255, 255, 255, .075)); --e-map: #2A2D33;
+  --e-sh: inset 0 1px 0 rgba(255, 255, 255, .06), 0 14px 36px rgba(0, 0, 0, .55);
+}
+#s-spatial#s-spatial :is(.lk-info, .lk-toast) { border-radius: var(--sd-card-r, 20px); }
+#s-spatial#s-spatial :is(.lk-mini, .lk-zoom, .lk-layers) { border-radius: 16px; }
+:root[data-theme="dark"] #s-spatial#s-spatial .lk-info { background: var(--ae-sheen), #181B20; }
+:root[data-theme="dark"] #s-spatial#s-spatial .lk-mini { background: #1B1E23; }
+#s-spatial#s-spatial .lk-pill.or { background: var(--sd-orange-btn, #FF9800); border: 0; color: #2B1A00; }
+:root[data-theme="dark"] #s-spatial#s-spatial .lk-pill.or { box-shadow: 0 0 0 1px rgba(255, 190, 90, .2), 0 5px 14px rgba(255, 152, 0, .14); }
+/* the mark at the foot: the SMARTengine logo in white, then StreetLook */
+#s-spatial#s-spatial .lk-brand { display: flex; align-items: center; gap: 10px; font: 600 17px Inter Tight, Inter, sans-serif; letter-spacing: -.005em; }
+#s-spatial#s-spatial .lk-brand-logo { display: block; width: auto; height: 26px; filter: brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+#s-spatial#s-spatial .lk-brand i { width: 1.5px; height: 18px; border-radius: 1px; background: rgba(255, 255, 255, .7); box-shadow: 0 0 3px rgba(0, 0, 0, .5); }
+#s-spatial#s-spatial .lk-brand b { font-weight: 800; }
+
+/* Material only (15 Nov 2026, Ace): no frosted glass anywhere on Spatial Distribution, and no Glass option in Settings. Panels are solid and flat, lifted by an edge and one soft shadow. */
+html #s-spatial, html #s-spatial *, html .sdp-pop, html .ss-lk, html .ss-lk * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }

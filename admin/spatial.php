@@ -1046,7 +1046,7 @@ function showDetail(r) {
       '<div class="cs-acts' + (MLY ? ' four' : '') + '">' +
         '<a class="ac-send" data-act="dispatch" href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + ACT_SCENE.send + csIcon(SD_ICONS.send) + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
         '<button type="button" class="ac-zoom" data-act="zoom"><span>' + ACT_SCENE.zoom + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
-        (MLY ? '<button type="button" class="ac-look" data-act="look"><span>' + ACT_SCENE.look + csIcon(SD_ICONS.view360) + '</span>' + T('Look around', 'Luminga') + '</button>' : '') +
+        (MLY ? '<button type="button" class="ac-look" data-act="look"><span>' + ACT_SCENE.look + csIcon(SD_ICONS.view360) + '</span>' + T('StreetLook', 'StreetLook') + '</button>' : '') +
         '<button type="button" class="ac-copy" data-act="copy"><span>' + ACT_SCENE.copy + csIcon(SD_ICONS.copy) + '</span>' + T('Copy ID', 'Kopyahin') + '</button>' +
       '</div>' +
       '<ul class="cs-rows">' +
@@ -1163,7 +1163,7 @@ function lkOpen(r) {
   if (!window.mapillary || !MLY) return;
   const sec = document.getElementById('s-spatial'), lng = +r.longitude, lat = +r.latitude, col = catColour(r.category);
   const here = { lng, lat }, glyph = (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
-  const el = document.createElement('div'); el.id = 'ss-lk'; el.className = 'ss-lk'; el.style.setProperty('--cs', col); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', T('Look around: street view of the case', 'Luminga-linga: street view ng kaso')); el.dataset.from = (document.activeElement && document.activeElement.id) || '';
+  const el = document.createElement('div'); el.id = 'ss-lk'; el.className = 'ss-lk'; el.style.setProperty('--cs', col); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', T('StreetLook: street view of the case', 'StreetLook: street view ng kaso')); el.dataset.from = (document.activeElement && document.activeElement.id) || '';
   const pt = map.project([lng, lat]), cb = map.getContainer().getBoundingClientRect(), sb0 = sec.getBoundingClientRect();
   // the reveal grows from the case's pin; a pin off screen would leave part of the view uncovered, so the origin stays inside the screen
   el.style.setProperty('--ox', Math.max(0, Math.min(sb0.width, pt.x + cb.left - sb0.left)) + 'px'); el.style.setProperty('--oy', Math.max(0, Math.min(sb0.height, pt.y + cb.top - sb0.top - 40)) + 'px');
@@ -1175,7 +1175,7 @@ function lkOpen(r) {
     '<div class="lk-card" id="lk-card" hidden><div class="lk-ph" id="lk-ph"><span class="lk-gl"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></span><em id="lk-phn"></em></div>' +
       '<div class="lk-cap"><b>' + esc(r.subject || label(r.category)) + '</b></div><i class="lk-stem"></i><i class="lk-spot"></i></div>' +
     '<div class="lk-edge" id="lk-edge" hidden></div>' +
-    '<div class="lk-info"><div class="lk-ti"><b>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('Look around', 'Luminga-linga')) + '</b><span>' + esc(r.tracking_id) + '</span></div>' +
+    '<div class="lk-info"><div class="lk-ti"><b>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('StreetLook', 'StreetLook')) + '</b><span>' + esc(r.tracking_id) + '</span></div>' +
       '<div class="lk-when"><small id="lk-date">…</small><button type="button" class="lk-link" data-lkcmp>' + T('See the resident’s photo', 'Tingnan ang larawan ng residente') + '</button></div>' +
       '</div>' +
     '<div class="lk-tr"><a class="lk-pill" href="case.php?id=' + encodeURIComponent(r.id) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>' + T('Open case', 'Buksan ang kaso') + '</a><button type="button" class="lk-pill or" id="lk-send-btn" data-lksend disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>' + T('Send to tanod', 'Ipadala sa tanod') + '</button>' +
@@ -1187,7 +1187,7 @@ function lkOpen(r) {
       '<div class="lk-zoom"><button type="button" data-lkzoom="1" aria-label="' + T('Zoom in', 'Palakihin') + '">+</button><button type="button" data-lkzoom="-1" aria-label="' + T('Zoom out', 'Paliitin') + '">−</button></div></div>' +
     '<button type="button" class="lk-layers" id="lk-cmp-btn" data-lkcmp aria-label="' + T('Then / Now', 'Dati / Ngayon') + '" title="' + T('Then / Now', 'Dati / Ngayon') + '"><span class="lk-lths" id="lk-lths"></span>' + T('Then / Now', 'Dati / Ngayon') + '</button>' +
     '<div class="lk-toast" id="lk-toast" hidden><div class="lk-fact" id="lk-fact"></div><button type="button" data-lktoastx aria-label="' + T('Dismiss', 'Isara') + '">×</button></div>' +
-    '<div class="lk-brand">SmartSumbong</div>' +
+    '<div class="lk-brand" aria-label="SMARTengine StreetLook"><img class="lk-brand-logo" src="assets/img/smart-engine.webp" alt="" width="52" height="20" decoding="async"><i aria-hidden="true"></i><span>Street<b>Look</b></span></div>' +
     '<div class="lk-credit"><span id="lk-cap">' + T('Image capture: …', 'Kuha: …') + '</span><i>' + T('Imagery © Mapillary contributors, CC BY-SA 4.0', 'Imagery © Mapillary contributors, CC BY-SA 4.0') + '</i></div>';
   sec.appendChild(el);
   LK = { el, r, here, viewer: null, ready: false, photos: [], pn: 0, raf: 0, bearing: 0, sx: 40 };
@@ -1436,7 +1436,7 @@ function qvOpen(r) {
         '<div><small>' + T('Nearby', 'Malapit') + '</small><b>' + nearby + T(' within 150 m', ' sa loob ng 150 m') + '</b></div></div>' +
       '<div class="qv-act"><button type="button" class="p-btn p-btn-primary" data-qvgo>' + T('Open in Case Reports', 'Buksan sa Case Reports') +
         ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>' +
-        (MLY ? '<button type="button" class="qv-look" data-qvlook title="' + T('Look around', 'Luminga-linga') + '"><span class="ql-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS.view360 + '</svg><b>360°</b><small>' + T('Look around', 'Luminga') + '</small></span></button>' : '') +
+        (MLY ? '<button type="button" class="qv-look" data-qvlook title="' + T('StreetLook', 'StreetLook') + '"><span class="ql-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS.view360 + '</svg><b>360°</b><small>' + T('StreetLook', 'StreetLook') + '</small></span></button>' : '') +
         '<button type="button" class="p-btn" data-qvback>' + T('Back', 'Bumalik') + '</button></div></div>';
   sec.appendChild(box);
   const place = () => {

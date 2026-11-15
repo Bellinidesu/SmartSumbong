@@ -10,6 +10,7 @@ is in its commit and pull request.
 Changes on `main` not yet deployed belong here.
 
 **The looks batch (15 Nov, Ace's stack)**
+- Spatial Distribution is Material only: no frosted glass anywhere on the map, and the Glass / Solid option is gone from Settings. The street view is called StreetLook now (it was "Look around"); it has the portal's current look (solid white by day, graphite by night) and its foot mark is the SMARTengine logo in white with "StreetLook"; the Mapillary credit stays.
 - The Inbox: no header bar, the list's title is "Inbox" with a quiet "Case chats" chip; the chat is neutral graphite (small blue only for unread), no bubble tails, "Mute this case" instead of "Hide Alerts". Dark mode everywhere is graphite (neutral greys, three steps of lift) instead of blue-black; the SMART room is a darker navy in dark mode.
 - Pill stacks: at most four pills show in a cell; "+N more" opens the rest (every page and role, `pill-stack.js`). The "Duplicate?" flag is now a pill of the status stack, no longer beside the score.
 - Dropdowns: the handler list shows each person's picture or initials in their position frame; the status list and the Report Summary category list carry colour dots.
