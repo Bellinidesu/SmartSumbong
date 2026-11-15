@@ -3,7 +3,7 @@
 import { test, expect } from '@playwright/test';
 
 const CASE = 'c0000000-0000-0000-0000-000000000001';
-const WITH = ['dashboard.php', 'home.php', 'cases.php', `case.php?id=${CASE}`, 'summary.php', 'spatial.php', 'workspace.php', 'notifications.php', 'inbox.php', 'inbox.php?app=mail',
+const WITH = ['dashboard.php', 'cases.php', `case.php?id=${CASE}`, 'summary.php', 'spatial.php', 'workspace.php', 'notifications.php', 'inbox.php', 'inbox.php?app=mail',
   'residents.php', 'personnel.php', 'activity.php', 'administrative-services.php', 'retirement-requests.php'];
 const WITHOUT = ['control-room.php', 'settings.php', 'profile.php'];
 

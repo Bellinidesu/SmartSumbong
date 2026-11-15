@@ -22,6 +22,7 @@ if (!str_contains($_SERVER['REQUEST_URI'] ?? '', 'login.php')) {
         // 0145: the tests choose the tier with a cookie (super unless told otherwise)
         'admin_tier' => in_array($_COOKIE['ss_tier'] ?? '', ['super', 'committee', 'moderator', 'captain'], true) ? $_COOKIE['ss_tier'] : 'super',
         'committee' => preg_match('/^[a-z_]+$/', $_COOKIE['ss_committee'] ?? '') ? $_COOKIE['ss_committee'] : null,
+        'official_role' => preg_match('/^[a-z]+$/', $_COOKIE['ss_role'] ?? '') ? $_COOKIE['ss_role'] : null,   // 15 Nov 2026: the Chairman's viewing-mode switch is for the chairman position
         'is_dev' => true, 'access_at' => time()];
 }
 return false;

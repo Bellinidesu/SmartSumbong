@@ -153,3 +153,7 @@ html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
   html[data-side="min"] .p-side-user>button,html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user>button{display:none}
   html[data-side="min"] .p-sidebar.has-mark::before,html[data-side="hover"] .p-sidebar.has-mark:not(:hover):not(:focus-within)::before{width:96px;height:96px;margin-left:-48px;bottom:84px}
 }
+@media (min-width:981px){
+  html[data-side="min"] .p-side-vm span,html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-vm span{display:none}
+  html[data-side="min"] .p-side-vm,html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-vm{justify-content:center;padding:9px 0}
+}

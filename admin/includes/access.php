@@ -15,27 +15,43 @@ declare(strict_types=1);
 
 /** Pages each tier may open. A page not listed (the small JSON doors) is open to every administrator. */
 const PAGE_TIERS = [
-    'dashboard.php'           => ['super'],
-    'home.php'                => ['committee', 'moderator'],   // their Home, from their SMART module (0165); the Dashboard stays the super admins'
+    'dashboard.php'           => ['super', 'captain'],   // 15 Nov 2026 (Rose): the Dashboard is one of the four pages of viewing mode
+    'home.php'                => [],   // 15 Nov 2026 (Rose): no Home for anyone; a Kagawad and staff land on Notifications
     'settings.php'            => ['super', 'committee', 'moderator'],   // a Kagawad's and staff's own: look, their committee, their SMART module (4 Nov 2026)
     'retirement-requests.php' => ['super'],
     'administrative-services.php' => ['super'],
     'control-room.php'        => ['super'],
-    'certificate.php'         => ['super', 'captain', 'committee', 'moderator'],   // the referral certificate: whoever may refer a case prints it (7 Nov 2026); row level security keeps it to the cases they see
+    'certificate.php'         => ['super', 'committee', 'moderator'],   // the referral certificate: whoever may refer a case prints it (7 Nov 2026); row level security keeps it to the cases they see
     'workspace.php'           => ['super'],
-    'residents.php'           => ['super', 'captain'],
-    'personnel.php'           => ['super', 'captain', 'committee', 'moderator'],   // a Kagawad: their tanods, their staff, their tanods' retirement requests; staff: the same tanods and staff, view only (0164)
-    'activity.php'            => ['super', 'captain'],
-    'summary.php'             => ['super', 'captain', 'committee', 'moderator'],
+    'residents.php'           => ['super'],
+    'personnel.php'           => ['super', 'committee', 'moderator'],   // a Kagawad: their tanods, their staff, their tanods' retirement requests; staff: the same tanods and staff, view only (0164)
+    'activity.php'            => ['super'],
+    'summary.php'             => ['super', 'captain', 'committee'],   // not staff (Rose, 15 Nov)
     'spatial.php'             => ['super', 'captain', 'committee', 'moderator'],
     'cases.php'               => ['super', 'captain', 'committee', 'moderator'],
     'case.php'                => ['super', 'captain', 'committee', 'moderator'],
-    'notifications.php'       => ['super', 'captain', 'committee', 'moderator'],
-    'inbox.php'               => ['super', 'captain', 'committee', 'moderator'],
+    'notifications.php'       => ['super', 'committee', 'moderator'],
+    'inbox.php'               => ['super', 'committee', 'moderator'],
 ];
+
+/**
+ * Viewing mode (15 Nov 2026, Rose): the Chairman is a super admin who can switch to looking only. While it is on the portal behaves as the view-only
+ * tier: Dashboard, Report Summary, Spatial Distribution and Case Reports, nothing can be changed (auth.php refuses every form), exports still work.
+ */
+function can_view_mode(): bool
+{
+    $a = current_admin();
+    return is_array($a) && (($a['admin_tier'] ?? 'super') === 'super') && (($a['official_role'] ?? '') === 'chairman');
+}
+function view_mode_on(): bool
+{
+    session_start_once();
+    return can_view_mode() && ($_SESSION['view_mode'] ?? false) === true;
+}
 
 function my_tier(): string
 {
+    if (view_mode_on()) return 'captain';
     $t = current_admin()['admin_tier'] ?? null;
     return in_array($t, ['super', 'committee', 'moderator', 'captain'], true) ? $t : 'super';   // an empty tier reads as super, as in the database
 }
@@ -53,10 +69,10 @@ function page_allowed(string $page): bool
     return !isset(PAGE_TIERS[$page]) || in_array(my_tier(), PAGE_TIERS[$page], true);
 }
 
-/** Where a person lands after signing in, or when a page is not for them: a Kagawad or staff member their Home, everyone else Notifications. */
+/** Where a person lands after signing in, or when a page is not for them: Notifications; in viewing mode the Dashboard. */
 function landing_page(): string
 {
-    return is_scoped() ? 'home.php' : 'notifications.php';
+    return view_mode_on() ? 'dashboard.php' : 'notifications.php';
 }
 
 /** True when the person's access is due to be read again (every two minutes). */
@@ -69,7 +85,7 @@ function access_refresh_due(): bool
 /** The access read, for the request's boot batch (boot.php) and for access_refresh() alike. */
 function access_refresh_entry(): array
 {
-    return ['users', ['select' => 'admin_tier,is_dev,committee', 'id' => 'eq.' . (current_admin()['id'] ?? '0'), 'limit' => '1'], true];
+    return ['users', ['select' => 'admin_tier,is_dev,committee,official_role', 'id' => 'eq.' . (current_admin()['id'] ?? '0'), 'limit' => '1'], true];
 }
 
 /** The person's access, fresh from the database every two minutes (called from require_admin). */
@@ -86,6 +102,7 @@ function access_refresh(): void
     $a['admin_tier'] = $me['admin_tier'] ?? null;
     $a['is_dev'] = !empty($me['is_dev']);
     $a['committee'] = $me['committee'] ?? null;
+    $a['official_role'] = $me['official_role'] ?? null;
     $a['access_at'] = time();
     session_start_once();
     $_SESSION[SESSION_KEY] = $a;
