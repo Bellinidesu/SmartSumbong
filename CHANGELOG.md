@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The case page, as previewed (15 Nov, Ace: "thought it'd look like this")**
+- The cream card now owns the header, **tabs** (Report, Evidence, Timeline, Feedback) and a body that scrolls inside it, so the page fits the window. Subject, description, the resident's evidence and the concerns are on Report; the barangay's photos and the field report on Evidence; the activity timeline and the resident feedback have their own tabs. The chosen tab is kept across a save, a link with #timeline (or #evidence, #feedback, #report) opens that tab, and the arrow keys move between tabs.
+- Next step: when a tanod's resolution is waiting, Approve and Return lead and "Send a different tanod" is one tap away (it used to sit above them). The assign form's deadline folds into one line, and stays open whenever the date is missing or has passed, so a required field is never hidden while invalid.
+- Every tile under More (and Take over) has a hint line under its name.
+- The same 23 forms and actions are on the page.
+
 **Nothing that can sign an update lives on one PC (15 Nov, Ace)**
 - The release APKs are built in GitHub (Actions > Build signed APK, run by hand on `main`): the signing key and its passwords are secrets of the protected `release` environment, exist on the runner for one build, and the job refuses any APK not signed by the app's real certificate. The key was re-protected with strong random passwords first (the signature is unchanged). The first CI build was verified independently: version 1.0.5, certificate SHA-1 8C:AD:8F:D8:04:19:77:2C:FC:86:6A:8F:2E:23:D0:FD:DA:44:0E:25.
 - Firebase: the three client API keys are restricted to the app, the bundle id and our own sites; the push service-account key was rotated and the three old keys deleted.

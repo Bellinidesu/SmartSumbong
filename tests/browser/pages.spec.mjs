@@ -2472,32 +2472,77 @@ test('Material, portal-wide (15 Nov): no frosted glass in either mode (Workspace
   await ctx.close();
 });
 
-test('Case page on one screen (15 Nov): the controls and the timeline scroll inside themselves, a stage track says where the case is, every action is still there', async ({ page }) => {
+test('Case page on one screen (15 Nov): the cream card has tabs and a body that scrolls inside it, the controls scroll inside themselves, a stage track says where the case is, every action is still there', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 800 });
   await open(page, `case.php?id=${CASE}`);
   await page.waitForTimeout(600);
   const m = await page.evaluate(() => {
-    const c = document.querySelector('.p-controls'), tl = document.querySelector('.cc-timeline');
-    return { cH: c.getBoundingClientRect().height, cOv: getComputedStyle(c).overflowY, tH: tl ? tl.getBoundingClientRect().height : -1, tOv: tl ? getComputedStyle(tl).overflowY : '', win: innerHeight };
+    const c = document.querySelector('.p-controls'), r = document.querySelector('.p-report'), b = document.querySelector('.cc-body');
+    return { cH: c.getBoundingClientRect().height, cOv: getComputedStyle(c).overflowY, rH: r.getBoundingClientRect().height, bOv: getComputedStyle(b).overflowY, win: innerHeight };
   });
   expect(m.cH, 'the controls are never taller than the window').toBeLessThanOrEqual(m.win);
   expect(m.cOv).toBe('auto');
-  expect(m.tH, 'the timeline is a bounded panel').toBeGreaterThan(0);
-  expect(m.tH).toBeLessThanOrEqual(m.win);
-  expect(m.tOv).toBe('auto');
-  const track = page.locator('.cc-track li');
-  await expect(track).toHaveCount(5);
+  expect(m.rH, 'the case card is never taller than the window').toBeLessThanOrEqual(m.win);
+  expect(m.bOv, 'its body scrolls inside it').toBe('auto');
+  // tabs: Report first, the timeline, the feedback and the evidence each have their own
+  const tabs = page.locator('.cc-tabs [role="tab"]');
+  await expect(tabs).toHaveCount(4);
+  await expect(page.locator('.cc-tabs [aria-selected="true"]')).toHaveText(/Report/);
+  await expect(page.locator('.cc-body .ss-concerns')).toBeVisible();
+  await expect(page.locator('.cc-timeline')).toBeHidden();
+  await page.locator('[data-cc-go="timeline"]').click();
+  await expect(page.locator('.cc-timeline')).toBeVisible();
+  await expect(page.locator('.cc-body .ss-concerns')).toBeHidden();
+  await page.locator('[data-cc-go="evidence"]').click();
+  await expect(page.locator('.cc-body [data-cc-tab="evidence"]:not([hidden])').first()).toBeVisible();
+  await page.locator('[data-cc-go="feedback"]').click();
+  await expect(page.locator('.cc-body [data-cc-tab="feedback"]')).toBeVisible();
+  // the chosen tab is remembered across a reload (a save reloads the page), and #timeline opens that tab
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.cc-tabs [aria-selected="true"]')).toHaveText(/Feedback/);
+  await page.goto(`case.php?id=${CASE}#timeline`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.cc-timeline')).toBeVisible();
+  // keyboard: arrow keys move between tabs
+  await page.locator('.cc-tabs [aria-selected="true"]').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.cc-tabs [aria-selected="true"]')).toHaveText(/Feedback/);
+  await expect(page.locator('.cc-track li')).toHaveCount(5);
   await expect(page.locator('.cc-track li[aria-current="step"]')).toHaveCount(1);
-  // the secondary actions are tiles with an icon, and a tile still opens its own form
   const tiles = page.locator('.p-controls details.p-fix[data-ic]');
   expect(await tiles.count(), 'the secondary actions are tiles').toBeGreaterThan(0);
+  await expect(page.locator('.p-controls details.p-fix[data-ic] .cc-st small').first()).toBeVisible();   // each has a hint line
   const first = tiles.first();
   await first.locator('summary').click();
   await expect(first).toHaveJSProperty('open', true);
   await expect(first.locator('form').first()).toBeVisible();
-  // none of the page's forms or actions went missing: each form still carries its csrf and its action
   const forms = await page.evaluate(() => [...document.querySelectorAll('.p-controls form, .p-case-grid form')].filter(f => f.querySelector('input[name="action"]')).map(f => f.querySelector('input[name="action"]').value));
   expect(forms.length, 'the case forms are all still on the page').toBeGreaterThan(1);
+});
+
+test('Case page, Next step (15 Nov): a waiting resolution leads with Approve and the assign form is one tap away; the deadline folds away unless it has passed', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000006');
+  const next = page.locator('.cc-next');
+  await expect(next).toHaveCount(1);
+  const firstBlock = await next.evaluate(n => (n.querySelector('.p-req-card, form, details') || {}).className || '');
+  expect(firstBlock, 'the resolution approval comes first').toContain('p-req-card');
+  await expect(next.locator('.p-req-card').first()).toContainText(/Resolution waiting for approval/i);
+  const step2 = next.locator('details.cc-step2');
+  await expect(step2).toHaveCount(1);
+  await expect(step2.locator(':scope > summary')).toContainText('Send a different tanod');
+  await expect(step2).toHaveJSProperty('open', false);
+  await step2.locator(':scope > summary').click();
+  await expect(step2.locator('#assign-form')).toBeVisible();
+  // a deadline still ahead folds into one line, and its fields stay in the form
+  const adv = step2.locator('details.cc-adv');
+  await expect(adv).toHaveCount(1);
+  await expect(adv).toHaveJSProperty('open', false);
+  await expect(adv.locator('summary')).toContainText('Deadline');
+  expect(await adv.locator('input[name="target"]').count()).toBe(1);
+  await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000008');
+  const over = page.locator('#assign-form details.cc-adv');
+  await expect(over, 'a deadline that has passed is open, so a required field is never hidden while invalid').toHaveJSProperty('open', true);
+  await expect(over.locator('summary')).toContainText(/passed/i);
 });
 
 test('Case page (15 Nov): "Why this level" is a button beside the status pill and opens as a drawer, closed by its button, Escape or a click outside', async ({ page }) => {

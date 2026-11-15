@@ -489,17 +489,24 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php endif; ?>
     </div>
 
-    <div class="p-sec">
+    <?php // 15 Nov 2026 (Ace): the case on one screen: the cream card owns the header, the tabs and a body that scrolls inside it ?>
+    <div class="cc-tabs" role="tablist" aria-label="<?= e(t('The case', 'Ang kaso')) ?>">
+      <?php foreach ([['report', t('Report', 'Ulat')], ['evidence', t('Evidence', 'Ebidensya')], ['timeline', t('Timeline', 'Takbo')], ['feedback', t('Feedback', 'Puna')]] as [$ccK, $ccL]): ?>
+        <button type="button" role="tab" id="cc-tab-<?= $ccK ?>" aria-controls="cc-body" aria-selected="<?= $ccK === 'report' ? 'true' : 'false' ?>" data-cc-go="<?= $ccK ?>" tabindex="<?= $ccK === 'report' ? '0' : '-1' ?>"><?= e($ccL) ?><?php if ($ccK === 'timeline' && !empty($timeline)): ?><span class="cc-n"><?= (int) count($timeline) ?></span><?php endif; ?></button>
+      <?php endforeach; ?>
+    </div>
+    <div class="cc-body" id="cc-body" role="tabpanel" tabindex="0">
+    <div class="p-sec" data-cc-tab="report">
       <p class="p-eyebrow"><?= e(t('Subject', 'Paksa')) ?></p>
       <p class="p-desc"><?= e($report['subject']) ?></p>
     </div>
 
-    <div class="p-sec">
+    <div class="p-sec" data-cc-tab="report">
       <p class="p-eyebrow"><?= e(t('Problem Description', 'Paglalarawan ng Problema')) ?></p>
       <p class="p-desc"><?= nl2br(e($report['description'])) ?></p>
     </div>
 
-    <div class="p-sec">
+    <div class="p-sec" data-cc-tab="report">
       <p class="p-eyebrow"><?= e(t('Attached Evidence', 'Kalakip na Ebidensya')) ?></p>
       <?php if (!$media): ?>
         <p class="p-none-line"><?= e(t('No photo or video was attached to this complaint.', 'Walang larawan o video na kalakip sa sumbong na ito.')) ?></p>
@@ -533,7 +540,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     </div>
 
     <?php if ($evidence): ?>
-      <div class="p-sec">
+      <div class="p-sec" data-cc-tab="evidence" hidden>
         <p class="p-eyebrow"><?= e(t("Barangay's Photos", 'Mga Larawan ng Barangay')) ?></p>
         <div class="p-media">
           <?php foreach ($evidence as $m): ?>
@@ -557,7 +564,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     ));
     ?>
     <?php if ($resolved): ?>
-      <div class="p-sec">
+      <div class="p-sec" data-cc-tab="evidence" hidden>
         <p class="p-eyebrow"><?= e(t('Field Report', 'Ulat mula sa Lugar')) ?></p>
         <?php foreach ($resolved as $d): ?>
           <?php $shots = $proof[$d['id']] ?? []; ?>
@@ -591,14 +598,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
-    </article>
-
-
-
-  </div>
+    <?php if (!$evidence && !$resolved): ?><div class="p-sec" data-cc-tab="evidence" hidden><p class="p-none-line"><?= e(t('No field report or barangay photos yet. A tanod\'s photos and notes appear here after the visit.', 'Wala pang ulat mula sa lugar o larawan ng barangay. Lalabas dito ang mga larawan at tala ng tanod pagkatapos ng pagbisita.')) ?></p></div><?php endif; ?>
   <!-- ---------- the concerns in this report (0130) ---------- -->
   <?php if (count($concerns) > 0): $openN = count(array_filter($concerns, fn($c) => $c['status'] === 'open')); $cfIx = 0; ?>
-  <section class="p-card p-card-pad ss-concerns" aria-labelledby="concerns-h">
+  <section class="p-card p-card-pad ss-concerns" data-cc-tab="report" aria-labelledby="concerns-h">
     <p class="p-eyebrow" id="concerns-h"><?= e(t('Concerns in this report', 'Mga alalahanin sa ulat na ito')) ?>
       <span class="p-badge-n p-badge-n--quiet"><?= count($concerns) ?></span></p>
     <ul class="ss-concern-list">
@@ -733,7 +736,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <?php endif; ?>
 
   <!-- ---------- timeline ---------- -->
-  <section class="p-card p-card-pad cc-timeline" tabindex="0" role="region" aria-label="<?= e(t('Activity Timeline', 'Takbo ng Aktibidad')) ?>">
+  <section class="p-card p-card-pad cc-timeline" data-cc-tab="timeline" hidden role="region" aria-label="<?= e(t('Activity Timeline', 'Takbo ng Aktibidad')) ?>">
     <p class="p-eyebrow"><?= e(t('Activity Timeline', 'Takbo ng Aktibidad')) ?></p>
 
     <?php
@@ -824,7 +827,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
        app's own feedback card uses. Shown either way once finished, so
        "no rating yet" reads as a fact, not a missing feature. -->
   <?php if (in_array($status, ['resolved', 'closed'], true)): ?>
-  <section class="p-card p-card-pad">
+  <section class="p-card p-card-pad" data-cc-tab="feedback" hidden>
     <p class="p-eyebrow"><?= e(t('Resident Feedback', 'Puna ng Residente')) ?></p>
     <?php if ($feedback): ?>
       <div class="p-fb-stars" role="img"
@@ -844,8 +847,13 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <p class="p-none-line"><?= e(t('The resident has not left feedback on this complaint yet.', 'Hindi pa nag-iiwan ng puna ang residente sa sumbong na ito.')) ?></p>
     <?php endif; ?>
   </section>
+  <?php else: ?>
+  <section class="p-card p-card-pad" data-cc-tab="feedback" hidden><p class="p-none-line"><?= e(t('The resident is asked for feedback once the case is resolved.', 'Hihingan ng puna ang residente kapag nalutas na ang kaso.')) ?></p></section>
   <?php endif; ?>
     <?php // The tanod and resident conversations are the chat head now (includes/case_chat.php), not two cards down the page. ?>
+    </div><?php // the end of the scrolling body ?>
+    </article>
+  </div>
   </div>
 
   <!-- ---------- admin controls ---------- -->
@@ -882,7 +890,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><div class="ss-hrow"><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?></div><?php if (!empty($report['handled_since'])): ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span><?php endif; ?></div></div>
       <div class="ss-locked"><?= e(sprintf(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.'), $hName)) ?></div>
       <details class="p-fix" data-keep-details data-ic="user">
-        <summary><?= e(t('Take over', 'Kunin')) ?></summary>
+        <summary><span class="cc-st"><?= e(t('Take over', 'Kunin')) ?><small><?= e(t('Make the case yours', 'Gawing sa iyo ang kaso')) ?></small></span></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="take_over">
@@ -928,7 +936,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php endforeach; ?>
       <?php if (can_forward()): ?>
         <?php ob_start(); ?><details class="p-fix" data-keep-details data-ic="send">
-          <summary><?= e(!empty($report['awaiting_placement']) && is_super() ? t('Place with a committee', 'Ilagay sa isang komite') : t('Forward to a committee', 'Ipasa sa isang komite')) ?></summary>
+          <summary><span class="cc-st"><?= e(!empty($report['awaiting_placement']) && is_super() ? t('Place with a committee', 'Ilagay sa isang komite') : t('Forward to a committee', 'Ipasa sa isang komite')) ?><small><?= e(t('Another committee takes it', 'Kukunin ito ng ibang komite')) ?></small></span></summary>
           <form method="post" class="p-ctl-stack" data-keep>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="forward">
             <div class="p-cfield"><label class="p-flabel" for="fw-to"><?= e(t('Forward to', 'Ipasa sa')) ?></label>
@@ -941,7 +949,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </details><?php $ccTiles['forward'] = ob_get_clean(); ?>
       <?php elseif (is_moderator()): ?>
         <?php ob_start(); ?><details class="p-fix" data-keep-details data-ic="flag">
-          <summary><?= e(t('Flag for forwarding', 'I-flag para ipasa')) ?></summary>
+          <summary><span class="cc-st"><?= e(t('Flag for forwarding', 'I-flag para ipasa')) ?><small><?= e(t('Ask your Kagawad to pass it', 'Hilingin sa Kagawad na ipasa ito')) ?></small></span></summary>
           <form method="post" class="p-ctl-stack" data-keep>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="flag_forward">
             <div class="p-cfield"><label class="p-flabel" for="ff-to"><?= e(t('Suggest a committee (your Kagawad decides)', 'Magmungkahi ng komite (ang Kagawad mo ang magpapasya)')) ?></label>
@@ -975,7 +983,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <div id="ss-also" hidden></div>
     <?php if ($handlerLog): ?>
       <?php ob_start(); ?><details class="p-fix" data-keep-details data-ic="hist">
-        <summary><?= e(sprintf(t('Ownership history (%d)', 'Kasaysayan ng may-hawak (%d)'), count($handlerLog))) ?></summary>
+        <summary><span class="cc-st"><?= e(sprintf(t('Ownership history (%d)', 'Kasaysayan ng may-hawak (%d)'), count($handlerLog))) ?><small><?= e(t('Who held it, and when', 'Sino ang humawak, at kailan')) ?></small></span></summary>
         <ul class="ss-hist">
         <?php foreach ($handlerLog as $h): ?>
           <li><?= e(name_or($h['admin']['full_name'] ?? null, '')) ?> <?= e(match ($h['action']) {
@@ -1119,6 +1127,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                     placeholder="<?= e(t('What to check, who to talk to, what to bring back.', 'Ano ang titingnan, sino ang kakausapin, ano ang iuulat.')) ?>"></textarea>
         </div>
 
+        <?php $ccDueOpen = empty($report['due_at']) || strtotime((string) $report['due_at']) < time(); ?>
+        <details class="cc-adv"<?= $ccDueOpen ? ' open' : '' ?>>
+        <summary><span><?= e(t('Deadline', 'Takdang oras')) ?></span><small><?= e(!empty($report['due_at']) ? long_datetime($report['due_at']) : t('not set', 'hindi pa nakatakda')) ?><?= $ccDueOpen && !empty($report['due_at']) ? ' · ' . e(t('passed: set a new one', 'lampas na: magtakda ng bago')) : '' ?></small></summary>
         <div class="p-cfield">
           <label class="p-flabel" for="target"><?= e(t('Target date resolution', 'Target na petsa ng paglutas')) ?></label>
           <input class="p-input-plain" type="datetime-local" id="target" name="target" required
@@ -1142,6 +1153,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <p class="p-hint" style="margin:6px 0 0"><?= e(sprintf(t('Extensions used: %d of %d.', 'Nagamit na extension: %d sa %d.'), $extUsed, $extCap)) ?></p>
           </div>
         <?php endif; ?>
+
+        </details>
 
         <?php $anyActive = (bool) array_filter($roster, fn($t) => !empty($t['assignable']) && !empty($t['location_fresh'])); ?>
         <?php if (!$anyActive): ?>
@@ -1263,6 +1276,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php endif; ?>
     <?php endif; ?>
 
+    <?php $ccChain = ob_get_clean(); ob_start(); ?>
     <?php if (!empty($report['resolution_submitted_at'])): ?>
       <?php // 0073 — Approve Complaint Resolution: the tanod's report is in the Field Report block. ?>
       <div class="p-req-card">
@@ -1324,7 +1338,12 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </details>
       </div>
     <?php endif; ?>
-    <?php $ccNext = trim((string) ob_get_clean()); if ($ccNext !== ''): ?>
+    <?php $ccAfter = ob_get_clean();
+      if (!empty($report['resolution_submitted_at']) && trim($ccAfter) !== '' && trim($ccChain) !== '') {
+          // the tanod's report is in: approving or returning it is the step; assigning someone else stays one tap away
+          $ccNext = trim($ccAfter . '<details class="p-fix cc-step2" data-ic="route"><summary><span class="cc-st">' . e(t('Send a different tanod', 'Magpadala ng ibang tanod')) . '<small>' . e(t('Assign again', 'Mag-assign muli')) . '</small></span></summary>' . $ccChain . '</details>');
+      } else { $ccNext = trim($ccChain . $ccAfter); }
+      if ($ccNext !== ''): ?>
     <section class="cc-next" aria-label="<?= e(t('Next step', 'Susunod na hakbang')) ?>"><p class="cc-next-h"><?= e(t('Next step', 'Susunod na hakbang')) ?></p><?= $ccNext ?></section>
     <?php endif; ?>
 
@@ -1332,7 +1351,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               && empty($report['resolution_submitted_at'])): ?>
       <?php // 0073 + 0079, one form (Rose, 7 Oct 2026). ?>
       <?php ob_start(); ?><details class="p-fix" data-ic="pen">
-        <summary><?= e(t('Update status', 'I-update ang katayuan')) ?></summary>
+        <summary><span class="cc-st"><?= e(t('Update status', 'I-update ang katayuan')) ?><small><?= e(t('Add a note, change the status', 'Magdagdag ng tala, baguhin ang katayuan')) ?></small></span></summary>
         <form method="post" class="p-ctl-stack" enctype="multipart/form-data">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="set_status">
@@ -1460,7 +1479,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php elseif (!in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
       <?php // 0072: escalation = referral to an office outside the barangay. ?>
       <?php ob_start(); ?><details class="p-fix" data-ic="bld">
-        <summary><?= e(t('Escalate to an outside office', 'I-escalate sa ibang tanggapan')) ?></summary>
+        <summary><span class="cc-st"><?= e(t('Escalate to an outside office', 'I-escalate sa ibang tanggapan')) ?><small><?= e(t('Fire, police, the city hall', 'Bumbero, pulis, city hall')) ?></small></span></summary>
         <form method="post" class="p-ctl-stack">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="refer">
@@ -1482,9 +1501,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       $escWhy = (string) ($escTo['why'] ?? '');
       $escToChair = $escTo !== null && (int) ($escTo['to_tier'] ?? 0) === 2; ?>
       <?php ob_start(); ?><details class="p-fix" data-ic="bld">
-        <summary><?= e($escTo !== null
+        <summary><span class="cc-st"><?= e($escTo !== null
             ? sprintf(t('Escalate to %s', 'I-escalate kay %s'), (string) $escTo['official_name'] . ', ' . ($escToChair ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))
-            : ($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay'))) ?></summary>
+            : ($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay'))) ?><small><?= e(t('Up to the Councilor or the Chairman', 'Pataas sa Kagawad o Punong Barangay')) ?></small></span></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="escalate_barangay">
@@ -1512,7 +1531,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
     <?php if ($mine && $tier > 0): ?>
       <?php ob_start(); ?><details class="p-fix" data-ic="down">
-        <summary><?= e(t('Send it back down', 'Ibalik pababa')) ?></summary>
+        <summary><span class="cc-st"><?= e(t('Send it back down', 'Ibalik pababa')) ?><small><?= e(t('Back to the level below', 'Ibalik sa antas sa ibaba')) ?></small></span></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="return_official">
@@ -1525,7 +1544,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
     <?php if ($mine && $openCase): ?>
       <?php ob_start(); ?><details class="p-fix" data-ic="shield">
-        <summary><?= e($sens ? t('Not sensitive after all', 'Hindi pala sensitibo') : t('Mark as sensitive', 'Markahang sensitibo')) ?></summary>
+        <summary><span class="cc-st"><?= e($sens ? t('Not sensitive after all', 'Hindi pala sensitibo') : t('Mark as sensitive', 'Markahang sensitibo')) ?><small><?= e(t('Handle it with extra care', 'Hawakan nang may dagdag na ingat')) ?></small></span></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="set_sensitive">
@@ -1610,6 +1629,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
 <script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
 <script src="assets/js/case-smart.js?v=<?= e(asset_version('../js/case-smart.js')) ?>" defer></script>
+<script src="assets/js/case-tabs.js?v=<?= e(asset_version('../js/case-tabs.js')) ?>" defer></script>
 <?php if (count($concerns) > 1): ?><script src="assets/js/case-focus.js?v=<?= e(asset_version('../js/case-focus.js')) ?>" defer></script><?php endif; ?>
 <script>
 (function () {
