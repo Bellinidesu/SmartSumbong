@@ -647,7 +647,7 @@ window.ssSupabase = function (url, key, initial) {
 
   <main class="p-main">
   <?= dev_view_banner() ?>
-  <?php if (view_mode_on()): ?><div class="vm-band" role="status"><b><?= e(t('Viewing mode', 'Viewing mode')) ?></b><span><?= e(t('This page is not editable: nothing can be changed. You can still export data.', 'Hindi ito mae-edit: walang mababago. Makakapag-export ka pa rin ng data.')) ?></span>
+  <?php if (view_mode_on()): ?><div class="vm-band" role="status"><b><?= e(t('Viewing mode', 'Pagtingin lamang')) ?></b><span><?= e(t('This page is not editable: nothing can be changed. You can still export data.', 'Hindi ito mae-edit: walang mababago. Makakapag-export ka pa rin ng data.')) ?></span>
     <form method="post" action="view-mode.php"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="off"><button type="submit" class="p-btn p-btn-sm"><?= e(t('Back to editing', 'Bumalik sa pag-edit')) ?></button></form></div><?php endif; ?>
 <?php
     $storm = storm_state();
