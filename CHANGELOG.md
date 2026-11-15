@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The portal is Material (15 Nov, Ace: "we are going Material", the stylisation and the glow stay)**
+- `material.css` (loaded last on every signed-in page): no frosted glass anywhere (the Workspace board columns and bar, the Report Summary jump bar, the weather card, the pickers, the certificate editor panels, the SMART map side panel and the dark sign-in card, rail and switches are solid fills); modal scrims dim without blurring; the glows keep their colour but become coloured elevation (a small sharp shadow and a wider soft one, dropped a little) instead of a halo: the SMART brain pill, the weather button, the live and weather dots, the flood level dots, the dock count badge.
+- Spatial Distribution at night: the active dock button, the play button, the open layer tile and a pressed case action are lifted with a tinted shadow in their own colour.
+- The stylised buttons, their gradients and lit edges, the status badges and the SMART marks are unchanged.
+
 **Spatial Distribution pins at night (15 Nov, Ace)**
 - The complaint pins and the safe-point signs are the same solid discs by night as by day: the category's colour, a white edge and a shadow for height. The coloured glow, the gloss and the rim gradient of the night bead are gone; the white glow behind the safe-point signs too.
 

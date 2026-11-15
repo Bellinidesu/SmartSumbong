@@ -226,3 +226,8 @@
   :root:root .login-stack .login-wordmark { position: static; display: block; width: 200px; margin: 0 auto 10px; }
   :root:root .login-stack .login-card { padding: 36px 24px 28px; }
 }
+
+/* Material at night too (15 Nov): the card and the two switches are solid graphite, not frosted glass over the photo */
+:root:root[data-theme="dark"] :is(.login-card, .login-rail.gl, .prefs--login .pref-theme, .prefs--login .pref-lang) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root:root[data-theme="dark"] .login-card { background: #1B1E23; }
+:root:root[data-theme="dark"] .prefs--login .pref-theme { background: #1B1E23; }
