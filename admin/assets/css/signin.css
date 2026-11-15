@@ -6,7 +6,7 @@
       card's corner, and the card in the new look with blue links. The theme switch keeps its sun-and-cloud pill; the language is two circle flags. */
 
 /* ================= the side panel ================= */
-.gl { --s1: #2C78E8; --s2: #4F9BF2; --s3: #A9D0FF; --shp: 100%; --lit: 0; --sx: 165px; --sy: 138px; --ss: 1.55; --cl: #fff; --co: .55; --gh: 500px; --dh: 0px; }   /* the moods below override these */
+.gl { --s1: #2C78E8; --s2: #4F9BF2; --s3: #A9D0FF; --shp: 100%; --lit: 0; --sx: 165px; --sy: calc(var(--st) + var(--sealsz) / 2); --ss: 1.55; --cl: #fff; --co: .55; --gh: 500px; --dh: 0px; --st: 46px; --sealsz: 156px; --rh: 112px; --tf: 60px; }   /* the moods below override these */
 :root:root .login-rail.gl {
   display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0;
   padding: calc(var(--gh) + 8px) 22px 14px; overflow: hidden; border-right: 0;
@@ -15,7 +15,7 @@
 }
 :root:root .login-rail.gl::before { display: none; }
 .gl[data-phase="dawn"]   { --s1: #22306E; --s2: #7A5AA0; --s3: #FF9A5A; --shp: 82%; --lit: 1; --sx: 268px; --sy: calc(404px + var(--dh)); --ss: 1; }
-.gl[data-phase="day"]    { --s1: #2C78E8; --s2: #4F9BF2; --s3: #A9D0FF; --shp: 100%; --lit: 0; --sx: 165px; --sy: 138px; --ss: 1.22; }
+.gl[data-phase="day"]    { --s1: #2C78E8; --s2: #4F9BF2; --s3: #A9D0FF; --shp: 100%; --lit: 0; --sx: 165px; --sy: calc(var(--st) + var(--sealsz) / 2); --ss: 1.4; }
 .gl[data-phase="golden"] { --s1: #33509E; --s2: #E58A4C; --s3: #FFB454; --shp: 96%; --lit: 0; --sx: 290px; --sy: calc(300px + var(--dh) * .5); --ss: 1; }
 .gl[data-phase="dusk"]   { --s1: #151F5C; --s2: #7A3F7F; --s3: #FF6F3C; --shp: 70%; --lit: 1; --sx: 296px; --sy: calc(420px + var(--dh)); --ss: 1; }
 .gl[data-phase="night"]  { --s1: #050F36; --s2: #0A1B58; --s3: #0F2A72; --shp: 52%; --lit: 1; }
@@ -52,15 +52,15 @@
 .gl[data-phase="day"] .gl-disc { display: none; }                      /* at midday the seal is the sun's disc */
 .gl[data-phase="night"] .gl-sun, :is(.gl[data-wx="rain"], .gl[data-wx="storm"]) .gl-sun { display: none; }
 .gl[data-wx="cloudy"] .gl-sun { opacity: .5; }
-.gl-moon { position: absolute; top: 46px; display: none; }
-.gl-moon::before { content: ""; position: absolute; left: 244px; top: 0; width: 48px; height: 48px; border-radius: 50%; background: #EAF0FF; box-shadow: 0 0 36px 8px rgba(190, 205, 255, .45), inset -11px -5px 0 rgba(150, 170, 230, .38); }
+.gl-moon { position: absolute; top: 36px; display: none; }
+.gl-moon::before { content: ""; position: absolute; left: 256px; top: 0; width: 48px; height: 48px; border-radius: 50%; background: #EAF0FF; box-shadow: 0 0 36px 8px rgba(190, 205, 255, .45), inset -11px -5px 0 rgba(150, 170, 230, .38); }
 .gl[data-phase="night"]:not([data-wx="rain"]):not([data-wx="storm"]) .gl-moon { display: block; }
 
 /* clouds keep our speech-bubble shape; puffed up so they read as cloud; the orange badge appears in a warning */
 .gl-cloud { position: absolute; width: var(--w); height: var(--h); opacity: 0; transition: opacity .6s; animation: glDrift var(--dd) ease-in-out infinite alternate; }
-.gl-cloud.c1 { --w: 92px; --h: 36px; --dd: 17s; top: 62px; margin-left: 12px; opacity: var(--co); }
-.gl-cloud.c2 { --w: 98px; --h: 38px; --dd: 21s; top: 112px; margin-left: 220px; }
-.gl-cloud.c3 { --w: 86px; --h: 32px; --dd: 14s; top: 176px; margin-left: 14px; }
+.gl-cloud.c1 { --w: 92px; --h: 36px; --dd: 17s; top: 40px; margin-left: 6px; opacity: var(--co); }
+.gl-cloud.c2 { --w: 88px; --h: 36px; --dd: 21s; top: 150px; margin-left: 240px; }
+.gl-cloud.c3 { --w: 84px; --h: 32px; --dd: 14s; top: 94px; margin-left: 0; }
 .gl[data-wx="cloudy"] .gl-cloud, .gl[data-wx="rain"] .gl-cloud, .gl[data-wx="storm"] .gl-cloud { opacity: var(--co); }
 .gl-cloud i { position: absolute; background: var(--cl); }
 .gl-cloud .b { inset: 0; border-radius: calc(var(--h) * .5); }
@@ -78,8 +78,8 @@
   -webkit-mask: linear-gradient(90deg, #000 1.5px, transparent 1.5px) 0 0 / 26px 100%, linear-gradient(180deg, #000 22px, transparent 22px) 0 0 / 100% 40px; -webkit-mask-composite: source-in;
   mask: linear-gradient(90deg, #000 1.5px, transparent 1.5px) 0 0 / 26px 100%, linear-gradient(180deg, #000 22px, transparent 22px) 0 0 / 100% 40px; mask-composite: intersect; animation: glRain .8s linear infinite; }
 .gl-rain i.r2 { opacity: .55; -webkit-mask-size: 31px 100%, 100% 47px; mask-size: 31px 100%, 100% 47px; animation: glRain2 1.1s linear infinite; }
-.gl-bolt { position: absolute; top: 150px; display: none; }
-.gl-bolt::before { content: ""; position: absolute; left: 230px; top: 0; width: 26px; height: 64px; background: linear-gradient(180deg, #FFF3C4, #FFB43A); clip-path: polygon(60% 0, 0 58%, 44% 58%, 22% 100%, 100% 38%, 54% 38%); filter: drop-shadow(0 0 8px rgba(255, 200, 80, .9)); animation: glBolt 8s linear infinite; opacity: 0; }
+.gl-bolt { position: absolute; top: 180px; display: none; }
+.gl-bolt::before { content: ""; position: absolute; left: 284px; top: 0; width: 22px; height: 56px; background: linear-gradient(180deg, #FFF3C4, #FFB43A); clip-path: polygon(60% 0, 0 58%, 44% 58%, 22% 100%, 100% 38%, 54% 38%); filter: drop-shadow(0 0 8px rgba(255, 200, 80, .9)); animation: glBolt 8s linear infinite; opacity: 0; }
 .gl[data-wx="storm"] .gl-bolt { display: block; }
 
 /* an eased veil, so the name and the reading sit on a calm ground on every sky */
@@ -103,16 +103,16 @@
 .gl-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 34px; background: linear-gradient(180deg, rgba(11, 36, 104, 0), rgba(11, 36, 104, .35) 30%, rgba(11, 36, 104, .8) 68%, #0B2468); }
 
 /* the seal, in the middle of the weather */
-.gl-seal { position: absolute; left: 50%; top: 72px; width: 132px; height: 132px; margin-left: -66px; object-fit: contain; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .4)); }
-.gl-name { position: absolute; left: 0; right: 0; top: 212px; display: flex; flex-direction: column; gap: 3px; text-align: center; text-shadow: 0 2px 8px rgba(5, 16, 52, .85); }
-.gl-name b { font: 800 19px/1.1 var(--font-display); letter-spacing: -.01em; }
-.gl-name span { font: 600 12px var(--font-body); color: #DCE5FF; }
-.gl-read { position: absolute; top: calc(var(--gh) - 160px); left: 22px; right: 22px; box-sizing: border-box; padding: 0; z-index: 1; text-align: left; display: flex; flex-direction: column; gap: 3px; text-shadow: 0 2px 8px rgba(5, 16, 52, .8); }
-.gl-read > div { display: flex; align-items: baseline; gap: 10px; }
-.gl-read b { font: 800 44px/1 var(--font-display); letter-spacing: -.03em; }
-.gl-read span { font: 700 16px/1.2 var(--font-display); }
-.gl-read small { font: 500 12px var(--font-body); color: #DCE5FF; }
-.gl-read .gl-when { font: 700 11px var(--font-body); letter-spacing: .12em; }
+.gl-seal { position: absolute; left: 50%; top: var(--st); width: var(--sealsz); height: var(--sealsz); margin-left: calc(var(--sealsz) / -2); object-fit: contain; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .4)); }
+.gl-name { position: absolute; left: 0; right: 0; top: calc(var(--st) + var(--sealsz) + 10px); display: flex; flex-direction: column; gap: 3px; text-align: center; text-shadow: 0 2px 8px rgba(5, 16, 52, .85); }
+.gl-name b { font: 800 clamp(19px, calc(var(--sealsz) * .15), 24px)/1.1 var(--font-display); letter-spacing: -.01em; }
+.gl-name span { font: 600 13px var(--font-body); color: #DCE5FF; }
+.gl-read { position: absolute; top: calc(var(--gh) - 84px - var(--rh)); left: 22px; right: 22px; box-sizing: border-box; padding: 0; z-index: 1; text-align: left; display: flex; flex-direction: column; gap: 3px; text-shadow: 0 2px 8px rgba(5, 16, 52, .8); }
+.gl-read > div { display: flex; align-items: baseline; gap: 12px; }
+.gl-read b { font: 800 var(--tf)/1 var(--font-display); letter-spacing: -.035em; }
+.gl-read span { font: 700 20px/1.2 var(--font-display); }
+.gl-read small { font: 500 14px var(--font-body); color: #DCE5FF; }
+.gl-read .gl-when { font: 700 12px var(--font-body); letter-spacing: .14em; }
 
 /* the rows */
 .gl-rows { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 1; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1px 2px 4px 0; margin-right: -2px; scrollbar-width: thin; scrollbar-color: rgba(160, 185, 255, .45) transparent; }
@@ -206,7 +206,13 @@
 :root:root .prefs--login .pref-lang button:focus-visible { outline: 3px solid #00308F; outline-offset: 3px; }
 
 /* a short window: the picture is shorter so the rows below keep room to scroll */
-@media (max-height: 820px) and (min-width: 981px) { .gl { --gh: 420px; --dh: -80px; } }
+@media (max-height: 820px) and (min-width: 981px) { .gl { --gh: 420px; --dh: -80px; --st: 30px; --sealsz: 116px; --rh: 96px; --tf: 48px; } .gl-cloud.c1 { top: 24px; } .gl-cloud.c3 { top: 72px; } .gl-cloud.c2 { top: 112px; } .gl-bolt { top: 140px; } }
+
+/* going from one signed-out page to the next keeps the panel exactly where it is: it is drawn again by the server in the same state, so it swaps without a fade or a flash (Chrome and Edge; others just load) */
+@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }
+.gl { view-transition-name: gl; }
+::view-transition-old(gl) { display: none; } ::view-transition-new(gl) { animation: none; }
+::view-transition-group(gl) { animation-duration: 0s; }
 
 /* ================= narrow screens: the panel becomes a slim bar ================= */
 @media (max-width: 980px) {

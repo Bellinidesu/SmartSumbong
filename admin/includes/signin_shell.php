@@ -31,10 +31,67 @@ function signin_ray(float $deg, float $r1, float $half): string
     return '<path d="M' . (-$half) . ',-34L0,' . (-$r1) . 'L' . $half . ',-34Z" transform="rotate(' . $deg . ')"/>';
 }
 
+/**
+ * The words and rows of the panel from what the server already holds (glance_peek), the same sentences assets/js/glance.js writes, so the page arrives drawn and
+ * the script only refreshes it. Keep the two in step.
+ *
+ * @return array{kind:string, when:string, temp:string, cond:string, sub:string, warn:?array, flood:?string, hot:string, hotT:string, news:string}
+ */
+function signin_parts(?array $g, string $phase): array
+{
+    $o = ['kind' => 'clear', 'when' => '', 'temp' => '--°', 'cond' => '', 'sub' => '', 'warn' => null, 'flood' => null, 'hot' => '', 'hotT' => '', 'news' => ''];
+    if (!$g) return $o;
+    if (!empty($g['now'])) {
+        $n = $g['now']; $k = (string) $n['kind']; $o['kind'] = $k;
+        $o['when'] = t('NOW', 'NGAYON') . (!empty($g['when']) ? ' · ' . $g['when'] : '');
+        $o['temp'] = $n['temp'] . '°';
+        $o['cond'] = $k === 'clear' ? ($phase === 'night' ? t('Clear night', 'Maaliwalas na gabi') : ($phase === 'day' ? t('Sunny', 'Maaraw') : t('Clear', 'Maaliwalas')))
+            : (['cloudy' => t('Cloudy', 'Maulap'), 'rain' => t('Heavy rain', 'Malakas na ulan'), 'storm' => t('Thunderstorm', 'Pagkulog at pagkidlat')][$k] ?? '');
+        $o['sub'] = t('Feels like ', 'Pakiramdam ') . $n['feels'] . '° · ' . t('wind ', 'hangin ') . $n['wind'] . ' km/h';
+    } else {
+        $o['cond'] = t('Weather unavailable', 'Walang datos sa panahon');
+    }
+    if (!empty($g['warn'])) {
+        $w = $g['warn'];
+        if (($w['kind'] ?? '') === 'wind') {
+            $title = t('Wind signal no. ', 'Wind signal blg. ') . ($w['signal'] ?? '');
+        } else {
+            $lv = [1 => t('Yellow', 'Dilaw'), 2 => t('Orange', 'Kahel'), 3 => t('Red', 'Pula')][(int) ($w['level'] ?? 0)] ?? '';
+            $title = ($w['kind'] ?? '') === 'thunder' ? $lv . ' ' . t('thunderstorm warning', 'babala sa pagkulog') : $lv . ' ' . t('rainfall warning', 'babala sa ulan');
+        }
+        $until = 'PAGASA';
+        if (!empty($w['until']) && ($ts = strtotime((string) $w['until'])) !== false) {
+            $until = 'PAGASA · ' . t('until ', 'hanggang ') . (new DateTimeImmutable('@' . $ts))->setTimezone(new DateTimeZone('Asia/Manila'))->format('g:i A');
+        }
+        $o['warn'] = [$title, $until];
+    }
+    if (array_key_exists('flood', $g) && $g['flood'] !== null) {
+        $o['flood'] = $g['flood'] ? t('Flood advisory in effect', 'May flood advisory') : t('No flood advisory', 'Walang flood advisory');
+    }
+    $hot = (array) ($g['hot'] ?? []);
+    if ($hot) {
+        $o['hotT'] = implode(' · ', array_map(static fn ($x) => (string) $x['name'], array_slice($hot, 0, 3)));
+        foreach ($hot as $grp) {
+            $o['hot'] .= '<div class="g">' . e(mb_strtoupper((string) $grp['name'])) . '</div>';
+            foreach ((array) ($grp['numbers'] ?? []) as $num) {
+                $o['hot'] .= '<div class="n"><span><b>' . e((string) (($num['label'] ?? '') !== '' ? $num['label'] : $grp['name'])) . '</b><em>' . e((string) $num['number']) . '</em></span>'
+                    . (!empty($num['tel']) ? '<a href="tel:' . e((string) $num['tel']) . '">' . e(t('Call', 'Tawag')) . '</a>' : '') . '</div>';
+            }
+        }
+    }
+    foreach ((array) ($g['news'] ?? []) as $nw) {
+        if (!preg_match('#^https://#i', (string) ($nw['url'] ?? ''))) continue;
+        $o['news'] .= '<a href="' . e((string) $nw['url']) . '" target="_blank" rel="noopener noreferrer">' . e((string) $nw['t']) . (!empty($nw['src']) ? ' <em>' . e((string) $nw['src']) . '</em>' : '') . '</a>';
+    }
+    return $o;
+}
+
 function signin_rail(): string
 {
-    // the picture before the data arrives: the hour from the clock, clear weather
-    $phase = glance_phase(null, new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')));
+    // the picture and the words from what the server already holds; from the clock when nothing is kept yet
+    $g = glance_peek();
+    $phase = (string) ($g['phase'] ?? glance_phase(null, new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'))));
+    $P = signin_parts($g, $phase);
     $rays = '';
     for ($k = 0; $k < 8; $k++) {
         $rays .= signin_ray($k * 45, 104, 6) . signin_ray($k * 45 - 11, 80, 4) . signin_ray($k * 45 + 11, 80, 4);
@@ -67,7 +124,7 @@ function signin_rail(): string
     $nameLine = barangay()['name'] . (trim($zone) !== '' ? ', ' . trim($zone) : '');
     $placeLine = trim($rest);
     ob_start(); ?>
-<aside class="login-rail gl" id="gl" data-phase="<?= e($phase) ?>" data-wx="clear" aria-label="<?= e(t('At a glance', 'Sa isang tingin')) ?>">
+<aside class="login-rail gl" id="gl" data-phase="<?= e($phase) ?>" data-wx="<?= e($P['kind']) ?>" aria-label="<?= e(t('At a glance', 'Sa isang tingin')) ?>">
   <div class="gl-scene" id="gl-scene" role="img" aria-label="<?= e(t('The sky over Villamor', 'Ang langit sa Villamor')) ?>">
     <div class="gl-sky"></div>
     <div class="gl-stars" aria-hidden="true"><?= $stars ?></div>
@@ -100,27 +157,27 @@ function signin_rail(): string
 
   <?= brgy_seal_img('gl-seal') ?>
   <div class="gl-name"><b><?= e($nameLine) ?></b><?php if ($placeLine !== ''): ?><span><?= e($placeLine) ?></span><?php endif; ?></div>
-  <div class="gl-read" aria-live="polite"><small class="gl-when" id="gl-when"></small><div><b id="gl-temp">--°</b><span id="gl-cond"></span></div><small id="gl-sub"></small></div>
+  <div class="gl-read" aria-live="polite"><small class="gl-when" id="gl-when"><?= e($P['when']) ?></small><div><b id="gl-temp"><?= e($P['temp']) ?></b><span id="gl-cond"><?= e($P['cond']) ?></span></div><small id="gl-sub"><?= e($P['sub']) ?></small></div>
 
   <div class="gl-rows">
-    <div class="gl-warn" id="gl-warn" hidden>
+    <div class="gl-warn" id="gl-warn"<?= $P['warn'] ? '' : ' hidden' ?>>
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3zM12 10v4M12 17.2h.01"/></svg>
-      <div><b id="gl-warn-t"></b><span id="gl-warn-s"></span></div>
+      <div><b id="gl-warn-t"><?= e((string) ($P['warn'][0] ?? '')) ?></b><span id="gl-warn-s"><?= e((string) ($P['warn'][1] ?? '')) ?></span></div>
     </div>
-    <div class="gl-row gl-flood" id="gl-flood" hidden>
+    <div class="gl-row gl-flood" id="gl-flood"<?= $P['flood'] !== null ? '' : ' hidden' ?>>
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15c2 0 2-1.5 4.5-1.5S10 15 12 15s2.5-1.5 4.5-1.5S19 15 21 15M3 19c2 0 2-1.5 4.5-1.5S10 19 12 19s2.5-1.5 4.5-1.5S19 19 21 19M12 3c3 3.5 4.5 5.7 4.5 7.5a4.5 4.5 0 0 1-9 0C7.5 8.7 9 6.5 12 3z"/></svg>
-      <div><small><?= e(t('FLOOD WATCH', 'BABALA SA BAHA')) ?></small><b id="gl-flood-t"></b></div>
+      <div><small><?= e(t('FLOOD WATCH', 'BABALA SA BAHA')) ?></small><b id="gl-flood-t"><?= e((string) $P['flood']) ?></b></div>
     </div>
-    <div class="gl-hot" id="gl-hot" hidden>
+    <div class="gl-hot" id="gl-hot"<?= $P['hot'] !== '' ? '' : ' hidden' ?>>
       <button type="button" class="gl-hotbtn" id="gl-hotbtn" aria-expanded="false" aria-controls="gl-hotlist">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>
-        <span><small><?= e(t('HOTLINES', 'MGA HOTLINE')) ?></small><b id="gl-hot-t"></b></span>
+        <span><small><?= e(t('HOTLINES', 'MGA HOTLINE')) ?></small><b id="gl-hot-t"><?= e($P['hotT']) ?></b></span>
         <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <div class="gl-hotlist" id="gl-hotlist" hidden></div>
+      <div class="gl-hotlist" id="gl-hotlist" hidden><?= $P['hot'] ?></div>
     </div>
-    <div class="gl-row gl-news" id="gl-news" hidden>
-      <div><small><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2V4zM18 8h2v9a2 2 0 0 1-2 2M8.5 8h6M8.5 11.5h6M8.5 15h3"/></svg> <?= e(t('NEWS FOR PASAY', 'BALITA SA PASAY')) ?></small><span id="gl-news-l"></span></div>
+    <div class="gl-row gl-news" id="gl-news"<?= $P['news'] !== '' ? '' : ' hidden' ?>>
+      <div><small><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2V4zM18 8h2v9a2 2 0 0 1-2 2M8.5 8h6M8.5 11.5h6M8.5 15h3"/></svg> <?= e(t('NEWS FOR PASAY', 'BALITA SA PASAY')) ?></small><span id="gl-news-l"><?= $P['news'] ?></span></div>
     </div>
   </div>
   <p class="gl-note"><?= e(t('Public information · PAGASA, Open-Meteo, news', 'Pampublikong impormasyon · PAGASA, Open-Meteo, balita')) ?></p>

@@ -245,6 +245,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 <link rel="stylesheet" href="assets/css/sd-widgets.css?v=<?= e(asset_version('sd-widgets.css')) ?>">
 <link rel="stylesheet" href="assets/css/sd-look.css?v=<?= e(asset_version('sd-look.css')) ?>">
 <link rel="stylesheet" href="assets/css/sd-light.css?v=<?= e(asset_version('sd-light.css')) ?>">
+<link rel="stylesheet" href="assets/css/sd-dark.css?v=<?= e(asset_version('sd-dark.css')) ?>">
 <?php if ($ccOn): ?>
 <link rel="stylesheet" href="assets/css/sd-command.css?v=<?= e(asset_version('sd-command.css')) ?>">
 <?php endif; ?>
@@ -579,7 +580,7 @@ const DM = new Map();
 let dmKey = '';
 const dmCats = () => Object.keys(CATEGORY_COLOUR);
 function donutSvg(props, n) {
-  // A graphite glass orb: the count in the middle, the mix of categories as a ring round it.
+  // The count in the middle, the mix of categories as a ring round it.
   const cats = dmCats(), parts = cats.map((c, i) => [c, Number(props['c' + i] || 0)]).filter(x => x[1] > 0), tot = parts.reduce((a, x) => a + x[1], 0) || 1;
   let a0 = -90, ring = '';
   const r = 26, f = a => [(r * Math.cos(a * Math.PI / 180)).toFixed(2), (r * Math.sin(a * Math.PI / 180)).toFixed(2)];
@@ -592,9 +593,8 @@ function donutSvg(props, n) {
   const txt = String(n);
   if (!isDark()) return '<svg viewBox="-35 -35 70 70" aria-hidden="true"><circle r="33" fill="#fff"/>' + ring +
     '<text y="' + (txt.length > 3 ? 5 : 6.5) + '" text-anchor="middle" font-family="Inter Tight,sans-serif" font-weight="800" font-size="' + (txt.length > 3 ? 14 : 19) + '" fill="#141B34">' + esc(txt) + '</text></svg>';
-  return '<svg viewBox="-35 -35 70 70" aria-hidden="true"><defs><radialGradient id="og" cx=".35" cy=".25" r=".95"><stop offset="0" stop-color="#3A3E4C"/><stop offset=".6" stop-color="#1B1D26"/><stop offset="1" stop-color="#13141B"/></radialGradient>' +
-    '<linearGradient id="or" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".5" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity=".3"/></linearGradient></defs>' +
-    '<circle r="33" fill="url(#og)"/><circle r="32.4" fill="none" stroke="url(#or)" stroke-width="1.4"/><ellipse cx="-9" cy="-21" rx="15" ry="7" fill="#fff" opacity=".1" transform="rotate(-20 -9 -21)"/>' + ring +
+  // Material at night too (15 Nov): a solid graphite disc with a white edge, no gradient and no gloss, lifted by shadow (sd-dark.css)
+  return '<svg viewBox="-35 -35 70 70" aria-hidden="true"><circle r="33" fill="#2B2E35"/><circle r="32.2" fill="none" stroke="#fff" stroke-opacity=".92" stroke-width="1.6"/>' + ring +
     '<text y="' + (txt.length > 3 ? 5 : 6.5) + '" text-anchor="middle" font-family="Inter Tight,sans-serif" font-weight="800" font-size="' + (txt.length > 3 ? 14 : 19) + '" fill="#fff">' + esc(txt) + '</text></svg>';
 }
 function clusterMarkers() {

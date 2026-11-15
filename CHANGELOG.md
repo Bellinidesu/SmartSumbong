@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Sign-in panel, third pass, and Spatial Distribution Material at night (15 Nov, Ace)**
+- Sign-in panel: the weather block is bigger and sits flush at the bottom left above the skyline; the seal and the barangay name are larger and centred in the sky, and the sun, moon, clouds and lightning were moved to sit around them.
+- The panel no longer blinks when you go from sign-in to Forgot password or Request access: the server now draws it already filled from what it holds (`glance_peek`, no request to any source), the script only refreshes it, and the pages ask the browser to keep the panel still between pages.
+- Spatial Distribution is Material at night as well as by day (`sd-dark.css`): graphite surfaces lifted by tone and black shadows, no border, no sheen, no glow (panels level 2, the case sheet and pop-ups level 3, controls level 1); the active control is solid orange; the layer tile, the layer pictures, the case action buttons and the main buttons are lifted by shadow instead of glowing; the selected pin and the cluster pins are solid discs with a white edge (the cluster pin was a glass orb). Heat, flood and air layers and the SMART engine mark keep their light, since it carries meaning.
+
 **Sign-in panel, second pass (15 Nov, Ace)**
 - The weather reading sits at the bottom left, so the seal and the barangay name are centred in the sky; the picture was adjusted around it (sun, clouds, skyline).
 - The panel is as tall as the window and stays put: opening the hotlines scrolls the rows inside the panel, never the page. In a short window the picture is shorter so the rows keep room.
