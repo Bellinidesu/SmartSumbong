@@ -33,7 +33,7 @@
     pop.style.transformOrigin = (up ? 'bottom' : 'top') + ' left';
   }
   function show(btn, pop, key) {
-    close(false); (document.fullscreenElement || document.webkitFullscreenElement || document.body).appendChild(pop); place(btn, pop);   // in full screen only that element is drawn
+    close(false); (btn.closest('dialog[open]') || document.fullscreenElement || document.webkitFullscreenElement || document.body).appendChild(pop); place(btn, pop);   // in an open dialog (the top layer) the list must live inside it or it is drawn behind it (the Forward dialog showed no committees, 15 Nov); in full screen only that element is drawn
     void pop.offsetWidth; pop.classList.add('in');
     btn.setAttribute('aria-expanded', 'true'); btn.classList.add('open');
     open = { btn: btn, pop: pop, key: key }; document.documentElement.classList.add('sdp-live');
@@ -67,7 +67,7 @@
     btn.disabled = sel.disabled; new MutationObserver(function () { btn.disabled = sel.disabled; paint(); }).observe(sel, { attributes: true, attributeFilter: ['disabled'], childList: true, subtree: true });
     btn.addEventListener('click', function () {
       if (open && open.btn === btn) { close(true); return; }
-      var pop = document.createElement('div'); pop.className = 'sdp-pop sdp-list'; pop.setAttribute('role', 'listbox'); pop.tabIndex = -1;
+      var pop = document.createElement('div'); pop.className = 'sdp-pop sdp-list'; pop.setAttribute('role', 'listbox'); pop.tabIndex = -1; pop.setAttribute('aria-label', btn.getAttribute('aria-label') || (btn.textContent || '').trim() || 'Options');
       var items = Array.prototype.map.call(sel.options, function (o, i) {
         var row = document.createElement('button');
         row.type = 'button'; row.className = 'sdp-opt' + (i === sel.selectedIndex ? ' on' : '') + (o.disabled ? ' off' : ''); row.setAttribute('role', 'option'); row.setAttribute('aria-selected', String(i === sel.selectedIndex)); row.dataset.i = i;
