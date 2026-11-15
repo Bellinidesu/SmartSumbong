@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Sign-in panel, second pass (15 Nov, Ace)**
+- The weather reading sits at the bottom left, so the seal and the barangay name are centred in the sky; the picture was adjusted around it (sun, clouds, skyline).
+- The panel is as tall as the window and stays put: opening the hotlines scrolls the rows inside the panel, never the page. In a short window the picture is shorter so the rows keep room.
+- If the server cannot read Open-Meteo (a shared address can be turned away), the visitor's browser asks it for the same four numbers, so the weather no longer reads "unavailable" on the live site.
+
 **The sign-in pages in the current look, with "At a glance" (15 Nov, Ace)**
 - The side panel of the sign-in, forgot-password, reset-password and request-access pages is a living weather widget: the barangay seal in the middle of a sky drawn from the seal's own scene (the Philippine sun, the Shrine of St. Therese, Newport Mall's roof, the towers), changing with the real weather and the hour (dawn, day, late afternoon, dusk, night; clear, cloudy, rain, thunderstorm), with the warning badge on the speech-bubble clouds. Every loop moves only opacity or transform and stops for reduced motion.
 - Under it, public information only (`glance.php`, `includes/glance.php`): the reading, the PAGASA warning for Metro Manila, the flood advisory, the barangay's public hotlines (they open when pressed, each with a Call link) and two Pasay headlines. Each source is read by the server and kept five to ten minutes; a source that fails is left out. No case, person or count from the barangay's data goes through it.

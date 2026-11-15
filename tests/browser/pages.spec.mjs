@@ -2343,3 +2343,53 @@ test('Sign-in 15 Nov: glance.php is public and holds public information only; th
   }
   await ctx.close();
 });
+
+test('Sign-in 15 Nov: the weather sits at the bottom left so the seal and the name are centred; opening the hotlines scrolls the panel, never the page', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 720 } });
+  const page = await ctx.newPage();
+  await page.goto('login.php?demo=day-rain', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#gl-temp')).toHaveText(/^\d+°$/);
+  const rail = await page.locator('#gl').boundingBox(), seal = await page.locator('.gl-seal').boundingBox(), name = await page.locator('.gl-name').boundingBox();
+  const read = await page.locator('.gl-read').boundingBox(), scene = await page.locator('.gl-scene').boundingBox();
+  expect(Math.abs((seal.x + seal.width / 2) - (rail.x + rail.width / 2)), 'the seal is centred').toBeLessThan(2);
+  expect(Math.abs((name.x + name.width / 2) - (rail.x + rail.width / 2)), 'the name is centred under it').toBeLessThan(2);
+  expect(read.x - rail.x, 'the weather is at the left edge, in line with the rows').toBeLessThan(30);
+  expect(read.y, 'the weather is below the name').toBeGreaterThan(name.y + name.height);
+  expect(read.y + read.height, 'and inside the picture').toBeLessThan(scene.y + scene.height);
+  // the panel is as tall as the window and stays put; the hotlines open and only the rows scroll
+  await page.locator('#gl-hotbtn').click();
+  await expect(page.locator('#gl-hotlist')).toBeVisible();
+  const m = await page.evaluate(() => {
+    const r = document.getElementById('gl'), rows = document.querySelector('.gl-rows');
+    return { pageH: document.documentElement.scrollHeight, winH: innerHeight, railH: r.getBoundingClientRect().height, rowsOver: rows.scrollHeight > rows.clientHeight, ov: getComputedStyle(rows).overflowY };
+  });
+  expect(m.pageH, 'the page did not grow').toBeLessThanOrEqual(m.winH + 1);
+  expect(Math.abs(m.railH - m.winH), 'the panel is the window tall').toBeLessThan(2);
+  expect(m.ov).toBe('auto');
+  await page.locator('#gl-hotlist .n a').last().scrollIntoViewIfNeeded();
+  await expect(page.locator('#gl-hotlist .n a').last()).toBeInViewport();
+  expect(await page.evaluate(() => scrollY), 'the page itself did not move').toBe(0);
+  await expect(page.locator('#gl .gl-powered')).toBeInViewport();
+  await ctx.close();
+});
+
+test('Sign-in 15 Nov: when the server cannot read the weather, the browser asks Open-Meteo itself and the panel still fills', async ({ browser }) => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await page.route('**/glance.php*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, phase: 'night', when: '7:50 PM', now: null, warn: null, flood: false, hot: [], news: [] }) }));
+  await page.route('https://api.open-meteo.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ current: { temperature_2m: 27.6, apparent_temperature: 31.2, weather_code: 63, wind_speed_10m: 14.4 }, daily: { sunrise: ['2026-11-15T05:56'], sunset: ['2026-11-15T17:24'] } }) }));
+  await page.goto('login.php?via=login.php', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#gl-temp')).toHaveText('28°');
+  await expect(page.locator('#gl-cond')).toHaveText('Heavy rain');
+  await expect(page.locator('#gl-sub')).toContainText('wind 14 km/h');
+  await expect(page.locator('#gl')).toHaveAttribute('data-wx', 'rain');
+  // and when neither can be read, the panel says so and nothing breaks
+  const c2 = await browser.newContext();
+  const p2 = await c2.newPage();
+  await p2.route('**/glance.php*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, phase: 'day', now: null, warn: null, flood: false, hot: [], news: [] }) }));
+  await p2.route('https://api.open-meteo.com/**', r => r.abort());
+  await p2.goto('login.php?via=login.php', { waitUntil: 'domcontentloaded' });
+  await expect(p2.locator('#gl-cond')).toHaveText('Weather unavailable');
+  await c2.close();
+  await ctx.close();
+});

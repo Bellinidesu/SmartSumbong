@@ -73,10 +73,32 @@
   var btn = $('gl-hotbtn'), list = $('gl-hotlist');
   btn.addEventListener('click', function () { var open = btn.getAttribute('aria-expanded') !== 'true'; btn.setAttribute('aria-expanded', open ? 'true' : 'false'); list.hidden = !open; });
 
+  /* When the server could not read the weather (a shared address can be turned away by the free service), the visitor's own browser asks Open-Meteo for the
+     same four numbers: the portal's content-security policy already lists it, and nothing of ours goes with the request. */
+  function wxKind(c) { return c >= 95 ? 'storm' : ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) ? 'rain' : (c === 0 || c === 1) ? 'clear' : 'cloudy'; }
+  function browserWeather(d) {
+    var q = 'latitude=14.5194&longitude=121.0122&timezone=Asia%2FManila&forecast_days=1&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=sunrise,sunset';
+    return fetch('https://api.open-meteo.com/v1/forecast?' + q, { credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (j) {
+        var c = j && j.current; if (!c || typeof c.temperature_2m !== 'number') { return d; }
+        var out = {}; for (var k in d) { out[k] = d[k]; }
+        out.ok = true;
+        out.now = { temp: Math.round(c.temperature_2m), feels: Math.round(c.apparent_temperature != null ? c.apparent_temperature : c.temperature_2m), wind: Math.round(c.wind_speed_10m || 0), kind: wxKind(c.weather_code | 0) };
+        var rise = j.daily && j.daily.sunrise && Date.parse(j.daily.sunrise[0] + ':00+08:00'), set = j.daily && j.daily.sunset && Date.parse(j.daily.sunset[0] + ':00+08:00'), n = Date.now();
+        if (rise && set) {
+          out.phase = (n < rise - 2700000 || n > set + 3000000) ? 'night' : n < rise + 3600000 ? 'dawn' : n < set - 7200000 ? 'day' : n < set - 1200000 ? 'golden' : 'dusk';
+        }
+        return out;
+      }).catch(function () { return d; });
+  }
+
   function load() {
     var demo = /[?&]demo=([a-z-]{3,20})/.exec(location.search);   // only the test portal honours it
     return fetch('glance.php' + (demo ? '?demo=' + demo[1] : ''), { credentials: 'omit', headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .catch(function () { return null; })
+      .then(function (d) { return d && d.ok !== false && d.now ? d : browserWeather(d || { ok: false }); })
       .then(render).catch(function () { render(null); });
   }
   load();
