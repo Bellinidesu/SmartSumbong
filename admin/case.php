@@ -364,6 +364,9 @@ if (!$error && isset($report['id']) && ($_GET['chat'] ?? '') === '1') {
 
 layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 ?>
+<link href="assets/css/case-controls.css?v=<?= e(asset_version('case-controls.css')) ?>" rel="stylesheet">   <?php // the case page on one screen (15 Nov 2026) ?>
+<?php
+?>
 
 <?php if ($flash): ?>
   <div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
@@ -452,6 +455,12 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <div class="p-acc-flags">
       <?= sensitive_badge($report) ?>
       <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
+      <?php if (!empty($smart) && ($smart['score'] ?? null) !== null): // 15 Nov 2026 (Ace): "Why this level" is a button here, the card opens only when it is wanted
+          $sbLv = (string) ($smart['effective_level'] ?? 'low');
+          $sbName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')][$sbLv] ?? $sbLv; ?>
+        <button type="button" class="ss-smartbtn ss-lv-<?= e($sbLv) ?>" data-smart-open aria-controls="smart-card" aria-haspopup="dialog"
+                aria-label="<?= e(sprintf(t('Why this level: %s, %d of 100', 'Bakit ganito ang antas: %s, %d sa 100'), $sbName, (int) $smart['score'])) ?>"><?= smart_logo(22) ?><span><?= e($sbName) ?> <b><?= (int) $smart['score'] ?></b></span></button>
+      <?php endif; ?>
       <?php if (!empty($report['referred_to'])): ?>
         <span class="p-badge p-b-violet" title="<?= e(t('Escalated to ', 'In-escalate sa ') . $report['referred_to']) ?>"><?= e(t('Escalated to ', 'In-escalate sa ')) . e(referral_short((string) $report['referred_to'])) ?></span>
       <?php endif; ?>
@@ -652,8 +661,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       $lvName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')];
   ?>
   <?php $rsMax = max(1, ...array_map(fn($x) => (int) ($x['points'] ?? 0), (array) ($smart['reasons'] ?? [['points' => 1]]))); ?>
-  <section class="p-card p-card-pad ss-smartcard ss-lv-<?= e($sLv) ?>" aria-labelledby="smart-h">
-    <div class="ss-head ss-head--card"><?= smart_logo(30) ?><p class="p-eyebrow" id="smart-h"><?= e(t('Why this level', 'Bakit ganito ang antas')) ?></p></div>
+  <dialog class="p-card p-card-pad ss-smartcard ss-lv-<?= e($sLv) ?>" id="smart-card" aria-labelledby="smart-h">
+    <div class="ss-head ss-head--card"><?= smart_logo(30) ?><p class="p-eyebrow" id="smart-h"><?= e(t('Why this level', 'Bakit ganito ang antas')) ?></p>
+      <button type="button" class="ss-sc-x" data-smart-close aria-label="<?= e(t('Close', 'Isara')) ?>"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="ss-sc-hero">
       <div class="ss-ring" style="--p:<?= max(0, min(100, (int) $smart['score'])) ?>" role="img" aria-label="<?= e(sprintf(t('Score %d of 100', 'Marka %d sa 100'), (int) $smart['score'])) ?>"><b><?= (int) $smart['score'] ?></b><small>/100</small></div>
       <div class="ss-lvbox"><span class="ss-lvword"><?= e($lvName[$sLv] ?? $sLv) ?></span><span class="ss-lvsub"><?= e(t('priority, by the SMART engine', 'antas, ayon sa SMART engine')) ?></span><?php if ($ov): ?><span class="ss-lvset"><?= e(t('set by an admin', 'itinakda ng admin')) ?></span><?php endif; ?></div>
@@ -719,11 +729,11 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save level', 'I-save ang antas')) ?></button>
       </form>
     </details>
-  </section>
+  </dialog>
   <?php endif; ?>
 
   <!-- ---------- timeline ---------- -->
-  <section class="p-card p-card-pad">
+  <section class="p-card p-card-pad cc-timeline" tabindex="0" role="region" aria-label="<?= e(t('Activity Timeline', 'Takbo ng Aktibidad')) ?>">
     <p class="p-eyebrow"><?= e(t('Activity Timeline', 'Takbo ng Aktibidad')) ?></p>
 
     <?php
@@ -848,6 +858,17 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   ?>
   <aside aria-label="<?= e(t('Admin Controls', 'Kontrol ng Admin')) ?>" class="p-card p-controls<?= $theirs ? ' ss-readonly' : '' ?><?= is_captain() ? ' ss-viewonly' : '' ?>">
     <p class="p-eyebrow"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
+    <?php // 15 Nov 2026 (Ace): where the case is in its work, at a glance (read only; the actions below are unchanged)
+      $trkAt = null;
+      if (in_array($status, ['resolved', 'closed', 'archived'], true)) { $trkAt = 4; }
+      elseif (!in_array($status, ['rejected', 'cancelled'], true) && empty($report['referred_to'])) {
+          $trkAt = $status === 'pending_review' ? 0 : ($status === 'validated' ? 1 : (!empty($report['resolution_submitted_at']) ? 3 : 2));
+      }
+      if ($trkAt !== null): $trk = [t('Review', 'Suri'), t('Assign', 'Italaga'), t('Dispatch', 'Ipadala'), t('Approve', 'Aprubahan'), t('Closed', 'Sarado')]; ?>
+    <ol class="cc-track" aria-label="<?= e(t('Where the case is in its work', 'Nasaan ang kaso sa gawain nito')) ?>">
+      <?php foreach ($trk as $ti => $tn): ?><li class="<?= $ti < $trkAt ? 'done' : ($ti === $trkAt ? 'cur' : '') ?>"<?= $ti === $trkAt ? ' aria-current="step"' : '' ?>><i aria-hidden="true"></i><span><?= e($tn) ?></span></li><?php endforeach; ?>
+    </ol>
+    <?php endif; ?>
     <?php if (is_captain()): ?><div class="ss-locked" role="note"><?= e(t('View only: this account can read everything about the case, but not change it.', 'Tingin lamang: mababasa ng account na ito ang lahat tungkol sa kaso, pero hindi ito mababago.')) ?></div><?php endif; ?>
 
     <?php // 0087: who handles this case. ?>
@@ -859,7 +880,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php else: ?>
       <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><div class="ss-hrow"><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?></div><?php if (!empty($report['handled_since'])): ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span><?php endif; ?></div></div>
       <div class="ss-locked"><?= e(sprintf(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.'), $hName)) ?></div>
-      <details class="p-fix" data-keep-details>
+      <details class="p-fix" data-keep-details data-ic="user">
         <summary><?= e(t('Take over', 'Kunin')) ?></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -905,7 +926,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </div>
       <?php endforeach; ?>
       <?php if (can_forward()): ?>
-        <details class="p-fix" data-keep-details>
+        <details class="p-fix" data-keep-details data-ic="send">
           <summary><?= e(!empty($report['awaiting_placement']) && is_super() ? t('Place with a committee', 'Ilagay sa isang komite') : t('Forward to a committee', 'Ipasa sa isang komite')) ?></summary>
           <form method="post" class="p-ctl-stack" data-keep>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="forward">
@@ -918,7 +939,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           </form>
         </details>
       <?php elseif (is_moderator()): ?>
-        <details class="p-fix" data-keep-details>
+        <details class="p-fix" data-keep-details data-ic="flag">
           <summary><?= e(t('Flag for forwarding', 'I-flag para ipasa')) ?></summary>
           <form method="post" class="p-ctl-stack" data-keep>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="flag_forward">
@@ -952,7 +973,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     </ol>
     <div id="ss-also" hidden></div>
     <?php if ($handlerLog): ?>
-      <details class="p-fix" data-keep-details>
+      <details class="p-fix" data-keep-details data-ic="hist">
         <summary><?= e(sprintf(t('Ownership history (%d)', 'Kasaysayan ng may-hawak (%d)'), count($handlerLog))) ?></summary>
         <ul class="ss-hist">
         <?php foreach ($handlerLog as $h): ?>
@@ -1187,7 +1208,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
         <?php // 0070: the admin's reroute. The system's own (a tanod's
               // hand-back, a lapsed acceptance window) needs nothing here. ?>
-        <details class="p-fix">
+        <details class="p-fix" data-ic="route">
           <summary><?= e(t('Reroute this dispatch', 'Ilipat ang dispatch na ito')) ?></summary>
           <form method="post" class="p-ctl-stack">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1249,7 +1270,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <button class="p-btn p-btn-success p-btn-block" type="submit" name="action" value="approve_resolution"><?= e(t('Approve Resolution', 'Aprubahan ang Resolusyon')) ?></button>
         </form>
-        <details class="p-fix">
+        <details class="p-fix" data-ic="back">
           <summary><?= e(t('Return to the tanod', 'Ibalik sa tanod')) ?></summary>
           <form method="post" class="p-ctl-stack">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1272,7 +1293,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <?= e(name_or($escRequest['requester']['full_name'] ?? null, t('Tanod', 'Tanod'))) ?> &middot; <?= e(relative_time($escRequest['created_at'])) ?>
         </p>
         <p class="p-quote"><?= nl2br(e($escRequest['reason'])) ?></p>
-        <details class="p-fix" open>
+        <details class="p-fix" open data-ic="up">
           <summary><?= e(t('Approve: escalate', 'Aprubahan: i-escalate')) ?></summary>
           <form method="post" class="p-ctl-stack">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1286,7 +1307,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <button class="p-btn p-btn-danger-solid p-btn-sm" type="submit"><?= e(t('Approve and escalate', 'Aprubahan at i-escalate')) ?></button>
           </form>
         </details>
-        <details class="p-fix">
+        <details class="p-fix" data-ic="x">
           <summary><?= e(t('Deny the request', 'Tanggihan ang hiling')) ?></summary>
           <form method="post" class="p-ctl-stack">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1305,7 +1326,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php if (in_array($status, ['validated', 'assigned', 'in_progress', 'offline_investigation'], true)
               && empty($report['resolution_submitted_at'])): ?>
       <?php // 0073 + 0079, one form (Rose, 7 Oct 2026). ?>
-      <details class="p-fix">
+      <details class="p-fix" data-ic="pen">
         <summary><?= e(t('Update status', 'I-update ang katayuan')) ?></summary>
         <form method="post" class="p-ctl-stack" enctype="multipart/form-data">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1372,7 +1393,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
       <?php if ($extUsed >= $extCap && !empty($report['due_at'])): ?>
         <?php // 0079 (Rose) — no extensions left: hand it to a higher official. ?>
-        <details class="p-fix" open>
+        <details class="p-fix" open data-ic="up">
           <summary><?= e(t('Hand to a higher official', 'Ipasa sa mas mataas na opisyal')) ?></summary>
           <form method="post" class="p-ctl-stack">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1433,7 +1454,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       </div>
     <?php elseif (!in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
       <?php // 0072: escalation = referral to an office outside the barangay. ?>
-      <details class="p-fix">
+      <details class="p-fix" data-ic="bld">
         <summary><?= e(t('Escalate to an outside office', 'I-escalate sa ibang tanggapan')) ?></summary>
         <form method="post" class="p-ctl-stack">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1455,7 +1476,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       // 0166: who it reaches, named before anyone presses (escalation_target, the same answer the escalation uses)
       $escWhy = (string) ($escTo['why'] ?? '');
       $escToChair = $escTo !== null && (int) ($escTo['to_tier'] ?? 0) === 2; ?>
-      <details class="p-fix">
+      <details class="p-fix" data-ic="bld">
         <summary><?= e($escTo !== null
             ? sprintf(t('Escalate to %s', 'I-escalate kay %s'), (string) $escTo['official_name'] . ', ' . ($escToChair ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))
             : ($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay'))) ?></summary>
@@ -1485,7 +1506,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       </details>
     <?php endif; ?>
     <?php if ($mine && $tier > 0): ?>
-      <details class="p-fix">
+      <details class="p-fix" data-ic="down">
         <summary><?= e(t('Send it back down', 'Ibalik pababa')) ?></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1498,7 +1519,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       </details>
     <?php endif; ?>
     <?php if ($mine && $openCase): ?>
-      <details class="p-fix">
+      <details class="p-fix" data-ic="shield">
         <summary><?= e($sens ? t('Not sensitive after all', 'Hindi pala sensitibo') : t('Mark as sensitive', 'Markahang sensitibo')) ?></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1575,6 +1596,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
 <script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
+<script src="assets/js/case-smart.js?v=<?= e(asset_version('../js/case-smart.js')) ?>" defer></script>
 <?php if (count($concerns) > 1): ?><script src="assets/js/case-focus.js?v=<?= e(asset_version('../js/case-focus.js')) ?>" defer></script><?php endif; ?>
 <script>
 (function () {

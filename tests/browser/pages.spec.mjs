@@ -2471,3 +2471,56 @@ test('Material, portal-wide (15 Nov): no frosted glass in either mode (Workspace
   expect(f2, 'the dark sign-in card, rail and switches are solid').toEqual([]);
   await ctx.close();
 });
+
+test('Case page on one screen (15 Nov): the controls and the timeline scroll inside themselves, a stage track says where the case is, every action is still there', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 800 });
+  await open(page, `case.php?id=${CASE}`);
+  await page.waitForTimeout(600);
+  const m = await page.evaluate(() => {
+    const c = document.querySelector('.p-controls'), tl = document.querySelector('.cc-timeline');
+    return { cH: c.getBoundingClientRect().height, cOv: getComputedStyle(c).overflowY, tH: tl ? tl.getBoundingClientRect().height : -1, tOv: tl ? getComputedStyle(tl).overflowY : '', win: innerHeight };
+  });
+  expect(m.cH, 'the controls are never taller than the window').toBeLessThanOrEqual(m.win);
+  expect(m.cOv).toBe('auto');
+  expect(m.tH, 'the timeline is a bounded panel').toBeGreaterThan(0);
+  expect(m.tH).toBeLessThanOrEqual(m.win);
+  expect(m.tOv).toBe('auto');
+  const track = page.locator('.cc-track li');
+  await expect(track).toHaveCount(5);
+  await expect(page.locator('.cc-track li[aria-current="step"]')).toHaveCount(1);
+  // the secondary actions are tiles with an icon, and a tile still opens its own form
+  const tiles = page.locator('.p-controls details.p-fix[data-ic]');
+  expect(await tiles.count(), 'the secondary actions are tiles').toBeGreaterThan(0);
+  const first = tiles.first();
+  await first.locator('summary').click();
+  await expect(first).toHaveJSProperty('open', true);
+  await expect(first.locator('form').first()).toBeVisible();
+  // none of the page's forms or actions went missing: each form still carries its csrf and its action
+  const forms = await page.evaluate(() => [...document.querySelectorAll('.p-controls form, .p-case-grid form')].filter(f => f.querySelector('input[name="action"]')).map(f => f.querySelector('input[name="action"]').value));
+  expect(forms.length, 'the case forms are all still on the page').toBeGreaterThan(1);
+});
+
+test('Case page (15 Nov): "Why this level" is a button beside the status pill and opens as a drawer, closed by its button, Escape or a click outside', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, `case.php?id=${CASE}`);
+  const btn = page.locator('[data-smart-open]');
+  await expect(btn).toBeVisible();
+  await expect(btn).toHaveAttribute('aria-controls', 'smart-card');
+  await expect(page.locator('#smart-card')).toBeHidden();
+  await btn.click();
+  await expect(page.locator('#smart-card')).toBeVisible();
+  await expect(page.locator('#smart-card')).toContainText('Why this level');
+  await expect(btn).toHaveAttribute('aria-expanded', 'true');
+  const box = await page.locator('#smart-card').boundingBox();
+  expect(box.x + box.width, 'it is a drawer on the right edge').toBeGreaterThan(1430);
+  expect(await axe(page), 'the drawer, light').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#smart-card')).toBeHidden();
+  await expect(btn).toHaveAttribute('aria-expanded', 'false');
+  await btn.click(); await expect(page.locator('#smart-card')).toBeVisible();
+  await page.locator('[data-smart-close]').click(); await expect(page.locator('#smart-card')).toBeHidden();
+  await btn.click(); await page.mouse.click(300, 400); await expect(page.locator('#smart-card'), 'a click outside closes it').toBeHidden();
+  // Change level is still inside, and still a form
+  await btn.click(); await page.locator('#smart-card .ss-sc-change summary').click();
+  await expect(page.locator('#smart-card select[name="level"]')).toBeVisible();
+});
