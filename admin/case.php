@@ -864,6 +864,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       elseif (!in_array($status, ['rejected', 'cancelled'], true) && empty($report['referred_to'])) {
           $trkAt = $status === 'pending_review' ? 0 : ($status === 'validated' ? 1 : (!empty($report['resolution_submitted_at']) ? 3 : 2));
       }
+      $ccTiles = [];   // the secondary actions, collected where they are written and shown together under More
       if ($trkAt !== null): $trk = [t('Review', 'Suri'), t('Assign', 'Italaga'), t('Dispatch', 'Ipadala'), t('Approve', 'Aprubahan'), t('Closed', 'Sarado')]; ?>
     <ol class="cc-track" aria-label="<?= e(t('Where the case is in its work', 'Nasaan ang kaso sa gawain nito')) ?>">
       <?php foreach ($trk as $ti => $tn): ?><li class="<?= $ti < $trkAt ? 'done' : ($ti === $trkAt ? 'cur' : '') ?>"<?= $ti === $trkAt ? ' aria-current="step"' : '' ?>><i aria-hidden="true"></i><span><?= e($tn) ?></span></li><?php endforeach; ?>
@@ -926,7 +927,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </div>
       <?php endforeach; ?>
       <?php if (can_forward()): ?>
-        <details class="p-fix" data-keep-details data-ic="send">
+        <?php ob_start(); ?><details class="p-fix" data-keep-details data-ic="send">
           <summary><?= e(!empty($report['awaiting_placement']) && is_super() ? t('Place with a committee', 'Ilagay sa isang komite') : t('Forward to a committee', 'Ipasa sa isang komite')) ?></summary>
           <form method="post" class="p-ctl-stack" data-keep>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="forward">
@@ -937,9 +938,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Forward', 'Ipasa')) ?></button>
             <p class="p-hint"><?= e(t('The case leaves whoever is handling it, and the other committee\'s Kagawad is told. It is kept in the case\'s history.', 'Aalis ang kaso sa humahawak nito, at sasabihan ang Kagawad ng ibang komite. Nakatala ito sa kasaysayan ng kaso.')) ?></p>
           </form>
-        </details>
+        </details><?php $ccTiles['forward'] = ob_get_clean(); ?>
       <?php elseif (is_moderator()): ?>
-        <details class="p-fix" data-keep-details data-ic="flag">
+        <?php ob_start(); ?><details class="p-fix" data-keep-details data-ic="flag">
           <summary><?= e(t('Flag for forwarding', 'I-flag para ipasa')) ?></summary>
           <form method="post" class="p-ctl-stack" data-keep>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="flag_forward">
@@ -949,7 +950,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               <textarea class="p-input-plain" id="ff-why" name="note" rows="2" maxlength="500" required minlength="5"></textarea></div>
             <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Send to my Kagawad', 'Ipadala sa Kagawad ko')) ?></button>
           </form>
-        </details>
+        </details><?php $ccTiles['flag'] = ob_get_clean(); ?>
       <?php endif; ?>
     </div>
 
@@ -973,7 +974,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     </ol>
     <div id="ss-also" hidden></div>
     <?php if ($handlerLog): ?>
-      <details class="p-fix" data-keep-details data-ic="hist">
+      <?php ob_start(); ?><details class="p-fix" data-keep-details data-ic="hist">
         <summary><?= e(sprintf(t('Ownership history (%d)', 'Kasaysayan ng may-hawak (%d)'), count($handlerLog))) ?></summary>
         <ul class="ss-hist">
         <?php foreach ($handlerLog as $h): ?>
@@ -983,7 +984,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               default => t('took over from', 'kinuha mula kay') . ' ' . ($h['prev']['full_name'] ?? ''),
           }) ?> · <?= e(long_datetime($h['created_at'])) ?><?= !empty($h['reason']) ? ' — “' . e($h['reason']) . '”' : '' ?></li>
         <?php endforeach; ?>
-      </ul></details>
+      </ul></details><?php $ccTiles['hist'] = ob_get_clean(); ?>
     <?php endif; ?>
 
     <?php if (count($concerns) > 1): // 15 Nov 2026 (Rose): a report with several requests: pick the one being handled; it is lit in the list of concerns and answered here ?>
@@ -1003,6 +1004,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       </div>
     <?php endif; ?>
 
+    <?php ob_start(); // 15 Nov 2026 (Ace): what the case needs from you now, in one card ?>
     <?php if ($canJudge): ?>
       <form method="post" class="p-ctl-stack" id="review-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1322,11 +1324,14 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </details>
       </div>
     <?php endif; ?>
+    <?php $ccNext = trim((string) ob_get_clean()); if ($ccNext !== ''): ?>
+    <section class="cc-next" aria-label="<?= e(t('Next step', 'Susunod na hakbang')) ?>"><p class="cc-next-h"><?= e(t('Next step', 'Susunod na hakbang')) ?></p><?= $ccNext ?></section>
+    <?php endif; ?>
 
     <?php if (in_array($status, ['validated', 'assigned', 'in_progress', 'offline_investigation'], true)
               && empty($report['resolution_submitted_at'])): ?>
       <?php // 0073 + 0079, one form (Rose, 7 Oct 2026). ?>
-      <details class="p-fix" data-ic="pen">
+      <?php ob_start(); ?><details class="p-fix" data-ic="pen">
         <summary><?= e(t('Update status', 'I-update ang katayuan')) ?></summary>
         <form method="post" class="p-ctl-stack" enctype="multipart/form-data">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1373,7 +1378,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <?php endif; ?>
           <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Update status', 'I-update ang katayuan')) ?></button>
         </form>
-      </details>
+      </details><?php $ccTiles['status'] = ob_get_clean(); ?>
     <?php endif; ?>
 
     <?php $openCase = in_array($status, ['validated', 'assigned', 'in_progress', 'offline_investigation'], true) && empty($report['referred_to']); ?>
@@ -1433,11 +1438,11 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
     <?php if (!in_array($status, ['rejected', 'cancelled'], true)): ?>
       <?php // 0073 — the resident map shows published incidents: category and status only. ?>
-      <form method="post" class="publish-toggle">
+      <?php ob_start(); ?><form method="post" class="publish-toggle cc-wide">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="set_public">
         <label class="p-pub"><span><b><?= e(t("Show on residents' map", 'Ipakita sa mapa ng mga residente')) ?></b><small><?= e(t('Category and status only.', 'Kategorya at katayuan lamang.')) ?></small></span><input type="checkbox" role="switch" name="public" value="1" <?= !empty($report['is_public']) ? 'checked' : '' ?> data-autosubmit></label>
-      </form>
+      </form><?php $ccTiles['pub'] = ob_get_clean(); ?>
     <?php endif; ?>
 
     <?php if (!empty($report['referred_to'])): ?>
@@ -1454,7 +1459,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       </div>
     <?php elseif (!in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
       <?php // 0072: escalation = referral to an office outside the barangay. ?>
-      <details class="p-fix" data-ic="bld">
+      <?php ob_start(); ?><details class="p-fix" data-ic="bld">
         <summary><?= e(t('Escalate to an outside office', 'I-escalate sa ibang tanggapan')) ?></summary>
         <form method="post" class="p-ctl-stack">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1468,7 +1473,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <p class="p-ctl-note"><?= e(t('This closes the complaint here and stands down any tanod on it. Afterwards you can print the Certification of Lack of Jurisdiction for the resident.', 'Isasara nito ang sumbong dito at ititigil ang sinumang tanod na nakatalaga. Pagkatapos, maaari mong i-print ang Sertipikasyon ng Kawalan ng Hurisdiksyon para sa residente.')) ?></p>
           <button class="p-btn p-btn-danger-solid p-btn-sm" type="submit"><?= e(t('Escalate', 'I-escalate')) ?></button>
         </form>
-      </details>
+      </details><?php $ccTiles['esc_out'] = ob_get_clean(); ?>
     <?php endif; ?>
 
     <?php $openCase = !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true) && empty($report['referred_to']); ?>
@@ -1476,7 +1481,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       // 0166: who it reaches, named before anyone presses (escalation_target, the same answer the escalation uses)
       $escWhy = (string) ($escTo['why'] ?? '');
       $escToChair = $escTo !== null && (int) ($escTo['to_tier'] ?? 0) === 2; ?>
-      <details class="p-fix" data-ic="bld">
+      <?php ob_start(); ?><details class="p-fix" data-ic="bld">
         <summary><?= e($escTo !== null
             ? sprintf(t('Escalate to %s', 'I-escalate kay %s'), (string) $escTo['official_name'] . ', ' . ($escToChair ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))
             : ($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay'))) ?></summary>
@@ -1503,10 +1508,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <p class="p-hint"><?= e(t('Any tanod on this case is stood down and told. The official becomes its handler.', 'Aalisin at sasabihan ang tanod na nasa kasong ito. Ang opisyal na ang hahawak.')) ?></p>
           <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Escalate', 'I-escalate')) ?></button>
         </form>
-      </details>
+      </details><?php $ccTiles['esc_up'] = ob_get_clean(); ?>
     <?php endif; ?>
     <?php if ($mine && $tier > 0): ?>
-      <details class="p-fix" data-ic="down">
+      <?php ob_start(); ?><details class="p-fix" data-ic="down">
         <summary><?= e(t('Send it back down', 'Ibalik pababa')) ?></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1516,10 +1521,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <input class="p-input-plain" id="ro-remark" name="remark" required minlength="3" maxlength="300"></div>
           <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Return', 'Ibalik')) ?></button>
         </form>
-      </details>
+      </details><?php $ccTiles['down'] = ob_get_clean(); ?>
     <?php endif; ?>
     <?php if ($mine && $openCase): ?>
-      <details class="p-fix" data-ic="shield">
+      <?php ob_start(); ?><details class="p-fix" data-ic="shield">
         <summary><?= e($sens ? t('Not sensitive after all', 'Hindi pala sensitibo') : t('Mark as sensitive', 'Markahang sensitibo')) ?></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1530,7 +1535,15 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <input class="p-input-plain" id="ss-why" name="reason" required minlength="3" maxlength="300"></div>
           <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e($sens ? t('Remove the mark', 'Alisin ang marka') : t('Mark sensitive', 'Markahang sensitibo')) ?></button>
         </form>
-      </details>
+      </details><?php $ccTiles['sens'] = ob_get_clean(); ?>
+    <?php endif; ?>
+    <?php $ccGrid = ''; foreach (['status', 'forward', 'flag', 'esc_up', 'esc_out', 'down', 'sens', 'hist'] as $ccK) { $ccGrid .= $ccTiles[$ccK] ?? ''; }
+          if ($ccGrid !== '' || !empty($ccTiles['pub'])): ?>
+    <div class="cc-more">
+      <p class="p-flabel ss-zl"><?= e(t('More', 'Iba pa')) ?></p>
+      <?php if ($ccGrid !== ''): ?><div class="cc-tiles"><?= $ccGrid ?></div><?php endif; ?>
+      <?= $ccTiles['pub'] ?? '' ?>
+    </div>
     <?php endif; ?>
     <!-- ---------- map preview ---------- -->
     <!-- Martin's note / Rose's feedback: the preview had no way to get

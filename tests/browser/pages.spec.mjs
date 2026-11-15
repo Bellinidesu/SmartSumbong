@@ -2524,3 +2524,33 @@ test('Case page (15 Nov): "Why this level" is a button beside the status pill an
   await btn.click(); await page.locator('#smart-card .ss-sc-change summary').click();
   await expect(page.locator('#smart-card select[name="level"]')).toBeVisible();
 });
+
+test('Case page, the swap (15 Nov): what the case needs now is one Next step card, the secondary actions are two-up tiles under More with the map switch, and every action is still reachable', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, `case.php?id=${CASE}`);
+  await expect(page.locator('.p-controls .cc-next')).toHaveCount(1);
+  await expect(page.locator('.cc-next .cc-next-h')).toBeVisible();
+  const more = page.locator('.p-controls .cc-more');
+  await expect(more).toHaveCount(1);
+  await expect(more.locator('> .p-flabel')).toContainText('More');
+  const tiles = more.locator('.cc-tiles > details.p-fix');
+  expect(await tiles.count(), 'the secondary actions are tiles under More').toBeGreaterThan(1);
+  // two-up: the first two tiles share a row
+  const a = await tiles.nth(0).boundingBox(), b = await tiles.nth(1).boundingBox();
+  expect(Math.abs(a.y - b.y), 'two tiles on one row').toBeLessThan(6);
+  expect(b.x, 'side by side').toBeGreaterThan(a.x + a.width - 4);
+  // a tile opens full width, in place, and still holds its form
+  const live = more.locator('.cc-tiles > details.p-fix[data-keep-details]').first();   // here someone else owns the case, so only the tiles that stay usable are pressed
+  await live.locator('summary').click();
+  const o = await live.boundingBox(), g = await more.locator('.cc-tiles').boundingBox();
+  expect(o.width, 'an open tile is a full-width sheet').toBeGreaterThan(g.width - 8);
+  await expect(live.locator('form')).toBeVisible();
+  await expect(more.locator('.publish-toggle')).toHaveCount(1);   // the residents' map switch is under More too
+  // no action went missing from the page: the same set of forms as before the swap
+  const acts = await page.evaluate(() => [...new Set([...document.querySelectorAll('form input[name="action"]')].map(i => i.value))].sort());
+  for (const must of ['take_over', 'forward', 'set_status', 'set_public', 'refer', 'smart_override']) expect(acts, 'action ' + must).toContain(must);
+  expect(await axe(page), 'the case page, light').toEqual([]);
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  await page.waitForTimeout(300);
+  expect(await axe(page), 'the case page, dark').toEqual([]);
+});
