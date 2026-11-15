@@ -72,8 +72,9 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <span class="p-live" id="map-live"><i></i><?= e(t('Live', 'Live')) ?></span>
       <span class="p-note" id="map-status"><?= e(t('Connecting…', 'Kumokonekta…')) ?></span>
       <button type="button" class="ss-pin" id="map-pin" aria-pressed="false" title="<?= e(t('Keep this open', 'Panatilihing bukas ito')) ?>" aria-label="<?= e(t('Keep this open', 'Panatilihing bukas ito')) ?>"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/></svg><span class="ss-pin-l"><?= e(t('Lock open', 'I-lock')) ?></span></button></div>
+    <?php // 15 Nov 2026 (Rose): staff see only their committee's kinds, so they have no complaint type filter ?>
     <div class="p-row">
-      <label class="p-pill-select"><span class="p-sr"><?= e(t('Filter by complaint type', 'Salain ayon sa uri ng sumbong')) ?></span>
+      <label class="p-pill-select"<?= my_tier() === 'moderator' ? ' hidden' : '' ?>><span class="p-sr"><?= e(t('Filter by complaint type', 'Salain ayon sa uri ng sumbong')) ?></span>
         <select id="f-category">
           <option value=""><?= e(t('All complaint types', 'Lahat ng uri ng sumbong')) ?></option>
           <?php foreach ($categories as $c): ?><option value="<?= e($c) ?>"><?= e(category_label($c)) ?></option><?php endforeach; ?>

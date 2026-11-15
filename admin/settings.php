@@ -32,7 +32,7 @@ $db    = db();
 // Services takes the barangay's people and paperwork, the Control Room takes how the app behaves for this barangay. Each page
 // sets ST_PAGE and includes this file; a form posts to the page it is on and comes back to its tab on the page that owns it.
 const ST_PAGES = [
-    'settings' => ['file' => 'settings.php', 'tabs' => ['status', 'usage', 'smart', 'plan', 'look']],
+    'settings' => ['file' => 'settings.php', 'tabs' => ['status', 'usage', 'smart', 'look']],   // 15 Nov 2026 (Rose): no Planning tab
     'admin'    => ['file' => 'administrative-services.php', 'tabs' => ['access', 'admins', 'ladder']],
     'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'hotlines', 'wording', 'brgy', 'parts', 'updates']],
     // a Kagawad or staff member (4 Nov 2026): their own look, their committee (read only) and their module of the engine
@@ -799,7 +799,7 @@ if ($stPage !== 'mine') try {
   <?php elseif ($stFlash): ?>
     <div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div>
   <?php endif; ?>
-  <?php $roleOpts = ['' => t('Staff', 'Kawani'), 'secretary' => t('Secretary', 'Kalihim'), 'kagawad' => t('Councilor (Kagawad)', 'Kagawad'), 'chairman' => t('Chairman', 'Punong Barangay')]; ?>
+  <?php $roleOpts = ['' => t('Staff', 'Kawani'), 'kagawad' => t('Councilor (Kagawad)', 'Kagawad'), 'chairman' => t('Chairman', 'Punong Barangay')]; ?>
   <div class="p-band ss-pband">
     <h2><?= e(t('Roles', 'Mga Tungkulin')) ?><span class="p-badge-n p-badge-n--quiet" id="jp-count"><?= count($admins) ?></span></h2>
     <form class="p-search" role="search">
@@ -816,7 +816,7 @@ if ($stPage !== 'mine') try {
   <?php
   $rkN = ['' => count($admins)]; foreach ($admins as $x0) { $k0 = ($x0['official_role'] ?? '') === '' ? 'staff' : (string) $x0['official_role']; $rkN[$k0] = ($rkN[$k0] ?? 0) + 1; }
   $rkDef = ['' => [t('All', 'Lahat'), '#2D5BFF', '#00A3FF', '#FFFFFF', 'layers'], 'chairman' => [t('Chairman', 'Punong Barangay'), '#E5383B', '#FF6A3D', '#FFFFFF', 'focus'],
-            'kagawad' => [t('Councilor', 'Kagawad'), '#7A5AE0', '#B15CFF', '#FFFFFF', 'handler'], 'secretary' => [t('Secretary', 'Kalihim'), '#0097B8', '#35D0E8', '#FFFFFF', 'calendar'],
+            'kagawad' => [t('Councilor', 'Kagawad'), '#7A5AE0', '#B15CFF', '#FFFFFF', 'handler'],
             'staff' => [t('Staff', 'Kawani'), '#6C7A9C', '#9AA6C4', '#FFFFFF', 'copy']]; ?>
   <nav class="cm-chips cm-choose ad-roles" data-chooser="a.cm-chip" aria-label="<?= e(t('Position', 'Posisyon')) ?>">
     <?php foreach ($rkDef as $rk => [$rl, $c1, $c2, $ink, $ic]): ?>
@@ -860,7 +860,7 @@ if ($stPage !== 'mine') try {
               <input type="hidden" name="action" value="set_role">
               <input type="hidden" name="user" value="<?= e($a['id']) ?>">
               <div class="ss-ef"><span class="ss-efl"><?= e(t('Position', 'Posisyon')) ?></span><label class="p-pill-select ss-ps"><span class="p-sr"><?= e(t('Position', 'Posisyon')) ?></span><select name="official_role" data-role-sel>
-                  <?php foreach ($roleOpts as $rv => $rl): ?><option value="<?= e($rv) ?>" <?= ($a['official_role'] ?? '') === $rv ? 'selected' : '' ?>><?= e($rl) ?></option><?php endforeach; ?>
+                  <?php foreach ((($a['official_role'] ?? '') === 'secretary' ? ['secretary' => t('Secretary', 'Kalihim')] : []) + $roleOpts as $rv => $rl): ?><option value="<?= e($rv) ?>" <?= ($a['official_role'] ?? '') === $rv ? 'selected' : '' ?>><?= e($rl) ?></option><?php endforeach; ?>
                 </select></label></div>
               <div class="ss-ef"><span class="ss-efl"><?= e(t('Committee', 'Komite')) ?></span><label class="p-pill-select ss-ps"><span class="p-sr"><?= e(t('Committee', 'Komite')) ?></span><select name="committee" data-comm-sel <?= $hasC ? '' : 'disabled' ?>>
                   <option value=""><?= e(t('No committee', 'Walang komite')) ?></option>
