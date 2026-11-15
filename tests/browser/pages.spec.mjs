@@ -47,7 +47,7 @@ test('login.php, signed out', async ({ browser }) => {
   const page = await (await browser.newContext()).newPage();
   const { status, errors } = await open(page, 'login.php');
   expect(status).toBe(200);
-  await expect(page.locator('.login-rail img.rail-logo')).toHaveAttribute('alt', 'Barangay 183 seal');   // 0148: from the profile
+  await expect(page.locator('.login-rail img.gl-seal')).toHaveAttribute('alt', 'Barangay 183 seal');   // 0148: from the profile
   expect(errors, 'console errors').toEqual([]);
   expect(await axe(page), 'serious or critical accessibility problems').toEqual([]);
 });
@@ -2245,4 +2245,101 @@ test('Looks 15 Nov: Personnel > Committee staff turns into tiles from four commi
   await wrap.locator('> [data-tile]:not(.tile-open) [data-tile-head]').first().click();
   await expect(wrap.locator('> .tile-open')).toHaveCount(1);
   expect(await wrap.locator('> .tile-open .pc-grid').isVisible()).toBe(true);
+});
+
+
+// ---------- the sign-in pages, 15 Nov 2026 (Ace): At a glance, the early-days orange as a gradient, the new card ----------
+test('Sign-in 15 Nov: the side panel is At a glance (public, drawn, its hotlines open), the wordmark is HD, links are blue, the language is two circle flags', async ({ browser }) => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  const { status, errors } = await open(page, 'login.php?demo=day-rain');
+  expect(status).toBe(200);
+  await expect(page.locator('#gl')).toHaveAttribute('data-phase', 'day');
+  await expect(page.locator('#gl')).toHaveAttribute('data-wx', 'rain');
+  await expect(page.locator('#gl-temp')).toHaveText(/^\d+°$/);
+  await expect(page.locator('#gl-warn')).toBeVisible();
+  await expect(page.locator('#gl-warn-t')).toContainText('Orange rainfall warning');
+  await expect(page.locator('#gl-hot')).toBeVisible();
+  await expect(page.locator('#gl-hotlist')).toBeHidden();
+  await page.locator('#gl-hotbtn').click();
+  await expect(page.locator('#gl-hotbtn')).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#gl-hotlist .n a[href^="tel:"]').first()).toBeVisible();
+  await expect(page.locator('#gl-news a[target="_blank"][rel*="noopener"]').first()).toBeVisible();
+  // the seal sits in the middle of the weather, with the name under it
+  const seal = await page.locator('.gl-seal').boundingBox(), rail = await page.locator('#gl').boundingBox();
+  expect(Math.abs((seal.x + seal.width / 2) - (rail.x + rail.width / 2)), 'the seal is centred in the panel').toBeLessThan(2);
+  // Powered by moved into the panel; the old one under the card is gone
+  await expect(page.locator('#gl .gl-powered')).toBeVisible();
+  await expect(page.locator('.login-panel .login-powered')).toHaveCount(0);
+  // the Smart Sumbong mark is the HD file, on the card's corner
+  const wm = page.locator('img.login-wordmark');
+  await expect(wm).toHaveAttribute('src', /logo-wordmark-hd\.webp/);
+  expect(await wm.evaluate(i => i.naturalWidth), 'a sharp mark, not the old 355 px file').toBeGreaterThanOrEqual(700);
+  // the links are blue, not orange
+  expect(await page.locator('.forgot').evaluate(e => getComputedStyle(e).color)).toBe('rgb(0, 48, 143)');
+  expect(await page.locator('.login-signup a').evaluate(e => getComputedStyle(e).color)).toBe('rgb(0, 48, 143)');
+  // the language: two circle flags
+  const flags = page.locator('.prefs--login .pref-lang button');
+  await expect(flags).toHaveCount(2);
+  for (let i = 0; i < 2; i++) {
+    const f = flags.nth(i); const b = await f.boundingBox();
+    expect(Math.abs(b.width - b.height), 'round').toBeLessThan(1);
+    expect(await f.evaluate(e => getComputedStyle(e).borderRadius)).toBe('50%');
+  }
+  expect(errors, 'console errors').toEqual([]);
+  expect(await axe(page), 'sign-in, light').toEqual([]);
+  await page.evaluate(() => { document.documentElement.setAttribute('data-theme', 'dark'); });
+  await page.waitForTimeout(300);
+  expect(await axe(page), 'sign-in, dark').toEqual([]);
+  await ctx.close();
+});
+
+test('Sign-in 15 Nov: the picture follows the weather and the hour, and every loop moves only opacity or transform (and stops for reduced motion)', async ({ browser }) => {
+  const moods = [['dawn-clear', 'dawn', 'clear'], ['day-clear', 'day', 'clear'], ['dusk-rain', 'dusk', 'rain'], ['night-storm', 'night', 'storm'], ['golden-cloudy', 'golden', 'cloudy']];
+  for (const [demo, phase, wx] of moods) {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await page.goto('login.php?demo=' + demo, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(900);
+    await expect(page.locator('#gl')).toHaveAttribute('data-phase', phase);
+    await expect(page.locator('#gl')).toHaveAttribute('data-wx', wx);
+    const vis = await page.evaluate(() => { const d = s => getComputedStyle(document.querySelector(s)).display !== 'none' && getComputedStyle(document.querySelector(s)).opacity !== '0'; return { sun: d('.gl-sun'), moon: d('.gl-moon'), rain: d('.gl-rain'), badge: getComputedStyle(document.querySelector('.gl-cloud.c2 .bd')).display !== 'none' }; });
+    expect(vis.sun, demo + ': the sun shows only by day without rain').toBe(['dawn', 'day', 'golden', 'dusk'].includes(phase) && !['rain', 'storm'].includes(wx));
+    expect(vis.moon, demo + ': the moon at night without rain').toBe(phase === 'night' && !['rain', 'storm'].includes(wx));
+    expect(vis.rain, demo + ': rain').toBe(['rain', 'storm'].includes(wx));
+    expect(vis.badge, demo + ': the warning badge on the cloud in a warning').toBe(['rain', 'storm'].includes(wx));
+    const loops = await page.evaluate(() => document.getAnimations().filter(a => a.effect && a.effect.getComputedTiming().iterations === Infinity).map(a => {
+      const kf = a.effect.getKeyframes(); return [...new Set(kf.flatMap(k => Object.keys(k).filter(x => !['offset', 'easing', 'composite', 'computedOffset'].includes(x))))];
+    }));
+    for (const props of loops) expect(props.filter(x => !['opacity', 'transform'].includes(x)), demo + ': a loop that repaints').toEqual([]);
+    expect(loops.length, demo + ': it moves').toBeGreaterThan(0);
+    await ctx.close();
+  }
+  const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  await page.goto('login.php?demo=night-storm', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(600);
+  expect(await page.evaluate(() => document.getAnimations().filter(a => a.effect && a.effect.getComputedTiming().iterations === Infinity).length), 'nothing loops for reduced motion').toBe(0);
+  await ctx.close();
+});
+
+test('Sign-in 15 Nov: glance.php is public and holds public information only; the other signed-out pages carry the same panel', async ({ browser }) => {
+  const ctx = await browser.newContext();
+  const r = await ctx.request.get('glance.php?demo=dusk-rain');
+  expect(r.status()).toBe(200);
+  expect(r.headers()['content-type']).toContain('application/json');
+  const j = await r.json();
+  expect(j.ok).toBe(true);
+  expect(['dawn', 'day', 'golden', 'dusk', 'night']).toContain(j.phase);
+  const text = JSON.stringify(j);
+  for (const secret of ['tracking', 'full_name', 'resident', 'email', 'report_id', 'handler']) expect(text, 'no ' + secret + ' in a public answer').not.toContain(secret);
+  expect((await ctx.request.post('glance.php', { data: {} })).status(), 'read only').toBe(405);
+  for (const pg of ['forgot-password.php', 'request-access.php']) {
+    const c2 = await browser.newContext();
+    const page = await c2.newPage();
+    await page.goto(pg + '?via=login.php', { waitUntil: 'domcontentloaded' });   // the fake signs everything in except urls naming login.php
+    await expect(page.locator('#gl .gl-seal'), pg + ': the same panel').toBeVisible();
+    await expect(page.locator('.login-stack img.login-wordmark'), pg + ': the HD mark').toHaveAttribute('src', /logo-wordmark-hd/);
+    expect(await axe(page), pg).toEqual([]);
+    await c2.close();
+  }
+  await ctx.close();
 });

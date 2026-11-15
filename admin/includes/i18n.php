@@ -153,7 +153,7 @@ function theme_head(bool $fit = true): string
 function lang_flag(string $code): string
 {
     if ($code === 'ph') {
-        return '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="10" fill="#0038A8"/><rect y="10" width="30" height="10" fill="#CE1126"/>'
+        return '<svg class="flag" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="30" height="10" fill="#0038A8"/><rect y="10" width="30" height="10" fill="#CE1126"/>'
              . '<path fill="#fff" d="M0 0l17.32 10L0 20z"/><g fill="#FCD116"><circle cx="5.8" cy="10" r="2"/>'
              . '<path stroke="#FCD116" stroke-width=".7" d="M5.8 6.4v1.3M5.8 12.3v1.3M2.2 10h1.3M8.1 10h1.3M3.25 7.45l.9.9M7.45 11.65l.9.9M3.25 12.55l.9-.9M7.45 8.35l.9-.9"/>'
              . '<circle cx="1.7" cy="2.6" r=".85"/><circle cx="1.7" cy="17.4" r=".85"/><circle cx="14.4" cy="10" r=".85"/></g></svg>';
@@ -162,7 +162,7 @@ function lang_flag(string $code): string
     foreach ([[2.2, 2], [5.2, 2], [8.2, 2], [11, 2], [3.7, 4.6], [6.7, 4.6], [9.7, 4.6], [2.2, 7.2], [5.2, 7.2], [8.2, 7.2], [11, 7.2], [3.7, 9.5], [6.7, 9.5], [9.7, 9.5]] as [$x, $y]) {
         $stars .= '<circle cx="' . $x . '" cy="' . $y . '" r=".6"/>';
     }
-    return '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#B22234"/>'
+    return '<svg class="flag" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="30" height="20" fill="#B22234"/>'
          . '<path fill="#fff" d="M0 1.54h30v1.54H0zM0 4.62h30v1.54H0zM0 7.69h30v1.54H0zM0 10.77h30v1.54H0zM0 13.85h30v1.54H0zM0 16.92h30v1.54H0z"/>'
          . '<rect width="12.5" height="10.77" fill="#3C3B6E"/><g fill="#fff">' . $stars . '</g></svg>';
 }

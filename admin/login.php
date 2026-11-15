@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/signin_shell.php';   // the side panel and the look of the signed-out pages (15 Nov 2026)
 
 if (current_admin()) {
     header('Location: ' . landing_page());
@@ -99,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/auth.css?v=<?= e(asset_version('auth.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
+<?= signin_head() ?>
 <link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 </head>
 <body class="login-body">
@@ -107,9 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <!-- Left rail: barangay identity. Assets are dropped in by the team;
        each falls back to text so the page never shows a broken image. -->
-  <aside class="login-rail">
-    <?= brgy_seal_img('rail-logo') ?>
-  </aside>
+  <?= signin_rail() ?>
 
   <!-- Right panel: orange field with the barangay photo washed behind it.
        Accepts either extension — whichever the team exported. -->
@@ -122,11 +122,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     ?>
     <?php if ($bg): ?>
-      <img class="login-panel-bg" src="assets/img/<?= e($bg) ?>" width="926" height="986" alt="" aria-hidden="true" fetchpriority="high">
+      <img class="login-panel-bg" src="assets/img/<?= e($bg) ?>" width="760" height="810" alt="" aria-hidden="true" fetchpriority="high">
     <?php endif; ?>
 
-    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark.webp')): ?>
-      <img class="login-wordmark" src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong">
+    <div class="login-stack">
+    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark-hd.webp')): ?>
+      <img class="login-wordmark" src="assets/img/logo-wordmark-hd.webp" width="760" height="522" alt="Smart Sumbong">
     <?php else: ?>
       <div class="login-wordmark login-wordmark--missing">Smart<br>Sumbong</div>
     <?php endif; ?>
@@ -175,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?= e(t('No account?', 'Walang account?')) ?> <a href="request-access.php"><?= e(t('Request access here', 'Humiling ng access dito')) ?></a>
       </p>
     </div>
-    <p class="login-powered"><span><?= e(t('Powered by', 'Pinapagana ng')) ?></span><img src="assets/img/smart-engine-sm.webp" width="56" height="22" alt="SMART engine" decoding="async"></p>
+    </div>
 </main>
 </div>
 
@@ -196,6 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   pw.addEventListener('blur', function () { warn.setAttribute('hidden', ''); });
 })();
 </script>
+<?= signin_foot() ?>
 <?= turnstile_tags() ?>
 </body>
 </html>

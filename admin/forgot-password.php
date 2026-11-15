@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/signin_shell.php';   // the side panel and the look of the signed-out pages (15 Nov 2026)
 
 // Admin-only. Residents and tanods sign in with a synthetic address
 // derived from their phone number (migration 0021) that receives no
@@ -62,17 +63,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/auth.css?v=<?= e(asset_version('auth.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
+<?= signin_head() ?>
 <link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 </head>
 <body class="login-body">
 
 <div class="login-split">
 
-  <aside class="login-rail">
-    <?= brgy_seal_img('rail-logo') ?>
-  </aside>
+  <?= signin_rail() ?>
 
-  <section class="login-panel">
+  <main class="login-panel">
     <?= prefs_switches('prefs--login') ?>
     <?php
     $bg = null;
@@ -81,11 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     ?>
     <?php if ($bg): ?>
-      <img class="login-panel-bg" src="assets/img/<?= e($bg) ?>" width="926" height="986" alt="" aria-hidden="true" fetchpriority="high">
+      <img class="login-panel-bg" src="assets/img/<?= e($bg) ?>" width="760" height="810" alt="" aria-hidden="true" fetchpriority="high">
     <?php endif; ?>
 
-    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark.webp')): ?>
-      <img class="login-wordmark" src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong">
+    <div class="login-stack">
+    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark-hd.webp')): ?>
+      <img class="login-wordmark" src="assets/img/logo-wordmark-hd.webp" width="760" height="522" alt="Smart Sumbong">
     <?php else: ?>
       <div class="login-wordmark login-wordmark--missing">Smart<br>Sumbong</div>
     <?php endif; ?>
@@ -130,8 +131,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </p>
       <?php endif; ?>
     </div>
-</section>
+  </div>
+  </main>
 </div>
 <?= turnstile_tags() ?>
+<?= signin_foot() ?>
 </body>
 </html>

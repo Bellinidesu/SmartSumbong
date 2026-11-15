@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The sign-in pages in the current look, with "At a glance" (15 Nov, Ace)**
+- The side panel of the sign-in, forgot-password, reset-password and request-access pages is a living weather widget: the barangay seal in the middle of a sky drawn from the seal's own scene (the Philippine sun, the Shrine of St. Therese, Newport Mall's roof, the towers), changing with the real weather and the hour (dawn, day, late afternoon, dusk, night; clear, cloudy, rain, thunderstorm), with the warning badge on the speech-bubble clouds. Every loop moves only opacity or transform and stops for reduced motion.
+- Under it, public information only (`glance.php`, `includes/glance.php`): the reading, the PAGASA warning for Metro Manila, the flood advisory, the barangay's public hotlines (they open when pressed, each with a Call link) and two Pasay headlines. Each source is read by the server and kept five to ten minutes; a source that fails is left out. No case, person or count from the barangay's data goes through it.
+- The right side keeps the street photo and the early-days orange, now a gradient (a dark equivalent in dark mode), the Smart Sumbong mark in HD (760 px, from the app's original) on the card's corner, the card in the new look with blue links, the sun-and-cloud theme switch refined and the language as two circle flags. "Powered by SMARTengine" moved into the panel.
+- The street photo was re-encoded smaller to keep the sign-in page inside its weight budget.
+
 **The looks batch (15 Nov, Ace's stack)**
 - Spatial Distribution is Material only: no frosted glass anywhere on the map, and the Glass / Solid option is gone from Settings. The street view is called StreetLook now (it was "Look around"); it has the portal's current look (solid white by day, graphite by night) and its foot mark is the SMARTengine logo in white with "StreetLook"; the Mapillary credit stays.
 - The Inbox: no header bar, the list's title is "Inbox" with a quiet "Case chats" chip; the chat is neutral graphite (small blue only for unread), no bubble tails, "Mute this case" instead of "Hide Alerts". Dark mode everywhere is graphite (neutral greys, three steps of lift) instead of blue-black; the SMART room is a darker navy in dark mode.
