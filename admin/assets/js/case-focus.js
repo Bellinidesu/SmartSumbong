@@ -9,7 +9,7 @@
   var tr = function (en, fil) { return typeof window.T === 'function' ? window.T(en, fil) : en; };
   var cur = -1;
   function li(i) { return document.querySelector('.ss-concern-list li[data-cf-i="' + i + '"]'); }
-  function show(i) {
+  function show(i, quiet) {   // quiet: the first, automatic pick on load must not scroll the case card's body (it hid the Subject)
     if (i < 0 || i >= chips.length) { return; }
     cur = i;
     chips.forEach(function (c, k) { var on = k === i; c.classList.toggle('on', on); c.setAttribute('aria-pressed', on ? 'true' : 'false'); });
@@ -20,7 +20,7 @@
     var note = l && l.querySelector('.p-sub'), rem = l && l.querySelector('.p-quote');
     [note, rem].forEach(function (n) { if (n && n.textContent.trim()) { var p = document.createElement('p'); p.className = 'cf-note'; p.textContent = n.textContent.trim(); now.appendChild(p); } });
     done.hidden = isDone || !(l && l.querySelector('form.ss-concern-act'));
-    if (l && l.scrollIntoView) { l.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    if (!quiet && l && l.scrollIntoView) { l.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
   }
   chips.forEach(function (c, k) { c.addEventListener('click', function () { show(k); }); });
   bar.querySelector('[data-cf="next"]').addEventListener('click', function () {
@@ -31,5 +31,5 @@
     if (f) { if (f.requestSubmit) { f.requestSubmit(); } else { f.submit(); } }
   });
   var first = chips.findIndex(function (c) { return c.getAttribute('data-done') !== '1'; });
-  show(first < 0 ? 0 : first);
+  show(first < 0 ? 0 : first, true);
 })();

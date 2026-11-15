@@ -398,6 +398,11 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <!-- ---------- the complaint itself ---------- -->
   <div>
     <article class="p-report">
+    <?php if (!empty($smart) && ($smart['score'] ?? null) !== null): // 16 Nov 2026 (Ace): the brain button of THIS case, in the card's header corner, opens "Why this level"
+        $sbLv = (string) ($smart['effective_level'] ?? 'low');
+        $sbName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')][$sbLv] ?? $sbLv; ?>
+    <button type="button" class="ss-brain-btn ss-brain-case ss-lv-<?= e($sbLv) ?>" data-smart-open aria-controls="smart-card" aria-haspopup="dialog" title="<?= e(t('Why this level', 'Bakit ganito ang antas')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(sprintf(t('Why this level: %s, %d of 100', 'Bakit ganito ang antas: %s, %d sa 100'), $sbName, (int) $smart['score'])) ?></span><b class="ss-brain-n"><?= (int) $smart['score'] ?></b></button>
+    <?php endif; ?>
     <h1 class="p-case-title">
       <?= e($report['tracking_id']) ?>: <?= e(category_label($report['category'])) ?>
       <!-- Admins read this number out over the phone and paste it into
@@ -455,12 +460,6 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <div class="p-acc-flags">
       <?= sensitive_badge($report) ?>
       <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
-      <?php if (!empty($smart) && ($smart['score'] ?? null) !== null): // 15 Nov 2026 (Ace): "Why this level" is a button here, the card opens only when it is wanted
-          $sbLv = (string) ($smart['effective_level'] ?? 'low');
-          $sbName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')][$sbLv] ?? $sbLv; ?>
-        <button type="button" class="ss-smartbtn ss-lv-<?= e($sbLv) ?>" data-smart-open aria-controls="smart-card" aria-haspopup="dialog"
-                aria-label="<?= e(sprintf(t('Why this level: %s, %d of 100', 'Bakit ganito ang antas: %s, %d sa 100'), $sbName, (int) $smart['score'])) ?>"><?= smart_logo(22) ?><span><?= e($sbName) ?> <b><?= (int) $smart['score'] ?></b></span></button>
-      <?php endif; ?>
       <?php if (!empty($report['referred_to'])): ?>
         <span class="p-badge p-b-violet" title="<?= e(t('Escalated to ', 'In-escalate sa ') . $report['referred_to']) ?>"><?= e(t('Escalated to ', 'In-escalate sa ')) . e(referral_short((string) $report['referred_to'])) ?></span>
       <?php endif; ?>
@@ -491,7 +490,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
     <?php // 15 Nov 2026 (Ace): the case on one screen: the cream card owns the header, the tabs and a body that scrolls inside it ?>
     <div class="cc-tabs" role="tablist" aria-label="<?= e(t('The case', 'Ang kaso')) ?>">
-      <?php foreach ([['report', t('Report', 'Ulat')], ['evidence', t('Evidence', 'Ebidensya')], ['timeline', t('Timeline', 'Takbo')], ['feedback', t('Feedback', 'Puna')]] as [$ccK, $ccL]): ?>
+      <?php foreach ([['report', t('Report', 'Ulat')], ['evidence', t('Field report', 'Ulat mula sa lugar')], ['timeline', t('Timeline', 'Takbo')], ['feedback', t('Feedback', 'Puna')]] as [$ccK, $ccL]): ?>
         <button type="button" role="tab" id="cc-tab-<?= $ccK ?>" aria-controls="cc-body" aria-selected="<?= $ccK === 'report' ? 'true' : 'false' ?>" data-cc-go="<?= $ccK ?>" tabindex="<?= $ccK === 'report' ? '0' : '-1' ?>"><?= e($ccL) ?><?php if ($ccK === 'timeline' && !empty($timeline)): ?><span class="cc-n"><?= (int) count($timeline) ?></span><?php endif; ?></button>
       <?php endforeach; ?>
     </div>
@@ -539,6 +538,77 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php endif; ?>
     </div>
 
+    <div class="p-sec cc-where" data-cc-tab="report">
+      <p class="p-eyebrow"><?= e(t('Where', 'Saan')) ?></p>
+    <!-- ---------- map preview ---------- -->
+    <!-- Martin's note / Rose's feedback: the preview had no way to get
+         bigger — it is deliberately a non-interactive thumbnail (see the
+         JS below), so "expanding" here means the Fullscreen API, same
+         mechanism spatial.php's own expand button already uses, not
+         panning or zooming this small a widget. -->
+    <div class="p-minimap" id="case-map-preview">
+      <div id="case-map"></div>
+      <button class="p-dock-btn p-mini-expand" id="case-map-expand" type="button"
+              title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+        </svg>
+      </button>
+      <?php
+      // The case's context beside the map in full screen (Ace, 16 Oct): what it is, how urgent, who has it, and the street as it looks.
+      $msLv   = (!empty($smart) && ($smart['score'] ?? null) !== null) ? (string) ($smart['effective_level'] ?? 'low') : '';
+      $msName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')];
+      $msMly  = (string) env('MAPILLARY_TOKEN', '');
+      ?>
+      <aside class="ss-mapside<?= $msLv !== '' ? ' ss-lv-' . e($msLv) : '' ?>" id="case-map-side" aria-label="<?= e(t('Case details', 'Detalye ng kaso')) ?>">
+        <header>
+          <span class="p-mono-id"><?= e($report['tracking_id']) ?></span>
+          <h3><?= e(category_label($report['category'])) ?></h3>
+          <div class="ss-ms-pills">
+            <?= sensitive_badge($report) ?>
+            <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
+            <?php if ($msLv !== ''): ?><span class="ss-ms-lv"><?= e($msName[$msLv] ?? $msLv) ?><?= isset($smart['score']) ? ' <b>' . (int) $smart['score'] . '</b>' : '' ?></span><?php endif; ?>
+          </div>
+        </header>
+        <?php if ($msMly !== ''): ?>
+        <button type="button" class="ss-ms-snap" id="case-street-snap" data-lat="<?= e((string) $report['latitude']) ?>" data-lng="<?= e((string) $report['longitude']) ?>" aria-label="<?= e(t('Open street view', 'Buksan ang street view')) ?>">
+          <img alt="" id="case-street-img" hidden>
+          <span class="ss-ms-load" id="case-street-load"><?= e(t('Finding the street…', 'Hinahanap ang kalye…')) ?></span>
+          <span class="ss-ms-over"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><b><?= e(t('Open street view', 'Buksan ang street view')) ?></b><small id="case-street-when"></small></span>
+        </button>
+        <?php endif; ?>
+        <dl class="ss-ms-facts">
+          <div><dt><?= e(t('Filed', 'Naisampa')) ?></dt><dd><?= e(long_datetime($report['created_at'])) ?></dd></div>
+          <?php if (!empty($report['location_label'])): ?><div><dt><?= e(t('Place', 'Lugar')) ?></dt><dd><?= e($report['location_label']) ?></dd></div><?php endif; ?>
+          <div><dt><?= e(t('Coordinates', 'Mga coordinate')) ?></dt><dd class="p-mono-id"><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></dd></div>
+          <div><dt><?= e(t('Resident', 'Residente')) ?></dt><dd><?= e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?><?= !empty($report['is_anonymous']) ? ' <span class="p-anon">' . e(t('Anonymous to others', 'Hindi nagpakilala sa iba')) . '</span>' : '' ?></dd></div>
+          <div><dt><?= e(t('Handled by', 'Hawak ni')) ?></dt><dd><?php $mh = (string) ($report['handler_id'] ?? ''); if ($mh !== ''): ?><span class="ss-who"><?= admin_chip($mh, (string) ($report['handler']['full_name'] ?? ''), 24) ?><?= e($mh === $admin['id'] ? t('You', 'Ikaw') : formal_name((string) ($report['handler']['full_name'] ?? ''))) ?></span><?php else: ?><span class="p-sub"><?= e(t('Nobody yet', 'Wala pa')) ?></span><?php endif; ?></dd></div>
+          <?php if (!empty($report['due_at'])): ?><div><dt><?= e(t('Due', 'Takdang oras')) ?></dt><dd><?= e(long_datetime($report['due_at'])) ?></dd></div><?php endif; ?>
+          <?php if ($concerns): ?><div><dt><?= e(t('Concerns', 'Mga alalahanin')) ?></dt><dd><?= count($concerns) ?></dd></div><?php endif; ?>
+        </dl>
+        <p class="ss-ms-credit" id="case-street-credit" hidden><?= e(t('Street imagery © Mapillary contributors, CC BY-SA 4.0', 'Larawan ng kalye © mga contributor ng Mapillary, CC BY-SA 4.0')) ?></p>
+      </aside>
+      <span class="p-tag"><?php if (!empty($report['location_label'])): ?><span class="p-tag-place"><?= e($report['location_label']) ?></span><?php endif; ?><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></span>
+    </div>
+    </div>
+    <?php if ($dispatches): $ccD = $dispatches; usort($ccD, fn($x, $y) => strcmp((string) ($x['assigned_at'] ?? ''), (string) ($y['assigned_at'] ?? ''))); ?>
+    <div class="p-sec" data-cc-tab="evidence" hidden>
+      <p class="p-eyebrow"><?= e(t('Tanod activity', 'Gawain ng tanod')) ?></p>
+      <ol class="cc-acts">
+        <?php foreach ($ccD as $d):
+          $st = (string) ($d['state'] ?? '');
+          $stName = ['assigned' => t('Waiting to accept', 'Naghihintay ng tanggap'), 'accepted' => t('Accepted', 'Tinanggap'), 'resolved' => t('Resolved', 'Nalutas'), 'expired' => t('Did not answer in time', 'Hindi sumagot sa oras'), 'cancelled' => t('Cancelled', 'Kinansela'), 'rerouted' => t('Rerouted', 'Inilipat')][$st] ?? ucfirst(str_replace('_', ' ', $st));
+          $stCls = $st === 'resolved' ? 'p-b-done' : ($st === 'accepted' ? 'p-b-progress' : ($st === 'assigned' ? 'p-b-pending' : 'p-b-grey')); ?>
+          <li>
+            <div class="cc-act-h"><b><?= e(formal_or($d['tanod']['full_name'] ?? null, t('Barangay tanod', 'Tanod ng barangay'))) ?></b><span class="p-badge <?= e($stCls) ?>"><?= e($stName) ?></span></div>
+            <p class="cc-act-t"><?php if (!empty($d['assigned_at'])): ?><?= e(t('Assigned', 'Itinalaga')) ?> <?= e(long_datetime((string) $d['assigned_at'])) ?><?php endif; ?><?php if (!empty($d['accepted_at'])): ?> &middot; <?= e(t('Accepted', 'Tinanggap')) ?> <?= e(long_datetime((string) $d['accepted_at'])) ?><?php endif; ?><?php if (!empty($d['resolved_at'])): ?> &middot; <?= e(t('Resolved', 'Nalutas')) ?> <?= e(long_datetime((string) $d['resolved_at'])) ?><?php endif; ?></p>
+            <?php if (!empty($d['admin_instructions'])): ?><p class="cc-act-n"><?= e(t('Instructions:', 'Tagubilin:')) ?> <?= e((string) $d['admin_instructions']) ?></p><?php endif; ?>
+          </li>
+        <?php endforeach; ?>
+      </ol>
+    </div>
+    <?php endif; ?>
     <?php if ($evidence): ?>
       <div class="p-sec" data-cc-tab="evidence" hidden>
         <p class="p-eyebrow"><?= e(t("Barangay's Photos", 'Mga Larawan ng Barangay')) ?></p>
@@ -598,7 +668,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
-    <?php if (!$evidence && !$resolved): ?><div class="p-sec" data-cc-tab="evidence" hidden><p class="p-none-line"><?= e(t('No field report or barangay photos yet. A tanod\'s photos and notes appear here after the visit.', 'Wala pang ulat mula sa lugar o larawan ng barangay. Lalabas dito ang mga larawan at tala ng tanod pagkatapos ng pagbisita.')) ?></p></div><?php endif; ?>
+    <?php if (!$evidence && !$resolved && !$dispatches): ?><div class="p-sec" data-cc-tab="evidence" hidden><p class="p-none-line"><?= e(t('No field report or barangay photos yet. A tanod\'s photos and notes appear here after the visit.', 'Wala pang ulat mula sa lugar o larawan ng barangay. Lalabas dito ang mga larawan at tala ng tanod pagkatapos ng pagbisita.')) ?></p></div><?php endif; ?>
   <!-- ---------- the concerns in this report (0130) ---------- -->
   <?php if (count($concerns) > 0): $openN = count(array_filter($concerns, fn($c) => $c['status'] === 'open')); $cfIx = 0; ?>
   <section class="p-card p-card-pad ss-concerns" data-cc-tab="report" aria-labelledby="concerns-h">
@@ -1564,57 +1634,6 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?= $ccTiles['pub'] ?? '' ?>
     </div>
     <?php endif; ?>
-    <!-- ---------- map preview ---------- -->
-    <!-- Martin's note / Rose's feedback: the preview had no way to get
-         bigger — it is deliberately a non-interactive thumbnail (see the
-         JS below), so "expanding" here means the Fullscreen API, same
-         mechanism spatial.php's own expand button already uses, not
-         panning or zooming this small a widget. -->
-    <div class="p-minimap" id="case-map-preview">
-      <div id="case-map"></div>
-      <button class="p-dock-btn p-mini-expand" id="case-map-expand" type="button"
-              title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-        </svg>
-      </button>
-      <?php
-      // The case's context beside the map in full screen (Ace, 16 Oct): what it is, how urgent, who has it, and the street as it looks.
-      $msLv   = (!empty($smart) && ($smart['score'] ?? null) !== null) ? (string) ($smart['effective_level'] ?? 'low') : '';
-      $msName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')];
-      $msMly  = (string) env('MAPILLARY_TOKEN', '');
-      ?>
-      <aside class="ss-mapside<?= $msLv !== '' ? ' ss-lv-' . e($msLv) : '' ?>" id="case-map-side" aria-label="<?= e(t('Case details', 'Detalye ng kaso')) ?>">
-        <header>
-          <span class="p-mono-id"><?= e($report['tracking_id']) ?></span>
-          <h3><?= e(category_label($report['category'])) ?></h3>
-          <div class="ss-ms-pills">
-            <?= sensitive_badge($report) ?>
-            <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
-            <?php if ($msLv !== ''): ?><span class="ss-ms-lv"><?= e($msName[$msLv] ?? $msLv) ?><?= isset($smart['score']) ? ' <b>' . (int) $smart['score'] . '</b>' : '' ?></span><?php endif; ?>
-          </div>
-        </header>
-        <?php if ($msMly !== ''): ?>
-        <button type="button" class="ss-ms-snap" id="case-street-snap" data-lat="<?= e((string) $report['latitude']) ?>" data-lng="<?= e((string) $report['longitude']) ?>" aria-label="<?= e(t('Open street view', 'Buksan ang street view')) ?>">
-          <img alt="" id="case-street-img" hidden>
-          <span class="ss-ms-load" id="case-street-load"><?= e(t('Finding the street…', 'Hinahanap ang kalye…')) ?></span>
-          <span class="ss-ms-over"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><b><?= e(t('Open street view', 'Buksan ang street view')) ?></b><small id="case-street-when"></small></span>
-        </button>
-        <?php endif; ?>
-        <dl class="ss-ms-facts">
-          <div><dt><?= e(t('Filed', 'Naisampa')) ?></dt><dd><?= e(long_datetime($report['created_at'])) ?></dd></div>
-          <?php if (!empty($report['location_label'])): ?><div><dt><?= e(t('Place', 'Lugar')) ?></dt><dd><?= e($report['location_label']) ?></dd></div><?php endif; ?>
-          <div><dt><?= e(t('Coordinates', 'Mga coordinate')) ?></dt><dd class="p-mono-id"><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></dd></div>
-          <div><dt><?= e(t('Resident', 'Residente')) ?></dt><dd><?= e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?><?= !empty($report['is_anonymous']) ? ' <span class="p-anon">' . e(t('Anonymous to others', 'Hindi nagpakilala sa iba')) . '</span>' : '' ?></dd></div>
-          <div><dt><?= e(t('Handled by', 'Hawak ni')) ?></dt><dd><?php $mh = (string) ($report['handler_id'] ?? ''); if ($mh !== ''): ?><span class="ss-who"><?= admin_chip($mh, (string) ($report['handler']['full_name'] ?? ''), 24) ?><?= e($mh === $admin['id'] ? t('You', 'Ikaw') : formal_name((string) ($report['handler']['full_name'] ?? ''))) ?></span><?php else: ?><span class="p-sub"><?= e(t('Nobody yet', 'Wala pa')) ?></span><?php endif; ?></dd></div>
-          <?php if (!empty($report['due_at'])): ?><div><dt><?= e(t('Due', 'Takdang oras')) ?></dt><dd><?= e(long_datetime($report['due_at'])) ?></dd></div><?php endif; ?>
-          <?php if ($concerns): ?><div><dt><?= e(t('Concerns', 'Mga alalahanin')) ?></dt><dd><?= count($concerns) ?></dd></div><?php endif; ?>
-        </dl>
-        <p class="ss-ms-credit" id="case-street-credit" hidden><?= e(t('Street imagery © Mapillary contributors, CC BY-SA 4.0', 'Larawan ng kalye © mga contributor ng Mapillary, CC BY-SA 4.0')) ?></p>
-      </aside>
-      <span class="p-tag"><?php if (!empty($report['location_label'])): ?><span class="p-tag-place"><?= e($report['location_label']) ?></span><?php endif; ?><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></span>
-    </div>
   </aside>
 
 </div>

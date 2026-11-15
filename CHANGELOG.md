@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The case page, as decided (16 Nov, Ace)**
+- The SMART pill is gone: the brain button of this case sits in the cream card's header corner (navy, with the score on its badge in the level's colour) and opens "Why this level". The automatic "request in focus" pick no longer scrolls the card's body on load (it hid the Subject).
+- The map is the **Where** block of the Report tab (it left the controls panel, which is shorter now).
+- The Evidence tab is the **Field report** tab: a Tanod activity list (each dispatch: the tanod, what state it is in, when it was assigned, accepted and resolved, and the instructions given), then the barangay's photos and each tanod's field report. The timeline stays its own tab. The concerns stay on Report.
+
 **Case page fix (16 Nov)**
 - The "Why this level" drawer was see-through on the live page (the rule that flattens the cards inside the cream card also reached it); it is a solid navy card again, and a test now checks its paint. The concerns block lost its leftover rounded outline.
 

@@ -42,15 +42,13 @@
 .cc-track span { display: block; font: 700 10.5px Inter, sans-serif; color: var(--p-muted); letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cc-track .done i { background: #1E9E56; } .cc-track .cur i { background: var(--p-orange); } .cc-track .cur span { color: var(--p-ink); }
 
-/* ---- 2. SMART: a button, and a drawer ---- */
-.p-acc-flags .ss-smartbtn { order: 99; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 11px 0 5px; border: 0; border-radius: 999px; color: #fff; cursor: pointer;
-  background: linear-gradient(145deg, #1B2342, #0E1428); box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 3px 8px rgba(53,108,249,.45); font: 700 12.5px Inter, sans-serif; transition: box-shadow .2s; }
-.p-acc-flags .ss-smartbtn:hover { box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(53,108,249,.6); }
-.p-acc-flags .ss-smartbtn:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 2px; }
-.p-acc-flags .ss-smartbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--p-orange), 0 3px 8px rgba(53,108,249,.45); }
-.ss-smartbtn svg, .ss-smartbtn img { height: 16px; width: auto; }
-.ss-smartbtn b { font-weight: 800; color: #6C9BFF; }
-.ss-smartbtn.ss-lv-urgent b { color: #FF7A7A; } .ss-smartbtn.ss-lv-high b { color: #FFB84D; } .ss-smartbtn.ss-lv-low b { color: #6BE39A; }
+/* ---- 2. SMART: the portal's brain button (top bar) opens a drawer ---- */
+.p-report { position: relative; }
+.p-report .ss-brain-case { position: absolute; top: 20px; right: 22px; z-index: 3; background: linear-gradient(145deg, #1B2342, #0E1428) padding-box, linear-gradient(120deg, #356CF9, #FF9800, #EDFA04, #34C759, #356CF9) border-box; color: #EDFA04; box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 14px -6px rgba(53,108,249,.7); }
+.p-report .ss-brain-case:hover { box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 18px -6px rgba(53,108,249,.9); }
+.p-report .p-case-title { padding-right: 64px; }
+.ss-brain-case .ss-brain-n { background: #356CF9; color: #fff; }
+.ss-brain-case.ss-lv-urgent .ss-brain-n { background: #E53935; } .ss-brain-case.ss-lv-high .ss-brain-n { background: #FF9800; color: #2B1A00; } .ss-brain-case.ss-lv-low .ss-brain-n { background: #1E9E56; }
 dialog.ss-smartcard:not([open]) { display: none !important; }
 dialog.ss-smartcard[open] { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(560px, 100vw); max-width: 100vw; height: 100vh; max-height: 100vh; overflow: auto; z-index: 70; border-radius: 22px 0 0 22px; animation: ccSlide .2s ease; }
 dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
@@ -119,3 +117,12 @@ dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
 :root:root .cc-body > .p-card:not(.ss-smartcard) + .p-card:not(.ss-smartcard), :root:root .cc-body > .ss-concerns { border-top: 1px solid color-mix(in srgb, var(--p-orange-line) 70%, transparent) !important; }
 @media (min-width: 1101px) { :root:root .p-case-left .p-report { min-height: min(560px, calc((100vh - 130px) / var(--z, 1))); } }
 :root:root .cc-body > .cc-timeline > .p-eyebrow { margin-bottom: 10px; }
+
+/* the Where block (the map) in the Report tab, and the tanod activity in the Field report tab */
+.cc-where .p-minimap { max-width: 760px; height: 220px; }
+.cc-acts { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.cc-acts li { padding-left: 14px; border-left: 3px solid color-mix(in srgb, var(--p-orange-line) 80%, transparent); }
+.cc-act-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cc-act-h b { font-weight: 700; }
+.cc-act-t, .cc-act-n { margin: 3px 0 0; font-size: 13px; color: var(--p-muted); }
+.cc-act-n { color: var(--p-ink-2); }

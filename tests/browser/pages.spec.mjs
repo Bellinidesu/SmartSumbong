@@ -2601,3 +2601,39 @@ test('Case page, the swap (15 Nov): what the case needs now is one Next step car
   await page.waitForTimeout(300);
   expect(await axe(page), 'the case page, dark').toEqual([]);
 });
+
+test('Case page, as decided (16 Nov): the portal\'s brain button in the top bar opens Why this level, the map is the Where block of the Report tab, the Field report tab tracks the tanods', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, `case.php?id=${CASE}`);
+  // the brain button belongs to this case: in the cream card's header, top right, carries the score, opens the drawer; the old pill is gone and the top bar has none
+  expect(await page.evaluate(() => document.getElementById('cc-body').scrollTop + scrollY), 'nothing scrolls on load: the Subject is the first thing in the card').toBe(0);
+  const brain = page.locator('.p-report .ss-brain-btn[data-smart-open]');
+  await expect(page.locator('.p-topbar .ss-brain-btn')).toHaveCount(0);
+  await expect(brain).toBeVisible();
+  await expect(brain.locator('.ss-brain-n')).toHaveText(/^\d+$/);
+  const bb = await brain.boundingBox(), cb = await page.locator('.p-report').boundingBox();
+  expect(bb.x + bb.width, 'in the header corner, inside the card').toBeLessThan(cb.x + cb.width);
+  expect(cb.x + cb.width - (bb.x + bb.width), 'at the right edge').toBeLessThan(40);
+  expect(bb.y - cb.y, 'at the top').toBeLessThan(40);
+  await expect(page.locator('.ss-smartbtn')).toHaveCount(0);
+  await brain.click();
+  await expect(page.locator('#smart-card')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#smart-card')).toBeHidden();
+  // the map is part of the Report tab, not of the controls
+  await expect(page.locator('.cc-body .cc-where #case-map-preview')).toBeVisible();
+  await expect(page.locator('.p-controls #case-map-preview')).toHaveCount(0);
+  await expect(page.locator('.cc-where .p-eyebrow')).toHaveText(/Where/i);
+  // the third tab is the Field report: what the tanods did, and what they reported
+  await expect(page.locator('[data-cc-go="evidence"]')).toHaveText(/Field report/);
+  await page.locator('[data-cc-go="evidence"]').click();
+  const acts = page.locator('.cc-body .cc-acts > li');
+  expect(await acts.count(), 'each dispatch is a row of tanod activity').toBeGreaterThan(0);
+  await expect(acts.first()).toContainText(/Assigned/);
+  await expect(page.locator('.cc-body [data-cc-tab="evidence"]:not([hidden]) .p-eyebrow', { hasText: 'Field Report' }).first()).toBeVisible();
+  // the timeline stays its own tab
+  await page.locator('[data-cc-go="timeline"]').click();
+  await expect(page.locator('.cc-timeline')).toBeVisible();
+  await expect(page.locator('.cc-acts')).toBeHidden();
+  expect(await axe(page), 'the case page, light').toEqual([]);
+});
