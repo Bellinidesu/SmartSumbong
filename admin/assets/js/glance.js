@@ -39,10 +39,11 @@
       $('gl-temp').textContent = d.now.temp + '°';
       var cond = condition(kind, phase);
       $('gl-cond').textContent = cond;
-      $('gl-sub').textContent = T('Feels like ', 'Pakiramdam ') + d.now.feels + '° · ' + (d.when || '');
+      $('gl-when').textContent = T('NOW', 'NGAYON') + (d.when ? ' · ' + d.when : '');
+      $('gl-sub').textContent = T('Feels like ', 'Pakiramdam ') + d.now.feels + '° · ' + T('wind ', 'hangin ') + d.now.wind + ' km/h';
       $('gl-scene').setAttribute('aria-label', cond + ', ' + d.now.temp + ' ' + T('degrees', 'digri') + (d.warn ? ', ' + warnTitle(d.warn) : ''));
     } else {
-      $('gl-temp').textContent = ''; $('gl-cond').textContent = T('Weather unavailable', 'Walang datos sa panahon'); $('gl-sub').textContent = '';
+      $('gl-temp').textContent = ''; $('gl-cond').textContent = T('Weather unavailable', 'Walang datos sa panahon'); $('gl-sub').textContent = ''; $('gl-when').textContent = '';
     }
     var w = $('gl-warn');
     if (d.warn) { $('gl-warn-t').textContent = warnTitle(d.warn); $('gl-warn-s').textContent = untilText(d.warn); w.hidden = false; } else { w.hidden = true; }

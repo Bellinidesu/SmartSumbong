@@ -100,7 +100,7 @@ function signin_rail(): string
 
   <?= brgy_seal_img('gl-seal') ?>
   <div class="gl-name"><b><?= e($nameLine) ?></b><?php if ($placeLine !== ''): ?><span><?= e($placeLine) ?></span><?php endif; ?></div>
-  <div class="gl-read" aria-live="polite"><div><b id="gl-temp">--°</b><span id="gl-cond"></span></div><small id="gl-sub"></small></div>
+  <div class="gl-read" aria-live="polite"><small class="gl-when" id="gl-when"></small><div><b id="gl-temp">--°</b><span id="gl-cond"></span></div><small id="gl-sub"></small></div>
 
   <div class="gl-rows">
     <div class="gl-warn" id="gl-warn" hidden>
