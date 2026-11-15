@@ -367,7 +367,7 @@ function pinSvg(shape, fill) {
 // Bellinist (9 Oct 2026): the pin is the resident app's badge: a teardrop
 // in the category's colour with the category's own symbol on a white disc.
 // Colour still carries the category; the symbol carries it for the one man
-// in twelve who cannot separate the hues. At night it glows in its colour.
+// in twelve who cannot separate the hues.
 const PIN_GLYPH = {
   street_obstruction: SD_ICONS.obstruction, public_safety_infrastructure: SD_ICONS.infra, environmental_waste_hazard: SD_ICONS.waste,
   animal_welfare: SD_ICONS.animal, traffic_violation: SD_ICONS.traffic, barangay_service: SD_ICONS.service, peace_order_nuisance: SD_ICONS.noise, other: SD_ICONS.other,
@@ -375,19 +375,16 @@ const PIN_GLYPH = {
 // 0146: a category made in Settings borrows the symbol of the icon it was given
 Object.entries(<?= json_encode(array_map(fn (array $c): string => $c['icon'], categories_all())) ?>).forEach(([k, ic]) => { if (!PIN_GLYPH[k] && PIN_GLYPH[ic]) PIN_GLYPH[k] = PIN_GLYPH[ic]; });
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
-// The pins are glass beads: a tinted round body, a bright rim, a highlight where the light falls and a glow in its own colour by night.
+// The pins are solid discs: the category's colour, a white edge, a shadow for height; the same by day and by night.
 let selId = null;
 const pinFilter = () => selId ? ['all', ['!', ['has', 'point_count']], ['!=', ['get', 'id'], selId]] : ['!', ['has', 'point_count']];
 function pinTear(cat, fill, dark) {
   const glyph = (PIN_GLYPH[cat] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
+  // Material by day and by night (15 Nov): a solid disc in the category's colour, a white edge, two layered shadows for its height (black at night: the glow is gone)
+  const sh = dark ? ['#000', .5, .72] : ['#141B34', .26, .42];
   return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="-22 -22 44 44"><defs>' +
-    '<linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + fill + '" stop-opacity="1"/><stop offset=".55" stop-color="' + fill + '" stop-opacity="' + (dark ? .86 : .78) + '"/><stop offset="1" stop-color="' + fill + '" stop-opacity=".96"/></linearGradient>' +
-    '<linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity=".75"/></linearGradient>' +
-    '<radialGradient id="h" cx=".3" cy=".2" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
-    '<filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dy="' + (dark ? 0 : 1.6) + '" stdDeviation="' + (dark ? 2.8 : 1.8) + '" flood-color="' + (dark ? fill : '#000') + '" flood-opacity="' + (dark ? .9 : .4) + '"/></filter></defs>' +
-    (dark ? '<g filter="url(#s)"><circle r="15" fill="url(#a)"/><circle r="15" fill="url(#h)"/><circle r="14.2" fill="none" stroke="url(#r)" stroke-width="1.6"/>'
-      // Material by day: a solid disc, a white edge, two layered shadows for its height
-      : '<filter id="m" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow in="SourceGraphic" dy="3" stdDeviation="2.6" flood-color="#141B34" flood-opacity=".26" result="a"/><feDropShadow in="SourceGraphic" dy="1" stdDeviation=".9" flood-color="#141B34" flood-opacity=".42" result="b"/><feMerge><feMergeNode in="a"/><feMergeNode in="b"/></feMerge></filter><g filter="url(#m)"><circle r="15" fill="' + fill + '"/><circle r="14" fill="none" stroke="#fff" stroke-width="2"/>') +
+    '<filter id="m" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow in="SourceGraphic" dy="3" stdDeviation="2.6" flood-color="' + sh[0] + '" flood-opacity="' + sh[1] + '" result="a"/><feDropShadow in="SourceGraphic" dy="1" stdDeviation=".9" flood-color="' + sh[0] + '" flood-opacity="' + sh[2] + '" result="b"/><feMerge><feMergeNode in="a"/><feMergeNode in="b"/></feMerge></filter></defs>' +
+    '<g filter="url(#m)"><circle r="15" fill="' + fill + '"/><circle r="14" fill="none" stroke="#fff" stroke-width="2"/>' +
     '<g transform="translate(-8.5 -8.5) scale(.71)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + glyph + '</g></g></svg>';
 }
 function addPinImages() {
@@ -1743,7 +1740,7 @@ const aqBand = v => AQ_BANDS.find(b => v <= b[0]);
 function safeTile(d, dark) {
   const fill = d.c;
   return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="-22 -22 44 44"><defs>' +
-    '<filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dy="' + (dark ? 0 : 1.6) + '" stdDeviation="' + (dark ? 2.6 : 1.8) + '" flood-color="' + (dark ? '#fff' : '#000') + '" flood-opacity="' + (dark ? .45 : .4) + '"/></filter></defs>' +
+    '<filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dy="1.6" stdDeviation="1.8" flood-color="#000" flood-opacity="' + (dark ? .6 : .4) + '"/></filter></defs>' +
     '<g filter="url(#s)"><path d="M-4.2 13 L0 19.2 L4.2 13 Z" fill="' + fill + '"/>' +
     '<rect x="-14" y="-15" width="28" height="28.4" rx="6" fill="#fff" stroke="' + fill + '" stroke-width="3.4"/>' +
     '<g transform="translate(-8.4 -9.4) scale(.7)" fill="none" stroke="' + fill + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' + d.g + '</g></g></svg>';
