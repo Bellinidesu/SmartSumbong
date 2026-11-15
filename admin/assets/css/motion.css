@@ -19,7 +19,7 @@
 .mo-in .p-main > :nth-child(6) { --mo-i: 4; } .mo-in .p-main > :nth-child(7) { --mo-i: 5; } .mo-in .p-main > :nth-child(n+8) { --mo-i: 6; }
 /* Spatial Distribution keeps its own entrances (the filter box drops in, the dock rises): nothing of the first open is added there */
 /* ---------- hover and press on what had nothing ---------- */
-:where(.mo-on) :where(.p-chip, .p-chip-band, .p-seg-mini a, .p-seg-mini button, .st-tabs a, .p-pill-select, .ss-viewsw button) {
+:where(.mo-on) :where(.p-chip, .p-chip-band, .p-seg-mini a, .p-seg-mini button, .st-tabs a, .p-pill-select) {
   transition: background-color var(--mo-fast) var(--mo-ease), border-color var(--mo-fast) var(--mo-ease), color var(--mo-fast) var(--mo-ease), transform var(--mo-fast) var(--mo-ease), opacity var(--mo-fast);
 }
 :where(.mo-on) :where(.p-chip, .p-chip-band, .p-seg-mini a, .p-seg-mini button, .st-tabs a):where(:hover) { transform: translate3d(0, -1px, 0); }
@@ -42,6 +42,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .mo-in .p-main > *, .mo-on .p-scrim.p-on .p-modal { animation: none !important; }
-  :where(.mo-on) :where(.p-chip, .p-chip-band, .p-seg-mini a, .p-seg-mini button, .st-tabs a, .p-pill-select, .ss-viewsw button, .p-th-sort), .mo-on .p-btn,
+  :where(.mo-on) :where(.p-chip, .p-chip-band, .p-seg-mini a, .p-seg-mini button, .st-tabs a, .p-pill-select, .p-th-sort), .mo-on .p-btn,
   .p-nav a, .p-nav a > svg { transition: none !important; transform: none !important; }
 }

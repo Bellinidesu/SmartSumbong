@@ -366,10 +366,6 @@ function render_account_screen(string $role): void
           </select></label>
       </form>
       <?php endif; ?>
-      <div class="ss-viewsw" role="group" aria-label="<?= e(t('Layout', 'Ayos')) ?>">
-        <button type="button" data-view="list" aria-pressed="true" title="<?= e(t('List', 'Listahan')) ?>"><?= p_icon('i-doc', 15) ?><span><?= e(t('List', 'Listahan')) ?></span></button>
-        <button type="button" data-view="sq" aria-pressed="false" title="<?= e(t('Squares', 'Mga parisukat')) ?>"><?= p_icon('i-users', 15) ?><span><?= e(t('Squares', 'Mga parisukat')) ?></span></button>
-      </div>
     </div>
 
     <?php if ($isTanod && sees_everything()):

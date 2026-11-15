@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Squares mode removed (16 Nov)**
+
+- Residents and Personnel no longer have the List / Squares switch; the list is the one view. A new Squares design is being previewed first, then it comes back. Its CSS and the remembered view are gone.
+
 **The looks sweep (16 Nov, every role, both themes, every page and popup)**
 - A Captain account (the view-only tier) is sent to the Dashboard when a page is not for it. It was sent to Notifications, which it may not open, so every refused page, and the sign-in itself, looped ("too many redirects"). The landing page can no longer be one the person cannot open.
 - A dropdown of statuses wears the status pills' colours on every page (it was only on Case Reports); categories and committees already did.

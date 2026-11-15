@@ -65,7 +65,7 @@
 @media (prefers-reduced-motion: reduce) { .p-card:hover { transform: none !important; } }
 
 /* controls: pills */
-.p-pill-select, .p-search, .p-chip, .cm-chip, .p-seg-mini, .p-seg-mini a, .p-seg-mini button, .ss-viewsw, .ss-viewsw button { border-radius: 999px; }
+.p-pill-select, .p-search, .p-chip, .cm-chip, .p-seg-mini, .p-seg-mini a, .p-seg-mini button { border-radius: 999px; }
 .p-pill-select, .p-search { border: 1px solid var(--ae-edge); box-shadow: var(--p-shadow-sm); }
 .p-input-plain, .p-input input, .p-field input, textarea.p-input-plain, select.p-input-plain { border-radius: 14px; }
 .p-btn { border-radius: 999px; }

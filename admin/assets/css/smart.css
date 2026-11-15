@@ -712,9 +712,6 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-ohead td .p-btn[data-reveal]:hover { background: color-mix(in srgb, var(--ss-act) 12%, transparent); }
 
 /* Residents and Personnel (Ace's pick, 16 Oct): the Google Admin users-list grammar with a few comforts: filter chips with counts, a tick on every row, "Review one after another" for several people at once (never a bulk approve: each ID is looked at), and a List / Squares switch. */
-.ss-viewsw { display: inline-flex; padding: 3px; border-radius: 10px; background: rgba(255,255,255,.55); gap: 2px; }
-.ss-viewsw button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #3A2300; font: 700 12.5px Inter, sans-serif; cursor: pointer; }
-.ss-viewsw button[aria-pressed="true"] { background: #fff; color: #141B34; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
 .ss-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 14px; }
 .ss-chip { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--p-line-2); background: var(--p-surface); color: var(--p-ink); font: 600 13px Inter, sans-serif; text-decoration: none; }
 .ss-chip b { font: 700 11.5px Inter, sans-serif; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; display: inline-grid; place-items: center; background: var(--p-grey-bg); color: var(--p-muted); }
@@ -729,21 +726,6 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-people input[type=checkbox] { width: 17px; height: 17px; accent-color: #FF9800; cursor: pointer; }
 .ss-people tbody tr.ss-picked td { background: color-mix(in srgb, var(--p-orange) 12%, transparent); }
 /* Squares: the same rows drawn as square cards (a switch, remembered in the browser) */
-.ss-people.ss-sq { background: transparent; border: 0; box-shadow: none; overflow: visible; -webkit-backdrop-filter: none; backdrop-filter: none; }
-.ss-people.ss-sq .p-tscroll { overflow: visible; }
-.ss-people.ss-sq table, .ss-people.ss-sq tbody { display: block; width: 100%; }
-.ss-people.ss-sq thead { display: none; }
-.ss-people.ss-sq tbody { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.ss-people.ss-sq tbody tr { position: relative; display: grid; justify-items: center; align-content: start; gap: 8px; text-align: center; padding: 18px 14px 14px; border-radius: 18px; background: var(--p-surface); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm); }
-.ss-people.ss-sq tbody td { display: block; padding: 0; height: auto; border: 0; background: transparent !important; width: auto; }
-.ss-people.ss-sq tbody td.p-right { text-align: center; }
-.ss-people.ss-sq .ss-cbc { position: absolute; top: 12px; left: 12px; }
-.ss-people.ss-sq .p-person { flex-direction: column; gap: 8px; }
-.ss-people.ss-sq .p-person .p-avatar, .ss-people.ss-sq .p-person img.p-avatar { width: 88px; height: 88px; border-radius: 18px; font-size: 30px; }
-.ss-people.ss-sq .p-person > span:last-child { font: 700 15px Inter, sans-serif; min-width: 0; }
-.ss-people.ss-sq .p-badges { justify-content: center; }
-.ss-people.ss-sq tbody td.p-empty { grid-column: 1 / -1; }
-.ss-people.ss-sq tbody tr.ss-picked { outline: 2px solid var(--p-orange); }
 
 /* Residents and Personnel as Jira's People page (Ace, 16 Oct), with the same Atlassian values as Administrators: a search box and a status dropdown, then a table with a quiet 2px-ruled header and no row lines, status lozenges in sentence case, ticks, and the locked red row action. The List / Squares switch, the tick bar and the review queue are ours, styled as Atlassian's selected state and banners. */
 .ss-ptop { margin: 0 0 14px; }
@@ -751,11 +733,6 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .jp-pick { margin: 0; }
 .jp-sum { color: var(--jp-subtle); font: 400 14px/20px var(--jp-font); padding: 0 6px; }
 .jp-sum b { color: var(--jp-text); font-weight: 653; }
-.ss-viewsw { display: inline-flex; gap: 0; padding: 0; background: transparent; border: 1px solid var(--jp-input-bd); border-radius: 6px; overflow: hidden; }
-.ss-viewsw button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 0; background: var(--jp-input); color: var(--jp-text); font: 500 14px/20px var(--jp-font); cursor: pointer; }
-.ss-viewsw button + button { border-left: 1px solid var(--jp-input-bd); }
-.ss-viewsw button:hover { background: var(--jp-input-h); }
-.ss-viewsw button[aria-pressed="true"] { background: var(--jp-sel-bg); color: var(--jp-sel-fg); }
 .ss-people .jp-t th.ss-cbh, .ss-people .jp-t td.ss-cbc { width: 44px; padding-right: 0; }
 .ss-people input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--jp-brand); cursor: pointer; }
 .ss-people .jp-t tbody tr.ss-picked td { background: var(--jp-sel-bg); }
@@ -769,28 +746,11 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-bulk-clear:hover { background: var(--jp-hover, #0515240F); }
 [data-theme="dark"] .ss-bulk, [data-theme="dark"] .ss-rqstrip, [data-theme="dark"] .ss-rqbar { --jp-sel-bg: #1C2B42; --jp-sel-fg: #669DF1; --jp-text: #CECFD2; --jp-brand: #669DF1; --jp-brand-h: #8FB8F6; --jp-on-brand: #1F1F21; --jp-hover: #CECED912; }
 /* squares: cards on Atlassian's raised surface */
-.ss-people.ss-sq tbody tr { border-radius: 12px; border: 0; background: var(--jp-input); box-shadow: 0 1px 1px #1E1F2140, 0 0 1px #1E1F214F; }
-:root[data-theme="dark"] .ss-people.ss-sq tbody tr { background: #1F1F21; box-shadow: 0 1px 1px #01040480, 0 0 1px #01040480; }
-.ss-people.ss-sq .p-person .p-avatar, .ss-people.ss-sq .p-person img.p-avatar { border-radius: 12px; }
-.ss-people.ss-sq tbody tr:hover td { background: transparent !important; }
-.ss-people.ss-sq tbody tr.ss-picked { outline: 2px solid var(--jp-sel-fg); }
 
 /* Residents and Personnel fixes (16 Oct, from Ace's screenshots): the locked red row action on these tables again, and the Squares view made into real squares of one size, text kept inside, no panel behind them. */
 .ss-people td .p-btn { background: var(--ss-act); border-color: var(--ss-act-edge); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--ss-act) 32%, transparent); }
 .ss-people td .p-btn:hover { background: var(--ss-act-h); }
 .ss-people td .p-btn:focus-visible { outline: 2px solid var(--ss-act); outline-offset: 2px; }
-:root[data-theme] .p-body .ss-people.ss-sq { background: transparent !important; border: 0 !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-.ss-people.ss-sq tbody { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; align-items: stretch; }
-.ss-people.ss-sq tbody tr { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; min-height: 300px; padding: 20px 14px 16px; }
-.ss-people.ss-sq tbody td { min-width: 0; max-width: 100%; }
-.ss-people.ss-sq td.ss-latest { display: none; }
-.ss-people.ss-sq td:has(> .p-sub:only-child) { display: none; }
-.ss-people.ss-sq td.p-num { color: var(--jp-text); }
-.ss-people.ss-sq td:not(.ss-cbc):not(.p-right):not(.p-num) { font-size: 12.5px; color: var(--jp-subtle); }
-.ss-people.ss-sq td, .ss-people.ss-sq .p-person > span:last-child { overflow-wrap: anywhere; }
-.ss-people.ss-sq td:nth-child(5), .ss-people.ss-sq td:nth-child(4) { max-width: 100%; }
-.ss-people.ss-sq tbody td:last-child { margin-top: auto; padding-top: 6px; }
-.ss-people.ss-sq .p-badges { justify-content: center; max-width: 100%; }
 
 /* The SmartSumbong look on the Jira layout (Ace, 16 Oct): the structure, spacing and behaviour stay Jira's, the identity is ours. Orange where Jira has blue (the main button, focus, the selected row, the header rule), Inter Tight and Inter for the type, a warm orange wash on the table header, the contour lines fading in at the top of the table card, the card's own frosted glass, and the engine's blue kept for information. Applies to Administrators, Residents and Personnel. */
 [data-pane="admins"], .jp-scope, .ss-bulk, .ss-rqstrip, .ss-rqbar {
@@ -824,7 +784,6 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 /* controls: orange ring when focused, orange tint when selected */
 .jp-search:focus-within, .jp-pick select:focus-visible, .jp-sel:focus-visible { border-color: var(--jp-focus); box-shadow: inset 0 0 0 1px var(--jp-focus); }
 .jp-add:focus-visible, .jp-menu button:focus-visible, .jp-more summary:focus-visible { outline-color: var(--jp-focus); }
-.ss-viewsw button[aria-pressed="true"] { background: var(--jp-sel-bg); color: var(--jp-sel-fg); }
 .ss-people input[type=checkbox] { accent-color: #FF9800; }
 .ss-bulk, .ss-rqstrip, .ss-rqbar { box-shadow: inset 3px 0 0 #FF9800; }
 .ss-bulk-go { background: #FF9800; color: #2B1A00; font-weight: 700; }
@@ -834,20 +793,8 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .jp-t tbody tr:hover td { background: color-mix(in srgb, #FF9800 7%, transparent); }
 .ss-people .jp-t tbody tr.ss-picked td { background: var(--jp-sel-bg); }
 /* squares: the same warmth, a status colour edge along the top, a lift on hover */
-.ss-people.ss-sq tbody tr { position: relative; overflow: hidden; border-radius: 14px; transition: transform .18s ease, box-shadow .18s ease; }
-.ss-people.ss-sq tbody tr::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: #34C759; }
-.ss-people.ss-sq tbody tr[data-pending="1"]::after { background: #FF9800; }
-.ss-people.ss-sq tbody tr:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.28); }
-.ss-people.ss-sq tbody tr.ss-picked { outline: 2px solid #FF9800; }
-.ss-people.ss-sq .p-person .p-avatar, .ss-people.ss-sq .p-person img.p-avatar { border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.28); }
-@media (prefers-reduced-motion: reduce) { .ss-people.ss-sq tbody tr { transition: none; } .ss-people.ss-sq tbody tr:hover { transform: none; } }
 
 /* One style for the portal (Ace, 16 Oct: "we can't have different styles"): Residents, Personnel and Administrators take the portal's own components, the same as Case Reports and Report Summary: the orange band holding the search and filter, an orange header row, ruled rows, round soft pills with a dot, the pill-shaped controls, the red row action. The Jira structure (a toolbar over a table, ticks, a People-style row) stays; the Atlassian look does not. */
-.ss-pband .ss-viewsw { display: inline-flex; padding: 3px; gap: 2px; border: 0; border-radius: 10px; background: rgba(255,255,255,.55); overflow: visible; }
-.ss-pband .ss-viewsw button { height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #3A2300; font: 700 12.5px Inter, sans-serif; }
-.ss-pband .ss-viewsw button + button { border-left: 0; }
-.ss-pband .ss-viewsw button:hover { background: rgba(255,255,255,.5); }
-.ss-pband .ss-viewsw button[aria-pressed="true"] { background: #fff; color: #141B34; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
 /* Administrators: the same table language (orange header, ruled rows, round pills, pill controls) */
 .jp-t thead th { background: var(--p-orange); color: #2B1A00; border-bottom: 0; font: 700 12px Inter, sans-serif; letter-spacing: .02em; }
 .jp-t thead th:first-child { border-top-left-radius: 10px; } .jp-t thead th:last-child { border-top-right-radius: 10px; }
@@ -938,8 +885,6 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .p-band .p-pill-select { height: 48px; border-radius: 12px; padding: 0 16px; font-size: 14.5px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
 .p-band .p-chip-band { height: 44px; padding: 0 16px; font-size: 14px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
 .p-band .p-badge-n { height: 28px; min-width: 28px; font-size: 13px; }
-.ss-pband .ss-viewsw { padding: 4px; border-radius: 12px; }
-.ss-pband .ss-viewsw button { height: 40px; padding: 0 16px; font-size: 13.5px; border-radius: 9px; }
 .p-band .p-btn { height: 44px; }
 @media (max-width: 700px) { .p-band { padding: 16px; } .p-band h2 { font-size: 19px; } }
 
@@ -951,8 +896,6 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .p-band .p-pill-select { height: 42px; padding: 0 14px; font-size: 14px; }
 .p-band .p-chip-band { height: 38px; padding: 0 14px; font-size: 13.5px; }
 .p-band .p-badge-n { height: 24px; min-width: 24px; font-size: 12px; }
-.ss-pband .ss-viewsw { padding: 3px; border-radius: 11px; }
-.ss-pband .ss-viewsw button { height: 34px; padding: 0 14px; font-size: 13px; }
 .p-band .p-btn { height: 40px; }
 
 /* Report Summary, refined (16 Oct): tiles of one shape with a hint line and a coloured top edge, an "On this page" bar that stays in view with a count per section, empty sections folded to one slim line instead of an empty table, and sections that land clear of the bar. */

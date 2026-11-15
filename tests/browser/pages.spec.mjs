@@ -985,7 +985,7 @@ test('Personnel (tanods) and Residents wear the new chooser: a rounded header ba
     for (const w of [2048, 1440]) {
       await page.setViewportSize({ width: w, height: 1000 });
       const r = await open(page, pg);
-      await page.evaluate(() => { try { localStorage.setItem('ss-people-view', 'list'); } catch (e) {} });
+
       await page.reload();
       const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(), b = R('.ss-pband'), c = R('.cm-chips'), t = R('.ss-people'); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(v => Math.round(v * 10) / 10) }; });
       expect([g.x[0], g.x[1]], pg + ': the header and the chooser share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
@@ -1004,7 +1004,7 @@ test('Personnel (tanods) and Residents wear the new chooser: a rounded header ba
   for (const w of [2048, 1440]) {
     await page.setViewportSize({ width: w, height: 1000 });
     const r = await open(page, 'residents.php');
-    await page.evaluate(() => { try { localStorage.setItem('ss-people-view', 'list'); } catch (e) {} });
+    await page.evaluate(() => { });
     await page.reload();
     const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(), b = R('.ss-pband'), c = R('.cm-chips'), t = R('.ss-people'); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(Math.round) }; });
     expect([g.x[0], g.x[1]], 'residents: the header and the chooser share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
@@ -1017,14 +1017,9 @@ test('Personnel (tanods) and Residents wear the new chooser: a rounded header ba
     expect(await page.locator('.ss-people thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'the column head is no longer the blue at ' + w).not.toBe('rgb(0, 48, 143)');
     expect(r.errors, 'console errors').toEqual([]);
   }
-  // Squares: wide cards, no lone straggler beside a gap, the strip closes off under the band
   await page.setViewportSize({ width: 2048, height: 1000 });
   await open(page, 'residents.php');
-  await page.evaluate(() => { try { localStorage.setItem('ss-people-view', 'sq'); } catch (e) {} });
-  await page.reload();
-  const cols = await page.locator('.ss-people.ss-sq tbody tr').evaluateAll(rs => new Set(rs.map(r => Math.round(r.getBoundingClientRect().top))).size);
-  expect(cols, 'six residents fall in two rows at most').toBeLessThanOrEqual(2);
-  expect(await page.locator('.ss-people.ss-sq tbody tr').first().evaluate(r => r.getBoundingClientRect().width), 'each card is at least 300 wide').toBeGreaterThanOrEqual(300);
+  expect(await page.locator('.ss-viewsw').count(), 'Squares mode is gone (16 Nov, parked for a new design)').toBe(0);
   // a banner filters the list like the dropdown it replaces did
   await open(page, 'residents.php');
   await page.locator('.rs-st .cm-chip[data-chip="verified"]').click();
@@ -1584,23 +1579,20 @@ test('Speed, step 3 (7 Nov 2026): Activity and Report Summary change view in pla
   expect(a.errors.concat(r.errors), 'console errors').toEqual([]);
 });
 
-test('Press flow step 3, Residents and Personnel (7 Nov): chooser and duty tiles swap in place; the view, the ticks and the put-away banner survive a swap', async ({ page, context }) => {
+test('Press flow step 3, Residents and Personnel (7 Nov): chooser and duty tiles swap in place; the ticks and the put-away banner survive a swap', async ({ page, context }) => {
   const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
   const r = await open(page, 'residents.php');
-  await page.evaluate(() => { window.__stay = 1; try { localStorage.setItem('ss-people-view', 'list'); sessionStorage.removeItem('ss-res-ov-off'); } catch (e) {} });
-  // put the banner away, choose Squares
+  await page.evaluate(() => { window.__stay = 1; try { sessionStorage.removeItem('ss-res-ov-off'); } catch (e) {} });
+  // put the banner away
   if (await page.locator('#overdue-x').isVisible()) await page.locator('#overdue-x').click();
-  await page.locator('.ss-viewsw [data-view="sq"]').click();
   let s = settle(); await page.locator('#people-list .rs-st .cm-chip[data-chip="verified"]').click(); await s;
   expect(await page.evaluate(() => window.__stay), 'no reload').toBe(1);
   expect(page.url()).toMatch(/sort=verified/);
-  await expect(page.locator('#ss-people'), 'Squares survives the swap').toHaveClass(/ss-sq/);
   await expect(page.locator('#overdue-banner'), 'the banner stays put away').toBeHidden();
   const fresh = await context.newPage(); await fresh.goto(page.url(), { waitUntil: 'domcontentloaded' });
   const names = async (p) => p.locator('#accounts-tbody .p-person > span:last-child').allTextContents();
   expect(await names(page), 'what the server draws for this address').toEqual(await names(fresh)); await fresh.close();
   // a tick survives the 20-second refresh, and the bulk bar with it
-  await page.locator('.ss-viewsw [data-view="list"]').click();
   await page.locator('#accounts-tbody .ss-cb').first().check();
   await expect(page.locator('#ss-bulk')).toBeVisible();
   s = settle(); await page.evaluate(() => window.ssLive.people()); await s;

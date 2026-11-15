@@ -930,7 +930,7 @@ td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: 
 .ss-concern-list li.is-focus { box-shadow: inset 3px 0 0 #FF9800; background: color-mix(in srgb, #FF9800 9%, transparent); border-radius: 8px; }
 
 /* the sweep (16 Nov 2026): a row of badges wraps instead of squeezing a badge until its words run past its edge ("Verified" + "Deleted by Resident") */
-:root .pe-roster:not(.ss-sq) #accounts-tbody .p-badges > .p-badge { flex-shrink: 0; white-space: nowrap; max-width: none; }   /* one line always (rows stay equal); the Account column is wide enough for the longest ("Deleted by Resident"), roster.css */
+:root .pe-roster #accounts-tbody .p-badges > .p-badge { flex-shrink: 0; white-space: nowrap; max-width: none; }   /* one line always (rows stay equal); the Account column is wide enough for the longest ("Deleted by Resident"), roster.css */
 :where(.p-badges) { flex-wrap: wrap; }
 /* the Profile banner presets end their rows evenly: two columns for four, three for five (never three and a lone one) */
 .pf-presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }

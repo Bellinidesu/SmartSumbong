@@ -1,9 +1,8 @@
-/* Residents and Personnel: the List / Squares switch, ticking rows, and the review queue.
-   - View: a class on #ss-people, remembered in this browser (the same rows, drawn two ways).
+/* Residents and Personnel: ticking rows, and the review queue.
    - Ticking: "Review one after another" keeps the chosen ids in this tab (sessionStorage); the account page shows "Next in the queue".
    - It reads the DOM only, so the 20-second live refresh that rewrites the rows needs no special care. */
 (function () {
-  var KEY = 'ss-people-queue', VIEW = 'ss-people-view';
+  var KEY = 'ss-people-queue';
   function load() { try { return JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch (e) { return []; } }
   function save(q) { try { sessionStorage.setItem(KEY, JSON.stringify(q)); } catch (e) { /* the queue just is not kept */ } }
   var $ = function (id) { return document.getElementById(id); };
@@ -24,21 +23,10 @@
 
   // ---- list page ----
   // The press flow swaps the list in place (filters, chooser, pager, the 20-second refresh), so nothing here holds on to an element:
-  // the switch, the ticks and the bulk bar are handled page-wide and look up what is on screen. Ticks are kept by id across a
+  // the ticks and the bulk bar are handled page-wide and look up what is on screen. Ticks are kept by id across a
   // refresh; a new view (a filter, a tab, a page) starts with none ticked, as a mail list does.
   if (!$('ss-people')) return;
   var strip = $('ss-rqstrip'), self2 = strip ? strip.dataset.self : 'residents.php';
-  function view() { var v = 'list'; try { v = localStorage.getItem(VIEW) || 'list'; } catch (e) { /* default view */ } return v; }
-  function setView(v) {
-    var box = $('ss-people'); if (box) box.classList.toggle('ss-sq', v === 'sq');
-    var sw = document.querySelector('.ss-viewsw'); if (sw) [].forEach.call(sw.querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.view === v)); });
-  }
-  setView(view());
-  document.addEventListener('click', function (e) {
-    var b = e.target.closest('.ss-viewsw button'); if (!b) return;
-    setView(b.dataset.view); try { localStorage.setItem(VIEW, b.dataset.view); } catch (x) { /* not remembered */ }
-  });
-
   var picked = {};
   function boxes() { var box = $('ss-people'); return box ? [].slice.call(box.querySelectorAll('.ss-cb')) : []; }
   function sync() {
@@ -58,11 +46,11 @@
   });
   // the in-page redraw (without the press flow) rewrites the rows: tick them again from what is remembered
   var tb = $('accounts-tbody'); if (tb && window.MutationObserver) new MutationObserver(sync).observe(tb, { childList: true });
-  // a swap: a quiet refresh keeps the ticks, a new view clears them; either way the view (list or squares) is drawn again
+  // a swap: a quiet refresh keeps the ticks, a new view clears them
   document.addEventListener('htmx:afterSettle', function (e) {
     var c = e.detail && e.detail.requestConfig, quiet = !!(c && c.headers && c.headers['X-Press-Quiet']);
     if (!quiet) picked = {};
-    setView(view()); sync();
+    sync();
   });
   document.addEventListener('click', function (e) {
     if (e.target.closest('#ss-bulk-clear')) { picked = {}; sync(); return; }

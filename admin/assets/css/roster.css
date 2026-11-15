@@ -79,15 +79,6 @@
 .ss-bulk .ss-bulk-go { flex: none; white-space: nowrap; }
 
 /* ---- Squares: the same cells as a card ---- */
-.ss-people.pe-roster.ss-sq .p-t { min-width: 0; table-layout: auto; }
-.ss-people.pe-roster.ss-sq tbody tr { min-height: 0; gap: 10px; }
-.ss-people.pe-roster.ss-sq tbody td { height: auto; padding: 0; text-align: center; overflow: visible; }
-.ss-people.pe-roster.ss-sq td.pe-contact > span { text-align: center; }
-.ss-people.pe-roster.ss-sq .pe-dutybox, .ss-people.pe-roster.ss-sq .tc-pills { align-items: center; }
-.ss-people.pe-roster.ss-sq .tc-busy { justify-content: center; }
-.ss-people.pe-roster.ss-sq .p-person > span:last-child { text-align: center; -webkit-line-clamp: 2; }
-.ss-people.pe-roster.ss-sq .p-badges { justify-content: center; }
-.ss-people.pe-roster.ss-sq td.p-right { padding: 0; }
 
 @media (prefers-reduced-motion: reduce) { .page-personnel .p-attendance .p-kpi { transition: none; } }
 
