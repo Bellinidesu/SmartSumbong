@@ -14,6 +14,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/barangay.php';
+require_once __DIR__ . '/includes/signin_shell.php';   // the side panel and the look of the signed-out pages (15 Nov 2026)
 ?><!DOCTYPE html>
 <html lang="<?= html_lang() ?>">
 <head>
@@ -26,23 +27,23 @@ require_once __DIR__ . '/includes/barangay.php';
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/auth.css?v=<?= e(asset_version('auth.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
+<?= signin_head() ?>
 </head>
 <body class="login-body">
 
 <!-- The sign-in page's own layout (branch B), so following its "Request
      access here" link lands on the same screen rather than a bare card. -->
 <div class="login-split">
-  <aside class="login-rail">
-    <?= brgy_seal_img('rail-logo') ?>
-  </aside>
+  <?= signin_rail() ?>
 
-  <section class="login-panel">
+  <main class="login-panel">
     <?= prefs_switches('prefs--login') ?>
     <?php if (is_file(__DIR__ . '/assets/img/villamor-street.webp')): ?>
-      <img class="login-panel-bg" src="assets/img/villamor-street.webp" width="926" height="986" alt="" aria-hidden="true">
+      <img class="login-panel-bg" src="assets/img/villamor-street.webp" width="760" height="810" alt="" aria-hidden="true">
     <?php endif; ?>
-    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark.webp')): ?>
-      <img class="login-wordmark" src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong">
+    <div class="login-stack login-stack--wide">
+    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark-hd.webp')): ?>
+      <img class="login-wordmark" src="assets/img/logo-wordmark-hd.webp" width="760" height="522" alt="Smart Sumbong">
     <?php endif; ?>
 
     <div class="login-card access-card">
@@ -66,7 +67,9 @@ require_once __DIR__ . '/includes/barangay.php';
 
       <a class="login-btn access-back" href="login.php"><?= e(t('Back to sign in', 'Bumalik sa pag-sign in')) ?></a>
     </div>
-  </section>
+    </div>
+  </main>
 </div>
+<?= signin_foot() ?>
 </body>
 </html>
