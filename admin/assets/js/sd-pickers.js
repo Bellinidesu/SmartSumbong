@@ -67,7 +67,7 @@
     btn.disabled = sel.disabled; new MutationObserver(function () { btn.disabled = sel.disabled; paint(); }).observe(sel, { attributes: true, attributeFilter: ['disabled'], childList: true, subtree: true });
     btn.addEventListener('click', function () {
       if (open && open.btn === btn) { close(true); return; }
-      var pop = document.createElement('div'); pop.className = 'sdp-pop sdp-list'; pop.setAttribute('role', 'listbox'); pop.tabIndex = -1;
+      var pop = document.createElement('div'); pop.className = 'sdp-pop sdp-list'; pop.setAttribute('role', 'listbox'); pop.tabIndex = -1; pop.setAttribute('aria-label', btn.getAttribute('aria-label') || (btn.textContent || '').trim() || 'Options');
       var items = Array.prototype.map.call(sel.options, function (o, i) {
         var row = document.createElement('button');
         row.type = 'button'; row.className = 'sdp-opt' + (i === sel.selectedIndex ? ' on' : '') + (o.disabled ? ' off' : ''); row.setAttribute('role', 'option'); row.setAttribute('aria-selected', String(i === sel.selectedIndex)); row.dataset.i = i;
