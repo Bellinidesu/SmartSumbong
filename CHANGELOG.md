@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Nothing that can sign an update lives on one PC (15 Nov, Ace)**
+- The release APKs are built in GitHub (Actions > Build signed APK, run by hand on `main`): the signing key and its passwords are secrets of the protected `release` environment, exist on the runner for one build, and the job refuses any APK not signed by the app's real certificate. The key was re-protected with strong random passwords first (the signature is unchanged). The first CI build was verified independently: version 1.0.5, certificate SHA-1 8C:AD:8F:D8:04:19:77:2C:FC:86:6A:8F:2E:23:D0:FD:DA:44:0E:25.
+- Firebase: the three client API keys are restricted to the app, the bundle id and our own sites; the push service-account key was rotated and the three old keys deleted.
+- docs/SECRETS.md says where every secret lives and how to get it back; DEPLOY.md section 7 describes the CI release.
+
 **The case page's admin controls, the full swap (15 Nov, Ace: "complete the entire swap")**
 - What the case needs from you now is one **Next step** card at the top of the controls: the stage's own block (Accept or Deny, Assign a tanod and Dispatch, the field responder and Reroute, Approve or Return the resolution, the escalation request). Nothing in those blocks changed.
 - Everything secondary is under **More**, as tiles two to a row that open in place into a full-width sheet: Update status, Forward or Flag for forwarding, Escalate up the ladder, Escalate to an outside office, Send it back down, Mark as sensitive, Ownership history, with the residents' map switch below them.

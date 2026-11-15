@@ -181,6 +181,18 @@ head branches* on. The workflows are described in OPERATIONS.
 
 ## 7. The app
 
+**The release APK is built in GitHub, not on a laptop (15 Nov 2026).** Actions →
+"Build signed APK" → Run workflow (on `main`). When it finishes, download the
+artifact from the run (the three APKs and `SHA256SUMS.txt`) and upload
+`app-arm64-v8a-release.apk` in Control Room → App updates. The signing key is a
+secret of the protected `release` environment (see [docs/SECRETS.md](docs/SECRETS.md)),
+exists on the runner only for that build, and the job fails instead of publishing
+if the APK is not signed by the app's real certificate (SHA-1
+`8C:AD:8F:D8:04:19:77:2C:FC:86:6A:8F:2E:23:D0:FD:DA:44:0E:25`).
+
+For a local debug build only (it is signed with the debug key, never to be
+published):
+
 ```bash
 cd mobile/resident
 flutter build apk --release --split-per-abi --dart-define-from-file=dart_defines.json
@@ -195,18 +207,12 @@ phone, `app-armeabi-v7a-release.apk` for 32-bit ones. Minimum Android 7.0.
   `CLOUDINARY_UPLOAD_PRESET_VIDEO`. Never put a secret in it: anything in an
   APK can be read out of it. Optional: `--dart-define=TURNSTILE_SITE_KEY=…`
   (and `TURNSTILE_BASE_URL`) for the bot check.
-- **Signing.** `mobile/resident/android/key.properties` (never committed):
-
-  ```properties
-  storePassword=…
-  keyPassword=…
-  keyAlias=…
-  storeFile=<path to the .jks>
-  ```
-
-  With it, the release is signed with the barangay's key; without it, with the
-  debug key. Back the keystore up in two places: a lost key means the app can
-  never be updated, only reinstalled.
+- **Signing.** The workflow writes `mobile/resident/android/key.properties`
+  (never committed) on the runner from the `release` environment's secrets
+  (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
+  `ANDROID_KEY_PASSWORD`) and removes it afterwards. A build without that file is
+  signed with the debug key. A lost key means the app can never be updated, only
+  reinstalled: see the recovery notes in [docs/SECRETS.md](docs/SECRETS.md).
 
 ## 8. Running locally
 
