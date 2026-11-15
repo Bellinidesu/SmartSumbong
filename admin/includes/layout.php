@@ -923,7 +923,9 @@ window.SS_PRESENCE = <?= json_encode([
 // shows each one's own colour dot, read from the system's own lists, so a category added in Settings arrives with its colour.
 (function () {
   if (!window.sdPickers) return;
-  var COLOURS = { cat: <?= json_encode(category_colours()) ?>, com: <?= json_encode((function () { $o = []; foreach (array_keys(committees_all()) as $k) { $o[(string) $k] = committee_colour((string) $k); } return $o; })()) ?> };
+  var COLOURS = { cat: <?= json_encode(category_colours()) ?>, com: <?= json_encode((function () { $o = []; foreach (array_keys(committees_all()) as $k) { $o[(string) $k] = committee_colour((string) $k); } return $o; })()) ?>,
+    // 16 Nov 2026 (Ace, the sweep): a dropdown of statuses wears the same colours as the status pills, on every page (it was only on Case Reports)
+    st: { pending_review: '#FFB300', under_review: '#FFB300', validated: '#2457E6', assigned: '#2457E6', in_progress: '#2457E6', offline_investigation: '#6A3FD1', resolved: '#087F31', closed: '#087F31', rejected: '#C4172A', cancelled: '#6B7280', overdue: '#C4172A', escalated: '#6A3FD1', sensitive: '#B31B7E' } };
   function dotsFor(s) {
     var vals = Array.prototype.map.call(s.options, function (o) { return o.value; }).filter(Boolean); if (!vals.length) return null;
     var best = null, top = 0;

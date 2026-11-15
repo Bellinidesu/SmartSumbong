@@ -13,9 +13,9 @@
 
 /* ---- the table ---- */
 .pe-roster .p-t { table-layout: fixed; width: 100%; min-width: 1100px; }
-.pe-roster col.pe-c-cb { width: 4%; }      .pe-roster col.pe-c-who { width: 16%; }   .pe-roster col.pe-c-duty { width: 16%; }
-.pe-roster col.pe-c-com { width: 19%; }    .pe-roster col.pe-c-last { width: 8%; }   .pe-roster col.pe-c-contact { width: 16%; }
-.pe-roster col.pe-c-acct { width: 11%; }   .pe-roster col.pe-c-act { width: 10%; }
+.pe-roster col.pe-c-cb { width: 4%; }      .pe-roster col.pe-c-who { width: 16%; }   .pe-roster col.pe-c-duty { width: 14%; }
+.pe-roster col.pe-c-com { width: 18%; }    .pe-roster col.pe-c-last { width: 8%; }   .pe-roster col.pe-c-contact { width: 16%; }
+.pe-roster col.pe-c-acct { width: 14%; }   .pe-roster col.pe-c-act { width: 10%; }   /* 16 Nov sweep: Account wide enough for "Deleted by Resident" on one line */
 /* Residents: five columns */
 .pe-res .p-t { min-width: 900px; }
 .pe-res col.pe-c-cb { width: 4%; } .pe-res col.pe-c-who { width: 30%; } .pe-res col.pe-c-contact { width: 28%; } .pe-res col.pe-c-acct { width: 26%; } .pe-res col.pe-c-act { width: 12%; }
@@ -29,8 +29,8 @@
 @media (max-width: 1700px) {
   .pe-roster .p-t { min-width: 1060px; }
   .ss-tanods.pe-roster col.pe-c-last, .ss-tanods.pe-roster th:nth-child(5), .ss-tanods.pe-roster td:nth-child(5) { display: none; }
-  .ss-tanods.pe-roster col.pe-c-cb { width: 4%; }   .ss-tanods.pe-roster col.pe-c-who { width: 16%; }   .ss-tanods.pe-roster col.pe-c-duty { width: 19%; }   .ss-tanods.pe-roster col.pe-c-com { width: 19%; }
-  .ss-tanods.pe-roster col.pe-c-contact { width: 17%; }   .ss-tanods.pe-roster col.pe-c-acct { width: 13%; }   .ss-tanods.pe-roster col.pe-c-act { width: 12%; }
+  .ss-tanods.pe-roster col.pe-c-cb { width: 4%; }   .ss-tanods.pe-roster col.pe-c-who { width: 16%; }   .ss-tanods.pe-roster col.pe-c-duty { width: 16%; }   .ss-tanods.pe-roster col.pe-c-com { width: 18%; }
+  .ss-tanods.pe-roster col.pe-c-contact { width: 16%; }   .ss-tanods.pe-roster col.pe-c-acct { width: 18%; }   .ss-tanods.pe-roster col.pe-c-act { width: 12%; }
 }
 
 /* who */
@@ -98,7 +98,6 @@
 
 /* ---- an account pill that does not fit wraps, centred, instead of being cut ---- */
 .pe-roster .p-badges .p-badge { white-space: normal; overflow: visible; max-width: 100%; line-height: 1.25; text-align: center; }
-
 .pe-res #accounts-tbody td:nth-last-child(2) .p-badges { flex-flow: row wrap; }
 
 /* ---- an account's page: two columns of cards of one height per row, the controls beside them and in view as you scroll ---- */

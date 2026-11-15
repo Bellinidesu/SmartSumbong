@@ -70,10 +70,15 @@ function page_allowed(string $page): bool
     return !isset(PAGE_TIERS[$page]) || in_array(my_tier(), PAGE_TIERS[$page], true);
 }
 
-/** Where a person lands after signing in, or when a page is not for them: Notifications; in viewing mode the Dashboard. */
+/**
+ * Where a person lands after signing in, or when a page is not for them: Notifications; the view-only tier (a Captain account, and the Chairman in viewing
+ * mode) the Dashboard. 16 Nov 2026 (the sweep): a Captain account landed on Notifications, which it may not open, so every refused page and the sign-in
+ * itself sent it round in a loop ("too many redirects").
+ */
 function landing_page(): string
 {
-    return view_mode_on() ? 'dashboard.php' : 'notifications.php';
+    $to = my_tier() === 'captain' ? 'dashboard.php' : 'notifications.php';
+    return page_allowed($to) ? $to : 'cases.php';   // never a page the person cannot open: that is the loop
 }
 
 /** True when the person's access is due to be read again (every two minutes). */

@@ -2657,3 +2657,12 @@ test('Case page, styled and without dead space (16 Nov): the cream card is as ta
   expect(s.now, 'the ladder\'s current rung is lit').toContain('gradient');
   expect(await axe(page), 'the case page, light').toEqual([]);
 });
+
+test('The view-only tier (16 Nov sweep): a Captain account sent away from a page it may not open lands on the Dashboard, never in a redirect loop', async ({ page, context }) => {
+  await context.addCookies([{ name: 'ss_tier', value: 'captain', url: 'http://127.0.0.1:8013' }]);
+  for (const p of ['workspace.php', 'notifications.php', 'inbox.php', 'residents.php', 'settings.php', 'home.php']) {
+    const res = await page.goto(p, { waitUntil: 'domcontentloaded' });
+    expect(res.status(), p + ': it answers').toBe(200);
+    expect(new URL(page.url()).pathname, p + ': lands on the Dashboard').toMatch(/dashboard\.php$/);
+  }
+});
