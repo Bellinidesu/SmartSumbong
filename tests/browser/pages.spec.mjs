@@ -2188,3 +2188,33 @@ test('Rose, 15 Nov: declining a retirement is a level full-width row, a Kagawad 
   await expect(page.locator('#f-category')).toBeAttached();
   expect(r.errors.concat(k.errors, m.errors), 'console errors').toEqual([]);
 });
+
+test('Rose, 15 Nov: where the case is shows the Councilor when a Kagawad handles it, and a Kagawad is not offered a Kagawad to hand it to', async ({ page, context }) => {
+  // a case a super admin handles at the first rung: Staff and tanods
+  const a = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000003');
+  await expect(page.locator('.ss-ladder li.now')).toHaveAttribute('data-r', 'staff');
+  // the same kind of case, but its handler is a Kagawad: the Councilor is where it is, whatever rung is stored
+  await page.route('**/rest/v1/reports*', async route => route.continue());
+  const b = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000001');
+  const now = await page.locator('.ss-ladder li.now').getAttribute('data-r');
+  expect(['kagawad', 'chair'], 'a Kagawad handles it, so it is not with staff and tanods').toContain(now);
+  expect(a.errors.concat(b.errors), 'console errors').toEqual([]);
+});
+
+test('Rose, 15 Nov: a report with several requests has a Request in focus bar over the controls; picking one lights it in the list and Next request moves on', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000001');
+  const n = await page.locator('.ss-concern-list li').count();
+  expect(n, 'the case has several requests').toBeGreaterThan(1);
+  await expect(page.locator('#cf .cf-chip')).toHaveCount(n);
+  await expect(page.locator('#cf .cf-chip.on')).toHaveCount(1);
+  await page.locator('#cf .cf-chip').nth(1).click();
+  await expect(page.locator('#cf .cf-chip').nth(1)).toHaveClass(/on/);
+  await expect(page.locator('.ss-concern-list li').nth(1)).toHaveClass(/is-focus/);
+  await expect(page.locator('.ss-concern-list li.is-focus')).toHaveCount(1);
+  await page.locator('#cf [data-cf="next"]').click();
+  await expect(page.locator('#cf .cf-chip.on')).toHaveCount(1);
+  expect(await page.locator('#cf').evaluate(e => e.getBoundingClientRect().top < document.querySelector('#assign-form, #review-form, .ss-ladder').getBoundingClientRect().top + 2000), 'the bar is in the controls').toBe(true);
+  expect(await axe(page), 'Case page with the focus bar').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});

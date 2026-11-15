@@ -903,3 +903,19 @@ td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: 
 .ret-deny-f textarea { height: 42px; min-height: 42px; margin: 0; resize: vertical; padding: 10px 12px; }
 .ret-deny .p-btn { height: 42px; }
 @media (max-width: 760px) { .ret-deny { grid-template-columns: 1fr 1fr; } .ret-deny-f { grid-column: 1 / -1; } }
+/* the Request in focus bar on a report with several requests (15 Nov 2026, Rose) */
+.cf { display: grid; gap: 8px; margin: 0 0 14px; padding: 12px; border: 1px solid var(--p-line); border-radius: var(--p-r); background: var(--p-surface-2); }
+.cf .ss-zl { margin: 0; }
+.cf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cf-chip { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 0 12px 0 10px; border: 1px solid var(--p-line-2); border-radius: 999px; background: var(--p-surface); color: var(--p-ink); font: 700 12.5px Inter, sans-serif; cursor: pointer; text-align: left; transition: background-color .14s, border-color .14s, transform .14s; }
+.cf-chip i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--p-amber, #E6A100); }
+.cf-chip.is-done i { background: var(--p-green, #1F8A45); }
+.cf-chip.on { background: #FF9800; border-color: #FF9800; color: #2B1A00; }
+.cf-chip.on i { background: #2B1A00; }
+.cf-chip:focus-visible { outline: 3px solid rgba(255, 152, 0, .55); outline-offset: 2px; }
+.cf-now { display: grid; gap: 4px; min-height: 22px; font-size: 13px; }
+.cf-st { margin: 0; font-weight: 800; }
+.cf-note { margin: 0; color: var(--p-muted); }
+.cf-act { display: flex; flex-wrap: wrap; gap: 8px; }
+.cf-hint { margin: 0; font-size: 12px; }
+.ss-concern-list li.is-focus { box-shadow: inset 3px 0 0 #FF9800; background: color-mix(in srgb, #FF9800 9%, transparent); border-radius: 8px; }

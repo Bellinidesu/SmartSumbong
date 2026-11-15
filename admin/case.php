@@ -588,13 +588,13 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
   </div>
   <!-- ---------- the concerns in this report (0130) ---------- -->
-  <?php if (count($concerns) > 0): $openN = count(array_filter($concerns, fn($c) => $c['status'] === 'open')); ?>
+  <?php if (count($concerns) > 0): $openN = count(array_filter($concerns, fn($c) => $c['status'] === 'open')); $cfIx = 0; ?>
   <section class="p-card p-card-pad ss-concerns" aria-labelledby="concerns-h">
     <p class="p-eyebrow" id="concerns-h"><?= e(t('Concerns in this report', 'Mga alalahanin sa ulat na ito')) ?>
       <span class="p-badge-n p-badge-n--quiet"><?= count($concerns) ?></span></p>
     <ul class="ss-concern-list">
       <?php foreach ($concerns as $cn): $done = $cn['status'] === 'resolved'; ?>
-        <li class="<?= $done ? 'is-done' : '' ?>">
+        <li class="<?= $done ? 'is-done' : '' ?>" data-cf-i="<?= (int) $cfIx++ ?>">
           <?php [$cnName, $cnWas] = concern_names($cn); ?>
           <div><b><?= e($cnName) ?></b>
             <span class="p-badge p-b-<?= $done ? 'done' : 'pending' ?>"><?= e($done ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) ?></span>
@@ -934,6 +934,11 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
     <?php // 0130: the ladder inside the barangay, and the sensitive mark.
       $tier = (int) ($report['tier'] ?? 0); $sens = !empty($report['is_sensitive']);
+      // 15 Nov 2026 (Rose): where the case is. The stored rung moves only when it is escalated, but a case a Kagawad is handling, or one that was forwarded to a
+      // committee and waits for its Kagawad to take it, is with the Councilor, so that is the rung that shows
+      $tierEff = $tier;
+      if ($tierEff === 0 && ((string) ($report['handler']['official_role'] ?? '') === 'kagawad'
+          || (empty($report['handler_id']) && !empty($lastFwd['to_committee']) && $status === 'pending_review'))) { $tierEff = 1; }
       $openCase = !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true) && empty($report['referred_to']);
       $steps = [t('Staff and tanods', 'Kawani at tanod'), t('Councilor (Kagawad)', 'Kagawad'), t('Chairman', 'Punong Barangay')];
     ?>
@@ -943,7 +948,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
     <p class="p-flabel ss-zl"><?= e(t('Where the case is', 'Nasaan ang kaso')) ?></p>
     <ol class="ss-ladder" aria-label="<?= e(t('Where the case is', 'Nasaan ang kaso')) ?>">
-      <?php foreach ($steps as $k => $nm): ?><li data-r="<?= ['staff', 'kagawad', 'chair'][$k] ?>" class="<?= $k === $tier ? 'now' : ($k < $tier ? 'past' : '') ?>"<?= $k === $tier ? ' aria-current="step"' : '' ?>><?= e($nm) ?></li><?php endforeach; ?>
+      <?php foreach ($steps as $k => $nm): ?><li data-r="<?= ['staff', 'kagawad', 'chair'][$k] ?>" class="<?= $k === $tierEff ? 'now' : ($k < $tierEff ? 'past' : '') ?>"<?= $k === $tierEff ? ' aria-current="step"' : '' ?>><?= e($nm) ?></li><?php endforeach; ?>
     </ol>
     <div id="ss-also" hidden></div>
     <?php if ($handlerLog): ?>
@@ -958,6 +963,23 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           }) ?> · <?= e(long_datetime($h['created_at'])) ?><?= !empty($h['reason']) ? ' — “' . e($h['reason']) . '”' : '' ?></li>
         <?php endforeach; ?>
       </ul></details>
+    <?php endif; ?>
+
+    <?php if (count($concerns) > 1): // 15 Nov 2026 (Rose): a report with several requests: pick the one being handled; it is lit in the list of concerns and answered here ?>
+      <div class="cf" id="cf" role="group" aria-label="<?= e(t('Request in focus', 'Hinaharap na hiling')) ?>">
+        <p class="p-flabel ss-zl"><?= e(t('Request in focus', 'Hinaharap na hiling')) ?></p>
+        <div class="cf-chips">
+          <?php foreach ($concerns as $ci => $cn): $cdone = $cn['status'] === 'resolved'; [$cfName] = concern_names($cn); ?>
+            <button type="button" class="cf-chip<?= $cdone ? ' is-done' : '' ?>" data-i="<?= (int) $ci ?>" data-done="<?= $cdone ? '1' : '0' ?>" aria-pressed="false"><i aria-hidden="true"></i><?= e($cfName) ?></button>
+          <?php endforeach; ?>
+        </div>
+        <div class="cf-now" aria-live="polite"></div>
+        <div class="cf-act">
+          <button type="button" class="p-btn p-btn-ghost p-btn-sm" data-cf="next"><?= e(t('Next request', 'Susunod na hiling')) ?> &rarr;</button>
+          <button type="button" class="p-btn p-btn-primary p-btn-sm" data-cf="done" hidden><?= e(t('Mark this request resolved', 'Markahang nalutas ang hiling na ito')) ?></button>
+        </div>
+        <p class="p-hint cf-hint"><?= e(t('Assigning a tanod and the case status are for the whole report; each request is resolved on its own.', 'Ang pag-assign ng tanod at ang katayuan ng kaso ay para sa buong ulat; bawat hiling ay nalulutas nang hiwalay.')) ?></p>
+      </div>
     <?php endif; ?>
 
     <?php if ($canJudge): ?>
@@ -1365,8 +1387,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                 <option value="ladder" selected><?= e(sprintf(t('Up the ladder: %s', 'Pataas sa hagdan: %s'), (string) $escTo['official_name'] . ', ' . ((int) ($escTo['to_tier'] ?? 0) === 2 ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))) ?></option>
                 <?php endif; ?>
                 <option value="Punong Barangay"><?= e(t('Punong Barangay', 'Punong Barangay')) ?></option>
+                <?php if ($tierEff === 0): // a case a Kagawad already handles is not handed to a Kagawad (Rose, 15 Nov) ?>
                 <option value="Barangay Kagawad (Peace and Order)"><?= e(t('Barangay Kagawad (Peace and Order)', 'Barangay Kagawad (Kapayapaan at Kaayusan)')) ?></option>
                 <option value="Barangay Kagawad"><?= e(t('Barangay Kagawad (another committee)', 'Barangay Kagawad (ibang komite)')) ?></option>
+                <?php endif; ?>
                 <option value="Barangay Secretary"><?= e(t('Barangay Secretary', 'Kalihim ng Barangay')) ?></option>
                 <option value="other"><?= e(t('Another official…', 'Ibang opisyal…')) ?></option>
               </select>
@@ -1551,6 +1575,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
 <script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
+<?php if (count($concerns) > 1): ?><script src="assets/js/case-focus.js?v=<?= e(asset_version('../js/case-focus.js')) ?>" defer></script><?php endif; ?>
 <script>
 (function () {
   // ---- copy the tracking id ----
