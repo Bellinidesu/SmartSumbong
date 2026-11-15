@@ -145,7 +145,7 @@ function establish_session(array $session): void
 
     $client  = new Supabase($token);
     $profile = $client->select('users', [
-        'select' => 'id,full_name,email,role,verification_status,is_suspended,is_retired,must_change_password,avatar_url,admin_tier,is_dev,committee,is_test',
+        'select' => 'id,full_name,email,role,verification_status,is_suspended,is_retired,must_change_password,avatar_url,admin_tier,is_dev,committee,is_test,official_role',
         'id'     => 'eq.' . ($session['user']['id'] ?? ''),
         'limit'  => '1',
     ]);
@@ -194,6 +194,7 @@ function establish_session(array $session): void
         'is_dev'        => !empty($me['is_dev']),
         'is_test'       => !empty($me['is_test']),
         'committee'     => $me['committee'] ?? null,
+        'official_role' => $me['official_role'] ?? null,
         'access_at'     => time(),
     ];
 }
@@ -220,6 +221,25 @@ const IDLE_LIMIT = 2 * 3600;
 function session_idle_expired(?array $admin): bool
 {
     return $admin !== null && isset($admin['seen']) && $admin['seen'] < time() - IDLE_LIMIT;
+}
+
+/**
+ * Viewing mode refuses every form (15 Nov 2026, Rose): a sent form or background write is answered with the reason, except switching the mode back and signing out.
+ * It is the portal's rule for the screens; exports are plain links and still work.
+ */
+function view_mode_guard(bool $json): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !function_exists('view_mode_on') || !view_mode_on()) return;
+    if (in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), ['view-mode.php', 'logout.php'], true)) return;
+    $why = t('Viewing mode: nothing can be changed. Switch back to editing to make changes.', 'Viewing mode: walang mababago. Bumalik sa pag-edit para magbago.');
+    if ($json) { http_response_code(403); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'text' => $why, 'error' => 'view_only']); exit; }
+    $_SESSION['flash'] = ['level' => 'error', 'text' => $why];
+    $_SESSION['st_flash'] = ['level' => 'error', 'text' => $why];
+    $_SESSION['inbox_flash'] = ['text' => $why, 'level' => 'error'];
+    $back = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+    $to = $back !== '' && (parse_url($back, PHP_URL_HOST) === ($_SERVER['HTTP_HOST'] ?? '')) ? $back : 'dashboard.php';
+    header('Location: ' . $to, true, 303);
+    exit;
 }
 
 function require_admin(): array
@@ -268,6 +288,7 @@ function require_admin(): array
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') engine_forget_mine(current_admin()['access_token'] ?? null);
     boot_prefetch();   // every cold cache's read in one wait (boot.php), before the page and its readers run
     access_refresh();
+    view_mode_guard(false);
     require_page_access();
     return current_admin() ?? $admin;
 }
@@ -287,6 +308,7 @@ function require_admin_api(): array
         exit;
     }
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') engine_forget_mine($admin['access_token'] ?? null);
+    view_mode_guard(true);
     if ($admin['expires_at'] < time() + 60) {
         try {
             $fresh = Supabase::refresh($admin['refresh_token']);

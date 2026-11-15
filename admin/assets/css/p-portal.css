@@ -895,6 +895,15 @@ td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: 
   radial-gradient(150% 380px at 30% 100%, color-mix(in srgb, var(--p-side-glow, transparent) 42%, transparent), transparent 100%),
   linear-gradient(180deg, color-mix(in srgb, var(--p-side-glow, #0B0F19) 22%, #0B0F19) 0%, color-mix(in srgb, var(--p-side-glow, #05070C) 13%, #05070C) 100%); }
 :root[data-theme="dark"] .p-sidebar.has-mark::before { opacity: .36; mix-blend-mode: screen; }
+/* viewing mode (15 Nov 2026, Rose): the switch above the profile and the bar at the top */
+.p-side-vm { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 8px; padding: 9px 12px; border: 1px dashed rgba(255, 255, 255, .35); border-radius: var(--p-r); background: transparent; color: #fff; font: 700 12.5px/1.25 Inter, sans-serif; text-align: left; cursor: pointer; opacity: .9; }
+.p-side-vm:hover { opacity: 1; background: rgba(255, 255, 255, .1); }
+.p-side-vm svg { flex: none; }
+.vm-band { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin: 0 0 14px; padding: 10px 16px; border-radius: 14px; background: #141B34; color: #fff; font-size: 13.5px; }
+.vm-band b { font-family: 'Inter Tight', Inter, sans-serif; font-size: 15px; }
+.vm-band span { flex: 1; min-width: 200px; opacity: .88; }
+.vm-band form { margin: 0; }
+.vm-band .p-btn { background: #FF9800; border-color: #FF9800; color: #2B1A00; }
 /* declining a retirement request (15 Nov 2026, Rose): the reason opens as a row under the request, the box and the two buttons one height, level */
 .ret-denytr > td { padding: 12px 16px; background: var(--p-surface-2); }
 .ret-denytr[hidden] { display: none; }

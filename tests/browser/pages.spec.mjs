@@ -622,7 +622,7 @@ test('Roles and pages 2: staff are moderators of a committee; the Administrators
   for (const href of ['dashboard.php', 'administrative-services.php', 'control-room.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
   await expect(page.locator('.p-sidebar a[href="settings.php"]')).toHaveCount(1);   // their own Settings (4 Nov 2026)
   await page.goto('control-room.php');
-  await expect(page).toHaveURL(/home\.php/);
+  await expect(page).toHaveURL(/notifications\.php/);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
@@ -1174,10 +1174,9 @@ test('Roles and pages 6b: Report Summary by committee, and the committee form si
   await expect(page.locator('.doc-signs')).toContainText('Kagawad, Committee Head');
   await expect(page.locator('.doc-title')).toContainText('Peace and Order');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
-  const m = await open(page, 'summary.php?range=month');
-  await expect(page.locator('select#com')).toHaveCount(0);
-  await expect(page.locator('.rs-scope')).toContainText('Peace and Order');
-  expect(s.errors.concat(c.errors, f.errors, m.errors), 'console errors').toEqual([]);
+  await page.goto('summary.php?range=month', { waitUntil: 'domcontentloaded' });         // staff have no Report Summary since 15 Nov (Rose): it sends them to Notifications
+  await expect(page).toHaveURL(/notifications\.php/);
+  expect(s.errors.concat(c.errors, f.errors), 'console errors').toEqual([]);
 });
 
 test('Roles and pages 6c: Notifications by committee, a dot on each case, engine warnings grouped', async ({ page, context }) => {
@@ -1275,9 +1274,9 @@ test('0145 access: a committee admin sees only its pages, and no SMART drawer', 
   await expect(page.locator('.p-sidebar a[href="cases.php"]').first()).toBeVisible();
   await expect(page.locator('#side-user')).toContainText('Peace and Order');
   await page.goto('dashboard.php');
-  await expect(page).toHaveURL(/home\.php/);
+  await expect(page).toHaveURL(/notifications\.php/);
   await page.goto('control-room.php');
-  await expect(page).toHaveURL(/home\.php/);
+  await expect(page).toHaveURL(/notifications\.php/);
   const s = await open(page, 'spatial.php');
   await expect(page.locator('#smart-toggle')).toHaveCount(0);
   await expect(page.locator('#smart-side')).toHaveCount(0);
@@ -1291,7 +1290,8 @@ test('0145 access: a captain reads a case but its controls are view only', async
   await expect(page.locator('.p-controls.ss-viewonly')).toHaveCount(1);
   await expect(page.locator('.p-controls')).toContainText('View only');
   await expect(page.locator('.p-sidebar a[href="settings.php"]')).toHaveCount(0);
-  await expect(page.locator('.p-sidebar a[href="residents.php"]')).toHaveCount(1);
+  await expect(page.locator('.p-sidebar a[href="residents.php"]'), 'a view-only account sees only the four pages').toHaveCount(0);
+  for (const href of ['dashboard.php', 'summary.php', 'spatial.php', 'cases.php']) await expect(page.locator(`.p-nav a[href="${href}"]`)).toHaveCount(1);
   await expect(page.locator('#side-user')).toContainText('Captain');
   expect(await axe(page), 'Case page, captain').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
@@ -1381,38 +1381,31 @@ test('Rose, 2 Nov: the lock holds when the map is pressed, the layers stay in th
   expect(r.errors.concat(s.errors), 'console errors').toEqual([]);
 });
 
-test('Home for a Kagawad and staff: they land there, it reads their SMART module, and the Dashboard stays with the super admins (part 3)', async ({ page, context }) => {
+test('Rose, 15 Nov: no Home for anyone; a Kagawad and staff land on Notifications; staff have no Report Summary', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   await page.goto('index.php');
-  await expect(page).toHaveURL(/home\.php/);   // where they land after signing in
-  const r = await open(page, 'home.php');
-  await expect(page.locator('.p-sidebar .p-nav a').first()).toHaveAttribute('href', 'home.php');
-  await expect(page.locator('.hm-banner')).toContainText('Peace and Order');
-  await expect(page.locator('.hm-lead .hm-tile')).toHaveCount(4);
-  await expect(page.locator('.hm-lead .hm-tile').first()).toContainText('Escalations to approve');
-  await expect(page.locator('.hm-lead + .hm-h + .hm-row-4 .hm-tile')).toHaveCount(4);   // Right now: four tiles under the four decisions
-  const g = await page.evaluate(() => { const x = s => Math.round(document.querySelector(s).getBoundingClientRect().left), r = s => Math.round(document.querySelector(s).getBoundingClientRect().right);
-    const cols = [...document.querySelectorAll('.hm-cols .hm-col')].map(c => Math.round(c.getBoundingClientRect().bottom));
-    return { a: x('.hm-lead .hm-tile'), b: x('.hm-lead + .hm-h + .hm-row-4 .hm-tile'), ar: r('.hm-lead .hm-tile:last-child'), br: r('.hm-lead + .hm-h + .hm-row-4 .hm-tile:last-child'), cols }; });
-  expect(g.a, 'the decisions and the numbers start at the same edge').toBe(g.b); expect(g.ar, 'and end at the same edge').toBe(g.br);
-  if (g.cols.length === 2) expect(Math.abs(g.cols[0] - g.cols[1]), 'the two columns of lists end level').toBeLessThanOrEqual(2);
-  await expect(page.locator('.hm-list tr[data-href^="case.php?id="]').first()).toBeAttached();
-  expect(await axe(page), 'Home, Kagawad').toEqual([]);
+  await expect(page).toHaveURL(/notifications\.php/);   // where they land after signing in
+  const r = await open(page, 'notifications.php');
+  await expect(page.locator('.p-sidebar a[href="home.php"]')).toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="summary.php"]')).toHaveCount(1);   // a Kagawad keeps Report Summary
+  await page.goto('home.php');
+  await expect(page).toHaveURL(/notifications\.php/);   // the old address goes to Notifications
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
-  const m = await open(page, 'home.php');
-  await expect(page.locator('.hm-lead .hm-tile').first()).toContainText('Yours');   // staff: their work, not decisions
-  await expect(page.locator('.hm-lead')).not.toContainText('Escalations to approve');
+  const m = await open(page, 'notifications.php');
+  await expect(page.locator('.p-sidebar a[href="home.php"]')).toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="summary.php"]'), 'staff have no Report Summary').toHaveCount(0);
+  await page.goto('summary.php');
+  await expect(page).toHaveURL(/notifications\.php/);
   await context.addCookies([{ name: 'ss_tier', value: 'super', url: 'http://127.0.0.1:8013' }]);
   await page.goto('home.php');
-  await expect(page).toHaveURL(/notifications\.php/);   // a super admin has the Dashboard
-  await expect(page.locator('.p-sidebar a[href="home.php"]')).toHaveCount(0);
+  await expect(page).toHaveURL(/notifications\.php/);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
-test('The brain button answers from the person\'s SMART module on Case Reports, Notifications, Report Summary and Home (part 4)', async ({ page, context }) => {
+test('The brain button answers from the person\'s SMART module on Case Reports, Notifications, and Report Summary (part 4)', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const errs = [];
-  for (const p of ['cases.php', 'notifications.php', 'summary.php', 'home.php']) {
+  for (const p of ['cases.php', 'notifications.php', 'summary.php']) {
     const r = await open(page, p);
     errs.push(...r.errors);
     await page.locator('#ss-win-open').click();
@@ -1423,7 +1416,6 @@ test('The brain button answers from the person\'s SMART module on Case Reports, 
       await expect(page.locator('.ss-brain-n')).toHaveText('5');   // the decisions waiting on the Kagawad
       expect(await axe(page), 'engine window on Case Reports, Kagawad').toEqual([]);
     }
-    if (p === 'home.php') await expect(page.locator('#ss-panel .mb-home')).toHaveCount(0);   // already home
     if (p === 'summary.php') await expect(page.locator('#ss-panel .rs-w-card').first()).toBeAttached();   // the report's own notes follow
     await page.keyboard.press('Escape');
     await expect(page.locator('#ss-panel')).not.toHaveClass(/is-open/);
@@ -2165,6 +2157,34 @@ test('The Inbox is one full page (12 Nov 2026, Ace): Case chats and BarangayMail
       expect(await page.locator('.ib-apps .st-link.p-on').evaluate(e => getComputedStyle(e).backgroundColor), 'the section in use is orange').toBe('rgb(255, 152, 0)');
     }
   }
+});
+
+test('Rose, 15 Nov: the Chairman can switch to viewing (confirm dialog, four pages, every form refused) and back to editing', async ({ page, context }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  await context.addCookies([{ name: 'ss_tier', value: 'super', url: 'http://127.0.0.1:8013' }, { name: 'ss_role', value: 'chairman', url: 'http://127.0.0.1:8013' }]);
+  const r = await open(page, 'cases.php');
+  await expect(page.locator('.p-side-vm')).toContainText('Would you like to switch to viewing?');
+  await page.locator('.p-side-vm').click();
+  await expect(page.locator('#p-m-viewmode')).toBeVisible();
+  await expect(page.locator('#p-m-viewmode')).toContainText('nothing can be changed');
+  expect(await axe(page), 'the viewing dialog').toEqual([]);
+  await page.locator('#p-m-viewmode [data-p-close]').click();                       // Cancel: nothing changed
+  await expect(page.locator('.vm-band')).toHaveCount(0);
+  await page.locator('.p-side-vm').click();
+  await page.locator('#p-m-viewmode button[type="submit"]').click();
+  await expect(page).toHaveURL(/dashboard\.php/);
+  await expect(page.locator('.vm-band')).toContainText('not editable');
+  for (const href of ['dashboard.php', 'summary.php', 'spatial.php', 'cases.php']) await expect(page.locator(`.p-nav a[href="${href}"]`)).toHaveCount(1);
+  for (const href of ['residents.php', 'personnel.php', 'settings.php', 'notifications.php', 'inbox.php', 'administrative-services.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  await page.goto('settings.php');
+  await expect(page).toHaveURL(/dashboard\.php/);                                    // not a page of viewing mode
+  const refused = await page.evaluate(async () => { const f = new FormData(); f.set('csrf', 'x'); f.set('action', 'noop'); const x = await fetch('cases.php', { method: 'POST', body: f, redirect: 'manual' }); return x.status + ' ' + x.type; });
+  expect(refused, 'a form sent in viewing mode is refused').toMatch(/^(0 opaqueredirect|303|403)/);
+  await page.locator('.vm-band button').click();                                     // back to editing
+  await expect(page.locator('.vm-band')).toHaveCount(0);
+  await expect(page.locator('.p-side-vm')).toContainText('switch to viewing');
+  await expect(page.locator('.p-sidebar a[href="notifications.php"]')).toHaveCount(1);
+  expect(r.errors, 'console errors').toEqual([]);
 });
 
 test('Rose, 15 Nov: declining a retirement is a level full-width row, a Kagawad hands a case up to the barangay chairman, staff have no complaint type filter', async ({ page, context }) => {
