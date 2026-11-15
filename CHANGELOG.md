@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Spatial Distribution pins at night (15 Nov, Ace)**
+- The complaint pins and the safe-point signs are the same solid discs by night as by day: the category's colour, a white edge and a shadow for height. The coloured glow, the gloss and the rim gradient of the night bead are gone; the white glow behind the safe-point signs too.
+
 **Sign-in panel, third pass, and Spatial Distribution Material at night (15 Nov, Ace)**
 - Sign-in panel: the weather block is bigger and sits flush at the bottom left above the skyline; the seal and the barangay name are larger and centred in the sky, and the sun, moon, clouds and lightning were moved to sit around them.
 - The panel no longer blinks when you go from sign-in to Forgot password or Request access: the server now draws it already filled from what it holds (`glance_peek`, no request to any source), the script only refreshes it, and the pages ask the browser to keep the panel still between pages.

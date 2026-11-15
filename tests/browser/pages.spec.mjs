@@ -2445,4 +2445,6 @@ test('Spatial Distribution 15 Nov: Material at night too (solid graphite, no fro
   expect(css).toContain('.dm svg { filter: drop-shadow(0 1px 1px rgba(0,0,0,.7))');
   const html = await (await page.request.get('spatial.php')).text();
   expect(html, 'the cluster pin is no longer a glass orb').not.toContain('radialGradient id="og"');
+  expect(html, 'the complaint pins are solid discs by night too, with no glow in their colour').not.toContain("(dark ? fill : '#000')");
+  expect(html, 'nor are the safe-point signs lit white at night').not.toContain("(dark ? '#fff' : '#000')");
 });
