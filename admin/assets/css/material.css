@@ -1,0 +1,36 @@
+/* The portal is Material (Ace, 15 Nov 2026: "we are going Material", the stylisation and the glow stay, the glow adapts).
+   Loaded after the other stylesheets, on every signed-in page. Three things, and nothing else:
+   1. No frosted glass anywhere: a surface that used to blur what was behind it is a solid fill (a bar that floats over scrolling content must not show it through).
+   2. A scrim dims the page behind a dialog; it does not blur it.
+   3. A glow becomes a coloured elevation: the same colour, now a lifted, layered shadow (a small sharp one and a wider soft one, dropped a little) instead of a halo
+      around the shape. The stylised buttons, their gradients and lit edges, the SMART marks and the live dots keep their identity.
+   Spatial Distribution has its own pair (sd-light.css, sd-dark.css). */
+
+/* ---- 1. frosted surfaces become solid ---- */
+:root:root :is(.ss-jump, .bd-bar, .pf-bar, .ru-bar, .ss-mapside, .ss-wx, .ss-brain, .ss-street-tag, .bd-col, .wx-card, .sdp-pop, .cd-insp, .cd-tools) {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+:root:root :is(.ss-jump, .bd-bar, .pf-bar, .ru-bar) { background: var(--p-surface); }
+:root:root[data-theme="dark"] .bd-cols { --bd-sunk: #1B2026; --bd-card: #22282F; --bd-card-h: #2A3139; }
+:root:root[data-theme="dark"] .wx-card { background: linear-gradient(150deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 60%), #1F242B; }
+:root:root[data-theme="dark"] .sdp-pop { background: var(--p-surface); box-shadow: 0 4px 8px 3px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.7); }
+:root:root[data-theme="dark"] .ss-mapside { background: linear-gradient(152deg, rgba(255,255,255,.14), rgba(255,255,255,.03)), #151B38; }
+:root:root[data-theme="dark"] .cd-insp { background: #1C2127; }
+:root:root[data-theme="dark"] .cd-tools { background: #1C2127; }
+:root:root[data-theme="dark"] .ss-wx { background: rgba(0,0,0,.34); }
+
+/* ---- 2. scrims dim, they do not blur ---- */
+:root:root :is(.p-scrim, .ss-win-scrim, .ss-win-scrim.is-open, .cr-scrim, .wx-lib, .wx-prev) { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+:root:root .p-scrim, :root:root .wx-lib, :root:root .wx-prev { background: rgba(8,12,28,.62); }
+
+/* ---- 3. glow -> coloured elevation ---- */
+:root:root .p-nav .p-brain-pill { box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 3px 8px rgba(255,152,0,.5); }
+:root:root .p-nav a.p-active .p-brain-pill { box-shadow: 0 0 0 2px rgba(255,255,255,.55), 0 3px 8px rgba(0,0,0,.25); }
+:root:root .wx-dot, :root:root[data-theme="dark"] .wx-dot { box-shadow: 0 0 0 2px var(--p-surface), 0 1px 3px color-mix(in srgb, var(--c) 85%, transparent), 0 3px 8px color-mix(in srgb, var(--c) 45%, transparent); }
+:root:root[data-theme="dark"] .wx-dot { box-shadow: 0 0 0 2px #1d2229, 0 1px 3px color-mix(in srgb, var(--c) 85%, transparent), 0 3px 8px color-mix(in srgb, var(--c) 45%, transparent); }
+:root:root .ss-wxt { box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 3px 8px rgba(53,108,249,.5), 0 7px 16px rgba(53,108,249,.24); }
+:root:root .ss-wxt-g svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)) drop-shadow(0 2px 5px rgba(255,152,0,.4)); }
+:root:root .fw-chip .fw-dot, :root:root .fw-level .fw-dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--fw) 26%, transparent), 0 2px 6px color-mix(in srgb, var(--fw) 65%, transparent); }
+:root:root .ss-mapside::before { box-shadow: 0 2px 6px color-mix(in srgb, var(--lv) 65%, transparent); }
+:root:root #s-spatial .p-dock-btn .p-cnt { box-shadow: 0 0 0 2px rgba(21,22,29,.9), 0 2px 5px rgba(229,56,59,.55); }
+:root:root :is(.p-live, .p-watching):not(.p-down):not(.p-cnt) i { filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)) drop-shadow(0 2px 4px rgba(124,255,168,.5)); }

@@ -2448,3 +2448,26 @@ test('Spatial Distribution 15 Nov: Material at night too (solid graphite, no fro
   expect(html, 'the complaint pins are solid discs by night too, with no glow in their colour').not.toContain("(dark ? fill : '#000')");
   expect(html, 'nor are the safe-point signs lit white at night').not.toContain("(dark ? '#fff' : '#000')");
 });
+
+test('Material, portal-wide (15 Nov): no frosted glass in either mode (Workspace, Report Summary, Profile, the sign-in card), scrims dim without blur', async ({ page, browser }) => {
+  for (const mode of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme: mode });
+    for (const pg of ['workspace.php', 'summary.php', 'profile.php', 'cases.php', 'dashboard.php']) {
+      await open(page, pg);
+      await page.evaluate(m => { document.documentElement.setAttribute('data-theme', m); }, mode);
+      await page.waitForTimeout(400);
+      const frosted = await page.evaluate(() => [...document.querySelectorAll('body *')].filter(e => { const c = getComputedStyle(e); return c.backdropFilter && c.backdropFilter !== 'none' && e.getBoundingClientRect().width > 4; }).map(e => e.tagName + '.' + e.className));
+      expect(frosted, pg + ' ' + mode + ': nothing is frosted').toEqual([]);
+    }
+  }
+  const css = await (await page.request.get('assets/css/material.css')).text();
+  expect(css).toContain('.p-scrim');
+  const ctx = await browser.newContext({ colorScheme: 'dark' });
+  const p2 = await ctx.newPage();
+  await p2.goto('login.php?via=login.php', { waitUntil: 'domcontentloaded' });
+  await p2.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  await p2.waitForTimeout(400);
+  const f2 = await p2.evaluate(() => [...document.querySelectorAll('body *')].filter(e => { const c = getComputedStyle(e); return c.backdropFilter && c.backdropFilter !== 'none'; }).map(e => e.className));
+  expect(f2, 'the dark sign-in card, rail and switches are solid').toEqual([]);
+  await ctx.close();
+});

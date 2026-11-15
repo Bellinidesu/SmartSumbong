@@ -42,7 +42,7 @@
 :root[data-theme="dark"] #s-spatial#s-spatial :is(.p-dock-btn:not(.on):not(.ss-dock-logo):not(.cc-dock), .fw-chip):hover,
 :root[data-theme="dark"] #s-spatial#s-spatial .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button:hover { background: var(--mt-hover); box-shadow: var(--md2); }
 :root[data-theme="dark"] #s-spatial#s-spatial .p-dock-btn { transition: box-shadow .2s ease, background-color .2s ease; }
-:root[data-theme="dark"] #s-spatial#s-spatial .p-dock-btn.on { background: var(--p-orange); background-image: none; color: #2B1A00; border: 0; box-shadow: var(--md2); }
+:root[data-theme="dark"] #s-spatial#s-spatial .p-dock-btn.on { background: var(--p-orange); background-image: none; color: #2B1A00; border: 0; box-shadow: var(--md2), 0 4px 12px rgba(255,152,0,.3); }
 :root[data-theme="dark"] #s-spatial#s-spatial .maplibregl-ctrl-scale { border: 1px solid rgba(255,255,255,.45); border-top: 0; box-shadow: none; background: transparent; }
 :root[data-theme="dark"] #s-spatial#s-spatial .p-map-search .p-pill-select { background: rgba(255,255,255,.07); }
 
@@ -62,14 +62,14 @@
 /* the layer tile, the layer pictures and the play button: elevation and a solid orange edge, not glow */
 :root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile { border: 0; background: var(--mt1, #22242A); color: #E9EBF2; box-shadow: var(--md1); -webkit-backdrop-filter: none; backdrop-filter: none; }
 :root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile:hover { box-shadow: var(--md2); }
-:root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile.on, :root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--p-orange), var(--md2); }
-:root[data-theme="dark"] .ss-lyr .map-sw:has(input:checked) .scene, :root[data-theme="dark"] .ss-lyr .lyr-list .map-sw.tile:has(input:checked) .scene { box-shadow: 0 0 0 3px var(--p-orange), 0 2px 6px 2px rgba(0,0,0,.5); animation: none; }
+:root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile.on, :root[data-theme="dark"][data-surface] #s-spatial#s-spatial .lyr-tile[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--p-orange), var(--md2), 0 4px 12px rgba(255,152,0,.28); }
+:root[data-theme="dark"] .ss-lyr .map-sw:has(input:checked) .scene, :root[data-theme="dark"] .ss-lyr .lyr-list .map-sw.tile:has(input:checked) .scene { box-shadow: 0 0 0 3px var(--p-orange), 0 2px 6px 2px rgba(0,0,0,.5), 0 4px 12px rgba(255,152,0,.3); animation: none; }
 :root[data-theme="dark"] .ss-lyr .map-sw .scene { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 1px 3px 1px rgba(0,0,0,.35); }
-:root[data-theme="dark"] .tl-play { background: var(--p-orange); color: #2B1A00; box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 2px 6px 2px rgba(0,0,0,.4); }
+:root[data-theme="dark"] .tl-play { background: var(--p-orange); color: #2B1A00; box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 2px 6px 2px rgba(0,0,0,.4), 0 4px 12px rgba(255,152,0,.3); }
 
 /* the four case actions: the same small worlds, lifted by shadow instead of glowing */
 :root[data-theme="dark"] .cs-acts > * span { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 1px 3px 1px rgba(0,0,0,.35); }
-:root[data-theme="dark"] .cs-acts > *:hover span { box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 2px 6px 2px rgba(0,0,0,.5); }
+:root[data-theme="dark"] .cs-acts > *:hover span { box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 2px 6px 2px rgba(0,0,0,.5), 0 4px 12px color-mix(in srgb, var(--cs-c) 40%, transparent); }
 :root[data-theme="dark"] .cs-acts .ac-zoom.go span { box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 0 0 6px color-mix(in srgb, var(--cs-c) 22%, transparent); }
 :root[data-theme="dark"] .cs-acts .ac-copy.done span { box-shadow: 0 2px 6px 2px rgba(0,0,0,.5); }
 :root[data-theme="dark"] .cs-acts .ac-look span, :root[data-theme="dark"] .cs-acts .ac-look:hover span { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 2px 6px 2px rgba(0,0,0,.4); }
@@ -88,6 +88,6 @@
 :root[data-theme="dark"] .qv-act [data-qvback] { background: rgba(255,255,255,.08); border: 0; color: var(--p-ink); box-shadow: 0 1px 2px rgba(0,0,0,.5); }
 :root[data-theme="dark"] .qv-act [data-qvback]:hover { background: rgba(255,255,255,.13); }
 :root[data-theme="dark"] .qv-look { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 2px 6px 2px rgba(0,0,0,.4); }
-:root[data-theme="dark"] .qv-look:hover { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 4px 10px 3px rgba(0,0,0,.5); }
+:root[data-theme="dark"] .qv-look:hover { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 4px 10px 3px rgba(0,0,0,.5), 0 6px 14px rgba(141,178,255,.25); }
 
 @media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] #s-spatial#s-spatial * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
