@@ -43,8 +43,10 @@
 .cc-track .done i { background: #1E9E56; } .cc-track .cur i { background: var(--p-orange); } .cc-track .cur span { color: var(--p-ink); }
 
 /* ---- 2. SMART: the portal's brain button (top bar) opens a drawer ---- */
-.p-topbar .ss-brain-case { margin-left: auto; }
-.p-topbar .ss-brain-case + .p-btn { margin-left: 0; }
+.p-report { position: relative; }
+.p-report .ss-brain-case { position: absolute; top: 20px; right: 22px; z-index: 3; background: linear-gradient(145deg, #1B2342, #0E1428) padding-box, linear-gradient(120deg, #356CF9, #FF9800, #EDFA04, #34C759, #356CF9) border-box; color: #EDFA04; box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 14px -6px rgba(53,108,249,.7); }
+.p-report .ss-brain-case:hover { box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 18px -6px rgba(53,108,249,.9); }
+.p-report .p-case-title { padding-right: 64px; }
 .ss-brain-case .ss-brain-n { background: #356CF9; color: #fff; }
 .ss-brain-case.ss-lv-urgent .ss-brain-n { background: #E53935; } .ss-brain-case.ss-lv-high .ss-brain-n { background: #FF9800; color: #2B1A00; } .ss-brain-case.ss-lv-low .ss-brain-n { background: #1E9E56; }
 dialog.ss-smartcard:not([open]) { display: none !important; }

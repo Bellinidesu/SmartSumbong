@@ -389,11 +389,6 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <a class="p-back" href="cases.php" aria-label="<?= e(t('Back to case reports', 'Bumalik sa mga sumbong')) ?>"><?= p_icon('i-back', 18) ?><?= e(t('Case Reports', 'Mga Sumbong')) ?></a>
   <span class="p-crumb">/ <?= e($report['tracking_id']) ?></span>
   <span class="p-live" id="live-badge" title="<?= e(t('Watching this case for new activity', 'Binabantayan ang bagong aktibidad sa kasong ito')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span>  <span class="p-spacer"></span>
-  <?php if (!empty($smart) && ($smart['score'] ?? null) !== null): // 16 Nov 2026 (Ace): the portal's own brain button, where it lives on every page, opens "Why this level"
-      $sbLv = (string) ($smart['effective_level'] ?? 'low');
-      $sbName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')][$sbLv] ?? $sbLv; ?>
-  <button type="button" class="ss-brain-btn ss-brain-case ss-lv-<?= e($sbLv) ?>" data-smart-open aria-controls="smart-card" aria-haspopup="dialog" title="<?= e(t('Why this level', 'Bakit ganito ang antas')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(sprintf(t('Why this level: %s, %d of 100', 'Bakit ganito ang antas: %s, %d sa 100'), $sbName, (int) $smart['score'])) ?></span><b class="ss-brain-n"><?= (int) $smart['score'] ?></b></button>
-  <?php endif; ?>
   <?php // Rose (7 Oct 2026): this case on the barangay's letterhead, to print or save as PDF. ?>
   <a class="p-btn p-btn-ghost" href="complaint-print.php?id=<?= e($id) ?>" target="_blank" rel="noopener"><?= p_icon('i-dl', 16) ?><?= e(t('Print complaint', 'I-print ang sumbong')) ?></a>
 </div>
@@ -403,6 +398,11 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <!-- ---------- the complaint itself ---------- -->
   <div>
     <article class="p-report">
+    <?php if (!empty($smart) && ($smart['score'] ?? null) !== null): // 16 Nov 2026 (Ace): the brain button of THIS case, in the card's header corner, opens "Why this level"
+        $sbLv = (string) ($smart['effective_level'] ?? 'low');
+        $sbName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')][$sbLv] ?? $sbLv; ?>
+    <button type="button" class="ss-brain-btn ss-brain-case ss-lv-<?= e($sbLv) ?>" data-smart-open aria-controls="smart-card" aria-haspopup="dialog" title="<?= e(t('Why this level', 'Bakit ganito ang antas')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(sprintf(t('Why this level: %s, %d of 100', 'Bakit ganito ang antas: %s, %d sa 100'), $sbName, (int) $smart['score'])) ?></span><b class="ss-brain-n"><?= (int) $smart['score'] ?></b></button>
+    <?php endif; ?>
     <h1 class="p-case-title">
       <?= e($report['tracking_id']) ?>: <?= e(category_label($report['category'])) ?>
       <!-- Admins read this number out over the phone and paste it into

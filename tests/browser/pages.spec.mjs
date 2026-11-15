@@ -2605,10 +2605,16 @@ test('Case page, the swap (15 Nov): what the case needs now is one Next step car
 test('Case page, as decided (16 Nov): the portal\'s brain button in the top bar opens Why this level, the map is the Where block of the Report tab, the Field report tab tracks the tanods', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page, `case.php?id=${CASE}`);
-  // the brain button lives in the top bar like on every page, carries the score, and opens the drawer; the old pill is gone
-  const brain = page.locator('.p-topbar .ss-brain-btn[data-smart-open]');
+  // the brain button belongs to this case: in the cream card's header, top right, carries the score, opens the drawer; the old pill is gone and the top bar has none
+  expect(await page.evaluate(() => document.getElementById('cc-body').scrollTop + scrollY), 'nothing scrolls on load: the Subject is the first thing in the card').toBe(0);
+  const brain = page.locator('.p-report .ss-brain-btn[data-smart-open]');
+  await expect(page.locator('.p-topbar .ss-brain-btn')).toHaveCount(0);
   await expect(brain).toBeVisible();
   await expect(brain.locator('.ss-brain-n')).toHaveText(/^\d+$/);
+  const bb = await brain.boundingBox(), cb = await page.locator('.p-report').boundingBox();
+  expect(bb.x + bb.width, 'in the header corner, inside the card').toBeLessThan(cb.x + cb.width);
+  expect(cb.x + cb.width - (bb.x + bb.width), 'at the right edge').toBeLessThan(40);
+  expect(bb.y - cb.y, 'at the top').toBeLessThan(40);
   await expect(page.locator('.ss-smartbtn')).toHaveCount(0);
   await brain.click();
   await expect(page.locator('#smart-card')).toBeVisible();
