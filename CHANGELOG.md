@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**One box for accounts, no dead space in Settings (16 Nov)**
+
+- Resident and personnel profiles (one shared page): the tabs and every section (account details, committees, shift, dispatches, documents, abuse history) are now one card, the sections divided like the case page's, each using the full width. Nothing stretches into empty space beside a taller neighbour.
+- SMART > Try and measure: two columns of stacked cards (the form and the levels table, the result and the factors table).
+- Settings > Appearance: the two cards sit side by side, so a label is not a thousand pixels from its switch.
+
 **Inbox in the case's colour, SMART like the preview, profiles without dead space (16 Nov)**
 
 - Inbox: the case number and its chat bubble take the colour of the case's kind of complaint (the one the dashboard and map use); the open thread rests on a smooth wash of that colour and the barangay's bubbles carry it, light and dark.

@@ -179,10 +179,10 @@
 .pd-tabs { grid-column: 1 / -1; order: -1; margin: 0; justify-self: start; }
 .pd-tabs .st-link { border: 0; background: transparent; font-family: inherit; cursor: pointer; gap: 8px; }
 .pd-tn { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; font-size: 11.5px; background: color-mix(in srgb, var(--p-muted) 18%, transparent); color: var(--p-ink); }
-.pd-grid[data-tab="overview"] > :is(.pd-recent, .pd-id, .pd-ocr, .pd-selfie) { display: none; }
-.pd-grid[data-tab="dispatches"] > :is(.pd-details, .pd-tc, .pd-duty, .pd-abuse, .pd-id, .pd-ocr, .pd-selfie) { display: none; }
-.pd-grid[data-tab="documents"] > :is(.pd-details, .pd-tc, .pd-duty, .pd-abuse, .pd-recent) { display: none; }
-.pd-grid[data-tab="dispatches"] > .pd-recent { order: 1; }
+.pd-grid[data-tab="overview"] .pd-box > :is(.pd-recent, .pd-id, .pd-ocr, .pd-selfie) { display: none; }
+.pd-grid[data-tab="dispatches"] .pd-box > :is(.pd-details, .pd-tc, .pd-duty, .pd-abuse, .pd-id, .pd-ocr, .pd-selfie) { display: none; }
+.pd-grid[data-tab="documents"] .pd-box > :is(.pd-details, .pd-tc, .pd-duty, .pd-abuse, .pd-recent) { display: none; }
+.pd-grid[data-tab="dispatches"] .pd-box > .pd-recent { order: 1; }
 /* one click copies it */
 .cp-btn { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-left: 8px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--p-muted); cursor: pointer; vertical-align: middle; opacity: .55; transition: opacity .15s, background .15s, color .15s; }
 .cp-btn:hover, .cp-btn:focus-visible { opacity: 1; background: color-mix(in srgb, var(--id-acc, #FF9800) 14%, transparent); color: var(--p-ink); }
@@ -218,9 +218,9 @@
 .pd-fadewrap .cm-chip .cm-bg { right: 28px; width: 92px; height: 92px; opacity: .45; }
 
 /* ================= A resident's page: the Reports tab, a flagged figure ================= */
-.pd-grid[data-tab="overview"] > .pd-reports, .pd-grid[data-tab="dispatches"] > .pd-reports, .pd-grid[data-tab="documents"] > .pd-reports { display: none; }
-.pd-grid[data-tab="reports"] > :is(.pd-details, .pd-tc, .pd-duty, .pd-abuse, .pd-id, .pd-ocr, .pd-selfie, .pd-recent:not(.pd-reports)) { display: none; }
-.pd-grid[data-tab="reports"] > .pd-reports { order: 1; }
+.pd-grid[data-tab="overview"] .pd-box > .pd-reports, .pd-grid[data-tab="dispatches"] .pd-box > .pd-reports, .pd-grid[data-tab="documents"] .pd-box > .pd-reports { display: none; }
+.pd-grid[data-tab="reports"] .pd-box > :is(.pd-details, .pd-tc, .pd-duty, .pd-abuse, .pd-id, .pd-ocr, .pd-selfie, .pd-recent:not(.pd-reports)) { display: none; }
+.pd-grid[data-tab="reports"] .pd-box > .pd-reports { order: 1; }
 .pd-fig > .pd-hot b { color: var(--p-red); }
 .pd-reports tbody tr.p-click { cursor: pointer; }
 /* the faint symbol stays inside the banner's edge, so nothing in a banner is cut */
@@ -228,7 +228,15 @@
 :root:root .p-body .cm-chips.pc-gh .cm-chip.cm-sd > .cm-bg { right: 0; }
 /* a resident's status pills stay on one line, so there is never a lone pill on the next */
 :root:root .p-body .pe-res #accounts-tbody td:nth-last-child(2) .p-badges { flex-wrap: nowrap; }
-/* Profiles (resident and personnel share one page): cards hug their content, so no card is stretched into empty space beside a taller neighbour (Ace, 16 Nov) */
-.pd-grid { align-content: start; }
-.pd-grid > .pd-details, .pd-grid > .pd-duty, .pd-grid > .pd-tc { align-self: start; }
-.pd-grid[data-tab="documents"] > :is(.pd-id, .pd-ocr, .pd-selfie, .pd-abuse) { align-self: start; }
+
+/* ---- one box (Ace, 16 Nov 2026): the tabs and the sections of an account are one card, the sections divided like the case page's, so nothing stretches into empty space.
+   Resident and personnel share this page. Each section hugs its content and uses the width inside itself. ---- */
+.pd-grid > .pd-box { grid-column: 1 / -1; order: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0; overflow: hidden; align-self: start; }
+.pd-box > .pd-tabs { margin: 0; padding: 12px 18px; justify-self: stretch; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+:root:root .pd-grid > .pd-box > .p-card { border: 0; border-top: 1px solid var(--p-line); border-radius: 0; box-shadow: none; background: transparent; align-self: stretch; grid-column: 1 / -1; padding: 22px 24px; }
+:root:root .pd-grid > .pd-box > .p-table-card { padding: 0; }
+.pd-box .p-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 22px; margin: 0; }
+@media (min-width: 1700px) { .pd-box .pd-details .p-dl { grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr); gap: 12px 28px; } }
+.pd-box .pd-duty .p-shift { margin-top: 6px; }
+.pd-box .pd-id .p-id-shot img { max-height: 420px; }
+@media (max-width: 760px) { .pd-box > .p-card { padding: 18px 16px; } }

@@ -886,14 +886,15 @@ test('Case Reports and the Dashboard: equal rows, Review is the main button, wha
   expect(r.errors.concat(d.errors), 'console errors').toEqual([]);
 });
 
-test('An account\'s page: two columns of cards, one height per row, the controls in view', async ({ page }) => {
+test('An account page: the tabs and sections are one box (16 Nov), no section stretched beside another, the controls in view', async ({ page }) => {
   const r = await open(page, 'personnel.php?id=u2');
-  const box = sel => page.locator(sel).first().evaluate(e => { const b = e.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.left), Math.round(b.height), Math.round(b.bottom)]; });
-  const a = await box('.pd-details'), b = await box('.pd-tc'), c = await box('.pd-duty'), d = await box('.pd-id');
-  expect(a[0], 'details and committees start on one line').toBe(b[0]);
-  expect(Math.abs(c[3] - b[3]), 'details and the shift stack down the left as tall as the committees card').toBeLessThanOrEqual(2);
-  expect(Math.abs(a[3] + 20 - c[0]), 'with the grid gap between them').toBeLessThanOrEqual(2);
-  expect(b[1], 'two columns').toBeGreaterThan(a[1] + 100);
+  const box = sel => page.locator(sel).first().evaluate(e => { const b = e.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.left), Math.round(b.height), Math.round(b.bottom), Math.round(b.width)]; });
+  const bx = await box('.pd-box'), a = await box('.pd-details'), b = await box('.pd-tc'), c = await box('.pd-duty');
+  expect(await page.locator('.pd-box > .pd-tabs').count(), 'the tabs are the top of the box').toBe(1);
+  for (const s of ['.pd-details', '.pd-tc', '.pd-duty']) expect(await page.locator('.pd-box > ' + s).count(), s + ' is a section of the box').toBe(1);
+  expect(a[4], 'a section uses the whole width of the box').toBeGreaterThan(bx[4] - 4);
+  expect(Math.abs(a[3] - b[0]) <= 2 && Math.abs(b[3] - c[0]) <= 2, 'the sections stack with no gap between them').toBe(true);
+  expect(await page.locator('.pd-box > .p-card').first().evaluate(e => getComputedStyle(e).boxShadow), 'a section is flat inside the box').toBe('none');
   await expect(page.locator('.pd-id'), 'the ID waits on its own tab').toBeHidden();
   await page.locator('.pd-tabs [data-tab="documents"]').click();
   await expect(page.locator('.pd-id')).toBeVisible();

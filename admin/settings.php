@@ -1782,7 +1782,7 @@ endif;
   </div>
   <?php endif; ?>
 
-  <div class="ss-two ss-two--top" data-sm="test">
+  <div class="ss-cols" data-sm="test"><div class="ss-col">
   <form method="post" class="p-card p-card-pad">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_try">
     <p class="p-eyebrow"><?= e(t('Try it', 'Subukan')) ?></p>
@@ -1797,6 +1797,12 @@ endif;
       <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Score it', 'Markahan')) ?></button>
     </div>
   </form>
+  <?php if ($cal): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('How the levels are doing (90 days)', 'Kumusta ang mga antas (90 araw)')) ?></p>
+      <table class="ss-table"><thead><tr><th><?= e(t('Level', 'Antas')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th><th class="n"><?= e(t('Typical time to dispatch', 'Karaniwang oras bago i-dispatch')) ?></th></tr></thead><tbody>
+      <?php foreach ($cal as $c): ?><tr><td><?= e($lvl[$c['level']] ?? (string) $c['level']) ?></td><td class="n"><?= (int) $c['reports'] ?></td><td class="n"><?= (int) $c['raised'] ?></td><td class="n"><?= (int) $c['lowered'] ?></td><td class="n"><?= $c['median_minutes_to_dispatch'] === null ? '—' : smart_duration((float) $c['median_minutes_to_dispatch']) ?></td></tr><?php endforeach; ?>
+      </tbody></table>
+      <p class="p-hint"><?= e(t('If administrators often lower reports with a given factor, it may deserve fewer points.', 'Kung madalas ibaba ng mga administrator ang mga ulat na may isang salik, maaaring bawasan ang puntos nito.')) ?></p></section><?php endif; ?>
+  </div><div class="ss-col">
   <section class="p-card p-card-pad ss-result" id="smart-result">
     <p class="p-eyebrow"><?= e(t('Result', 'Resulta')) ?></p>
     <?php if (is_array($try)): ?>
@@ -1808,21 +1814,12 @@ endif;
       <ul class="ss-levref"><?php foreach ([['urgent', '#E5384A'], ['high', '#FF9800'], ['normal', '#2F6BFF']] as [$lk, $lc]): ?><li><i style="background:<?= $lc ?>"></i><?= e($lvl[$lk]) ?><b><?= e(t('from ', 'mula ')) . (int) $sr[$lk . '_from'] ?></b></li><?php endforeach; ?><li><i style="background:#8E9DBB"></i><?= e($lvl['low']) ?><b><?= e(t('below ', 'sa ibaba ng ')) . (int) $sr['normal_from'] ?></b></li></ul>
     <?php endif; ?>
   </section>
-  </div>
-
-  <?php if ($cal || $fac): ?>
-  <div class="ss-two ss-two--top" data-sm="test">
-    <?php if ($cal): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('How the levels are doing (90 days)', 'Kumusta ang mga antas (90 araw)')) ?></p>
-      <table class="ss-table"><thead><tr><th><?= e(t('Level', 'Antas')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th><th class="n"><?= e(t('Typical time to dispatch', 'Karaniwang oras bago i-dispatch')) ?></th></tr></thead><tbody>
-      <?php foreach ($cal as $c): ?><tr><td><?= e($lvl[$c['level']] ?? (string) $c['level']) ?></td><td class="n"><?= (int) $c['reports'] ?></td><td class="n"><?= (int) $c['raised'] ?></td><td class="n"><?= (int) $c['lowered'] ?></td><td class="n"><?= $c['median_minutes_to_dispatch'] === null ? '—' : smart_duration((float) $c['median_minutes_to_dispatch']) ?></td></tr><?php endforeach; ?>
-      </tbody></table>
-      <p class="p-hint"><?= e(t('If administrators often lower reports with a given factor, it may deserve fewer points.', 'Kung madalas ibaba ng mga administrator ang mga ulat na may isang salik, maaaring bawasan ang puntos nito.')) ?></p></section><?php endif; ?>
-    <?php if ($fac): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('Factors administrators change', 'Mga salik na binabago ng administrator')) ?></p>
+  <?php if ($fac): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('Factors administrators change', 'Mga salik na binabago ng administrator')) ?></p>
       <table class="ss-table"><thead><tr><th><?= e(t('Factor', 'Salik')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th></tr></thead><tbody>
       <?php foreach ($fac as $f): ?><tr><td><?= e(trim((string) $f['factor'] . ' ' . (string) ($f['detail'] ?? '')) ?: t('No single factor', 'Walang iisang salik')) ?></td><td class="n"><?= (int) $f['reports'] ?></td><td class="n"><?= (int) $f['raised'] ?></td><td class="n"><?= (int) $f['lowered'] ?></td></tr><?php endforeach; ?>
       </tbody></table></section><?php endif; ?>
-  </div>
-  <?php endif; ?>
+  </div></div>
+
   <?php endif; ?>
 </section>
 <?php endif; ?>
