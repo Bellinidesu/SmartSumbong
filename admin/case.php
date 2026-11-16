@@ -1194,8 +1194,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                   </small>
                 <?php endif; ?>
               </span>
-              <span class="p-status-dot <?= $ok ? 'p-on-c' : 'p-off-c' ?>">
-                <?= $ok ? 'ONLINE' : ($idle ? e(t('NOT ACTIVE', 'HINDI AKTIBO')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
+              <span class="p-status-dot <?= $ok ? 'p-on-c' : ($idle ? 'p-busy-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty, but their app is not sending a location right now. Ask them to open the app with location on; they show ONLINE as soon as it reports.', 'Naka-duty, pero hindi nagpapadala ng lokasyon ang app nila ngayon. Sabihan silang buksan ang app na naka-on ang lokasyon; lalabas silang ONLINE kapag nag-ulat na.')) . '"' : '' ?>>
+                <?= $ok ? 'ONLINE' : ($idle ? e(t('ON DUTY · NO SIGNAL', 'NAKA-DUTY · WALANG SIGNAL')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
               </span>
               <span class="p-pick"><?= $ok ? e(t('Assign', 'I-assign')) : '&mdash;' ?></span>
             </label>
@@ -1240,8 +1240,11 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </details>
 
         <?php $anyActive = (bool) array_filter($roster, fn($t) => !empty($t['assignable']) && !empty($t['location_fresh'])); ?>
+        <?php $nSilent = count(array_filter($roster, fn($t) => !empty($t['assignable']) && empty($t['location_fresh']))); ?>
         <?php if (!$anyActive): ?>
-          <p class="p-clock p-late" style="margin:0"><?= e(t('No tanod is active right now. Dispatch opens when a tanod is on duty with their app open.', 'Walang aktibong tanod ngayon. Mabubuksan ang dispatch kapag may tanod na naka-duty at bukas ang app.')) ?></p>
+          <p class="p-clock p-late" style="margin:0"><?= $nSilent > 0
+              ? e(sprintf(t('%d tanod(s) are on duty, but their apps are not sending a location. Ask them to open the app with location on; they become assignable as soon as it reports.', '%d tanod ang naka-duty, pero hindi nagpapadala ng lokasyon ang kanilang app. Sabihan silang buksan ang app na naka-on ang lokasyon; maa-assign na sila kapag nag-ulat na.'), $nSilent))
+              : e(t('No tanod is active right now. Dispatch opens when a tanod is on duty with their app open.', 'Walang aktibong tanod ngayon. Mabubuksan ang dispatch kapag may tanod na naka-duty at bukas ang app.')) ?></p>
         <?php endif; ?>
         <button class="p-btn p-btn-orange p-btn-block" type="submit" name="action" value="dispatch"<?= $anyActive ? '' : ' disabled' ?>><?= e(t('Dispatch', 'I-dispatch')) ?></button>
       </form>
@@ -1331,8 +1334,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                       </small>
                     <?php endif; ?>
                   </span>
-                  <span class="p-status-dot <?= $ok ? 'p-on-c' : 'p-off-c' ?>">
-                    <?= $ok ? 'ONLINE' : ($idle ? e(t('NOT ACTIVE', 'HINDI AKTIBO')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
+                  <span class="p-status-dot <?= $ok ? 'p-on-c' : ($idle ? 'p-busy-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty, but their app is not sending a location right now. Ask them to open the app with location on; they show ONLINE as soon as it reports.', 'Naka-duty, pero hindi nagpapadala ng lokasyon ang app nila ngayon. Sabihan silang buksan ang app na naka-on ang lokasyon; lalabas silang ONLINE kapag nag-ulat na.')) . '"' : '' ?>>
+                    <?= $ok ? 'ONLINE' : ($idle ? e(t('ON DUTY · NO SIGNAL', 'NAKA-DUTY · WALANG SIGNAL')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
                   </span>
                   <span class="p-pick"><?= $ok ? e(t('Move', 'Ilipat')) : '&mdash;' ?></span>
                 </label>
