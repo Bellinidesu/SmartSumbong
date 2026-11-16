@@ -9,6 +9,15 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The Opus sweep (17 Nov): security, speed, declutter, and the audits clean**
+
+- Security: the CSP nonce is written into every `<script>` by the template that writes it; the finished page is no longer stamped (stamping would also have blessed a script that slipped into the page). Settings' health and usage doors are super admin only; Workspace writes need the Workspace page's tier.
+- Speed: Spatial Distribution's 172 KB inline map code is a cached file (`assets/js/spatial.js`); Mapillary (1 MB) loads the first time StreetLook opens; the SMART logo picks a 12/38/100 KB file for its size; the server's status checks run in parallel; Plan and usage is fetched when its tab opens and the photo sum is kept ten minutes; floating chat heads poll once a minute when nobody is at the page; the page ground is a fixed layer instead of `background-attachment: fixed` (which repainted the page on every scroll); vendor library URLs are versioned.
+- Declutter: about 92 KB of CSS rules that matched nothing, unused functions (the old in-page chat reader among them), sixteen one-off screenshot specs, and Home (retired 15 Nov) reduced to a redirect.
+- Quality: PHP warnings on missing fields, fetch timeouts on the live checks, the health banner speaks only when it changes, the case chat menu closes on Tab, the Case chat choice hides the bubble before the page paints, the print desks' and widgets' Tagalog.
+- Audits: accessibility, contrast and Material audits clean; the layout-rules audit's findings fixed (Appearance cards one height, legends never wrap 3+1, the Add-to-committee button as tall as its fields).
+- CI: the browser job gets 40 minutes (it was cancelled at 15 on every merge to main); `perf-budget.sh` caps inline scripts at 40 KB; on Windows `serve.sh` stops stale test servers first.
+
 **Assign Tanod says why a tanod on duty cannot be picked (16 Nov, from the group chat)**
 
 - A tanod who is on duty but whose app is not sending a location was labelled "NOT ACTIVE", which read as if the portal ignored the duty switch. It now reads "ON DUTY · NO SIGNAL" in amber, with a note on what to do (ask them to open the app with location on), and when nobody is assignable the banner says how many are on duty but silent. The dispatch refusal says the same. The rule itself (dispatch only to a tanod who is on duty AND reporting, Rose 2 Oct) is unchanged.
