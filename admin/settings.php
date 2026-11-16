@@ -599,10 +599,16 @@ if (($_GET['usage'] ?? '') === '1') {
     $month = (new DateTimeImmutable('first day of this month', $tz))->setTime(0, 0)->format(DateTimeInterface::ATOM);
     $out = ['plans' => PLAN_TIERS];
     try { $out['supabase'] = $db->rpc('system_usage'); } catch (Throwable $e) { $out['supabase'] = null; }
-    try {
-        $media = $db->select('report_media', ['select' => 'bytes', 'limit' => '20000']);
-        $out['photos'] = ['files' => count($media), 'bytes' => array_sum(array_map(fn($m) => (int) $m['bytes'], $media))];
-    } catch (Throwable $e) { $out['photos'] = null; }
+    // the photos on record: summed from up to 20,000 rows, so the answer is kept for 10 minutes rather than read on every Check again (sweep, 16 Nov 2026)
+    $pf = sys_get_temp_dir() . '/ss-usage-photos-' . substr(md5((string) env('SUPABASE_URL', '')), 0, 8) . '.json';
+    $out['photos'] = (is_file($pf) && filemtime($pf) > time() - 600) ? json_decode((string) @file_get_contents($pf), true) : null;
+    if (!is_array($out['photos'])) {
+        try {
+            $media = $db->select('report_media', ['select' => 'bytes', 'limit' => '20000']);
+            $out['photos'] = ['files' => count($media), 'bytes' => array_sum(array_map(fn($m) => (int) ($m['bytes'] ?? 0), $media))];
+            @file_put_contents($pf, json_encode($out['photos']), LOCK_EX);
+        } catch (Throwable $e) { $out['photos'] = null; }
+    }
     try { $out['alerts'] = $db->count('dispatches', ['assigned_at' => 'gte.' . $month]); } catch (Throwable $e) { $out['alerts'] = null; }
     // Cloudinary's own usage figures, only when its API key and secret are set.
     $cloud = env('CLOUDINARY_CLOUD_NAME', ''); $ck = env('CLOUDINARY_API_KEY', ''); $cs = env('CLOUDINARY_API_SECRET', '');
