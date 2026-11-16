@@ -481,3 +481,11 @@
 .ss-levref { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .ss-levref li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .06); border: 1px solid var(--p-line); font-size: 14px; }
 .ss-levref i { width: 12px; height: 12px; border-radius: 4px; flex: none; } .ss-levref b { margin-left: auto; font: 800 16px Inter Tight, Inter, sans-serif; font-variant-numeric: tabular-nums; }
+.ss-vhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ss-vhead > div { min-width: 0; flex: 1 1 320px; }
+.ss-vhead .ss-rescore { flex: none; margin: 0; }
+.ss-pdot { display: inline-block; width: 10px; height: 10px; margin-right: 10px; border-radius: 50%; vertical-align: 1px; }
+.ss-vhead p.p-eyebrow { margin: 0 0 6px; font: 800 20px/1.25 Inter Tight, sans-serif; letter-spacing: -.01em; text-transform: none; color: var(--p-ink); }
+.ss-vhead p.p-eyebrow em { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: 10px; padding: 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-muted) 18%, transparent); color: var(--p-ink); font: 700 12px Inter, sans-serif; font-style: normal; vertical-align: middle; letter-spacing: 0; }
+.ss-vhead .p-hint { margin: 0; }
+.ss-pdot { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .5); }

@@ -41,9 +41,22 @@ function msgr_short(string $iso): string
     return $d->format('n/j/y');
 }
 
-function msgr_avatar(string $name, string $kind, string $size = ''): string
+/** The account's own picture when it has one (Edit Profile's avatar_url), else its initials. */
+function msgr_avatar(string $name, string $kind, string $size = '', ?string $url = null): string
 {
-    return '<span class="mg-av mg-av--' . e($kind) . ($size !== '' ? ' mg-av--' . e($size) : '') . '" aria-hidden="true">' . e(case_chat_initials($name)) . '</span>';
+    $cls = 'mg-av mg-av--' . e($kind) . ($size !== '' ? ' mg-av--' . e($size) : '');
+    if ($url !== null && $url !== '') {
+        return '<span class="' . $cls . ' mg-av--img" aria-hidden="true"><img src="' . e(cld_thumb($url, 160, true)) . '" alt="" loading="lazy"></span>';
+    }
+    return '<span class="' . $cls . '" aria-hidden="true">' . e(case_chat_initials($name)) . '</span>';
+}
+
+/** The colour of a case: its kind of complaint's colour, the one the dashboard and the map use. Returns a style attribute's value. */
+function msgr_case_style(string $category): string
+{
+    $hex = category_colours()[$category] ?? '';
+    if (!preg_match('/^#[0-9a-f]{6}$/i', $hex)) { return ''; }
+    return '--cc:' . $hex . ';--ci:' . ink_on($hex);
 }
 
 /**
@@ -56,7 +69,8 @@ function msgr_list(array $rows, string $selKey): string
     $people = [];
     foreach ($rows as $r) {
         $k = (string) ($r['pkey'] ?? $r['key']);
-        $people[$k] ??= ['key' => $k, 'name' => $r['name'], 'kind' => $r['kind'], 'last' => '', 'rows' => []];
+        $people[$k] ??= ['key' => $k, 'name' => $r['name'], 'kind' => $r['kind'], 'last' => '', 'av' => null, 'rows' => []];
+        if (empty($people[$k]['av']) && !empty($r['av'])) { $people[$k]['av'] = $r['av']; }
         $people[$k]['rows'][] = $r;
         if ($r['last'] > $people[$k]['last']) { $people[$k]['last'] = $r['last']; }
     }
@@ -69,7 +83,7 @@ function msgr_list(array $rows, string $selKey): string
         $pid = 'mgp-' . substr(md5($pk), 0, 10); ?>
       <section class="mg-person<?= $hasSel ? ' mg-pop' : '' ?>" data-person="<?= e($pk) ?>">
         <button type="button" class="mg-phead" data-mg="person" aria-expanded="<?= $hasSel ? 'true' : 'false' ?>" aria-controls="<?= e($pid) ?>">
-          <?= msgr_avatar($pe['name'], $pe['kind'], 'lg') ?>
+          <?= msgr_avatar($pe['name'], $pe['kind'], 'lg', $pe['av']) ?>
           <span class="mg-ctext">
             <span class="mg-cname"><b><?= e($pe['name']) ?></b><time><?= e(msgr_short($pe['last'])) ?></time></span>
             <span class="mg-ctag"><?= e($role) ?> · <?= e(sprintf($n === 1 ? t('%d case', '%d kaso') : t('%d cases', '%d kaso'), $n)) ?></span>
@@ -81,7 +95,7 @@ function msgr_list(array $rows, string $selKey): string
         <?php foreach ($pe['rows'] as $r):
             $sel = $r['key'] === $selKey;
             $href = 'inbox.php?app=chats&c=' . e($r['case']) . '&k=' . e($r['conv']); ?>
-          <a class="mg-conv mg-thr<?= $sel ? ' mg-sel' : '' ?>" href="<?= $href ?>" data-mg-row data-key="<?= e($r['key']) ?>" data-report="<?= e($r['case']) ?>" data-conv="<?= e($r['conv']) ?>"
+          <a class="mg-conv mg-thr<?= $sel ? ' mg-sel' : '' ?>" href="<?= $href ?>" style="<?= e(msgr_case_style((string) ($r['cat'] ?? ''))) ?>" data-mg-row data-key="<?= e($r['key']) ?>" data-report="<?= e($r['case']) ?>" data-conv="<?= e($r['conv']) ?>"
              data-mine="<?= $r['mine'] ? '1' : '0' ?>" data-search="<?= e(mb_strtolower($r['name'] . ' ' . $r['tracking'] . ' ' . $r['subject'])) ?>" data-feed="<?= e((string) json_encode($r['feed'])) ?>"<?= $sel ? ' aria-current="true"' : '' ?>>
             <i class="mg-udot" hidden aria-hidden="true"></i><span class="p-sr mg-usr" hidden><?= e(t('Unread', 'Hindi pa nababasa')) ?></span>
             <span class="mg-bub" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.5 1.3 4.7 3.4 6.2-.2 1.3-.8 2.6-1.7 3.6a.5.5 0 0 0 .5.8c2-.3 3.7-1.1 4.9-2A11.7 11.7 0 0 0 12 20c5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/></svg></span>
@@ -148,7 +162,7 @@ function msgr_composer(array $conv, string $caseId): string
 }
 
 /** Details, on the right: who this is, then grouped lists. */
-function msgr_info(array $conv, array $report, array $evidence, string $caseId): string
+function msgr_info(array $conv, array $report, array $evidence, string $caseId, array $dispatches = []): string
 {
     $name = $conv['name'];
     $photos = [];
@@ -157,7 +171,7 @@ function msgr_info(array $conv, array $report, array $evidence, string $caseId):
     $photos = array_slice(array_values(array_unique($photos)), 0, 9);
     ob_start(); ?>
       <div class="mg-ihead">
-        <?= msgr_avatar($name, $conv['kind'], 'xl') ?>
+        <?= msgr_avatar($name, $conv['kind'], 'xl', msgr_conv_av($conv, $report, $dispatches)) ?>
         <b class="mg-iname2"><?= e($name) ?></b>
         <span class="mg-isub"><?= e($conv['sub']) ?></span>
       </div>
@@ -185,6 +199,14 @@ function msgr_info(array $conv, array $report, array $evidence, string $caseId):
     return (string) ob_get_clean();
 }
 
+/** The picture of the person in a conversation: the resident of the case (not when they filed as anonymous), or the tanod of that dispatch. */
+function msgr_conv_av(array $conv, array $report, array $dispatches): ?string
+{
+    if ($conv['kind'] === 'resident') { return !empty($report['is_anonymous']) ? null : (($report['resident']['avatar_url'] ?? null) ?: null); }
+    foreach ($dispatches as $d) { if ('d-' . ($d['id'] ?? '') === $conv['id']) { return ($d['tanod']['avatar_url'] ?? null) ?: null; } }
+    return null;
+}
+
 /** The middle and the right for one open conversation: what the page and the "open this conversation" call both return. */
 function msgr_detail(array $load, string $convId, string $caseId): string
 {
@@ -193,17 +215,17 @@ function msgr_detail(array $load, string $convId, string $caseId): string
     if ($conv === null) return '<div class="mg-blank"><b>' . e(t('That conversation is not here.', 'Wala ang usapang iyan.')) . '</b></div>';
     $report = $load['report'];
     ob_start(); ?>
-    <section class="mg-center" aria-label="<?= e(t('Conversation with ', 'Usapan kay ') . $conv['name']) ?>" data-report="<?= e($caseId) ?>" data-conv="<?= e($convId) ?>" data-tracking="<?= e((string) ($report['tracking_id'] ?? '')) ?>" data-thread-url="inbox.php?app=chats&amp;part=thread&amp;c=<?= e($caseId) ?>&amp;k=<?= e($convId) ?>">
+    <section class="mg-center" style="<?= e(msgr_case_style((string) ($report['category'] ?? ''))) ?>" aria-label="<?= e(t('Conversation with ', 'Usapan kay ') . $conv['name']) ?>" data-report="<?= e($caseId) ?>" data-conv="<?= e($convId) ?>" data-tracking="<?= e((string) ($report['tracking_id'] ?? '')) ?>" data-thread-url="inbox.php?app=chats&amp;part=thread&amp;c=<?= e($caseId) ?>&amp;k=<?= e($convId) ?>">
       <header class="mg-chead">
         <a class="mg-back" href="inbox.php?app=chats" data-mg="back" aria-label="<?= e(t('Back to messages', 'Bumalik sa mga mensahe')) ?>"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>
-        <span class="mg-ctitle"><?= msgr_avatar($conv['name'], $conv['kind'], 'sm') ?><b><?= e($conv['name']) ?></b><small><?= e($conv['sub']) ?> · <?= e((string) ($report['tracking_id'] ?? '')) ?></small></span>
+        <span class="mg-ctitle"><?= msgr_avatar($conv['name'], $conv['kind'], 'sm', msgr_conv_av($conv, $report, (array) ($load['dispatches'] ?? []))) ?><b><?= e($conv['name']) ?></b><small><?= e($conv['sub']) ?> · <?= e((string) ($report['tracking_id'] ?? '')) ?></small></span>
         <button type="button" class="mg-infobtn" data-mg="info" aria-pressed="true" aria-label="<?= e(t('Details', 'Mga detalye')) ?>"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".7" fill="currentColor"/></svg></button>
       </header>
       <div class="mg-find" hidden><input type="search" class="mg-findin" placeholder="<?= e(t('Search in conversation', 'Hanapin sa usapan')) ?>" aria-label="<?= e(t('Search in conversation', 'Hanapin sa usapan')) ?>"><button type="button" class="mg-findx" data-mg="findx"><?= e(t('Done', 'Tapos na')) ?></button></div>
       <div class="mg-msgs" role="log" aria-live="polite" aria-label="<?= e(t('Messages', 'Mga mensahe')) ?>" tabindex="0"><?= msgr_messages($conv, $report, $caseId) ?></div>
       <?= msgr_composer($conv, $caseId) ?>
     </section>
-    <aside class="mg-info" aria-label="<?= e(t('Details', 'Mga detalye')) ?>"><?= msgr_info($conv, $report, $load['evidence'], $caseId) ?></aside>
+    <aside class="mg-info" aria-label="<?= e(t('Details', 'Mga detalye')) ?>"><?= msgr_info($conv, $report, $load['evidence'], $caseId, (array) ($load['dispatches'] ?? [])) ?></aside>
     <?php
     return (string) ob_get_clean();
 }

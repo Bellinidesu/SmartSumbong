@@ -1995,6 +1995,21 @@ test('Spatial Distribution (12 Nov 2026): the SMART panel stays navy by day; the
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Inbox (16 Nov): the case number and its bubble take the colour of the case, the account has its own picture, and the open thread rests on a wash of that colour', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  const r = await open(page, 'inbox.php?app=chats&c=c0000000-0000-0000-0000-000000000001&k=r');
+  const row = page.locator('[data-mg-row][data-conv="r"]');
+  expect(await row.getAttribute('style'), 'the row carries the colour of its case').toMatch(/--cc:#[0-9a-f]{6}/i);
+  const num = await row.locator('.mg-cname b').evaluate(e => getComputedStyle(e).color);
+  const plain = await page.locator('.mg-lhead h2').evaluate(e => getComputedStyle(e).color);
+  expect(num, 'the case number is no longer the plain ink').not.toBe(plain);
+  await expect(page.locator('.mg-person .mg-av--img img'), 'the resident own picture').toHaveCount(1);
+  await expect(page.locator('.mg-chead .mg-av--img img'), 'a resident who filed as anonymous shows no picture to others').toHaveCount(0);
+  expect(await page.locator('.mg-center').getAttribute('style')).toMatch(/--cc:#/);
+  expect(await page.locator('.mg-msgs').evaluate(e => getComputedStyle(e).backgroundImage), 'a smooth gradient behind the messages').toContain('gradient');
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
 test('Inbox, Case chats like Messenger (12 Nov 2026): a conversation per person with an unread dot, search and chips, a conversation that opens in place, send and the thumbs-up, emoji, mute, the information column; a community chat since 15 Nov 2026 (Rose): a profile per person with a bubble chat per case under it', async ({ page }) => {
   const r = await open(page, 'inbox.php');
   await page.evaluate(() => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_reset_chat_state', { method: 'POST', body: '{}' }));   // nothing read or muted yet, for anybody

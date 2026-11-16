@@ -1706,7 +1706,7 @@ endif;
     <p class="p-hint"><?= e(t('A report starts with these points; words, hazard zones, neighbours reporting the same thing and the hour add to them. The total decides the level.', 'Nagsisimula ang ulat sa mga puntos na ito; dinadagdagan ito ng mga salita, lugar na may panganib, kapitbahay na nag-ulat ng pareho at oras. Ang kabuuan ang magpapasya ng antas.')) ?></p>
     <div class="ss-cmap">
       <?php foreach (category_pairs() as $ck => $cl): ?>
-        <div class="ss-cmap-row"><label for="pt-<?= e($ck) ?>"><?= e(t($cl[0], $cl[1])) ?></label>
+        <div class="ss-cmap-row"><label for="pt-<?= e($ck) ?>"><i class="ss-pdot" style="background:<?= e(category_colours()[$ck] ?? '#8E9DBB') ?>"></i><?= e(t($cl[0], $cl[1])) ?></label>
           <input class="p-input-plain" id="pt-<?= e($ck) ?>" type="number" name="pts[<?= e($ck) ?>]" min="0" max="60" value="<?= (int) ($sr['category_points'][$ck] ?? 0) ?>"></div>
       <?php endforeach; ?>
     </div>
@@ -1749,14 +1749,20 @@ endif;
     <p class="st-note"><?= e(t('The form above keeps what you typed. Add a reason and press Save rules to make the change.', 'Nasa form sa itaas pa rin ang tinype mo. Maglagay ng dahilan at pindutin ang I-save ang mga patakaran para gawin ang pagbabago.')) ?></p>
   </div>
   <?php endif; ?>
+  <?php if (!$hist): ?>
   <form method="post" class="ss-posform" data-sm="rules"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rescore">
     <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Re-score open reports', 'Muling markahan ang mga bukas na ulat')) ?></button>
     <span class="p-hint"><?= e(t('Applies the rules above to every case that is still open. Levels an administrator set by hand stay.', 'Ilalapat ang mga patakaran sa lahat ng kasong bukas pa. Mananatili ang antas na itinakda ng administrator.')) ?></span></form>
+  <?php endif; ?>
 
   <?php if ($hist): ?>
   <div class="p-card p-card-pad" id="smart-history" data-sm="rules">
-    <p class="p-eyebrow"><?= e(t('Versions of the rules', 'Mga bersyon ng mga patakaran')) ?><em><?= count($hist) ?></em></p>
-    <p class="p-hint"><?= e(t('Every change to the rules or the word list is kept, with who made it and why. Rolling back restores a version as a new one, and re-scores the open reports.', 'Itinatago ang bawat pagbabago sa mga patakaran o listahan ng salita, kasama kung sino at bakit. Ibinabalik ng rollback ang isang bersyon bilang bago, at muling minamarkahan ang mga bukas na ulat.')) ?></p>
+    <div class="ss-vhead"><div><p class="p-eyebrow"><?= e(t('Versions of the rules', 'Mga bersyon ng mga patakaran')) ?><em><?= count($hist) ?></em></p>
+    <p class="p-hint"><?= e(t('Every change to the rules or the word list is kept, with who made it and why. Rolling back restores a version as a new one, and re-scores the open reports.', 'Itinatago ang bawat pagbabago sa mga patakaran o listahan ng salita, kasama kung sino at bakit. Ibinabalik ng rollback ang isang bersyon bilang bago, at muling minamarkahan ang mga bukas na ulat.')) ?></p></div>
+  <form method="post" class="ss-posform ss-rescore"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rescore">
+    <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Re-score open reports', 'Muling markahan ang mga bukas na ulat')) ?></button>
+    <span class="p-sr"><?= e(t('Applies the rules above to every case that is still open. Levels an administrator set by hand stay.', 'Ilalapat ang mga patakaran sa lahat ng kasong bukas pa. Mananatili ang antas na itinakda ng administrator.')) ?></span></form>
+    </div>
     <ul class="ss-vlist">
       <?php foreach ($hist as $h): ?>
         <li>

@@ -28,7 +28,7 @@ def report(i, **kw):
          'created_at': ago(3 + i * 7), 'due_at': ahead(20 - i * 3), 'reporter_id': 'd0000000-0000-0000-0000-000000000001', 'resident_id': 'u1' if i in (2, 5, 7, 12) else 'd0000000-0000-0000-0000-000000000001', 'is_anonymous': False,
          'latitude': 14.5, 'longitude': 121.0, 'handler_id': ADMIN['id'] if i % 3 == 0 else None, 'handler_name': 'Reyes, Marites' if i % 3 == 0 else None,
          'tier': 0, 'is_sensitive': False, 'deleted_at': None, 'referred_to': None, 'higher_official': None, 'higher_official_note': None, 'handed_up_at': None,
-         'location_text': 'Purok 2, Barangay 183', 'version': 1, 'reporter': {'full_name': 'Garcia, Juan', 'mobile_number': '09171234567'}, 'resident': {'id': 'd0000000-0000-0000-0000-000000000001', 'full_name': 'Garcia, Juan'},
+         'location_text': 'Purok 2, Barangay 183', 'version': 1, 'reporter': {'full_name': 'Garcia, Juan', 'mobile_number': '09171234567'}, 'resident': {'id': 'd0000000-0000-0000-0000-000000000001', 'full_name': 'Garcia, Juan', 'avatar_url': 'https://res.cloudinary.com/demo/image/upload/sample.jpg'},
          'triage': {'score': 80 - i * 6, 'effective_level': ['urgent', 'high', 'normal', 'low'][i % 4], 'override_level': None, 'possible_duplicates': []}}
     r.update(kw); return r
 
@@ -372,7 +372,7 @@ TABLES['dispatch_updates'] = [
     {'id': 'du4', 'dispatch_id': 'd2', 'author_id': 'u2', 'kind': 'message', 'step': None, 'body': 'Copy po, nilagyan ko na ng harang ang kalsada.', 'created_at': ago(0.35)},
     {'id': 'du5', 'dispatch_id': 'd2', 'author_id': 'u2', 'kind': 'step', 'step': 'arrived', 'body': None, 'created_at': ago(0.3)},
 ]
-_CHREP = {'id': _CASE1, 'tracking_id': 'SS-2610-1001', 'subject': 'Live wire sparking near the school', 'status': 'validated', 'handler_id': 'a0000000-0000-0000-0000-0000000000dc', 'resident': {'full_name': 'Garcia, Juan'}}
+_CHREP = {'id': _CASE1, 'tracking_id': 'SS-2610-1001', 'subject': 'Live wire sparking near the school', 'category': 'public_safety_infrastructure', 'status': 'validated', 'handler_id': 'a0000000-0000-0000-0000-0000000000dc', 'resident': {'full_name': 'Garcia, Juan', 'avatar_url': 'https://res.cloudinary.com/demo/image/upload/sample.jpg'}}
 for _m in TABLES['report_messages']: _m['report'] = _CHREP
 for _u in TABLES['dispatch_updates']: _u['d'] = {'report_id': _CASE1, 'tanod_id': 'u2', 'tanod': {'full_name': 'Lediac, Ace'}, 'report': _CHREP}
 def _now(): return dt.datetime.now(dt.timezone.utc).isoformat()
