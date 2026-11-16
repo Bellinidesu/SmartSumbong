@@ -263,7 +263,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     'mly' => env('MAPILLARY_TOKEN', ''), 'mlyV' => vendor_version('mapillary-js'), 'me' => $admin['id'] ?? null,
     'hall' => ['phone' => env('BARANGAY_HALL_PHONE', ''), 'hours' => env('BARANGAY_HALL_HOURS', '')], 'brgyLine' => brgy_line(), 'hotspots' => HOTSPOTS_ENABLED,
 ]; ?>
-<script nonce="<?= csp_nonce() ?>" type="application/json" id="sd-cfg"><?= json_encode($sdCfg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
+<script nonce="<?= csp_nonce() ?>">window.SD_CFG = <?= json_encode($sdCfg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;</script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/spatial.js?v=<?= e(asset_version('../js/spatial.js')) ?>"></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/sd-dock.js?v=<?= e(asset_version('../js/sd-dock.js')) ?>"></script>

@@ -10,7 +10,7 @@ const { createClient } = supabase;
 
 // The token is this admin's own session. Everything below is still
 // filtered by row level security; nothing here elevates anything.
-const SD_CFG = JSON.parse(document.getElementById('sd-cfg').textContent);   // what the server knows, handed over as data (strict CSP, cacheable file)
+const SD_CFG = window.SD_CFG || {};   // what the server knows, set by spatial.php just before this file
 const TOKEN = SD_CFG.token;
 const sb = window.ssSupabase(SD_CFG.sbUrl, SD_CFG.sbKey, TOKEN);
 
@@ -316,7 +316,7 @@ function donutSvg(props, n) {
     else { const p0 = f(a0), p1 = f(a1 - 5); ring += '<path d="M' + p0 + ' A' + r + ' ' + r + ' 0 ' + (a1 - a0 > 180 ? 1 : 0) + ' 1 ' + p1 + '" fill="none" stroke="' + catColour(c) + '" stroke-width="6" stroke-linecap="round"/>'; }
     a0 = a1;
   });
-  const txt = String(n);
+  const txt = esc(String(n));
   if (!isDark()) return '<svg viewBox="-35 -35 70 70" aria-hidden="true"><circle r="33" fill="#fff"/>' + ring +
     '<text y="' + (txt.length > 3 ? 5 : 6.5) + '" text-anchor="middle" font-family="Inter Tight,sans-serif" font-weight="800" font-size="' + (txt.length > 3 ? 14 : 19) + '" fill="#141B34">' + esc(txt) + '</text></svg>';
   // Material at night too (15 Nov): a solid graphite disc with a white edge, no gradient and no gloss, lifted by shadow (sd-dark.css)
@@ -424,7 +424,6 @@ function runIntro() {
   if (!INTRO || introRan) return; introRan = true;
   const ease = t => 1 - Math.pow(1 - t, 3), back = t => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
   const frame = (ms, fn, done) => { const t0 = performance.now(); (function f(now) { const u = Math.min(1, (now - t0) / ms); fn(u); if (u < 1) requestAnimationFrame(f); else if (done) done(); })(t0); };
-  const dark = isDark();
   map.setPaintProperty('outline', 'line-width', 5);
   frame(1900, u => map.setPaintProperty('outline', 'line-gradient', ['step', ['line-progress'], '#FF9800', Math.max(.001, ease(u)), 'rgba(255,152,0,0)']),
     () => { map.setPaintProperty('outline', 'line-gradient', null); map.setPaintProperty('outline', 'line-width', 2); });
@@ -821,10 +820,10 @@ function showDetail(r) {
       box.innerHTML = d && d.tanod ? esc(String(d.tanod.full_name || '').trim()) + '<small>' + esc(label(d.state)) + ' · ' + esc(fmtDate(d.assigned_at) || '') + '</small>'
         : esc(T('No tanod assigned yet', 'Wala pang naka-assign na tanod')) + '<small>' + esc(T('Dispatch from the case', 'I-dispatch mula sa kaso')) + '</small>'; });
   // The resident's words and photos fill the card under the progress.
-  Promise.all([sb.from('reports').select('description').eq('id', r.id).limit(1), sb.from('report_media').select('media_url').eq('report_id', r.id).limit(3),
+  Promise.all([sb.from('reports').select('description').eq('id', r.id).limit(1), Promise.resolve({}),   /* the photos were read here and never shown (sweep, 17 Nov 2026: one request less per card) */
     sb.from('status_logs').select('new_status,remark,created_at,by:users!status_logs_changed_by_fkey(full_name)').eq('report_id', r.id).order('created_at', { ascending: false }).limit(1)]).then(([d, m, lg]) => {
     if (csFor !== r.id) return; const box = document.getElementById('cs-extra'); if (!box) return;
-    const q = d.data && d.data[0] && d.data[0].description, ph = (m.data || []).map(x => x.media_url);
+    const q = d.data && d.data[0] && d.data[0].description;
     const L = lg && lg.data && lg.data[0], ms = L ? Date.now() - new Date(L.created_at).getTime() : 0, h = Math.round(ms / 36e5), ago = h < 1 ? T('just now', 'ngayon lang') : h < 48 ? h + T(' h ago', ' oras ang nakalipas') : Math.round(h / 24) + T(' days ago', ' araw ang nakalipas');
     const last = L ? '<div class="cs-last"><i></i><div><small>' + T('Last update', 'Huling update') + ' · ' + esc(ago) + '</small><b>' + esc(label(L.new_status)) + (L.by && L.by.full_name ? ' · ' + esc(String(L.by.full_name).trim()) : T(' · by the system', ' · ng sistema')) + '</b>' + (L.remark ? '<span>' + esc(String(L.remark).slice(0, 140)) + '</span>' : '') + '</div></div>' : '';
     box.innerHTML = last + (q ? '<div class="cs-quote"><small>' + T('In the resident’s words', 'Sa salita ng residente') + '</small>“' + esc(String(q).slice(0, 200)) + (String(q).length > 200 ? '…' : '') + '”</div>' : '') +
@@ -886,8 +885,8 @@ function lkClose(silent) {
 }
 function mlyLoad(cb) {
   if (window.mapillary) { cb(); return; }
-  if (!document.querySelector('link[data-mly]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'assets/vendor/mapillary/mapillary.css?v=' + SD_CFG.mlyV; l.dataset.mly = '1'; document.head.appendChild(l); }
-  const sc = document.createElement('script'); sc.src = 'assets/vendor/mapillary/mapillary.js?v=' + SD_CFG.mlyV; sc.onload = cb; document.head.appendChild(sc);
+  if (!document.querySelector('link[data-mly]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'assets/vendor/mapillary/mapillary.css?v=' + encodeURIComponent(String(SD_CFG.mlyV || '')); l.dataset.mly = '1'; document.head.appendChild(l); }
+  const sc = document.createElement('script'); sc.src = 'assets/vendor/mapillary/mapillary.js?v=' + encodeURIComponent(String(SD_CFG.mlyV || '')); sc.onload = cb; document.head.appendChild(sc);
 }
 function lkOpen(r) {
   lkClose(true);
@@ -1013,7 +1012,7 @@ function lkPlace() {
   LK.busy = true;
   LK.viewer.project({ lng: LK.here.lng, lat: LK.here.lat }).then(p => {
     LK.busy = false; if (!LK) return;
-    const card = document.getElementById('lk-card'), edge = document.getElementById('lk-edge'), W = LK.el.clientWidth, H = LK.el.clientHeight;
+    const card = document.getElementById('lk-card'), edge = document.getElementById('lk-edge'), W = LK.el.clientWidth;
     if (p && p[0] != null && p[0] > -40 && p[0] < W + 40) {
       const u = Math.max(-1.2, Math.min(1.2, (p[0] - W / 2) / (W / 2)));
       card.hidden = false; edge.hidden = true;
@@ -1079,7 +1078,6 @@ async function lkSendOpen() {
   const where = !sp ? '' : sp.m < 3 ? T(' The street view was taken right at the spot.', ' Kinuha ang street view mismo sa lugar.') : T(' From where the street view was taken, the spot is about ' + sp.m + ' m ' + sp.dir + '.', ' Mula sa kinuhanan ng street view, ang lugar ay mga ' + sp.m + ' m sa ' + sp.dir + '.');
   const first = list.findIndex(t => t.duty_status === 'on_duty');
   const ini = n => esc(String(n || '?').split(/[ ,]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase());
-  const tick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
   const hasPh = LK.photos.length > 0, streetOk = !!LK.img;
   el.innerHTML = '<div class="sd-h2"><span class="sd-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></span><div><b>' + T('Send to tanod', 'Ipadala sa tanod') + '</b><small>' + esc(r.tracking_id) + ' · ' + esc(street) + '</small></div><button type="button" class="sd-x" data-lksendx aria-label="' + T('Close', 'Isara') + '">&times;</button></div>' +
     '<p class="sd-l">' + T('What they will see', 'Ang makikita nila') + '</p>' +
@@ -1149,7 +1147,6 @@ function qvOpen(r) {
                easing: t => 1 - Math.pow(1 - t, 3) });
   const nearby = all.filter(q => q.id !== r.id && Math.hypot((q.longitude - lng) * 107500, (q.latitude - lat) * 110600) < 150).length;
   const rejected = r.status === 'rejected' || r.status === 'cancelled';
-  const late = r.due_at && new Date(r.due_at).getTime() < Date.now() && !rejected && !CS_DONE.includes(r.status);
   const glyph = (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
   const box = document.createElement('div');
   box.id = 'ss-qv'; box.className = 'ss-qv'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', esc(r.subject || ''));
@@ -1585,7 +1582,8 @@ function spClose() {
   const el = document.getElementById('safe-sheet');
   if (el && !el.hidden) { el.hidden = true; document.getElementById('s-spatial').classList.remove('sheet-open'); map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 500 }); }
 }
-const spStrip = h => String(h || '').replace(/<[^>]*>/g, '').slice(0, 40);
+// a credit from Wikimedia is HTML: read it as text (DOMParser runs no scripts), then shorten it
+const spStrip = h => (new DOMParser().parseFromString(String(h || ''), 'text/html').body.textContent || '').trim().slice(0, 40);
 async function spPhotos(p, lng, lat) {
   const out = [], seen = new Set(), add = (url, credit, page) => { if (url && !seen.has(url) && out.length < 6) { seen.add(url); out.push({ url, credit, page }); } };
   const commons = (j, limitJpeg) => Object.values((j.query || {}).pages || {}).forEach(pg => {
@@ -1968,7 +1966,6 @@ function fwRender() {
   document.getElementById('fw-sum').textContent = FW.online === null ? T('Connecting…', 'Kumokonekta…')
     : FW.online ? 'Live · ' + FW.mm.toFixed(1) + ' mm/h' + (FW.level ? ' · ' + L.short : '')
     : T('Offline · retrying', 'Offline · sinusubukang muli');
-  const flood = document.getElementById('f-flood').checked;
   const hz = FW.hz, src = hz ? hz.sources : {}, lvl = FW.level, flood2 = document.getElementById('f-flood').checked;
   const metroWarn = hz ? hz.warnings.filter(w => w.metro && /rain/i.test(w.type)).sort((x, y) => y.level - x.level)[0] : null;
   const hh = d => d ? new Date(d.replace(' ', 'T') + '+08:00').toLocaleTimeString(window.LANG === 'fil' ? 'fil-PH' : 'en-US', { hour: 'numeric', minute: '2-digit' }) : '';
