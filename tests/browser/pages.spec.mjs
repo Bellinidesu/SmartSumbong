@@ -450,6 +450,12 @@ test('Committee editor (16 Nov): the sidebar is the committee\'s, live; kinds in
   await expect(page.locator('.p-side-com b'), 'the short name is what the sidebar shows').toHaveText('Seniors');
   await page.locator('.ce-swatch:not(:disabled):not(.on)').first().click();
   expect(await side(), 'a colour changes the sidebar at once').not.toBe(was);
+  // a logo picked shows in its slot and, faded, in the sidebar (redrawn on a canvas, never the file's own address)
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  await page.setInputFiles('#ce-logo', { name: 'logo.png', mimeType: 'image/png', buffer: png });
+  await expect(page.locator('#ce-lgi img')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--p-side-mark')), 'the sidebar\'s faded mark is the logo').toContain('data:image/png');
+  expect(await page.locator('#ce-lgi img').getAttribute('src')).not.toMatch(/^blob:/);
   // the kinds popup
   const before = await page.locator('#ce-banner').evaluate(e => e.style.getPropertyValue('--g1'));
   await page.locator('#ce-kinds-open').click();

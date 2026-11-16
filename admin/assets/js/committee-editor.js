@@ -10,7 +10,7 @@
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
   var nameEl = $('#ce-name'), shortEl = $('#ce-short'), colourEl = $('#ce-colour'), logoEl = $('#ce-logo'), clearEl = $('#ce-logo-clear'), saveEl = $('#ce-save');
   var kinds = $$('input[name="cats[]"]', form), isNew = ce.dataset.new === '1', def = ($('#ce-banner-n') || {}).textContent || '';
-  var D = ce.dataset, hasLogo = !!$('#ce-lgi img'), blobUrl = null, submitting = false;
+  var D = ce.dataset, hasLogo = !!$('#ce-lgi img'), markUrl = null, submitting = false;
 
   function draw(svg, name) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '2'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.innerHTML = I[name] || I.other || ''; }
   $$('.cmx-ti', ce).forEach(function (s) { draw(s, s.dataset.ic); });
@@ -32,7 +32,7 @@
     root.style.setProperty('--p-side-b', 'hsl(' + c[0] + ' ' + sat + '% ' + (dk ? 11 : 20) + '%)');
     root.style.setProperty('--p-side-glow', hex);
     var first = ticked()[0], mark = null;
-    if (blobUrl) { mark = 'url("' + blobUrl + '")'; }
+    if (markUrl) { mark = 'url("' + markUrl + '")'; }
     else if (!hasLogo || (clearEl && clearEl.checked)) { mark = first ? 'url("' + mono(first.dataset.ic) + '")' : 'none'; }
     if (mark === null) { root.style.removeProperty('--p-side-mark'); } else { root.style.setProperty('--p-side-mark', mark); }
     var com = $('.p-side-com'), lb = label();
@@ -95,14 +95,22 @@
 
   // logo: shows at once in its slot and in the sidebar
   if (logoEl) {
+    // The picture is decoded and redrawn on a canvas (at most 512 px), and that drawing is what the slot and the sidebar show: the file's own address is never put in the page.
     logoEl.addEventListener('change', function () {
       var f = logoEl.files && logoEl.files[0], msg = $('#ce-logo-msg'), box = $('#ce-lgi'), lt = $('#ce-lgt');
-      if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
+      markUrl = null;
       if (!f) { refresh(); return; }
-      if (!/^image\/(png|jpeg|webp)$/.test(f.type) || f.size > 4 * 1024 * 1024) { logoEl.value = ''; if (msg) { msg.textContent = D.sLogoBad; } refresh(); return; }
-      blobUrl = URL.createObjectURL(f); box.innerHTML = ''; var im = document.createElement('img'); im.src = blobUrl; im.alt = ''; box.appendChild(im); if (lt) { lt.textContent = lt.dataset.have; }
-      if (clearEl) { clearEl.checked = false; }
-      refresh();
+      function bad() { logoEl.value = ''; if (msg) { msg.textContent = D.sLogoBad; } refresh(); }
+      if (!/^image\/(png|jpeg|webp)$/.test(f.type) || f.size > 4 * 1024 * 1024 || !window.createImageBitmap) { bad(); return; }
+      createImageBitmap(f).then(function (bmp) {
+        var s = Math.min(1, 512 / Math.max(bmp.width, bmp.height, 1)), c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(bmp.width * s)); c.height = Math.max(1, Math.round(bmp.height * s));
+        c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); if (bmp.close) { bmp.close(); }
+        markUrl = c.toDataURL('image/png');
+        box.innerHTML = ''; var im = document.createElement('img'); im.src = markUrl; im.alt = ''; box.appendChild(im); if (lt) { lt.textContent = lt.dataset.have; }
+        if (clearEl) { clearEl.checked = false; }
+        refresh();
+      }).catch(bad);
     });
   }
 
