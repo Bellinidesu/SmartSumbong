@@ -398,11 +398,22 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <!-- ---------- the complaint itself ---------- -->
   <div>
     <article class="p-report">
+    <div class="ss-case-actions">
+    <?php // 16 Nov 2026 (Ace): the case's chat beside the brain. The button does what this handler chose in its menu: float the chat head (on every page) or open the case chat in the Inbox; the choice is kept in this browser. ?>
+    <div class="ss-chatsplit" id="cc-chat" data-case="<?= e((string) $report['id']) ?>">
+      <a class="p-sr" href="inbox.php?app=chats&amp;c=<?= e(urlencode((string) $report['id'])) ?>&amp;k=r" data-cc-inbox tabindex="-1" hx-boost="false"><?= e(t('Open this case\'s chat in the Inbox', 'Buksan ang chat ng kasong ito sa Inbox')) ?></a>
+      <button type="button" class="ss-chatbtn" data-cc-chat aria-label="<?= e(t('Case chat', 'Chat ng kaso')) ?>" title="<?= e(t('Case chat', 'Chat ng kaso')) ?>"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.5 1.3 4.7 3.4 6.2-.2 1.3-.8 2.6-1.7 3.6a.5.5 0 0 0 .5.8c2-.3 3.7-1.1 4.9-2A11.7 11.7 0 0 0 12 20c5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/></svg><b class="ss-chatn" hidden>0</b></button><button type="button" class="ss-chatcar" data-cc-chat-menu aria-haspopup="menu" aria-expanded="false" aria-label="<?= e(t('Choose how the chat opens', 'Piliin kung paano bubukas ang chat')) ?>" title="<?= e(t('Choose how the chat opens', 'Piliin kung paano bubukas ang chat')) ?>"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="ss-chatmenu" role="menu" aria-label="<?= e(t('How the chat opens', 'Paano bubukas ang chat')) ?>" hidden>
+        <button type="button" role="menuitemradio" aria-checked="true" data-cc-mode="head"><b><?= e(t('Chat head', 'Lumulutang na chat')) ?></b><small><?= e(t('Opens here and follows you on every page as a bubble', 'Bubukas dito at susunod sa iyo sa bawat pahina bilang bubble')) ?></small></button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-cc-mode="page"><b><?= e(t('Case chat', 'Chat ng kaso')) ?></b><small><?= e(t('Opens this case\'s chat in the Inbox, no bubble', 'Bubuksan ang chat ng kasong ito sa Inbox, walang bubble')) ?></small></button>
+      </div>
+    </div>
     <?php if (!empty($smart) && ($smart['score'] ?? null) !== null): // 16 Nov 2026 (Ace): the brain button of THIS case, in the card's header corner, opens "Why this level"
         $sbLv = (string) ($smart['effective_level'] ?? 'low');
         $sbName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')][$sbLv] ?? $sbLv; ?>
     <button type="button" class="ss-brain-btn ss-brain-case ss-lv-<?= e($sbLv) ?>" data-smart-open aria-controls="smart-card" aria-haspopup="dialog" title="<?= e(t('Why this level', 'Bakit ganito ang antas')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(sprintf(t('Why this level: %s, %d of 100', 'Bakit ganito ang antas: %s, %d sa 100'), $sbName, (int) $smart['score'])) ?></span><b class="ss-brain-n"><?= (int) $smart['score'] ?></b></button>
     <?php endif; ?>
+    </div>
     <h1 class="p-case-title">
       <?= e($report['tracking_id']) ?>: <?= e(category_label($report['category'])) ?>
       <!-- Admins read this number out over the phone and paste it into
@@ -1676,6 +1687,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
 <script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
 <script src="assets/js/case-smart.js?v=<?= e(asset_version('../js/case-smart.js')) ?>" defer></script>
+<script src="assets/js/case-chat-button.js?v=<?= e(asset_version('../js/case-chat-button.js')) ?>" defer></script>
 <script src="assets/js/case-tabs.js?v=<?= e(asset_version('../js/case-tabs.js')) ?>" defer></script>
 <?php if (count($concerns) > 1): ?><script src="assets/js/case-focus.js?v=<?= e(asset_version('../js/case-focus.js')) ?>" defer></script><?php endif; ?>
 <script>

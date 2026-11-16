@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Case chat button, a pass inside the account box (16 Nov)**
+
+- Case page: a chat button beside the SMART brain. A press does what the handler chose in the menu beside it: open the case's chat head (it then floats on every page) or open the case chat in the Inbox with no bubble on the case page. The choice is kept in this browser and the chat head's unread count shows on the button.
+- Account pages: section titles carry an orange marker, and the account details are tiles that fill the width (empty values show a dash).
+
 **One box for accounts, no dead space in Settings (16 Nov)**
 
 - Resident and personnel profiles (one shared page): the tabs and every section (account details, committees, shift, dispatches, documents, abuse history) are now one card, the sections divided like the case page's, each using the full width. Nothing stretches into empty space beside a taller neighbour.

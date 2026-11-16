@@ -217,3 +217,27 @@ dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
 :root[data-theme="dark"] .p-controls details.p-fix[data-ic="pen"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M4%2020h4L19%209l-4-4L4%2016v4z'/%3E%3C/svg%3E"); }
 :root[data-theme="dark"] .p-controls details.p-fix[data-ic="bld"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3%2021h18M5%2021V8l7-5%207%205v13M9%2012h2M13%2012h2M9%2016h2M13%2016h2'/%3E%3C/svg%3E"); }
 :root[data-theme="dark"] .p-controls details.p-fix[data-ic="shield"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238DB2FF'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%203l8%203v6c0%205-3.5%208-8%209-4.5-1-8-4-8-9V6l8-3z'/%3E%3C/svg%3E"); }
+
+/* ---- the case's chat button beside the brain (16 Nov 2026, Ace) ---- */
+.p-report .ss-case-actions { position: absolute; top: 20px; right: 22px; z-index: 4; display: flex; align-items: center; gap: 10px; }
+.p-report .ss-case-actions .ss-brain-case { position: static; }
+.p-report .p-case-title { padding-right: 150px; }
+.ss-chatsplit { position: relative; display: inline-flex; align-items: stretch; height: 44px; border-radius: 14px; background: var(--p-blue, #00308F); color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 14px -6px color-mix(in srgb, var(--p-blue, #00308F) 80%, transparent); }
+.ss-chatbtn, .ss-chatcar { border: 0; background: transparent; color: inherit; cursor: pointer; display: grid; place-items: center; position: relative; }
+.ss-chatbtn { width: 46px; border-radius: 14px 0 0 14px; }
+.ss-chatcar { width: 26px; border-radius: 0 14px 14px 0; border-left: 1px solid rgba(255, 255, 255, .28); }
+.ss-chatbtn:hover, .ss-chatcar:hover { background: rgba(255, 255, 255, .14); }
+.ss-chatbtn:focus-visible, .ss-chatcar:focus-visible { outline: 3px solid #fff; outline-offset: -4px; }
+.ss-chatcar[aria-expanded="true"] svg { transform: rotate(180deg); }
+.ss-chatcar svg { transition: transform .15s; }
+.ss-chatn { position: absolute; top: -6px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: #E53935; color: #fff; font: 800 11.5px/20px Inter, sans-serif; text-align: center; box-shadow: 0 0 0 2px var(--p-surface, #fff); }
+.ss-chatmenu { position: absolute; top: calc(100% + 8px); right: 0; width: 290px; padding: 6px; border-radius: 14px; background: var(--p-surface, #fff); color: var(--p-ink); border: 1px solid var(--p-line); box-shadow: 0 18px 40px -16px rgba(10, 20, 60, .45); display: grid; gap: 2px; }
+.ss-chatmenu[hidden] { display: none; }
+.ss-chatmenu button { display: grid; gap: 2px; text-align: left; padding: 10px 12px 10px 34px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; cursor: pointer; position: relative; }
+.ss-chatmenu button b { font-size: 14px; } .ss-chatmenu button small { color: var(--p-muted); font-size: 12.5px; line-height: 1.4; }
+.ss-chatmenu button:hover, .ss-chatmenu button:focus-visible { background: color-mix(in srgb, var(--p-blue, #00308F) 9%, transparent); outline: none; }
+.ss-chatmenu button::before { content: ""; position: absolute; left: 12px; top: 14px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--p-line-2, #9aa4b5); }
+.ss-chatmenu button[aria-checked="true"]::before { border-color: var(--p-blue, #00308F); background: radial-gradient(circle, var(--p-blue, #00308F) 0 45%, transparent 50%); }
+/* a handler who chose the Inbox does not get the bubble on the case page */
+html.cc-chat-page #chat-head .ch-fab { display: none; }
+@media (max-width: 640px) { .p-report .p-case-title { padding-right: 0; margin-top: 52px; } }

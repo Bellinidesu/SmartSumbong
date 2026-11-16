@@ -1996,6 +1996,31 @@ test('Spatial Distribution (12 Nov 2026): the SMART panel stays navy by day; the
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Case page (16 Nov): a chat button beside the brain does what the handler chose in its menu, the chat head or the Inbox', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.addInitScript(() => { try { localStorage.removeItem('ss-case-chat-mode'); } catch (e) {} });
+  const r = await open(page, `case.php?id=${CASE}`);
+  const split = page.locator('#cc-chat');
+  await expect(split).toBeVisible();
+  const a = await split.boundingBox(), b = await page.locator('.ss-brain-case').boundingBox();
+  expect(Math.abs((a.y + a.height / 2) - (b.y + b.height / 2)), 'beside the brain, on one line').toBeLessThan(6);
+  expect(a.x + a.width, 'to the left of the brain').toBeLessThan(b.x);
+  await expect(page.locator('#ch-panel'), 'the chat head waits').toBeHidden();
+  await page.locator('[data-cc-chat]').click();
+  await expect(page.locator('#ch-panel'), 'the default is the chat head').toBeVisible();
+  await page.locator('[data-cc-chat]').click();
+  await page.locator('[data-cc-chat-menu]').click();
+  await expect(page.locator('.ss-chatmenu')).toBeVisible();
+  await expect(page.locator('[data-cc-mode="head"]')).toHaveAttribute('aria-checked', 'true');
+  await page.locator('[data-cc-mode="page"]').click();
+  await expect(page.locator('.ss-chatmenu')).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem('ss-case-chat-mode')), 'the choice is kept').toBe('page');
+  await expect(page.locator('#ch-fab'), 'no bubble on this page when the Inbox is chosen').toBeHidden();
+  await page.locator('[data-cc-chat]').click();
+  await expect(page).toHaveURL(/inbox\.php\?app=chats&c=c0000000-0000-0000-0000-000000000001&k=r/);
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
 test('Inbox (16 Nov): the case number and its bubble take the colour of the case, the account has its own picture, and the open thread rests on a wash of that colour', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   const r = await open(page, 'inbox.php?app=chats&c=c0000000-0000-0000-0000-000000000001&k=r');
