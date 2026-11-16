@@ -478,25 +478,7 @@
     listeners.push(paint); paint();
   }
 
-  /* ---------- the Inbox's Case chats folder: readers drawn in the page, and an unread dot on each row ---------- */
-  function paintRows() {
-    [].forEach.call(document.querySelectorAll('[data-chat-row]'), function (r) {
-      var d; try { d = JSON.parse(r.getAttribute('data-feed') || '{}'); } catch (e) { return; }
-      var n = unreadOf(r.getAttribute('data-report'), d);
-      r.classList.toggle('ib-unread', n > 0); r.classList.toggle('is-unread', n > 0);
-      var b = r.querySelector('.ib-cnt'); if (b) { b.textContent = n > 9 ? '9+' : String(n); b.hidden = n === 0; }
-    });
-  }
-  function mountInline() {
-    [].forEach.call(document.querySelectorAll('.ch-inline:not([data-mounted])'), function (r) { r.setAttribute('data-mounted', '1'); mount(r); });
-    paintRows();
-  }
-  document.addEventListener('ss-chat-seen', paintRows);
-  document.body.addEventListener('htmx:afterSettle', mountInline);   // a conversation opened in place (the press flow) gets its chat
-  listeners.push(paintRows);
-
   if (mainEl) { window.ssChat = mount(mainEl); }
   wireSettings();
   listeners.push(sync); sync();
-  mountInline();
 })();

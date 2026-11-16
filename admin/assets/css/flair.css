@@ -39,13 +39,13 @@
   background: radial-gradient(circle at 34% 36%, #C3C9DC 0 16%, transparent 17%), radial-gradient(circle at 64% 62%, #C3C9DC 0 11%, transparent 12%),
               radial-gradient(circle at 62% 28%, #C9CEDF 0 7%, transparent 8%); }
 .dn-lg { --dn-w: 64px; --dn-h: 34px; --dn-k: 28px; }
-button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i { box-shadow: 0 0 0 6px var(--dn-glow), 0 2px 4px rgba(0,0,0,.25); }
+button:hover > .dn i, button:focus-visible > .dn i { box-shadow: 0 0 0 6px var(--dn-glow), 0 2px 4px rgba(0,0,0,.25); }
 .dn-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* In the sidebar the switch replaces the plain one, and the moon icon beside the label goes. */
-.p-side-toggle .p-left > svg { display: none; }
-.p-side-toggle .p-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.p-side-toggle:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+
+
 
 /* On the sign-in pages the switch stands alone. */
 .prefs .pref-theme.pref-dn { padding: 0; min-height: 0; border: 0; border-radius: 99px; background: transparent; box-shadow: 0 6px 16px rgba(0,30,90,.28); }
@@ -54,7 +54,7 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 
 /* ── Language flags ── */
 .flag { width: 20px; height: 14px; flex: none; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.18); overflow: hidden; display: block; }
-.p-seg.pref-lang button, .prefs .pref-lang button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; letter-spacing: .06em; font-weight: 700; }
+.prefs .pref-lang button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; letter-spacing: .06em; font-weight: 700; }
 .pref-lang button:not(.p-on):not([aria-pressed="true"]) .flag { opacity: .7; filter: saturate(.7); transition: opacity .2s, filter .2s; }
 .pref-lang button:hover .flag { opacity: 1; filter: none; }
 .prefs .pref-lang button { min-width: 64px; }
@@ -188,7 +188,7 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 :root[data-theme="dark"] #s-spatial .p-map-stats::after, :root[data-theme="dark"] #s-spatial .p-map-legend::after, :root[data-theme="dark"] #s-spatial .fw-card::after, :root[data-theme="dark"] #s-spatial .lyc::after, :root[data-theme="dark"] .sdp-pop::after {
   content: ""; display: block; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: var(--g-sheen); width: auto; height: auto; transform: none; right: 0; bottom: 0; left: 0; top: 0; border: 0; opacity: 1;
 }
-@media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] #s-spatial *, :root[data-theme="dark"] .sdp-pop, :root[data-theme="dark"] .lk-bar { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
+@media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] #s-spatial *, :root[data-theme="dark"] .sdp-pop { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
 :root[data-theme="dark"] #s-spatial .p-map-search, :root[data-theme="dark"] #s-spatial .cs-sheet, :root[data-theme="dark"] #s-spatial .ss-qv, :root[data-theme="dark"] #s-spatial .ss-lyr, :root[data-theme="dark"] #s-spatial .p-map-stats, :root[data-theme="dark"] #s-spatial .p-map-legend, :root[data-theme="dark"] #s-spatial .fw-card, :root[data-theme="dark"] #s-spatial .lyc, :root[data-theme="dark"] .sdp-pop { -webkit-backdrop-filter: blur(20px) saturate(1.7); backdrop-filter: blur(20px) saturate(1.7); }
 
 /* ---- The day calendar: each day's box is filled by how busy it was; a range is one lit band ---- */
@@ -234,11 +234,11 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .st-surf:hover { transform: translateY(-1px); }
 .st-surf[aria-checked="true"] { box-shadow: inset 0 0 0 2px var(--p-orange); }
 .st-surf .ss-t b { display: block; font: 800 15px Inter, sans-serif; } .st-surf .ss-t small { display: block; margin-top: 2px; color: var(--p-muted); font: 600 12px Inter, sans-serif; }
-.sv-pic { position: relative; width: 96px; height: 64px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #1F4F63, #20303A 55%, #3A2A1E); }
-.sv-pic i { position: absolute; left: 10px; top: 10px; width: 56px; height: 34px; border-radius: 9px; }
-.sv-pic b { position: absolute; right: 9px; bottom: 9px; width: 22px; height: 22px; border-radius: 7px; }
-.sv-pic.g i, .sv-pic.g b { background: rgba(255,255,255,.16); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: inset 1px 1px 0 rgba(255,255,255,.5); }
-.sv-pic.s i, .sv-pic.s b { background: #1C1D22; box-shadow: 0 0 0 1px rgba(255,255,255,.1); }
+
+
+
+
+
 
 /* ======= Sign-in, dark mode done properly (15 Oct): the same layout, graphite all the way =======
    The rail is graphite with the contour lines; the three seals sit on equal light plates (their
@@ -246,8 +246,8 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
    fields, links and the note use the portal's graphite tokens. */
 :root[data-theme="dark"] .login-rail { background: linear-gradient(180deg, #1F252C 0%, #14181D 100%); border-right: 1px solid rgba(255,255,255,.07); gap: 28px; }
 :root[data-theme="dark"] .login-rail::before { background: #fff; opacity: .08; --tx-fade: linear-gradient(to top, #000 0%, rgba(0,0,0,.6) 35%, transparent 75%); }
-:root[data-theme="dark"] .rail-logo { width: 212px; padding: 18px 22px; box-sizing: border-box; background: #EEF1F8; border-radius: 28px; box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.6); }
-:root[data-theme="dark"] .rail-logo--missing { color: #3A4058; border-color: rgba(0,0,0,.2); }
+
+
 :root[data-theme="dark"] .login-panel { text-shadow: none; }
 :root[data-theme="dark"] .login-card {
   background: linear-gradient(152deg, rgba(255,255,255,.10), rgba(255,255,255,.02)), rgba(28,33,39,.62);
@@ -272,28 +272,28 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .login-powered { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 2; display: inline-flex; align-items: center; gap: 9px; margin: 0; font: 600 11.5px/1 var(--font-body, Inter, sans-serif); letter-spacing: .14em; text-transform: uppercase; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.45); white-space: nowrap; }
 .login-powered img { height: 22px; width: auto; display: block; filter: drop-shadow(0 0 4px #356CF9) drop-shadow(0 0 12px rgba(255,152,0,.6)); }
 :root[data-theme="dark"] .login-powered { color: #C9CCD1; text-shadow: none; }
-@media (prefers-reduced-motion: reduce) {  }
+
 @media (max-width: 760px) { .login-powered { position: static; transform: none; justify-content: center; margin: 18px 0 0; } }
 
 /* Sign-in rail, dark (Ace, 15 Oct): the seals sit on frosted glass instead of white plates. Their navy lettering is lifted to a bright blue and given a thin light halo so it reads on the glass. */
-:root[data-theme="dark"] .rail-logo { background: linear-gradient(152deg, rgba(255,255,255,.14), rgba(255,255,255,.03)), rgba(28,33,39,.5); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 1px 1px 0 rgba(255,255,255,.16), 0 14px 34px rgba(0,0,0,.4); }
-:root[data-theme="dark"] img.rail-logo { filter: brightness(1.75) saturate(1.15) drop-shadow(0 0 1.5px rgba(255,255,255,.6)); }
-:root[data-theme="dark"] .rail-logo--missing { color: #C9CCD1; border-color: rgba(255,255,255,.2); }
-@media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] .rail-logo { -webkit-backdrop-filter: none; backdrop-filter: none; background: #1C2127; } }
+
+
+
+
 
 /* Sign-in, dark (Ace, 15 Oct): just the logos, no plates; the rail itself is the frosted glass, over soft glows, with the contour lines kept. The theme and language switches are gone from this screen. */
 :root[data-theme="dark"] .login-body { background-color: #14181D; background-image: radial-gradient(520px 420px at 6% 12%, rgba(53,108,249,.34), transparent 70%), radial-gradient(460px 420px at 12% 96%, rgba(255,152,0,.22), transparent 70%); background-attachment: fixed; }
 :root[data-theme="dark"] .login-rail { background: linear-gradient(152deg, rgba(255,255,255,.12), rgba(255,255,255,.02)), rgba(28,33,39,.48); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); border-right: 1px solid rgba(255,255,255,.12); box-shadow: inset -1px 0 0 rgba(255,255,255,.06); }
-:root[data-theme="dark"] .rail-logo { padding: 0; width: 240px; background: none; border: 0; border-radius: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
-:root[data-theme="dark"] img.rail-logo { filter: brightness(1.7) saturate(1.15) drop-shadow(0 0 1.5px rgba(255,255,255,.55)) drop-shadow(0 6px 14px rgba(0,0,0,.35)); }
+
+
 :root[data-theme="dark"] .login-rail { gap: 40px; }
 @media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] .login-rail { -webkit-backdrop-filter: none; backdrop-filter: none; background: #1C2127; } }
 
 /* Sign-in rail, dark: the logos in their own colours again (the brightness lift turned them neon). A soft white glow around each shape keeps the navy lettering readable on the glass. */
-:root[data-theme="dark"] img.rail-logo { filter: drop-shadow(0 0 2px rgba(255,255,255,.95)) drop-shadow(0 0 9px rgba(255,255,255,.55)) drop-shadow(0 8px 16px rgba(0,0,0,.3)); }
+
 
 /* Sign-in rail, dark (Ace's lock, 15 Oct): the Barangay 183 seal untouched (the Bagong Pilipinas and Bagong Villamor marks came off on 29 Oct, the barangay's call). The -dk files were served in dark mode only. */
-:root[data-theme="dark"] img.rail-logo { filter: none; }
+
 
 /* sign-in, light: a solid Material card */
 :root:not([data-theme="dark"]) .login-card { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: 0 8px 12px 6px rgba(20,27,52,.16), 0 4px 4px rgba(20,27,52,.24); }
@@ -309,7 +309,7 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .sdp-foot .sdp-clr { background: none; border: 1px solid var(--p-line, #D9DEEA); color: inherit; padding: 6px 14px; border-radius: 99px; font: inherit; font-weight: 700; cursor: pointer; } .sdp-foot .sdp-clr:hover { border-color: currentColor; }   /* Rose (2 Nov): take the picked days back */
 .sdp-foot .sdp-clr, .sdp-foot .sdp-go { height: 36px; display: inline-flex; align-items: center; justify-content: center; padding-top: 0; padding-bottom: 0; }   /* 5 Nov sweep: Clear and Apply, one height */
 /* 5 Nov sweep: the sign-in pages' checkboxes as the app's and the portal's: the identity orange, large enough to hit */
-.remember input, .field-check input { width: 16px; height: 16px; accent-color: #FF9800; }
+.remember input { width: 16px; height: 16px; accent-color: #FF9800; }
 
 /* ---- 6 Nov 2026: the category dropdown and the calendar are the standard for every dropdown ---- */
 .sdp-dot.all { background: conic-gradient(#356CF9, #FF9800, #EDFA04, #34C759, #F93535, #356CF9); box-shadow: 0 0 0 2px color-mix(in srgb, var(--p-muted) 22%, transparent); }

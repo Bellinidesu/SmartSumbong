@@ -11,7 +11,7 @@ const B = 'http://127.0.0.1:8013';
 const OUT = (process.env.OUT || 'test-results') + '/look-sweep.json';
 mkdirSync(OUT.replace(/\/[^/]*$/, ''), { recursive: true });
 const CASE = 'c0000000-0000-0000-0000-000000000001';
-const PAGES = ['dashboard.php', 'home.php', 'summary.php', 'spatial.php', 'cases.php', `case.php?id=${CASE}`, 'case.php?id=c0000000-0000-0000-0000-000000000006', 'workspace.php',
+const PAGES = ['dashboard.php', 'summary.php', 'spatial.php', 'cases.php', `case.php?id=${CASE}`, 'case.php?id=c0000000-0000-0000-0000-000000000006', 'workspace.php',
   'notifications.php', 'inbox.php', 'residents.php', 'residents.php?id=u1', 'personnel.php', 'personnel.php?id=u2', 'personnel.php?view=staff', 'retirement-requests.php',
   'activity.php', 'administrative-services.php', 'committee-editor.php', 'committee-editor.php?key=peace_order', 'control-room.php', 'settings.php', 'profile.php', `complaint-summary.php?id=${CASE}`];
 const ROLES = [

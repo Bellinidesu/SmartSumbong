@@ -346,20 +346,6 @@ const catColour = c => CATEGORY_COLOUR[c] || CATEGORY_COLOUR.other;
 const heatLayers = () => Object.keys(CATEGORY_COLOUR).map(c => 'heat-' + c).filter(id => map.getLayer(id));   // one heat layer per kind of complaint, in its own legend colour
 const pinName = category => 'pin-cat-' + (CATEGORY_COLOUR[category] ? category : 'other');
 
-function pinSvg(shape, fill) {
-  const body = {
-    circle:  '<circle cx="11" cy="11" r="8"/>',
-    square:  '<rect x="3.5" y="3.5" width="15" height="15" rx="2.5"/>',
-    diamond: '<path d="M11 2.5 19.5 11 11 19.5 2.5 11Z"/>',
-    cross:   '<path d="M6 6l10 10M16 6L6 16" stroke-width="3.6" stroke-linecap="round" fill="none"/>',
-  }[shape];
-  // The cross is drawn in its colour, with a white edge under it.
-  const under = shape === 'cross'
-    ? '<path d="M6 6l10 10M16 6L6 16" stroke="#fff" stroke-width="6.4" stroke-linecap="round" fill="none"/>' : '';
-  const top = shape === 'cross' ? body.replace('stroke-width', 'stroke="' + fill + '" stroke-width') : body;
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 22 22" fill="' + fill +
-         '" stroke="#fff" stroke-width="2">' + under + top + '</svg>';
-}
 
 // Bellinist (9 Oct 2026): the pin is the resident app's badge: a teardrop
 // in the category's colour with the category's own symbol on a white disc.

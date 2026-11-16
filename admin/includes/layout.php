@@ -11,7 +11,6 @@ function nav_items(): array
 {
     $items = [
         ['dashboard.php',  t('Dashboard', 'Dashboard'),                       'i-dash'],
-        ['home.php',       t('Home', 'Tahanan'),                              'i-home'],   // a Kagawad's and staff member's own (4 Nov 2026)
         ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
         ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
@@ -570,7 +569,7 @@ window.ssSupabase = function (url, key, initial) {
 <?php if ($active === 'spatial.php') : // Spatial Distribution in the current look (12 Nov 2026), written over the map's own styles ?>
 <link href="assets/css/sd-skin.css?v=<?= e(asset_version('sd-skin.css')) ?>" rel="stylesheet">
 <?php endif; ?>
-<?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php', 'home.php'], true)) : // Case Reports, the Dashboard, Report Summary and Home (overview.css) ?>
+<?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php'], true)) : // Case Reports, the Dashboard, Report Summary and Home (overview.css) ?>
 <link href="assets/css/overview.css?v=<?= e(asset_version('overview.css')) ?>" rel="stylesheet">
 <?php endif; ?>
 <?php if (in_array($active, ['administrative-services.php', 'control-room.php', 'settings.php'], true)) : // the super admin consoles (console.css) ?>

@@ -8,17 +8,17 @@
 .page-control-room .ty-cat > summary small { font-weight: 600; }
 
 /* ---- Rules: the deadlines table stays together, the limits are in groups ---- */
-.p-tscroll .ru-t { width: 700px; max-width: 100%; min-width: 0; table-layout: fixed; }
-.ru-t th:nth-child(1) { width: 340px; }
-.ru-t th:nth-child(2), .ru-t th:nth-child(3) { width: 180px; }
-.ru-group { margin-top: 16px; }
-.ru-gh { margin: 0 0 8px; font: 700 14px Inter, sans-serif; color: var(--jp-text, var(--p-ink)); }
-.ru-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: auto; row-gap: 4px; column-gap: 16px; }
-.ru-f { grid-row: span 3; grid-template-rows: subgrid; row-gap: 4px; align-content: start; }
-.ru-f label { align-self: end; line-height: 1.3; }
-.ru-f input.p-input-plain { width: 100%; max-width: 160px; }
-@media (max-width: 1100px) { .ru-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px)  { .ru-grid { grid-template-columns: 1fr; } }
+
+
+
+
+
+
+
+
+
+
+
 
 /* ---- Wording: a label is a line or two, not a page ---- */
 .wd-row textarea { height: auto; min-height: 44px; field-sizing: content; resize: vertical; }
@@ -33,14 +33,14 @@
 @media (max-width: 600px) { #brgy-card .ss-posform { margin-left: 0; } }
 
 /* ---- Administrative Services: Committees ---- */
-.page-administrative-services .acc-head, .page-administrative-services .acc-row { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 160px; }
-.page-administrative-services .acc-names { gap: 8px; align-content: start; }
+.page-administrative-services .acc-row { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 160px; }
+
 .page-administrative-services .acc-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-bottom: 2px; font-size: 12.5px; color: var(--p-muted, #66708f); }
 .page-administrative-services .acc-meta b { color: var(--p-ink, #141B34); }
 .page-administrative-services .acc-warn { color: var(--p-red, #C62828); font-weight: 700; }
 .page-administrative-services .acc-act { justify-items: stretch; align-content: start; }
 .page-administrative-services .acc-act .acc-col input[type="color"] { width: 100%; height: 36px; }
-.page-administrative-services .acc-cats { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 6px; padding-top: 22px; }
+
 .page-administrative-services .ss-subband .p-spacer { display: none; }
 .page-administrative-services .ss-subband .ss-subnote { margin-left: 18px; text-align: left; }
 
@@ -48,7 +48,7 @@
 @media (max-width: 1100px) {
   .page-administrative-services .ss-pband { flex-wrap: wrap; }
   .page-administrative-services .ss-pband .p-search { order: 9; flex: 1 1 100%; }
-  .page-control-room #rules-card .sd-c { display: flex; max-width: 100%; white-space: normal; }
+  
 }
 
 /* ---- the tab bars: a row that does not fit scrolls inside itself, it never widens the page ---- */
@@ -75,9 +75,9 @@
 .cmx-card.acc-off { opacity: .78; } .cmx-card.acc-off .cmx-banner { filter: grayscale(.85); }
 :root:root .p-body .cmx-banner { margin: 0; border-radius: 0; }
 .cmx-body { display: grid; gap: 14px; padding: 16px 18px 18px; }
-.cmx-names { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-.cmx-types { margin: 0; padding: 0; border: 0; min-width: 0; }
-.cmx-types legend { padding: 0; margin: 0 0 8px; font: 700 12.5px Inter, sans-serif; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
+
+
+
 .cmx-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .cmx-t { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px 0 10px; border-radius: 99px; cursor: pointer; font: 600 13px Inter, sans-serif; color: var(--p-ink);
   border: 1.5px solid color-mix(in srgb, var(--tc) 55%, var(--p-line)); background: color-mix(in srgb, var(--tc) 7%, var(--p-surface)); transition: background .15s, color .15s, border-color .15s, transform .12s; }
@@ -89,8 +89,8 @@
 .cmx-t:has(input:focus-visible) { outline: 3px solid var(--p-orange, #FF9800); outline-offset: 2px; }
 .cmx-t-ro { cursor: default; background: var(--tc); border-color: var(--tc); color: var(--tk); } .cmx-t-ro .cmx-ti { color: var(--tk); }
 .cmx-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding-top: 14px; border-top: 1px solid var(--p-line); }
-.cmx-col { display: inline-flex; align-items: center; gap: 8px; font: 600 13px Inter, sans-serif; color: var(--p-muted); }
-.cmx-col input[type="color"] { width: 40px; height: 32px; padding: 2px; border-radius: 8px; }
+
+
 .cmx-sw { display: inline-flex; align-items: center; gap: 8px; font: 700 13px Inter, sans-serif; cursor: pointer; position: relative; }
 .cmx-sw input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .cmx-sw i { width: 38px; height: 22px; border-radius: 99px; background: color-mix(in srgb, var(--p-muted) 35%, transparent); position: relative; transition: background .15s; }
@@ -100,14 +100,14 @@
 .cmx-dirty-note { display: none; margin-left: auto; font: 700 12.5px Inter, sans-serif; color: var(--p-orange-d, #B26500); }
 .cmx-dirty .cmx-dirty-note { display: inline; }
 .cmx-foot .p-btn { margin-left: auto; } .cmx-dirty .cmx-foot .p-btn { margin-left: 0; }
-.cmx-save:disabled { opacity: .45; cursor: not-allowed; }
-.cmx-newd > summary { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 20px 0 12px; border-radius: 14px; border: 1.5px dashed color-mix(in srgb, var(--p-muted) 60%, transparent); cursor: pointer; font: 700 14px Inter, sans-serif; list-style: none; }
-.cmx-newd > summary::-webkit-details-marker { display: none; }
-.cmx-newd > summary:hover { border-color: var(--p-orange, #FF9800); background: color-mix(in srgb, var(--p-orange, #FF9800) 7%, transparent); }
-.cmx-plus { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--p-orange, #FF9800); color: #fff; font-weight: 800; }
-.cmx-newd[open] > summary { margin-bottom: 16px; }
-.cmx-newd .cmx-card { max-width: 760px; }
-.cmx-dirty .cmx-save:not(:disabled) { background: var(--p-orange, #FF9800); border-color: transparent; color: #2B1A00; font-weight: 800; box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--p-orange, #FF9800) 70%, transparent); }
+
+
+
+
+
+
+
+
 :root:root .p-body .cmx-banner .cm-chip { cursor: default; }
 
 /* ================= Administrative Services > Administrators and Escalation: the peak finish ================= */
@@ -134,7 +134,7 @@
 
 /* ================= Control Room: complaint types, rules and hotlines read as cards with plain headings ================= */
 .cmx-h { margin: 0 0 6px; font: 800 20px/1.25 Inter Tight, sans-serif; letter-spacing: -.01em; color: var(--p-ink); }
-.ru-lh { margin: 6px 0 0; }
+
 .cmx-page .p-hint { max-width: 78ch; line-height: 1.55; font-size: 14px; }
 .ty-cat { border: 1px solid var(--p-line); border-radius: 14px; margin: 0 0 10px; background: var(--p-surface); overflow: hidden; }
 .ty-cat > summary { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 16px; cursor: pointer; list-style: none; }
@@ -149,16 +149,16 @@
 .ty-chip { height: 30px; cursor: inherit; } .ty-chip b { font-weight: 700; }
 .ty-own { font-style: normal; font: 600 12.5px Inter, sans-serif; color: var(--p-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .ty-own-none { color: var(--p-red, #C62828); }
-.ru-form { display: grid; gap: 16px; }
-.ru-form .ru-group { margin: 0; }
-.ru-form .ru-gh { margin: 0 0 12px; font: 800 16px Inter, sans-serif; }
-:root:root .p-body .ru-t thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Inter, sans-serif; }
-.ru-pause-on { border-color: var(--p-red, #C62828); background: color-mix(in srgb, var(--p-red, #C62828) 6%, var(--p-surface)); }
-.ru-sw { align-items: flex-start; font-weight: 600; line-height: 1.45; }
-.ru-sw i { flex: none; margin-top: 2px; }
+
+
+
+
+
+
+
 .ru-bar { position: sticky; bottom: 14px; z-index: 5; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 10px 14px; border: 1px solid var(--p-line); border-radius: 14px; background: color-mix(in srgb, var(--p-surface) 92%, transparent); backdrop-filter: blur(6px); box-shadow: 0 10px 30px -12px rgba(20,27,52,.3); }
-.ru-form.cmx-dirty .ru-bar { border-color: var(--p-orange, #FF9800); }
-.ru-form .cmx-dirty-note { margin-left: 0; }
+
+
 
 /* ================= The rest of Administrative Services and the Control Room ================= */
 .page-administrative-services .st-pane .p-card > p.p-eyebrow:first-of-type, .page-control-room .st-pane .p-card > p.p-eyebrow:first-of-type { margin: 0 0 6px; font: 800 20px/1.25 Inter Tight, sans-serif; letter-spacing: -.01em; text-transform: none; color: var(--p-ink); }
@@ -194,7 +194,7 @@
 :root:root .p-body .wr-banner .cm-chip { height: auto; min-height: 54px; padding-top: 8px; padding-bottom: 8px; }
 :root:root .p-body .wr-banner .cm-n { white-space: normal; overflow: visible; }
 /* a form's column is as wide as its page, whatever a table inside it would like; the note's sentence is a line of its own */
-.ru-form, .cmx { grid-template-columns: minmax(0, 1fr); }
+.cmx { grid-template-columns: minmax(0, 1fr); }
 .cmx-note > span:last-child { flex-basis: 100%; }
 
 /* ================= Control Room > App updates ================= */
@@ -235,8 +235,8 @@
 .cmx-lg:hover .cmx-lgt { color: var(--p-ink); text-decoration: underline; }
 .cmx-lg:has(input:focus-visible) .cmx-lgi { outline: 3px solid var(--p-orange, #FF9800); outline-offset: 2px; }
 .cmx-lgx { display: inline-flex; align-items: center; gap: 6px; font: 600 12.5px Inter, sans-serif; color: var(--p-muted); cursor: pointer; }
-.cmx-col span, .cmx-lgt, .cmx-lgx span { white-space: nowrap; }
-.page-administrative-services .cmx-foot .cmx-col input[type="color"] { flex: none; width: 40px; height: 32px; }   /* the old rows' full-width swatch, not in the card's footer */
+.cmx-lgt, .cmx-lgx span { white-space: nowrap; }
+   /* the old rows' full-width swatch, not in the card's footer */
 .cmx-logo-f .cmx-logo { min-height: 40px; gap: 16px; }
 .cmx-logo-f .cmx-lgi { width: 40px; height: 40px; }
 /* A Kagawad's or staff member's Settings (4 Nov 2026): My committee, read only, and their SMART module */

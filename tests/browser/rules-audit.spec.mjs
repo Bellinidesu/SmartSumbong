@@ -75,12 +75,12 @@ for (const [W, mode] of SIZES) {
   });
 }
 // 5 Nov sweep: the portal as a Kagawad and as staff (their Home, their Settings, Personnel and the case pages)
-const RUNG_PAGES = ['home.php', 'cases.php', 'notifications.php', 'summary.php', 'inbox.php', 'personnel.php', 'personnel.php?view=staff', 'personnel.php?id=u2', 'settings.php', 'profile.php'];
+const RUNG_PAGES = ['cases.php', 'notifications.php', 'summary.php', 'inbox.php', 'personnel.php', 'personnel.php?view=staff', 'personnel.php?id=u2', 'settings.php', 'profile.php'];
 for (const [tier, label] of [['committee', 'Kagawad'], ['moderator', 'staff']]) for (const [W, mode] of SIZES.slice(0, 2)) {
   test(`rules ${label} ${W} ${mode}`, async ({ page, context }) => {
     await context.addCookies([{ name: 'ss_tier', value: tier, url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
     await page.setViewportSize({ width: +W, height: 1100 }); await page.emulateMedia({ colorScheme: mode });
-    await page.goto('home.php'); await page.evaluate(m => { try { localStorage.setItem('ss-theme', m); } catch (e) {} }, mode);
+    await page.goto('notifications.php'); await page.evaluate(m => { try { localStorage.setItem('ss-theme', m); } catch (e) {} }, mode);
     for (const p of RUNG_PAGES) {
       try {
         await page.goto(p, { waitUntil: 'domcontentloaded' }); await page.waitForLoadState('networkidle', { timeout: 6000 }).catch(() => {}); await page.waitForTimeout(1200);

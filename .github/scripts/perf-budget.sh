@@ -37,5 +37,13 @@ for f in inter-regular inter-semibold inter-tight-bold; do
   total=$((total + $(size "admin/assets/vendor/fonts/$f.woff2")))
 done
 if [ "$total" -le 344064 ]; then echo "ok   sign-in page: $total bytes of 344064"; else over "sign-in page" "$total" 344064; fi
+# Inline scripts (16 Nov 2026 sweep): a script written into the page is downloaded and compiled on every visit and never cached,
+# so a page's own logic belongs in assets/js/. Each inline <script> block in a page source stays under 40 KB; Spatial
+# Distribution's map code is the one known exception, listed here until it moves to its own file.
+for f in admin/*.php admin/includes/*.php; do
+  case "$f" in admin/spatial.php) continue ;; esac
+  big=$(php -r '$s = file_get_contents($argv[1]); preg_match_all("#<script(?![^>]*\bsrc=)(?![^>]*application/json)[^>]*>(.*?)</script>#s", $s, $m); $mx = 0; foreach ($m[1] as $b) { $mx = max($mx, strlen($b)); } echo $mx;' "$f")
+  [ "$big" -le 40960 ] || over "$f (largest inline script)" "$big" 40960
+done
 [ $fail = 0 ] && echo "ok   every script, stylesheet and photo within budget"
 exit $fail

@@ -7,7 +7,7 @@ test.setTimeout(600000);
 const CASE = 'c0000000-0000-0000-0000-000000000001';
 const SUPER = ['dashboard.php', 'summary.php', 'spatial.php', 'cases.php', `case.php?id=${CASE}`, 'notifications.php', 'inbox.php', 'residents.php', 'personnel.php',
   'personnel.php?view=staff', 'administrative-services.php', 'control-room.php', 'settings.php', 'profile.php', 'activity.php'];
-const KAG = ['home.php', 'settings.php', 'personnel.php'];
+const KAG = ['notifications.php', 'settings.php', 'personnel.php'];
 for (const mode of ['light', 'dark']) for (const [tier, pages] of [['super', SUPER], ['committee', KAG]]) test(`contrast ${tier} ${mode}`, async ({ page, context }) => {
   if (tier !== 'super') await context.addCookies([{ name: 'ss_tier', value: tier, url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   await page.setViewportSize({ width: 2048, height: 1100 }); await page.emulateMedia({ colorScheme: mode });

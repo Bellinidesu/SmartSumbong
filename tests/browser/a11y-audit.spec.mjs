@@ -9,7 +9,7 @@ test.setTimeout(900000);
 const OUT = (process.env.OUT || 'C:/Users/acele/AppData/Local/Temp/claude/f69caae7ff9b002e/ccfb5882-e083-41a8-8f98-f68c68abfe82/scratchpad/a11y') + '/';
 fs.mkdirSync(OUT, { recursive: true });
 const CASE = 'c0000000-0000-0000-0000-000000000003';
-const ALL = ['dashboard.php', 'home.php', 'cases.php', `case.php?id=${CASE}`, 'summary.php', 'spatial.php', 'notifications.php', 'inbox.php',
+const ALL = ['dashboard.php', 'cases.php', `case.php?id=${CASE}`, 'summary.php', 'spatial.php', 'notifications.php', 'inbox.php',
   'residents.php', 'residents.php?id=u1', 'personnel.php', 'settings.php', 'profile.php', 'activity.php', 'retirement-requests.php',
   'administrative-services.php', 'control-room.php', 'login.php'];
 const RUNGS = [['super', ''], ['committee', 'peace_order'], ['moderator', 'peace_order']];

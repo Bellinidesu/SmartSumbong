@@ -138,13 +138,6 @@ function delta(int $now, ?int $was, bool $goodWhenDown = false): ?array
     return [$dir, abs($pct) . t('% vs last month', '% vs nakaraang buwan'), $tone];
 }
 
-function delta_html(?array $d): string
-{
-    if ($d === null) return '';
-    [$dir, $text, $tone] = $d;
-    $arrow = $dir === 'up' ? '▲' : ($dir === 'down' ? '▼' : '•');
-    return '<span class="delta delta--' . $tone . '">' . $arrow . ' ' . e($text) . '</span>';
-}
 
 // What SMART sees today (0124, 0127, 0128). Each call is optional: a failure hides its own tile, never the page.
 $sm = ['summary' => null, 'risk' => [], 'spikes' => [], 'score' => [], 'quiet' => [], 'storm' => null, 'times' => [], 'coms' => null, 'leads' => []];

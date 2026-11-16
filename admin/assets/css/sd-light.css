@@ -32,7 +32,7 @@
 :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button { background: transparent; }
 :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button + button { border-top: 1px solid rgba(20,27,52,.10); }
 :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-scale { border-color: rgba(20,27,52,.5); }
-:root:not([data-theme="dark"]) #s-spatial .p-map-stats .p-pin-row:hover, :root:not([data-theme="dark"]) #s-spatial .p-map-stats .p-hs-row:hover { background: rgba(255,152,0,.10); }
+:root:not([data-theme="dark"]) #s-spatial .p-map-stats .p-pin-row:hover { background: rgba(255,152,0,.10); }
 :root:not([data-theme="dark"]) #s-spatial .p-map-search .p-pill-select { background: #F4F6FB; }
 :root:not([data-theme="dark"]) #s-spatial .p-map-search .p-note { color: #4A5068; }
 /* the case sheet's footer, rows and cards on solid white */
@@ -49,7 +49,7 @@
 }
 :root:not([data-theme="dark"]) #s-spatial #smart-side .ss-engine img { filter: drop-shadow(0 0 3px #356CF9) drop-shadow(0 0 9px rgba(53,108,249,.55)); }
 /* contrast (measured): dark text on the brand orange, a darker grey behind the counts */
-#s-spatial .p-tog.p-on, #s-spatial .p-pill-select.p-tog, #s-spatial .p-seg-mini .on, #s-spatial .on[data-w], #s-spatial .p-tl .on, #s-spatial .tl-seg button.on { color: #2B1A00; }
+#s-spatial .p-tog.p-on, #s-spatial .p-pill-select.p-tog, #s-spatial .p-seg-mini .on, #s-spatial .on[data-w], #s-spatial .tl-seg button.on { color: #2B1A00; }
 #s-spatial .p-cnt { background: #6B7280; color: #fff; }
 /* Pins and clusters by day: solid discs lifted off the map by layered shadows (the glow is for the night map) */
 :root:not([data-theme="dark"]) .dm svg { filter: drop-shadow(0 1px 1px rgba(20,27,52,.40)) drop-shadow(0 3px 4px rgba(20,27,52,.24)); }

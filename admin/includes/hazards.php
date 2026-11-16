@@ -9,34 +9,6 @@ declare(strict_types=1);
 const HZ_LAT = 14.5194, HZ_LNG = 121.0122;      // Barangay 183
 const HZ_TTL = 600;                              // ten minutes
 
-/** GET or POST a URL; null on any failure. */
-function hz_fetch(string $url, bool $post = false): ?string
-{
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 8,
-        CURLOPT_CONNECTTIMEOUT => 4,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_MAXREDIRS      => 2,
-        CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
-        CURLOPT_USERAGENT      => 'SmartSumbong-Barangay183/1.0 (barangay disaster desk)',
-        CURLOPT_HTTPHEADER     => $post ? [
-            'X-Requested-With: XMLHttpRequest',
-            'Origin: https://bagong.pagasa.dost.gov.ph',
-            'Referer: https://bagong.pagasa.dost.gov.ph/',
-            'Accept: application/json, text/javascript, */*; q=0.01',
-        ] : ['Accept: application/json, application/xml, text/xml, */*'],
-    ]);
-    if ($post) {
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, '');
-    }
-    $body = curl_exec($ch);
-    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    curl_close($ch);
-    return ($body !== false && $code === 200 && $body !== '') ? (string) $body : null;
-}
 
 /**
  * Fetches several addresses at once and returns each body (or null) under its key. PAGASA and GDACS used to be asked one
