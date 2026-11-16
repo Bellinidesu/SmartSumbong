@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Assign Tanod says why a tanod on duty cannot be picked (16 Nov, from the group chat)**
+
+- A tanod who is on duty but whose app is not sending a location was labelled "NOT ACTIVE", which read as if the portal ignored the duty switch. It now reads "ON DUTY · NO SIGNAL" in amber, with a note on what to do (ask them to open the app with location on), and when nobody is assignable the banner says how many are on duty but silent. The dispatch refusal says the same. The rule itself (dispatch only to a tanod who is on duty AND reporting, Rose 2 Oct) is unchanged.
+
 **Case chat button, a pass inside the account box (16 Nov)**
 
 - Case page: a chat button beside the SMART brain. A press does what the handler chose in the menu beside it: open the case's chat head (it then floats on every page) or open the case chat in the Inbox with no bubble on the case page. The choice is kept in this browser and the chat head's unread count shows on the button.

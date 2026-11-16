@@ -19,8 +19,8 @@ function op_dispatch(Supabase $db, string $id, array $in): string
         if (($t['tanod_id'] ?? null) === $tanod) { $live = $t; break; }
     }
     if (!$live || empty($live['assignable']) || empty($live['location_fresh'])) {
-        throw new SupabaseError(t('That tanod is not active right now — their app is not reporting. Choose a tanod shown as ONLINE.',
-                                  'Hindi aktibo ang tanod na iyan ngayon — hindi nag-uulat ang kanilang app. Pumili ng tanod na ONLINE.'));
+        throw new SupabaseError(t('That tanod is on duty, but their app is not sending a location right now. Ask them to open the app with location on, or choose a tanod shown as ONLINE.',
+                                  'Naka-duty ang tanod na iyan, pero hindi nagpapadala ng lokasyon ang kanilang app ngayon. Sabihan silang buksan ang app na naka-on ang lokasyon, o pumili ng tanod na ONLINE.'));
     }
     $target = trim((string) ($in['target'] ?? ''));
     if ($target === '') {
