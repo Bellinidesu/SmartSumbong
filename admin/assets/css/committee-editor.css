@@ -1,0 +1,87 @@
+/* The committee editor (committee-editor.php, 16 Nov 2026, Ace): a focus mode. The sidebar is the committee's own, live; the editor takes the page; the popups are solid cards over a scrim that
+   only dims (Material: no frosted glass, a lift instead of a glow). Light and dark come from the portal's own tokens. */
+.ce { display: grid; gap: 14px; min-width: 0; }
+.ce-mode { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; font-weight: 600; background: color-mix(in srgb, #2457E6 12%, var(--p-surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, #2457E6 30%, transparent); }
+.ce-mode svg { flex: none; }
+.ce-top { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.ce-top h1 { margin: 0; }
+.ce-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+.ce-aside { position: sticky; top: 16px; display: grid; gap: 10px; min-width: 0; }
+.ce-aside h2 { margin: 0; font: 800 17px/1.2 'Inter Tight', Inter, sans-serif; }
+.ce-aside .p-eyebrow { margin: 6px 0 0; }
+@media (max-width: 1180px) { .ce-grid { grid-template-columns: minmax(0, 1fr); } .ce-aside { position: static; order: -1; } }
+.ce-steps { display: grid; gap: 14px; min-width: 0; }
+.ce-step { display: grid; gap: 16px; min-width: 0; }
+.ce-sh { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.ce-sh h2 { margin: 0; font: 800 18px/1.2 'Inter Tight', Inter, sans-serif; }
+.ce-sh .p-hint { margin: 2px 0 0; }
+.ce-grow { flex: 1; min-width: 220px; }
+.ce-sb { flex: none; position: relative; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--p-surface-2); box-shadow: inset 0 0 0 1.5px var(--p-line); color: var(--p-muted); font: 800 14px 'Inter Tight', Inter, sans-serif; }
+.ce-sb.ok { background: #1E9E56; color: transparent; box-shadow: none; }
+.ce-sb.ok::after { content: ""; position: absolute; width: 11px; height: 6px; border-left: 3px solid #fff; border-bottom: 3px solid #fff; transform: rotate(-45deg) translate(1px, -1px); }
+.ce-f2 { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 640px) { .ce-f2 { grid-template-columns: minmax(0, 1fr); } }
+.ce-cols { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ce-swatch { width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--sw); cursor: pointer; transition: transform .12s ease; }
+.ce-swatch:hover:not(:disabled) { transform: scale(1.08); }
+.ce-swatch.on { box-shadow: 0 0 0 3px var(--p-surface), 0 0 0 5px var(--p-ink); }
+.ce-swatch:disabled { opacity: .28; cursor: not-allowed; }
+.ce-swatch:focus-visible { outline: 3px solid var(--p-orange, #FF9800); outline-offset: 3px; }
+.ce-cols input[type="color"] { width: 40px; height: 32px; padding: 2px; border-radius: 8px; border: 1px solid var(--p-line-2); background: var(--p-surface); cursor: pointer; }
+.ce-ksum { display: flex; flex-wrap: wrap; gap: 8px; }
+.ce-go { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; justify-content: space-between; }
+.ce-prog b { display: block; }
+.ce-prog small { color: var(--p-muted); }
+.ce-goact { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+/* the places it shows up, as they look in the portal */
+.ce-crow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); }
+.ce-crow b { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ce-crow i { width: 3px; height: 16px; border-radius: 2px; background: var(--c); flex: none; }
+.ce-filt { display: flex; flex-wrap: wrap; gap: 8px; }
+.ce-chip { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 999px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); font: 700 13px Inter, sans-serif; }
+.ce-chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+.ce-chip em { font-style: normal; display: grid; place-items: center; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--p-surface-2); font-size: 11.5px; color: var(--p-muted); }
+.ce-banner .cm-chip { cursor: default; }
+/* the popups: solid cards, a scrim that only dims */
+dialog.ce-dlg { border: 0; padding: 0; border-radius: 22px; background: var(--p-surface); color: var(--p-ink); box-shadow: inset 0 0 0 1px var(--p-line), 0 24px 60px -20px rgba(8, 12, 28, .55); width: min(720px, calc(100% - 32px)); max-height: min(86vh, 780px); overflow: hidden; }
+dialog.ce-dlg::backdrop { background: rgba(8, 12, 28, .62); }
+dialog.ce-kinds[open] { display: flex; flex-direction: column; }
+dialog.ce-leave, dialog.ce-enter { width: min(500px, calc(100% - 32px)); padding: 22px 22px 0; }
+dialog.ce-leave h2, dialog.ce-enter h2 { margin: 0 0 6px; font: 800 20px/1.2 'Inter Tight', Inter, sans-serif; }
+dialog.ce-leave p, dialog.ce-enter p { margin: 0; color: var(--p-muted); }
+.ce-skip { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-weight: 600; cursor: pointer; }
+.ce-skip input { width: 18px; height: 18px; accent-color: var(--p-orange, #FF9800); }
+/* the committees list that opens the editor: the New committee button, the kinds as read-only chips, the On / Off switch on its own */
+.cmx-intro::after { content: ""; display: block; clear: both; }
+.cmx-new { float: right; margin: 0 0 8px 16px; }
+.cmx-kinds { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.cmx-onoff { margin: 0; display: inline-flex; }
+:root:root .cmx-card .cmx-body .cmx-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+:root:root .cmx-card .cmx-foot .p-btn { width: auto; flex: none; }
+.ce-dh { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 18px 20px 8px; }
+.ce-dh h2 { margin: 0; font: 800 20px/1.2 'Inter Tight', Inter, sans-serif; }
+.ce-dh .p-hint { margin: 4px 0 0; }
+.ce-db { overflow-y: auto; padding: 4px 20px 12px; display: grid; gap: 8px; min-height: 0; flex: 1 1 auto; }
+.ce-df { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--p-line); background: var(--p-surface-2); }
+dialog.ce-leave .ce-df, dialog.ce-enter .ce-df { margin: 18px -22px 0; justify-content: flex-end; }
+.ce-k { border-radius: 14px; background: var(--p-surface-2); box-shadow: inset 0 0 0 1px var(--p-line); overflow: hidden; }
+.ce-k:has(input:checked) { background: color-mix(in srgb, var(--tc) 12%, var(--p-surface)); box-shadow: inset 0 0 0 2px var(--tc); }
+.ce-kl { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 12px; cursor: pointer; }
+.ce-kl input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ce-kb { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--tc); color: var(--tk); }
+.ce-kb svg { width: 20px; height: 20px; }
+.ce-kt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.ce-kt b { font: 700 14px Inter, sans-serif; }
+.ce-kt small { color: var(--p-muted); font-size: 12px; }
+.ce-kt small.ce-warn { color: color-mix(in srgb, var(--p-orange, #FF9800) 70%, var(--p-ink)); font-weight: 600; }
+.ce-sw { flex: none; position: relative; width: 44px; height: 26px; border-radius: 99px; background: var(--p-line-2); transition: background .15s ease; }
+.ce-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); transition: transform .15s ease; }
+.ce-kl input:checked ~ .ce-sw { background: #1E9E56; }
+.ce-kl input:checked ~ .ce-sw::after { transform: translateX(18px); }
+.ce-kl input:focus-visible ~ .ce-sw { outline: 3px solid var(--p-orange, #FF9800); outline-offset: 2px; }
+.ce-ko { padding: 0 14px 12px 60px; }
+.ce-ko > summary { cursor: pointer; font-weight: 600; color: var(--p-muted); width: max-content; }
+.ce-ko ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+/* the sidebar here is a preview: nothing in it opens */
+.p-sidebar .p-nav a[aria-disabled="true"] { pointer-events: none; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .ce-swatch, .ce-sw, .ce-sw::after { transition: none; } }

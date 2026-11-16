@@ -1035,18 +1035,12 @@ endif;
   $seen = [];
   foreach (committees_all() as $ck0 => $cc0) { if (!empty($cc0['active'])) { foreach ($cmCats[$ck0] ?? [] as $cv0) { $seen[$cv0] = true; } } }
   $unowned = array_filter(category_pairs(), fn ($k) => !isset($seen[$k]) && !empty($catAll[$k]['active']), ARRAY_FILTER_USE_KEY);
-  // a complaint type as a tap-to-toggle chip in its own colour and symbol
-  $typeChips = function (array $ticked, string $prefix) use ($catAll): void {
-      foreach (category_pairs() as $cv => $cl):
-          $col = (string) ($catAll[$cv]['colour'] ?? '#78909C'); ?>
-        <label class="cmx-t" style="--tc:<?= e($col) ?>;--tk:<?= e(ink_on_bold([$col])) ?>"><input type="checkbox" name="cats[]" value="<?= e($cv) ?>" data-c="<?= e($col) ?>" data-ic="<?= e(sd_icon_for((string) $cv, (array) ($catAll[$cv] ?? []))) ?>" <?= in_array($cv, $ticked, true) ? 'checked' : '' ?>>
-          <svg class="cm-ic cmx-ti" data-ic="<?= e(sd_icon_for((string) $cv, (array) ($catAll[$cv] ?? []))) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg><span><?= e(t($cl[0], $cl[1])) ?></span></label>
-      <?php endforeach;
-  }; ?>
+  ?>
   <div id="acc-committees" class="cmx">
     <div class="cmx-intro">
+      <a class="p-btn p-btn-primary cmx-new" href="committee-editor.php" data-ce-go hx-boost="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><?= e(t('New committee', 'Bagong komite')) ?></a>
       <h2><?= e(t('Committees', 'Mga komite')) ?></h2>
-      <p><?= e(t('A committee sees only the kinds of complaint you connect to it. Tap a kind to connect or disconnect it; the committee\'s banner takes the colours and symbols of the kinds it has. Turning a committee off keeps its history but nobody can be put in it.', 'Ang komite ay nakikita lamang ang mga uri ng reklamong ikinonekta mo rito. Pindutin ang isang uri para ikonekta o alisin; ang banner ng komite ay may kulay at simbolo ng mga uring mayroon ito. Kapag in-off ang komite, nananatili ang kasaysayan nito pero walang maidadagdag dito.')) ?></p>
+      <p><?= e(t('A committee sees only the kinds of complaint you connect to it. Open a committee to see what it sees, or edit it to change its name, logo, colour and kinds; its banner takes the colours and symbols of the kinds it has. Turning a committee off keeps its history but nobody can be put in it.', 'Ang komite ay nakikita lamang ang mga uri ng reklamong ikinonekta mo rito. Buksan ang komite para makita ang nakikita nito, o i-edit ito para baguhin ang pangalan, logo, kulay at mga uri; ang banner nito ay may kulay at simbolo ng mga uring mayroon ito. Kapag in-off ang komite, nananatili ang kasaysayan nito pero walang maidadagdag dito.')) ?></p>
     </div>
     <?php if ($unowned): ?>
       <div class="cmx-note cmx-warn" role="note"><b><?= e(t('Nobody sees these yet:', 'Walang nakakakita nito:')) ?></b>
@@ -1055,42 +1049,31 @@ endif;
     <?php else: ?>
       <div class="cmx-note cmx-ok" role="note"><?= e(t('Every kind of complaint is seen by at least one committee.', 'Ang bawat uri ng reklamo ay nakikita ng kahit isang komite.')) ?></div>
     <?php endif; ?>
-    <?php // 15 Nov 2026 (Ace): committees that are turned off are not laid out with the live ones; they wait in a closed list at the foot (turn one on there and Save, and it comes back). From four live committees on they become tiles (assets/js/tiles.js). $offHtml = ''; $offN = 0; ?>
-    <div class="cmx-grid" data-tiles="committees">
+    <?php // 15 Nov 2026 (Ace): committees that are turned off are not laid out with the live ones; they wait in a closed list at the foot (turn one on there and Save, and it comes back). From four live committees on they become tiles (assets/js/tiles.js). 16 Nov 2026: the two starting values were inside this comment and never ran; they are set here. ?>
+    <?php $offHtml = ''; $offN = 0; ?>
+    <div class="cmx-grid" data-tiles="committees" data-fit="250">
     <?php foreach (committees_all() as $ck => $cc): $ticked = $cmCats[$ck] ?? []; $lead = $cmLead[$ck] ?? []; $nT = (int) ($cmTanods[$ck] ?? 0); $cHex = committee_colour($ck); $isOff = empty($cc['active']); if ($isOff) { ob_start(); } ?>
-      <form method="post" class="acc-row cmx-card<?= $isOff ? ' acc-off' : '' ?>" enctype="multipart/form-data"<?= $isOff ? '' : ' data-tile="' . e((string) $ck) . '"' ?>>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
+      <section class="acc-row cmx-card<?= $isOff ? ' acc-off' : '' ?>"<?= $isOff ? '' : ' data-tile="' . e((string) $ck) . '"' ?>>
         <div class="cm-chips cmx-banner" aria-hidden="true" data-tile-head><a class="cm-chip cm-sd" tabindex="-1" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cc['short_en']) ?><span class="cm-n"><?= e((string) $cc['short_en']) ?></span><b><?= $nT ?></b></a></div>
+        <?php // 16 Nov 2026 (Ace): what a small tile shows under its banner (tiles.js, pills.css): how many kinds it sees, and whether it is on ?>
+        <div class="cmx-meta" data-tile-meta><span><b><?= count($ticked) ?></b> <?= e(count($ticked) === 1 ? t('kind', 'uri') : t('kinds', 'uri')) ?></span><span><?= e(!empty($cc['active']) ? t('On', 'Naka-on') : t('Off', 'Naka-off')) ?></span></div>
         <div class="cmx-body">
           <div class="acc-meta"><span class="<?= $lead ? '' : 'acc-warn' ?>"><?= $lead ? e(t('Led by', 'Pinangungunahan ni')) . ' <b>' . e(implode(', ', $lead)) . '</b>' : e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></span><span><?= e($nT === 0 ? t('No tanods', 'Walang tanod') : ($nT === 1 ? t('1 tanod', 'Isang tanod') : sprintf(t('%d tanods', '%d tanod'), $nT))) ?></span></div>
-          <div class="cmx-names">
-            <label class="ty-f" for="cn-<?= e($ck) ?>"><span><?= e(t('Full name', 'Buong pangalan')) ?></span>
-              <input class="p-input-plain" id="cn-<?= e($ck) ?>" name="name_en" value="<?= e((string) $cc['name_en']) ?>" title="<?= e((string) $cc['name_en']) ?>" required minlength="3" maxlength="120"></label>
-            <label class="ty-f" for="cf-<?= e($ck) ?>"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span>
-              <input class="p-input-plain" id="cf-<?= e($ck) ?>" name="name_fil" value="<?= e((string) $cc['name_fil']) ?>" title="<?= e((string) $cc['name_fil']) ?>" maxlength="120"></label>
-            <label class="ty-f" for="cs-<?= e($ck) ?>"><span><?= e(t('Short name', 'Maikling pangalan')) ?></span>
-              <input class="p-input-plain" id="cs-<?= e($ck) ?>" name="short_en" value="<?= e((string) $cc['short_en']) ?>" maxlength="40"></label>
-            <?php $lg = (string) ($cc['logo_url'] ?? ''); $lgHex = committee_colour($ck); ?>
-            <div class="ty-f cmx-logo-f"><span><?= e(t('Sidebar logo', 'Logo sa sidebar')) ?></span>
-              <span class="cmx-logo">
-                <label class="cmx-lg" title="<?= e(t('The logo beside the barangay seal in this committee\'s sidebar', 'Ang logo sa tabi ng selyo ng barangay sa sidebar ng komiteng ito')) ?>">
-                  <span class="cmx-lgi" style="--cc:<?= e($lgHex) ?>;--ci:<?= e(ink_on($lgHex)) ?>"><?php if ($lg !== ''): ?><img src="<?= e(cld_thumb($lg, 96)) ?>" alt=""><?php else: ?><svg class="cmx-ti" data-ic="<?= e((string) (($sdTypes[$ck][0][1] ?? null) ?: 'other')) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg><?php endif; ?></span>
-                  <span class="cmx-lgt"><?= e($lg !== '' ? t('Change logo', 'Palitan ang logo') : t('Upload logo', 'Mag-upload ng logo')) ?></span>
-                  <input type="file" name="logo[]" accept="image/png,image/jpeg,image/webp"></label>
-                <?php if ($lg !== ''): ?><label class="cmx-lgx"><input type="checkbox" name="logo_clear" value="1"><span><?= e(t('Use the symbol instead', 'Gamitin ang simbolo')) ?></span></label><?php endif; ?>
-              </span>
-            </div>
-          </div>
-          <fieldset class="cmx-types acc-cats"><legend><?= e(t('Kinds of complaint it sees', 'Mga uri ng reklamong nakikita nito')) ?></legend>
-            <div class="cmx-chips"><?php $typeChips($ticked, $ck); ?></div></fieldset>
+          <div class="cmx-kinds"><?php foreach ($ticked as $cv): if (!isset($catAll[$cv])) continue; $kc = (string) ($catAll[$cv]['colour'] ?? '#78909C'); ?>
+            <span class="cmx-t cmx-t-ro" style="--tc:<?= e($kc) ?>;--tk:<?= e(ink_on_bold([$kc])) ?>"><svg class="cm-ic cmx-ti" data-ic="<?= e(sd_icon_for((string) $cv, (array) $catAll[$cv])) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg><span><?= e(t(category_pairs()[$cv][0] ?? $cv, category_pairs()[$cv][1] ?? $cv)) ?></span></span>
+          <?php endforeach; if (!$ticked): ?><span class="p-hint"><?= e(t('No kinds connected yet. Its complaints go only to the super admins.', 'Wala pang nakakonektang uri. Ang mga reklamo nito ay mapupunta lamang sa mga super admin.')) ?></span><?php endif; ?></div>
+          <?php // the On / Off switch saves on its own: the same committee_save, with every other field sent back unchanged (the kinds too, or saving would clear them) ?>
           <div class="cmx-foot acc-act">
-            <label class="acc-col cmx-col" title="<?= e(t('The colour of this committee\'s admins\' sidebar', 'Ang kulay ng sidebar ng mga admin ng komiteng ito')) ?>"><span><?= e(t('Sidebar colour', 'Kulay ng sidebar')) ?></span><input type="color" name="colour" value="<?= e(strtolower($cHex)) ?>" list="cm-palette"></label>
-            <label class="cmx-sw"><input type="checkbox" name="active" value="1" <?= !empty($cc['active']) ? 'checked' : '' ?>><i aria-hidden="true"></i><span><?= e(t('On', 'Naka-on')) ?></span></label>
-            <span class="cmx-dirty-note" aria-live="polite"><?= e(t('Unsaved changes', 'May hindi pang-save na pagbabago')) ?></span>
-            <button class="p-btn p-btn-sm cmx-save" type="submit" disabled><?= e(t('Save changes', 'I-save ang mga pagbabago')) ?></button>
+            <form method="post" class="cmx-onoff">
+              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
+              <input type="hidden" name="name_en" value="<?= e((string) $cc['name_en']) ?>"><input type="hidden" name="name_fil" value="<?= e((string) $cc['name_fil']) ?>"><input type="hidden" name="short_en" value="<?= e((string) $cc['short_en']) ?>"><input type="hidden" name="colour" value="<?= e(strtolower($cHex)) ?>">
+              <?php foreach ($ticked as $cv): ?><input type="hidden" name="cats[]" value="<?= e((string) $cv) ?>"><?php endforeach; ?>
+              <label class="cmx-sw"><input type="checkbox" name="active" value="1" <?= !empty($cc['active']) ? 'checked' : '' ?> data-autosubmit><i aria-hidden="true"></i><span><?= e(t('On', 'Naka-on')) ?></span></label>
+            </form>
+            <a class="p-btn p-btn-ghost p-btn-sm" href="committee-editor.php?key=<?= e(rawurlencode((string) $ck)) ?>" data-ce-go hx-boost="false"><?= e(t('Edit name, logo and kinds', 'I-edit ang pangalan, logo at mga uri')) ?></a>
           </div>
         </div>
-      </form>
+      </section>
     <?php if ($isOff) { $offHtml .= ob_get_clean(); $offN++; } endforeach; ?>
     </div>
     <?php if ($offHtml !== ''): ?>
@@ -1100,75 +1083,17 @@ endif;
     </details>
     <?php endif; ?>
     <script src="assets/js/tiles.js?v=<?= e(asset_version('../js/tiles.js')) ?>" defer></script>
-    <details class="cmx-newd">
-      <summary><span class="cmx-plus" aria-hidden="true">+</span><?= e(t('Add a committee', 'Magdagdag ng komite')) ?></summary>
-      <form method="post" class="acc-row acc-new cmx-card cmx-card-new" enctype="multipart/form-data">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="">
-        <div class="cm-chips cmx-banner" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="--cc:#78909C;--ct:#FFFFFF;--g1:#78909C;--g2:#78909C;--g3:#78909C"><i class="cm-sym cm-sym-sd"></i><span class="cm-n"><?= e(t('Your new committee', 'Ang bago mong komite')) ?></span><b>0</b></a></div>
-        <div class="cmx-body">
-          <div class="cmx-names">
-            <label class="ty-f" for="cn-new"><span><?= e(t('Full name', 'Buong pangalan')) ?></span>
-              <input class="p-input-plain" id="cn-new" name="name_en" required minlength="3" maxlength="120" placeholder="<?= e(t('For example: Committee on Senior Citizens', 'Halimbawa: Komite sa mga Nakatatanda')) ?>"></label>
-            <label class="ty-f" for="cf-new"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span>
-              <input class="p-input-plain" id="cf-new" name="name_fil" maxlength="120"></label>
-            <label class="ty-f" for="cs-new"><span><?= e(t('Short name', 'Maikling pangalan')) ?></span>
-              <input class="p-input-plain" id="cs-new" name="short_en" maxlength="40"></label>
-            <div class="ty-f cmx-logo-f"><span><?= e(t('Sidebar logo', 'Logo sa sidebar')) ?></span>
-              <span class="cmx-logo">
-                <label class="cmx-lg" title="<?= e(t('The logo beside the barangay seal in this committee\'s sidebar', 'Ang logo sa tabi ng selyo ng barangay sa sidebar ng komiteng ito')) ?>">
-                  <span class="cmx-lgi" style="--cc:#78909C;--ci:#FFFFFF"><svg class="cmx-ti" data-ic="other" viewBox="0 0 24 24" aria-hidden="true"></svg></span>
-                  <span class="cmx-lgt"><?= e(t('Upload logo', 'Mag-upload ng logo')) ?></span>
-                  <input type="file" name="logo[]" accept="image/png,image/jpeg,image/webp"></label>
-              </span>
-            </div>
-          </div>
-          <fieldset class="cmx-types acc-cats"><legend><?= e(t('Kinds of complaint it sees', 'Mga uri ng reklamong nakikita nito')) ?></legend>
-            <div class="cmx-chips"><?php $typeChips([], 'new'); ?></div></fieldset>
-          <div class="cmx-foot acc-act">
-            <?php $freeHex = '#78909C'; foreach (COMMITTEE_PALETTE as $ph) { if (colour_clash($ph) === null) { $freeHex = $ph; break; } } ?>
-            <label class="acc-col cmx-col" title="<?= e(t('The colour of this committee\'s admins\' sidebar', 'Ang kulay ng sidebar ng mga admin ng komiteng ito')) ?>"><span><?= e(t('Sidebar colour', 'Kulay ng sidebar')) ?></span><input type="color" name="colour" value="<?= e(strtolower($freeHex)) ?>" list="cm-palette"></label>
-            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Make committee', 'Gumawa ng komite')) ?></button>
-          </div>
-        </div>
-      </form>
-    </details>
+    <script src="assets/js/fit-grid.js?v=<?= e(asset_version('../js/fit-grid.js')) ?>" defer></script>
     <?= committee_banner_script() ?>
-    <script>
-    (function () {
-      var I = window.SD_ICONS || {};
-      function draw(svg, name) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '2'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.innerHTML = I[name] || I.other || ''; }
-      document.querySelectorAll('.cmx-ti').forEach(function (s) { draw(s, s.dataset.ic); });
-      function lum(h) { var n = parseInt(h.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
-      document.querySelectorAll('#acc-committees form.cmx-card').forEach(function (f) {
-        var chip = f.querySelector('.cmx-banner .cm-chip'), sym = chip.querySelector('.cm-sym'), initial = new URLSearchParams(new FormData(f)).toString();
-        var save = f.querySelector('.cmx-save'), isNew = f.classList.contains('acc-new');
-        function banner() {
-          var on = [].slice.call(f.querySelectorAll('.cmx-t input:checked')), cols = on.slice(0, 3).map(function (i) { return i.dataset.c; });
-          if (!cols.length) cols = [f.querySelector('input[name="colour"]').value];
-          chip.style.setProperty('--g1', cols[0]); chip.style.setProperty('--g2', cols[1] || cols[0]); chip.style.setProperty('--g3', cols[2] || cols[1] || cols[0]);
-          chip.style.setProperty('--cc', f.querySelector('input[name="colour"]').value);
-          chip.style.setProperty('--ct', cols.reduce(function (a, c) { return a + lum(c); }, 0) / cols.length > 0.62 ? '#2B1A00' : '#FFFFFF');
-          sym.className = 'cm-sym cm-sym-sd'; sym.innerHTML = '';
-          on.slice(0, 3).forEach(function (i) { var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'cm-ic'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); draw(s, i.dataset.ic); sym.appendChild(s); });
-          if (on.length > 3) { var m = document.createElement('b'); m.className = 'cm-more'; m.textContent = '+' + (on.length - 3); sym.appendChild(m); }
-          var old = chip.querySelector('.cm-bg'); if (old) old.remove();
-          var first = sym.querySelector('svg'); if (first) { var g = first.cloneNode(true); g.setAttribute('class', 'cm-bg'); g.setAttribute('aria-hidden', 'true'); chip.appendChild(g); }
-          var nm = (f.querySelector('input[name="short_en"]').value || f.querySelector('input[name="name_en"]').value || '').trim();
-          chip.querySelector('.cm-n').textContent = nm || chip.querySelector('.cm-n').textContent;
-        }
-        // a logo picked shows in its slot at once (0164); a file input does not change the form's text, so it is checked on its own
-        var lgIn = f.querySelector('.cmx-lg input[type="file"]'), lgBox = f.querySelector('.cmx-lgi'), lgUrl = null;
-        if (lgIn) lgIn.addEventListener('change', function () {
-          if (lgUrl) URL.revokeObjectURL(lgUrl);
-          var file = lgIn.files && lgIn.files[0]; if (!file) return;
-          lgUrl = URL.createObjectURL(file); lgBox.innerHTML = ''; var im = document.createElement('img'); im.src = lgUrl; im.alt = ''; lgBox.appendChild(im);
-        });
-        function dirty() { var d = new URLSearchParams(new FormData(f)).toString() !== initial || !!(lgIn && lgIn.files && lgIn.files.length); f.classList.toggle('cmx-dirty', d); if (save) save.disabled = !d; f.classList.toggle('acc-off', !isNew && !f.querySelector('input[name="active"]').checked); }
-        f.addEventListener('input', function () { banner(); dirty(); }); f.addEventListener('change', function () { banner(); dirty(); });
-        banner();
-      });
-    })();
-    </script>
+    <?= sd_chip_script() ?>
+    <?php // 16 Nov 2026 (Ace): "New committee" and each committee's Edit open committee-editor.php. The first time, a notice says the rest of the portal cannot be opened while in the editor; "Do not show this again" is remembered in this browser (committee-gate.js) ?>
+    <dialog class="ce-dlg ce-enter" id="ce-enter" aria-labelledby="ce-et">
+      <h2 id="ce-et"><?= e(t('Open the committee editor?', 'Bubuksan ang editor ng komite?')) ?></h2>
+      <p><?= e(t('While you are in the editor, the rest of the portal cannot be opened. The sidebar turns into a live preview of this committee\'s sidebar, and the editor takes the whole page.', 'Habang nasa editor ka, hindi mabubuksan ang iba pang bahagi ng portal. Ang sidebar ay nagiging live na preview ng sidebar ng komiteng ito, at ang editor ang sasakop sa buong pahina.')) ?></p>
+      <label class="ce-skip"><input type="checkbox" id="ce-skip"><span><?= e(t('Do not show this again', 'Huwag na itong ipakita muli')) ?></span></label>
+      <div class="ce-df"><button type="button" class="p-btn p-btn-ghost" data-ce-no><?= e(t('Cancel', 'Kanselahin')) ?></button><a class="p-btn p-btn-primary" href="committee-editor.php" id="ce-enter-go"><?= e(t('Open the editor', 'Buksan ang editor')) ?></a></div>
+    </dialog>
+    <script src="assets/js/committee-gate.js?v=<?= e(asset_version('../js/committee-gate.js')) ?>" defer></script>
   </div>
   <?php $supHex = (string) (barangay()['super_colour'] ?? SUPER_BLUE); ?>
   <div class="p-card p-card-pad" id="acc-super">

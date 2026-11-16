@@ -119,7 +119,15 @@ dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
 :root:root .cc-body > .cc-timeline > .p-eyebrow { margin-bottom: 10px; }
 
 /* the Where block (the map) in the Report tab, and the tanod activity in the Field report tab */
-.cc-where .p-minimap { max-width: 760px; height: 220px; }
+/* 16 Nov 2026 (Ace, "no dead space"): the map is as wide as the card, and on a wide screen it also takes whatever height the card has left under the report, so there is no empty
+   band to its right or below it (the card is as tall as the controls beside it, below). */
+.cc-where .p-minimap { width: 100%; max-width: none; height: 220px; }
+@media (min-width: 1101px) {
+  :root:root .p-case-left .p-report { display: flex; flex-direction: column; }
+  :root:root .p-case-left .p-report > .cc-body { flex: 1 1 auto; display: flex; flex-direction: column; }
+  :root:root .cc-body > .cc-where:not([hidden]) { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .cc-where .p-minimap { flex: 1 1 220px; height: auto; min-height: 220px; }
+}
 .cc-acts { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .cc-acts li { padding-left: 14px; border-left: 3px solid color-mix(in srgb, var(--p-orange-line) 80%, transparent); }
 .cc-act-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -172,6 +180,18 @@ dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
 .p-controls details.p-fix:not([data-ic]) > summary { grid-template-columns: minmax(0, 1fr) auto; }
 .p-controls details.p-fix > summary::before { width: 30px; height: 30px; border-radius: 9px; background-color: var(--p-surface-2); background-position: center; background-size: 16px 16px; background-repeat: no-repeat; -webkit-mask: none; mask: none; }
 .cc-tiles > details.p-fix:last-child:nth-child(odd) { grid-column: 1 / -1; }
+/* Locked tiles (16 Nov 2026, Ace's preview): a tile the person cannot use stays in its place with a lock, hatched, and the reason in one line. A person or a rank named in the reason
+   (.cc-who) is bold and wears that rank's colour (shell.css [data-r] gives --rc), so who holds the case is clear at a glance. In light and in dark. */
+.p-controls details.p-fix.cc-locked { background: repeating-linear-gradient(135deg, transparent 0 8px, color-mix(in srgb, var(--p-muted) 8%, transparent) 8px 16px), var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); cursor: default; }
+.cc-tiles > details.p-fix.cc-locked:hover { box-shadow: inset 0 0 0 1px var(--p-line); }
+.cc-locked > summary { cursor: default; }
+.cc-locked .cc-st { color: var(--p-muted); }
+.cc-locked .cc-st small { color: var(--p-ink-2, var(--p-ink)); font-weight: 600; opacity: .9; }
+.cc-who { font-weight: 800; color: color-mix(in srgb, var(--rc, var(--p-ink)) 72%, #000); }
+:root[data-theme="dark"] .cc-who { color: color-mix(in srgb, var(--rc, #fff) 50%, #fff); }
+.cc-locked .cc-st small { opacity: 1; }
+.p-controls details.p-fix[data-ic="lock"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238A93AE' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 11V8a5 5 0 0110 0v3M5 11h14v10H5z'/%3E%3C/svg%3E"); }
+:root[data-theme="dark"] .p-controls details.p-fix[data-ic="lock"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A9B2C7' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 11V8a5 5 0 0110 0v3M5 11h14v10H5z'/%3E%3C/svg%3E"); }
 .p-controls details.p-fix[data-ic="user"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%2012a4%204%200%20100-8%204%204%200%20000%208zM4%2021a8%208%200%200116%200'/%3E%3C/svg%3E"); }
 .p-controls details.p-fix[data-ic="send"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M22%202L11%2013M22%202l-7%2020-4-9-9-4%2020-7z'/%3E%3C/svg%3E"); }
 .p-controls details.p-fix[data-ic="flag"] > summary::before { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2300308F'%20stroke-width='2.2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M5%2021V4M5%204h11l-2%204%202%204H5'/%3E%3C/svg%3E"); }

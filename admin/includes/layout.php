@@ -272,6 +272,8 @@ function colour_clash(string $hex, ?string $except = null): ?string
  */
 function side_colour(): array
 {
+    // 16 Nov 2026 (Ace): the committee editor shows the sidebar a committee's people will have, live, as the committee is edited (committee-editor.php sets this)
+    if (!empty($GLOBALS['ss_side_override'])) { $o = $GLOBALS['ss_side_override']; return ['hex' => strtoupper((string) $o['hex']), 'label' => (string) $o['label']]; }
     if (is_scoped()) {   // a Kagawad or a staff member wears their committee's colour
         $c = committees_all()[(string) (current_admin()['committee'] ?? '')] ?? null;
         if ($c) return ['hex' => committee_colour((string) $c['key']), 'label' => (string) $c['short_en']];
@@ -296,12 +298,14 @@ function side_colour_style(): string
     }
     $hs = (int) round($h); $sl = (int) round(min($s * 100, 90)); $sd = (int) round(min($s * 100, 30));
     // the committee's own logo, faded, is what the sidebar's pattern becomes (12 Nov 2026, Ace): its uploaded logo, or its symbol until it has one
-    $ck = (string) (current_admin()['committee'] ?? '');
-    $url = (string) (committees_all()[$ck]['logo_url'] ?? '');
+    $ov = $GLOBALS['ss_side_override'] ?? null;   // the committee editor's live sidebar (committee-editor.php): the committee being edited, not the signed-in person's
+    $ck = $ov ? '' : (string) (current_admin()['committee'] ?? '');
+    $url = $ov ? (string) ($ov['logo'] ?? '') : (string) (committees_all()[$ck]['logo_url'] ?? '');
+    $sym = $ov ? (string) ($ov['symbol'] ?? 'other') : committee_first_symbol($ck);
     $mark = $url !== '' ? cld_thumb($url, 640)
-        : 'data:image/svg+xml,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' . sd_icon_paths(committee_first_symbol($ck)) . '</svg>');
+        : 'data:image/svg+xml,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' . sd_icon_paths($sym) . '</svg>');
     $markCss = '--p-side-mark:url("' . strtr($mark, ['"' => '%22', '\\' => '%5C', '<' => '%3C', '>' => '%3E', "\n" => '', "\r" => '']) . '")';
-    if ($url === '' && committee_first_symbol($ck) === 'other') $markCss = '--p-side-mark:none';   // a committee with no logo and no kind of its own has nothing worth drawing large
+    if ($url === '' && $sym === 'other') $markCss = '--p-side-mark:none';   // a committee with no logo and no kind of its own has nothing worth drawing large
     $light = "--p-side-a:hsl($hs $sl% 28%);--p-side-b:hsl($hs $sl% 20%);--p-side-glow:$hex;$markCss";
     $dark = "--p-side-a:hsl($hs $sd% 20%);--p-side-b:hsl($hs $sd% 11%);--p-side-glow:$hex;$markCss";
     return "<style>:root{{$light}}@media (prefers-color-scheme: dark){:root:not([data-theme=\"light\"]){{$dark}}}:root[data-theme=\"dark\"]{{$dark}}</style>\n";
@@ -566,6 +570,9 @@ window.ssSupabase = function (url, key, initial) {
 <?php if (in_array($active, ['administrative-services.php', 'control-room.php', 'settings.php'], true)) : // the super admin consoles (console.css) ?>
 <link href="assets/css/console.css?v=<?= e(asset_version('console.css')) ?>" rel="stylesheet">
 <?php endif; ?>
+<?php if (!empty($GLOBALS['ss_side_override']) || $active === 'administrative-services.php') : // the committee editor (committee-editor.php, 16 Nov 2026) and the committees list that opens it ?>
+<link href="assets/css/committee-editor.css?v=<?= e(asset_version('committee-editor.css')) ?>" rel="stylesheet">
+<?php endif; ?>
 <?php if ($active === 'control-room.php') : // the Control Room's live view of the app (app-editor.css) ?>
 <link href="assets/css/app-editor.css?v=<?= e(asset_version('app-editor.css')) ?>" rel="stylesheet">
 <?php endif; ?>
@@ -608,17 +615,21 @@ window.ssSupabase = function (url, key, initial) {
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
 <div id="app" class="p-on">
   <aside class="p-sidebar<?= side_colour()['label'] !== null ? ' has-mark' : '' ?>" aria-label="<?= e(t('Main menu', 'Pangunahing menu')) ?>">
-    <button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"
+    <?php if (empty($GLOBALS['ss_side_override'])): ?><button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"
             data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
-            aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+            aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><?php endif; ?>
     <div class="p-side-top"><?= side_brand() ?></div>
     <?php $sideC = side_colour(); if ($sideC['label'] !== null): ?>
       <?php // 0150: a committee admin's sidebar names the committee, in its colour ?>
       <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><b><?= e($sideC['label']) ?></b></span></div>
     <?php endif; ?>
+    <?php $ssFocus = !empty($GLOBALS['ss_side_override']); // the committee editor (committee-editor.php): the menu is a preview of the committee's own sidebar, nothing in it opens ?>
     <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
-      <?php $counts = nav_counts(); ?>
-      <?php foreach (nav_items() as [$href, $label, $icon]): ?>
+      <?php if ($ssFocus): foreach ([['i-home', t('Home', 'Tahanan'), false], ['i-doc', t('Report Summary', 'Buod ng mga Ulat'), false], ['i-map', t('Spatial Distribution', 'Mapa ng mga Sumbong'), false], ['i-chat', t('Case Reports', 'Mga Sumbong'), true],
+                                   ['i-bell', t('Notifications', 'Mga Abiso'), false], ['i-send', t('Inbox', 'Mga Liham'), false], ['i-gear', t('Settings', 'Mga Setting'), false]] as [$fi, $fl, $fon]): ?>
+        <a class="<?= $fon ? 'p-active' : '' ?>" aria-disabled="true" tabindex="-1"><?= p_icon($fi) ?><span><?= e($fl) ?></span></a>
+      <?php endforeach; $counts = []; else: $counts = nav_counts(); endif; ?>
+      <?php foreach ($ssFocus ? [] : nav_items() as [$href, $label, $icon]): ?>
         <?php $n = $counts[$href] ?? 0; ?>
         <a href="<?= e($href) ?>" title="<?= e($label) ?>" class="<?= basename($href) === $active ? 'p-active' : '' ?>"<?= basename($href) === $active ? ' aria-current="page"' : '' ?>>
           <?= p_icon($icon) ?><span><?= e($label) ?></span>
@@ -632,6 +643,9 @@ window.ssSupabase = function (url, key, initial) {
       <?php endforeach; ?>
     </nav>
     <div class="p-side-foot">
+      <?php if ($ssFocus): ?><div class="p-side-user" id="side-user"><span class="p-side-me"><?= admin_avatar_html(['full_name' => t('Committee member', 'Miyembro ng komite'), 'official_role' => 'kagawad']) ?>
+        <div class="p-who"><b><?= e(t('Committee member', 'Miyembro ng komite')) ?></b><small id="ce-side-short"><?= e((string) $GLOBALS['ss_side_override']['label']) ?></small></div></span></div>
+      <?php else: ?>
       <?php if (can_view_mode()): // 15 Nov 2026 (Rose): the Chairman can switch to looking only ?>
         <?php if (view_mode_on()): ?>
           <form method="post" action="view-mode.php"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="off">
@@ -647,6 +661,7 @@ window.ssSupabase = function (url, key, initial) {
         </a>
         <button type="button" title="<?= e(t('Log out', 'Mag-log out')) ?>" aria-label="<?= e(t('Log out', 'Mag-log out')) ?>" data-p-open="p-m-logout"><?= p_icon('i-out', 18) ?></button>
       </div>
+      <?php endif; ?>
     </div>
   </aside>
 

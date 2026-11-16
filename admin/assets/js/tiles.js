@@ -24,7 +24,7 @@
     }
     show(open);
     function pick(e) {
-      var h = e.target.closest('[data-tile-head]'); if (!h || !box.classList.contains('ss-tiles')) { return; }
+      var h = e.target.closest('[data-tile-head], [data-tile-meta]'); if (!h || !box.classList.contains('ss-tiles')) { return; }
       var t = h.closest('[data-tile]'); if (!t || t.parentNode !== box || t.classList.contains('tile-open')) { return; }
       if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') { return; }
       e.preventDefault(); show(t); wr(key, t.getAttribute('data-tile'));

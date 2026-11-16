@@ -20,6 +20,7 @@ const PAGE_TIERS = [
     'settings.php'            => ['super', 'committee', 'moderator'],   // a Kagawad's and staff's own: look, their committee, their SMART module (4 Nov 2026)
     'retirement-requests.php' => ['super'],
     'administrative-services.php' => ['super'],
+    'committee-editor.php'    => ['super'],   // 16 Nov 2026 (Ace): making or editing a committee, a page of its own with the committee's sidebar live beside it
     'control-room.php'        => ['super'],
     'certificate.php'         => ['super', 'committee', 'moderator'],   // the referral certificate: whoever may refer a case prints it (7 Nov 2026); row level security keeps it to the cases they see
     'workspace.php'           => ['super'],

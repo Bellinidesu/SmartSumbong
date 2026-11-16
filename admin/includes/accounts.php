@@ -450,10 +450,10 @@ function render_account_screen(string $role): void
               <?php endif; ?>
               <td><div class="p-badges"><?= account_status_pills($a, !$isTanod) ?><?php
                   if (!empty($dupes[$a['id']])): ?><span class="p-badge p-b-violet" title="<?= e(implode('; ', $dupes[$a['id']])) ?>"><?= e(t('Possible duplicate', 'Posibleng doble')) ?></span><?php endif; ?><?php
-                  if (ID_OCR_ENABLED && !empty($a['ocr_flags'])): ?><span class="p-badge p-b-violet" title="<?= e(implode('; ', array_map('ocr_flag_label', $a['ocr_flags']))) ?>"><?= e(t('OCR flag', 'OCR flag')) ?></span><?php endif; ?><?php
+                  if (ID_OCR_ENABLED && !empty($a['ocr_flags'])): ?><span class="p-badge p-tag p-b-violet" title="<?= e(implode('; ', array_map('ocr_flag_label', $a['ocr_flags']))) ?>"><?= e(t('OCR flag', 'OCR flag')) ?></span><?php endif; ?><?php
                   if (ID_OCR_ENABLED && !empty($a['ocr_rescan_requested_at'])
                       && (empty($a['ocr_processed_at'])
-                          || (string) $a['ocr_processed_at'] < (string) $a['ocr_rescan_requested_at'])): ?><span class="p-badge p-b-grey" title="<?= e(t('Waiting for them to open the app', 'Hinihintay na buksan nila ang app')) ?>"><?= e(t('Re-check pending', 'Nakabinbing muling pagsuri')) ?></span><?php endif; ?></div></td>
+                          || (string) $a['ocr_processed_at'] < (string) $a['ocr_rescan_requested_at'])): ?><span class="p-badge p-tag p-b-grey" title="<?= e(t('Waiting for them to open the app', 'Hinihintay na buksan nila ang app')) ?>"><?= e(t('Re-check pending', 'Nakabinbing muling pagsuri')) ?></span><?php endif; ?></div></td>
               <td class="p-right">
                 <?php $toReview = $a['verification_status'] === 'pending' && is_super(); ?>
                 <a class="p-btn p-btn-sm <?= $toReview ? 'p-btn-primary' : 'p-btn-ghost' ?>" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
@@ -590,13 +590,13 @@ function render_account_screen(string $role): void
         }
 
         if (a.verification_status === 'pending') {
-          if (a.is_overdue) out.push('<span class="p-badge p-b-denied">' + T('Overdue', 'Lampas-oras') + '</span>');
+          if (a.is_overdue) out.push('<span class="p-badge p-tag p-b-denied">' + T('Overdue', 'Lampas-oras') + '</span>');
           else if (a.minutes_left !== null && a.minutes_left !== undefined) {
-            out.push('<span class="p-badge p-b-progress">' + Math.trunc(a.minutes_left) + T(' min left', ' minuto pa') + '</span>');
+            out.push('<span class="p-badge p-tag p-b-progress">' + Math.trunc(a.minutes_left) + T(' min left', ' minuto pa') + '</span>');
           }
         }
-        if (!IS_TANOD && a.holding_incident) out.push('<span class="p-badge p-b-progress">' + T('On an incident', 'May hawak na insidente') + '</span>');
-        if (!IS_TANOD && a.duty_status) out.push('<span class="p-badge p-b-grey">' + escapeHtml(STATUS_LABEL[a.duty_status] || titleCase(a.duty_status)) + '</span>');
+        if (!IS_TANOD && a.holding_incident) out.push('<span class="p-badge p-tag p-b-progress">' + T('On an incident', 'May hawak na insidente') + '</span>');
+        if (!IS_TANOD && a.duty_status) out.push('<span class="p-badge p-tag p-b-grey">' + escapeHtml(STATUS_LABEL[a.duty_status] || titleCase(a.duty_status)) + '</span>');
         return out.join(' ');
       }
 
@@ -765,12 +765,12 @@ function render_account_screen(string $role): void
             extra += '<span class="p-badge p-b-violet" title="' + escapeHtml(dupes[a.id].join('; ')) + '">' + T('Possible duplicate', 'Posibleng doble') + '</span>';
           }
           if (OCR_ON && a.ocr_flags && a.ocr_flags.length) {
-            extra += '<span class="p-badge p-b-violet" title="' +
+            extra += '<span class="p-badge p-tag p-b-violet" title="' +
               escapeHtml(a.ocr_flags.map(ocrFlagLabel).join('; ')) + '">' + T('OCR flag', 'OCR flag') + '</span>';
           }
           if (OCR_ON && a.ocr_rescan_requested_at &&
               (!a.ocr_processed_at || String(a.ocr_processed_at) < String(a.ocr_rescan_requested_at))) {
-            extra += '<span class="p-badge p-b-grey" title="' + T('Waiting for them to open the app', 'Hinihintay na buksan nila ang app') + '">' + T('Re-check pending', 'Nakabinbing muling pagsuri') + '</span>';
+            extra += '<span class="p-badge p-tag p-b-grey" title="' + T('Waiting for them to open the app', 'Hinihintay na buksan nila ang app') + '">' + T('Re-check pending', 'Nakabinbing muling pagsuri') + '</span>';
           }
           var quickVerify = '';
           if (CAN_VERIFY && OCR_ON && a.verification_status === 'pending' && ocrIsClean(a) &&
@@ -1149,18 +1149,18 @@ function account_status_pills(array $a, bool $withDuty = true): string
     if ($a['verification_status'] === 'pending') {
         $mins = $a['minutes_left'];
         if (!empty($a['is_overdue'])) {
-            $out[] = '<span class="p-badge p-b-denied">' . e(t('Overdue', 'Lampas-oras')) . '</span>';
+            $out[] = '<span class="p-badge p-tag p-b-denied">' . e(t('Overdue', 'Lampas-oras')) . '</span>';
         } elseif ($mins !== null) {
-            $out[] = '<span class="p-badge p-b-progress">' . (int) $mins . e(t(' min left', ' minuto pa')) . '</span>';
+            $out[] = '<span class="p-badge p-tag p-b-progress">' . (int) $mins . e(t(' min left', ' minuto pa')) . '</span>';
         }
     }
 
     if ($withDuty && !empty($a['holding_incident'])) {
-        $out[] = '<span class="p-badge p-b-progress">' . e(t('On an incident', 'May hawak na insidente')) . '</span>';
+        $out[] = '<span class="p-badge p-tag p-b-progress">' . e(t('On an incident', 'May hawak na insidente')) . '</span>';
     }
 
     if ($withDuty && !empty($a['duty_status'])) {
-        $out[] = '<span class="p-badge p-b-grey">' . e(status_label((string) $a['duty_status'])) . '</span>';
+        $out[] = '<span class="p-badge p-tag p-b-grey">' . e(status_label((string) $a['duty_status'])) . '</span>';
     }
 
     return implode(' ', $out);

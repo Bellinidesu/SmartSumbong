@@ -21,6 +21,7 @@ td.ss-smart .p-badge + .p-badge { margin-left: 0; }
 :root:root:root .rank i { background: #fff; box-shadow: none; opacity: .92; }
 :root:root:root .rank.chair { background: #D5102F; color: #fff; }
 :root[data-theme="dark"]:root:root .rank { color: #fff; box-shadow: 0 0 14px -3px var(--rc); }
+:root[data-theme="dark"]:root:root:root .rank:not(.chair) { background: color-mix(in srgb, var(--rc) 55%, #000); }   /* 16 Nov 2026: the bright dark-mode rank colours (cyan Staff and Secretary) read 3.1:1 under white; this reads 4.7:1 */
 :root[data-theme="dark"]:root:root .rank i { background: #fff; }
 :root[data-theme="dark"]:root:root .rank.chair { background: var(--rk-chair, #E8B73A); color: #14181D; }
 :root[data-theme="dark"]:root:root .rank.chair i { background: #14181D; }
@@ -31,6 +32,12 @@ td.ss-smart .p-badge + .p-badge { margin-left: 0; }
 /* the "TEST" tag beside a test account's name is a tag, not a pill the size of a status */
 .p-badge.dv-test { height: 18px; padding: 0 7px; gap: 4px; font-size: 10.5px; letter-spacing: .06em; vertical-align: 2px; }
 .p-badge.dv-test::before { width: 5px; height: 5px; }
+
+/* Account status solid, the states around it soft (16 Nov 2026, Ace picked "B" in the artifact preview). In Residents and Personnel the status (Verified, Pending, Suspended, Deleted by Resident,
+   Possible duplicate) stays a solid pill; the states beside it (Overdue, minutes left, On an incident, the duty state, OCR flag, Re-check pending) are .p-tag: a tint of their own colour,
+   lettering in a deeper shade of it, a thin ring. No glow, in light or dark, so the eye lands on the status first. */
+:root:root:root:root:root:root:root:root:root:root .p-badge.p-tag { height: 22px; padding: 0 10px; background: color-mix(in srgb, var(--pb) 15%, var(--p-surface)); color: color-mix(in srgb, var(--pb) 55%, var(--p-ink)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pb) 34%, transparent); }
+:root:root:root:root:root:root:root:root:root:root .p-badge.p-tag::before { background: var(--pb); opacity: 1; }
 
 /* The red row action (Review) in the lists and on Notifications (15 Nov 2026, Ace): white lettering at rest, and a vibrant, glowing red on hover instead of the dark lettering it had.
    Always at full strength (the half-faded look of a calm row hid the white lettering); the same in light and dark. */
@@ -57,12 +64,24 @@ td.ss-smart .p-badge + .p-badge { margin-left: 0; }
 [data-tiles].ss-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; align-items: start; }
 [data-tiles].ss-tiles > [data-tile] { margin: 0; min-width: 0; }
 [data-tiles].ss-tiles > .tile-open { grid-column: 1 / -1; order: -1; }
-[data-tiles].ss-tiles > [data-tile]:not(.tile-open) > :not([data-tile-head]) { display: none !important; }
+[data-tiles].ss-tiles > [data-tile]:not(.tile-open) > :not([data-tile-head]):not([data-tile-meta]) { display: none !important; }
+/* 16 Nov 2026 (Ace's preview): a small tile is its banner and, under it, one line that says what is inside: "1 in now, 3 staff" and who, or "2 kinds, On". The line is [data-tile-meta];
+   it is hidden while the group is open or while the groups are not tiles. The whole tile lifts together, and pressing the line opens the group like pressing the banner. */
+.cmx-meta, .pc-gmeta { display: none; }
+[data-tiles].ss-tiles > [data-tile]:not(.tile-open) > [data-tile-meta] { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; padding: 8px 14px; background: var(--p-surface); border: 1px solid var(--p-line); border-top: 0; border-radius: 0 0 16px 16px; color: var(--p-muted); font-size: 12.5px; cursor: pointer; }
+[data-tiles].ss-tiles > [data-tile]:not(.tile-open) > [data-tile-meta] b { color: var(--p-ink); }
+:root:root:root .p-body [data-tiles].ss-tiles > [data-tile]:not(.tile-open):has(> [data-tile-meta]) > [data-tile-head] { border-radius: 16px 16px 0 0; }
+[data-tiles].ss-tiles > [data-tile]:not(.tile-open):has(> [data-tile-meta]) { border-radius: 16px; transition: transform .16s ease, box-shadow .16s ease; }
+[data-tiles].ss-tiles > [data-tile]:not(.tile-open):has(> [data-tile-meta]):hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(20, 27, 52, .45); }
+:root:root:root .p-body [data-tiles].ss-tiles > [data-tile]:not(.tile-open):has(> [data-tile-meta]) > [data-tile-head]:hover { transform: none; box-shadow: none; }
+.pc-stack { display: inline-flex; flex: none; }
+.pc-stack > * { margin-left: -7px; box-shadow: 0 0 0 2px var(--p-surface); border-radius: 50%; }
+.pc-stack > :first-child { margin-left: 0; }
 :root:root:root .p-body [data-tiles].ss-tiles > [data-tile]:not(.tile-open) > [data-tile-head] { border-radius: 16px; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease; }
 :root:root:root .p-body [data-tiles].ss-tiles > [data-tile]:not(.tile-open) > [data-tile-head]:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(20, 27, 52, .45); }
 [data-tiles].ss-tiles [data-tile-head]:focus-visible { outline: 3px solid color-mix(in srgb, var(--p-orange, #FF9800) 70%, transparent); outline-offset: 2px; }
 [data-tiles].ss-tiles > [data-tile]:not(.tile-open).cmx-card { background: transparent; border: 0; box-shadow: none; }
-@media (prefers-reduced-motion: reduce) { :root:root:root .p-body [data-tiles].ss-tiles > [data-tile]:not(.tile-open) > [data-tile-head] { transition: none; transform: none; } }
+@media (prefers-reduced-motion: reduce) { :root:root:root .p-body [data-tiles].ss-tiles > [data-tile]:not(.tile-open) > [data-tile-head], [data-tiles].ss-tiles > [data-tile]:not(.tile-open):has(> [data-tile-meta]) { transition: none; transform: none; } }
 /* committees that are turned off wait in a closed list under the live ones */
 .cmx-offd { margin: 18px 0; }
 .cmx-offd > summary { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 12px; border: 1.5px dashed color-mix(in srgb, var(--p-muted) 60%, transparent); cursor: pointer; font-weight: 700; color: var(--p-muted); list-style: none; }
