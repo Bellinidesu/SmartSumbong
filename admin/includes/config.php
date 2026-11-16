@@ -181,8 +181,8 @@ function turnstile_tags(): string
     if ($key === '') return '';
     return '<div id="ss-turnstile" data-sitekey="' . htmlspecialchars($key, ENT_QUOTES) . '"'
          . ' style="position:fixed;right:16px;bottom:16px;z-index:9999"></div>'
-         . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>'
-         . '<script src="assets/js/turnstile.js?v=' . htmlspecialchars(asset_version('../js/turnstile.js'), ENT_QUOTES) . '" defer></script>';
+         . '<script nonce="' . csp_nonce() . '" src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>'
+         . '<script nonce="' . csp_nonce() . '" src="assets/js/turnstile.js?v=' . htmlspecialchars(asset_version('../js/turnstile.js'), ENT_QUOTES) . '" defer></script>';
 }
 
 /**
@@ -224,8 +224,9 @@ function send_security_policy(): void
     header('Content-Security-Policy: ' . implode('; ', $policy));
     // the portal's own answers are for the portal's own pages: another site cannot embed them as an image, a script or a frame source
     header('Cross-Origin-Resource-Policy: same-origin');
-    // Stamp the nonce on every <script> of an HTML page as it goes out.
-    ob_start(function (string $out) use ($nonce): string {
+    // The nonce is written into each <script> by the template that writes the tag (csp_nonce()), never stamped on the finished page:
+    // stamping everything would also bless a script that slipped into the page, which is what the policy is there to refuse (sweep, 16 Nov 2026).
+    ob_start(function (string $out): string {
         // the page is held until it is complete, so its timing can still go in a header (speed work, 7 Nov 2026). Only for a
         // signed-in administrator: timings on the sign-in page could help someone guess which accounts exist.
         if (!headers_sent() && function_exists('server_timing_value') && isset($_SESSION) && !empty($_SESSION[SESSION_KEY])) {
@@ -234,7 +235,10 @@ function send_security_policy(): void
         foreach (headers_list() as $h) {
             if (stripos($h, 'content-type:') === 0 && stripos($h, 'text/html') === false) return $out;
         }
-        return preg_replace('/<script\b(?![^>]*\bnonce=)/i', '<script nonce="' . $nonce . '"', $out) ?? $out;
+        if (preg_match_all('/<script\b(?![^>]*\bnonce=)[^>]*>/i', $out, $mm)) {
+            error_log('CSP: script without a nonce on ' . ($_SERVER['REQUEST_URI'] ?? '?') . ': ' . implode(' | ', array_slice($mm[0], 0, 3)));
+        }
+        return $out;
     });
 }
 send_security_policy();

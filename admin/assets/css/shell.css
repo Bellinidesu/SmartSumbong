@@ -1,12 +1,12 @@
 /* The sidebar's three bars and its shrunken state; the theme and language controls in Settings (14 Oct 2026). */
 .p-side-top{display:flex;align-items:center;gap:12px;padding:0 0 18px}
 .p-side-top .p-brand{flex:1;min-width:0;padding:0;display:grid;place-items:center}
-.p-burger{display:inline-flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;flex:none;width:44px;height:44px;padding:0;border:0;border-radius:var(--p-r);background:rgba(255,255,255,.08);cursor:pointer;transition:background .15s}
-.p-burger:hover{background:rgba(255,255,255,.18)}
-.p-burger:focus-visible{outline:3px solid rgba(255,152,0,.55);outline-offset:2px}
-.p-burger span{display:block;width:20px;height:2.5px;border-radius:2px;background:#fff;transition:width .25s,transform .25s}
-.p-burger span:nth-child(2){width:14px;align-self:flex-start;margin-left:12px}
-html[data-side="min"] .p-burger span:nth-child(2){width:20px;margin-left:0;align-self:center}
+
+
+
+
+
+
 #app.p-on{transition:grid-template-columns .28s cubic-bezier(.2,.8,.2,1)}
 @media (min-width:981px){
   html[data-side="min"]{--p-sidebar-w:84px}
@@ -15,14 +15,14 @@ html[data-side="min"] .p-burger span:nth-child(2){width:20px;margin-left:0;align
   html[data-side="min"] .p-side-top .p-brand{display:none}
   html[data-side="min"] .p-nav a{justify-content:center;padding:0;gap:0}
   html[data-side="min"] .p-nav a>span:not(.p-count){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-  html[data-side="min"] .p-nav .p-count{left:auto;right:6px;top:2px}
+  
   html[data-side="min"] .p-side-user{flex-direction:column;padding:8px;gap:8px;align-items:center}
   html[data-side="min"] .p-side-user .p-who{display:none}
   html[data-side="min"] .p-side-user .p-side-me{justify-content:center}
   html[data-side="min"] .p-side-user>button{margin:0}
 }
-@media (max-width:980px){.p-burger{display:none}.p-side-top{padding:0;justify-content:center}.p-side-top .p-brand{flex:none}}
-@media (prefers-reduced-motion:reduce){#app.p-on,.p-burger span{transition:none}}
+@media (max-width:980px){.p-side-top{padding:0;justify-content:center}.p-side-top .p-brand{flex:none}}
+@media (prefers-reduced-motion:reduce){#app.p-on {transition:none}}
 /* Settings: Theme and Language, two equal rows */
 .st-prefs{display:grid;gap:10px;margin-top:8px}
 .st-pref{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:52px;padding:0 4px}
@@ -62,17 +62,17 @@ html[data-side="hover"] .p-edge{display:none}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-brand{display:none}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav a{justify-content:center;padding:0;gap:0}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav a>span:not(.p-count){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-  html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav .p-count{left:auto;right:6px;top:2px}
+  
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user{flex-direction:column;padding:8px;gap:8px;align-items:center}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user .p-who{display:none}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user .p-side-me{justify-content:center}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user>button{margin:0}
 }
 /* the Notifications icon gains the engine's brain while any unread note is from SMART */
-.p-nav .p-brain-badge{position:absolute;left:25px;bottom:5px;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;color:#EDFA04;background:#15181d;box-shadow:0 0 0 2px var(--p-side-b),0 0 9px rgba(237,250,4,.65)}
-.p-nav a.p-active .p-brain-badge{box-shadow:0 0 0 2px var(--p-orange),0 0 9px rgba(237,250,4,.65)}
-.p-nav .p-brain-badge svg{filter:drop-shadow(0 0 3px rgba(237,250,4,.8))}
-html[data-side="min"] .p-nav .p-brain-badge{left:auto;right:8px}
+
+
+
+
 /* the sidebar's dots, option C (locked 15 Oct): counts in quiet pills at the right edge, the brain beside the Notifications number */
 .p-nav .p-rt{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
 .p-nav .p-pill{min-width:22px;height:22px;padding:0 7px;border-radius:99px;display:grid;place-items:center;background:rgba(255,255,255,.2);color:#fff;font:700 11.5px Inter,sans-serif;font-variant-numeric:tabular-nums}
@@ -138,11 +138,11 @@ html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
 .p-sidebar .p-brand.p-brand-seal .p-brand-img{width:112px;height:112px;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.28))}
 .p-brand-sym{display:grid;place-items:center;border-radius:50%;background:var(--cc);color:var(--ci);box-shadow:0 0 0 3px rgba(255,255,255,.88),0 8px 18px -6px rgba(0,0,0,.45)}
 .p-brand-sym svg{width:48%;height:48%}
-.p-brand-sep{width:1px;height:56px;flex:none;background:rgba(255,255,255,.3)}
+
 @media (max-width:980px){
   .p-sidebar .p-brand.p-brand-seal{gap:8px;padding:0}
   .p-sidebar .p-brand.p-brand-seal .p-brand-img{width:44px;height:44px}
-  .p-brand-sep{height:30px}
+  
   .p-brand-sym{box-shadow:0 0 0 2px rgba(255,255,255,.88)}
 }
 /* the folded sidebar (12 Nov 2026, Ace): the barangay's seal on top for every rung (a committee's colour dot beneath it), the profile picture alone in its dark plate at the foot, no exit button (it is in the open sidebar) */

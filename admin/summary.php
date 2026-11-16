@@ -438,7 +438,7 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
   <span class="p-spacer" style="flex:1"></span>
   <button type="button" class="ss-brain-btn" id="ss-win-open" data-press-sync aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($engineDot): ?><i class="ss-brain-dot" aria-hidden="true"></i><?php endif; ?></button></div>
 
-<script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php // The press flow (7 Nov 2026): a range, Apply, a pager, the update banner's Refresh and a By committee row fetch this same page
       // and swap only the report; the address follows, the title's scope and the engine window follow it (data-press-sync). The
       // spreadsheet and the PDF stay ordinary downloads. ?>
@@ -749,7 +749,7 @@ $tlTone = function (array $l): string {
 
 </div><?php // #rs-main ?>
 
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // The chips are tabs: one section at a time (without this script every section shows, as it always did). A pager link reloads the
 // report with its own parameter (lp, rp, tp) and lands on the section it pages; summary.php#rs-com opens that section.
 // The press flow swaps the report in place, so the tabs are set up again on whatever report is on screen.
@@ -792,7 +792,7 @@ $tlTone = function (array $l): string {
   window.addEventListener('hashchange', function () { var h = location.hash.slice(1); if (nav && panes[h]) show(h, true); });
 })();
 </script>
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // the case timeline's picker: one case's entries at a time (page-wide, so a swapped-in report works too)
 (function () {
   function show(pick, i) {
@@ -805,8 +805,8 @@ $tlTone = function (array $l): string {
 </script>
 
   <?php if ($isOngoing): ?>
-  <script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
-  <script>
+  <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+  <script nonce="<?= csp_nonce() ?>">
   // Realtime, 6 Sep 2026 — only wired up for an open period (see
   // $isOngoing above). This report is meant to be printed and signed, so
   // unlike cases.php/dashboard.php it never rewrites its own figures —
@@ -840,8 +840,8 @@ $tlTone = function (array $l): string {
   })();
   </script>
   <?php endif; ?>
-  <script src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
-  <script>
+  <script nonce="<?= csp_nonce() ?>" src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
+  <script nonce="<?= csp_nonce() ?>">
   // From and to are one calendar: the two native date boxes stay underneath, and the page reloads when a range is applied.
   // Set up again on the form a swap brings in (the press flow); Apply then sends the form in place.
   (function () {
@@ -858,7 +858,7 @@ $tlTone = function (array $l): string {
     document.addEventListener('htmx:afterSettle', setUp);
   })();
   </script>
-  <script>
+  <script nonce="<?= csp_nonce() ?>">
   // The Download PDF tile: a ring pulses while the report builds, then it turns green for a moment.
   (function () {
     document.addEventListener('click', function (e) {

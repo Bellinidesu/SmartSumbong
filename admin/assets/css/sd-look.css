@@ -108,9 +108,9 @@
 .sd-ch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .sd-ch .av { width: 46px; height: 46px; border-radius: 50%; background: #2D4FA8; color: #fff; display: grid; place-items: center; font: 800 14px Inter, sans-serif; box-shadow: 0 0 0 2.5px var(--rk-tanod, #2D7DD2); transition: transform .2s, box-shadow .2s; position: relative; }
 .sd-ch .av::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; background: #B8BDC9; border: 2px solid var(--e-bg); }
-.sd-ch.d-on_duty .av::after { background: #2E9E4F; } .sd-ch.d-break .av::after, .sd-ch.d-lunch .av::after { background: #F5A524; }
+ 
 .sd-ch b { font: 700 11.5px Inter, sans-serif; max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .sd-ch small { font: 600 10px Inter, sans-serif; color: var(--e-mute); }
-.sd-ch.d-offline { opacity: .55; }
+
 .sd-ch:has(input:checked) { opacity: 1; } .sd-ch:has(input:checked) .av { transform: scale(1.1); box-shadow: 0 0 0 3px var(--p-orange, #FF9800); }
 .sd-go2 { height: 44px; border-radius: 13px; border: 0; background: var(--p-orange, #FF9800); color: #2B1A00; font: 800 14.5px Inter, sans-serif; display: flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer; }
 .sd-go2 svg { width: 17px; height: 17px; } .sd-go2:hover { background: #FFA826; } .sd-go2:disabled { opacity: .55; cursor: not-allowed; }

@@ -56,7 +56,9 @@
 }
 
 /* the ground */
-.p-body { background: var(--ae-ground); background-attachment: fixed; background-color: var(--p-bg); }
+.p-body { background: none; background-color: var(--p-bg); }
+/* the ground lies on its own fixed layer, so scrolling stays composited (speed sweep, 16 Nov 2026: background-attachment: fixed repainted the whole page on every scroll frame) */
+.p-body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--ae-ground); }
 
 /* cards: lit edge, a sheen on top, a deeper float */
 .p-card { border: 1px solid var(--ae-edge); border-radius: var(--p-r-lg); background-image: var(--ae-sheen); box-shadow: var(--p-shadow); }
@@ -97,7 +99,7 @@
 /* ---------- beating the older surface rules (smart.css) at their own specificity ---------- */
 
 /* LIGHT stays solid (no glass, Ace 16 Oct): white cards floating on a cream-to-sky ground, tinted shadows, softer corners */
-:root:not([data-theme="dark"]) .p-body { background-color: #EEF2FA; background-image: var(--ae-ground); background-attachment: fixed; }
+:root:not([data-theme="dark"]) .p-body { background-color: #EEF2FA; background-image: none; }
 :root:not([data-theme="dark"]) .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) {
   background: #fff; border: 1px solid var(--ae-edge); border-radius: var(--p-r-lg);
   box-shadow: 0 1px 1px rgba(10, 30, 90, .03), 0 8px 18px rgba(10, 30, 90, .05), 0 26px 52px rgba(10, 30, 90, .07);
@@ -108,7 +110,7 @@
 :root:not([data-theme="dark"]) .p-body .p-btn-primary { box-shadow: 0 8px 22px rgba(255, 152, 0, .34); }
 
 /* DARK: near-black cards with a lit edge and a top sheen, no frosting, the violet/blue glow behind */
-:root[data-theme="dark"] .p-body { background-color: #101215; background-image: var(--ae-ground); background-attachment: fixed; }
+:root[data-theme="dark"] .p-body { background-color: #101215; background-image: none; }
 :root[data-theme="dark"] .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) {
   background: var(--ae-sheen), var(--p-surface); -webkit-backdrop-filter: none; backdrop-filter: none;
   border: 1px solid var(--ae-edge); border-radius: var(--p-r-lg);

@@ -33,7 +33,7 @@ const settle = async (page) => {   // after a press: an in-place swap settling, 
   ]);
 };
 
-for (const tier of RUNGS) for (const p of (tier === 'super' ? PAGES : ['home.php', ...PAGES])) test(`${tier} ${p}`, async ({ browser }) => {
+for (const tier of RUNGS) for (const p of PAGES) test(`${tier} ${p}`, async ({ browser }) => {
   test.setTimeout(300000);
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await ctx.addCookies([{ name: 'ss_tier', value: tier, url: 'http://127.0.0.1:8013' },

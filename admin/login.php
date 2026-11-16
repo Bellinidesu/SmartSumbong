@@ -180,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </main>
 </div>
 
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // Two failed sign-ins in a row are usually this, and nobody thinks to check.
 (function () {
   var warn = document.getElementById('caps');

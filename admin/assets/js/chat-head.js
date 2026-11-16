@@ -392,6 +392,8 @@
 
   /* ---------- floating heads for the cases whose chat is floated, on the pages that are not that case ---------- */
   var floaters = {}, lastIn = {}, lastFeed = {}, pollT = null;
+  var lastAct = Date.now();
+  ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) { window.addEventListener(ev, function () { lastAct = Date.now(); }, { passive: true }); });
   var mainEl = document.getElementById('chat-head'), here = mainEl ? mainEl.getAttribute('data-report') : '';
 
   function unreadOf(id, d) {
@@ -445,7 +447,9 @@
     want.forEach(function (id, i) { if (!floaters[id]) { floaters[id] = makeFloater(id, cs[id], i); } });
     Object.keys(floaters).forEach(function (id) { var f = floaters[id]; if (lastFeed[id]) { f.setBadge(unreadOf(id, lastFeed[id])); } });
     var any = Object.keys(floaters).length > 0;
-    if (any && !pollT) { poll(); pollT = setInterval(function () { if (!document.hidden) { poll(); } }, 15000); }
+    // every 15 s while someone is at the page; once nobody has touched it for two minutes, every minute (speed sweep, 16 Nov 2026:
+    // each floating head asks the server, and a pinned case follows the person to every page)
+    if (any && !pollT) { var tickN = 0; poll(); pollT = setInterval(function () { tickN++; if (document.hidden) { return; } if (Date.now() - lastAct > 120000 && tickN % 4) { return; } poll(); }, 15000); }
     if (!any && pollT) { clearInterval(pollT); pollT = null; }
   }
   document.addEventListener('visibilitychange', function () { if (!document.hidden && pollT) { poll(); } });
@@ -478,25 +482,7 @@
     listeners.push(paint); paint();
   }
 
-  /* ---------- the Inbox's Case chats folder: readers drawn in the page, and an unread dot on each row ---------- */
-  function paintRows() {
-    [].forEach.call(document.querySelectorAll('[data-chat-row]'), function (r) {
-      var d; try { d = JSON.parse(r.getAttribute('data-feed') || '{}'); } catch (e) { return; }
-      var n = unreadOf(r.getAttribute('data-report'), d);
-      r.classList.toggle('ib-unread', n > 0); r.classList.toggle('is-unread', n > 0);
-      var b = r.querySelector('.ib-cnt'); if (b) { b.textContent = n > 9 ? '9+' : String(n); b.hidden = n === 0; }
-    });
-  }
-  function mountInline() {
-    [].forEach.call(document.querySelectorAll('.ch-inline:not([data-mounted])'), function (r) { r.setAttribute('data-mounted', '1'); mount(r); });
-    paintRows();
-  }
-  document.addEventListener('ss-chat-seen', paintRows);
-  document.body.addEventListener('htmx:afterSettle', mountInline);   // a conversation opened in place (the press flow) gets its chat
-  listeners.push(paintRows);
-
   if (mainEl) { window.ssChat = mount(mainEl); }
   wireSettings();
   listeners.push(sync); sync();
-  mountInline();
 })();

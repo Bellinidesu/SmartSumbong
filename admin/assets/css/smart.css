@@ -123,22 +123,22 @@
 .ss-panel-body{display:grid;grid-template-rows:1fr}
 .ss-panel.is-ready .ss-panel-body{grid-template-rows:0fr}
 .ss-panel.is-ready.is-open .ss-panel-body{grid-template-rows:1fr}
-.ss-panel.is-armed .ss-panel-body{transition:grid-template-rows .55s cubic-bezier(.2,.8,.2,1)}
+
 .ss-panel-in{min-height:0;overflow:hidden;padding-top:14px}
 .ss-panel.is-ready:not(.is-open) .ss-panel-in{visibility:hidden}
-.ss-panel.is-armed:not(.is-open) .ss-panel-in{transition:visibility 0s .55s}
-.ss-panel.is-revealing .ss-panel-in>*{animation:ssRise .55s cubic-bezier(.2,.8,.2,1) both}
-.ss-panel.is-revealing .ss-panel-in>*:nth-child(2){animation-delay:.12s}
-.ss-panel.is-revealing .ss-panel-in>*:nth-child(3){animation-delay:.24s}
-.ss-panel.is-revealing .ss-tile{animation:ssRise .5s cubic-bezier(.2,.8,.2,1) both}
-.ss-panel.is-revealing .ss-tile:nth-child(2){animation-delay:.08s}.ss-panel.is-revealing .ss-tile:nth-child(3){animation-delay:.16s}.ss-panel.is-revealing .ss-tile:nth-child(4){animation-delay:.24s}
+
+
+
+
+
+
 .ss-panel .ss-two,.ss-panel .ss-tiles{margin-bottom:14px}
 @keyframes ssSweep{to{background-position:300% 0}}
 @keyframes ssBreathe{50%{opacity:.55}}
 @keyframes ssDot{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(-5px);opacity:1}}
 @keyframes ssGlow{0%,100%{filter:drop-shadow(0 0 3px #356CF9) drop-shadow(0 0 8px rgba(53,108,249,.6))}50%{filter:drop-shadow(0 0 6px #FF9800) drop-shadow(0 0 16px rgba(255,152,0,.8))}}
 @keyframes ssRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.ss-panel-btn::before,.ss-think i,.ss-engine img{animation:none!important}.ss-panel.is-armed .ss-panel-body,.ss-panel.is-revealing .ss-panel-in>*,.ss-panel.is-revealing .ss-tile{transition:none!important;animation:none!important}}
+@media (prefers-reduced-motion:reduce){.ss-panel-btn::before,.ss-think i,.ss-engine img{animation:none!important}}
 /* the SMART drawer on the map: the dock button breathes, opening it thinks, then the cards rise */
 .ss-drawer{padding:14px 12px 12px 14px}
 .ss-drawer-head{display:flex;align-items:center;gap:12px;margin:0 4px 10px 0;min-height:40px}
@@ -400,12 +400,12 @@
 .bd-who{display:grid;line-height:1.2;min-width:0}
 .bd-who b{font:700 12.5px Inter,sans-serif}
 .bd-who small{font-size:11.5px;color:var(--p-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bd-sheet{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90;display:grid;gap:8px;width:min(480px,calc(100% - 32px));padding:16px 18px;border-radius:18px;background:var(--p-surface);border:1px solid var(--p-line-2);box-shadow:0 20px 50px rgba(0,0,0,.45);animation:ssRise .3s cubic-bezier(.2,.8,.2,1)}
-.bd-sheet h4{margin:0;font:800 16px Inter,sans-serif}
-.bd-sheet p{margin:0;font-size:13.5px;color:var(--p-muted)}
-.bd-sheet .bd-sheet-case{font:700 12px ui-monospace,Menlo,monospace;color:var(--p-ink)}
-.bd-sheet-row{display:flex;gap:8px;margin-top:4px}
-@media (prefers-reduced-motion:reduce){.bd-card,.bd-col,.bd-sheet{transition:none;animation:none}}
+
+
+
+
+
+@media (prefers-reduced-motion:reduce){.bd-card, .bd-col {transition:none;animation:none}}
 /* the card's panel and the drop ghost: like Trello's card back, on the barangay's rules */
 .bd-card.is-open{box-shadow:0 0 0 2px var(--c),0 10px 24px color-mix(in srgb,var(--c) 26%,transparent)}
 .bd-ghost{display:grid;place-items:center;height:132px;border:2px dashed var(--p-orange);border-radius:14px;background:color-mix(in srgb,var(--p-orange) 8%,transparent);color:var(--p-orange);font:700 12.5px Inter,sans-serif;text-align:center;padding:0 12px}
@@ -563,30 +563,6 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-cases-t td.ss-smart{white-space:normal}
 .ss-cases-t td.ss-smart .ss-dup{display:flex;width:max-content;max-width:100%;margin-top:5px;white-space:normal}
 
-/* Frosted glass, version B plus a glass table frame (15 Oct, Ace's pick): dark mode only. The page keeps its contour lines and picks up soft blue, orange and green glows so the glass has something to blur; cards, stat tiles, the sidebar and pop-ups are glass; table rows stay solid. The map screen keeps its own glass. */
-:root[data-theme="dark"] .p-body {
-  background-color: var(--p-bg);
-  background-image: radial-gradient(520px 340px at 22% 0%, rgba(53,108,249,.30), transparent 70%), radial-gradient(460px 380px at 100% 18%, rgba(255,152,0,.20), transparent 70%), radial-gradient(520px 340px at 62% 100%, rgba(52,199,89,.16), transparent 70%);
-  background-attachment: fixed;
-}
-:root[data-theme="dark"] .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) {
-  background: linear-gradient(152deg, rgba(255,255,255,.10), rgba(255,255,255,.02)), rgba(28,33,39,.58);
-  -webkit-backdrop-filter: blur(16px) saturate(1.6); backdrop-filter: blur(16px) saturate(1.6);
-  border-color: rgba(255,255,255,.10); box-shadow: inset 1px 1px 0 rgba(255,255,255,.12), 0 10px 28px rgba(0,0,0,.30);
-}
-:root[data-theme="dark"] .p-sidebar {
-  background: linear-gradient(180deg, rgba(42,48,56,.66) 0%, rgba(21,24,29,.78) 100%);
-  -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
-  border-right: 1px solid rgba(255,255,255,.08);
-}
-/* the table: a glass frame, solid rows so they stay crisp */
-:root[data-theme="dark"] .p-table-card tbody td { background: var(--p-surface); }
-@media (prefers-reduced-transparency: reduce) {
-  :root[data-theme="dark"] .p-body :is(.p-card, .p-modal), :root[data-theme="dark"] .p-sidebar { -webkit-backdrop-filter: none; backdrop-filter: none; }
-  :root[data-theme="dark"] .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) { background: var(--p-surface); }
-  :root[data-theme="dark"] .p-sidebar { background: linear-gradient(180deg, #2A3038 0%, #15181D 100%); }
-}
-
 /* Settings (15 Oct): one rhythm, every card the same width, option cards that fill the card evenly */
 .st-pane .st-uptime, .st-pane .st-errors { margin-bottom: 0; }
 .st-pane .st-surfs { max-width: none; margin-top: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -632,47 +608,47 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
   --jp-ok-bg: #28311B; --jp-ok-fg: #B3DF72; --jp-warn-bg: #3A2C1F; --jp-warn-fg: #FBC828; --jp-bad-bg: #42221F; --jp-bad-fg: #FD9891;
   --jp-overlay: #2B2C2F; --jp-shadow: 0 8px 12px #0304043D, 0 0 1px #03040480;
 }
-.jp-crumb, .jp-head, .jp-bar, .jp-card { font-family: var(--jp-font); }
-.jp-crumb { font-size: 14px; line-height: 20px; color: var(--jp-subtle); margin-bottom: -8px; }
-.jp-crumb span { margin: 0 4px; }
-.jp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.jp-head h2 { margin: 0; font: 653 24px/28px var(--jp-font); letter-spacing: -.01em; color: var(--jp-text); }
+
+
+
+
+
 .jp-add { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--jp-brand); color: var(--jp-on-brand); font: 500 14px/20px var(--jp-font); cursor: pointer; }
 .jp-add:hover { background: var(--jp-brand-h); } .jp-add:active { background: var(--jp-brand-p); }
-.jp-add:focus-visible, .jp-menu button:focus-visible, .jp-more summary:focus-visible { outline: 2px solid var(--jp-focus); outline-offset: 2px; }
-.jp-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.jp-search, .jp-pick select, .jp-sel { background-color: var(--jp-input); color: var(--jp-text); border: 1px solid var(--jp-input-bd); border-radius: 6px; font: 400 14px/20px var(--jp-font); }
-.jp-search { display: flex; align-items: center; gap: 8px; height: 36px; width: min(260px, 100%); padding: 0 8px; color: var(--jp-subtlest); }
-.jp-search:hover, .jp-pick select:hover { background-color: var(--jp-input-h); }
-.jp-search:focus-within, .jp-pick select:focus-visible, .jp-sel:focus-visible { border-color: var(--jp-focus); box-shadow: inset 0 0 0 1px var(--jp-focus); outline: none; }
-.jp-search input { border: 0; outline: 0; background: transparent; width: 100%; font: inherit; color: var(--jp-text); }
-.jp-search input::placeholder { color: var(--jp-subtlest); }
-.jp-pick select { height: 36px; padding: 0 28px 0 8px; cursor: pointer; width: max-content; }
-.jp-sel { height: 32px; width: max-content; min-width: 140px; max-width: 100%; padding: 0 28px 0 8px; background-color: transparent; border-color: transparent; cursor: pointer; }
-.jp-t tbody tr:hover .jp-sel:not(:disabled), .jp-sel:focus-visible { border-color: var(--jp-input-bd); background-color: var(--jp-input); }
-.jp-sel:disabled { opacity: .5; cursor: not-allowed; }
-.jp-card { overflow: visible; }
-.jp-t { font-family: var(--jp-font); font-size: 14px; line-height: 20px; color: var(--jp-text); }
-.jp-t thead th { font: 653 12px/16px var(--jp-font); letter-spacing: 0; text-transform: none; color: var(--jp-subtle); background: transparent; border: 0; border-bottom: 2px solid var(--jp-line); padding: 8px 12px; }
-.jp-t td { padding: 8px 12px; vertical-align: middle; height: 60px; border: 0; background: transparent; }
-.jp-t tbody tr { transition: background-color .12s; }
-.jp-t tbody tr:hover td { background: var(--jp-hover); }
-.jp-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.jp-who b { display: block; font-weight: 500; color: var(--jp-text); }
-.jp-who b small { font-weight: 400; color: var(--jp-subtle); }
-.jp-who span > small { display: block; font-size: 12px; line-height: 16px; color: var(--jp-subtle); overflow-wrap: anywhere; }
+.jp-add:focus-visible { outline: 2px solid var(--jp-focus); outline-offset: 2px; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .ss-jrole { display: none; }
-.jp-lz { display: inline-block; max-width: 100%; padding: 0 6px; border-radius: 4px; font: 653 12px/20px var(--jp-font); white-space: normal; }
-.jp-lz--ok { background: var(--jp-ok-bg); color: var(--jp-ok-fg); } .jp-lz--warn { background: var(--jp-warn-bg); color: var(--jp-warn-fg); } .jp-lz--bad { background: var(--jp-bad-bg); color: var(--jp-bad-fg); }
-.jp-more { position: relative; display: inline-block; }
-.jp-more summary { list-style: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 6px; cursor: pointer; color: var(--jp-subtle); font-size: 18px; }
-.jp-more summary::-webkit-details-marker { display: none; }
-.jp-more summary:hover { background: var(--jp-hover); } .jp-more summary:active, .jp-more[open] summary { background: var(--jp-press); }
-.jp-menu { position: absolute; right: 0; top: 36px; z-index: 20; min-width: 220px; padding: 4px 0; border-radius: 6px; background: var(--jp-overlay); box-shadow: var(--jp-shadow); text-align: left; }
-.jp-menu form { margin: 0; }
-.jp-menu button { display: block; width: 100%; padding: 8px 12px; border: 0; background: transparent; color: var(--jp-text); font: 400 14px/20px var(--jp-font); text-align: left; cursor: pointer; }
-.jp-menu button:hover { background: var(--jp-hover); }
-.jp-t tbody tr:last-of-type .jp-menu, .jp-t tbody tr:nth-last-of-type(2) .jp-menu { top: auto; bottom: 36px; }
+
+  
+
+
+
+ 
+
+
+
+
+
 .ss-addadmin[hidden] { display: none; }
 
 /* Workspace board with Atlassian's real values (15 Oct): read from the published board example in atlassian/pragmatic-drag-and-drop and the @atlaskit/tokens themes, not remembered.
@@ -729,14 +705,14 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 
 /* Residents and Personnel as Jira's People page (Ace, 16 Oct), with the same Atlassian values as Administrators: a search box and a status dropdown, then a table with a quiet 2px-ruled header and no row lines, status lozenges in sentence case, ticks, and the locked red row action. The List / Squares switch, the tick bar and the review queue are ours, styled as Atlassian's selected state and banners. */
 .ss-ptop { margin: 0 0 14px; }
-.ss-ptop .jp-bar { gap: 10px; }
-.jp-pick { margin: 0; }
-.jp-sum { color: var(--jp-subtle); font: 400 14px/20px var(--jp-font); padding: 0 6px; }
-.jp-sum b { color: var(--jp-text); font-weight: 653; }
-.ss-people .jp-t th.ss-cbh, .ss-people .jp-t td.ss-cbc { width: 44px; padding-right: 0; }
+
+
+
+
+
 .ss-people input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--jp-brand); cursor: pointer; }
-.ss-people .jp-t tbody tr.ss-picked td { background: var(--jp-sel-bg); }
-.ss-people .jp-t tbody tr.ss-picked:hover td { background: var(--jp-sel-h); }
+
+
 /* the tick bar and the queue, as Atlassian's selected state / information banner */
 .ss-bulk, .ss-rqstrip, .ss-rqbar { background: var(--jp-sel-bg, #E9F2FE); color: var(--jp-text, #292A2E); border-radius: 6px; padding: 8px 12px; font: 400 14px/20px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); box-shadow: inset 3px 0 0 var(--jp-sel-fg, #1868DB); }
 .ss-bulk b, .ss-rqstrip b, .ss-rqbar b { font-weight: 653; }
@@ -769,46 +745,43 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
   --jp-head-bg: rgba(255,152,0,.09);
 }
 /* the table: warm header with the orange rule, contour lines at the top of the card */
-.jp-card { position: relative; }
-.jp-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 110px; pointer-events: none; z-index: 0; opacity: .09; background: var(--p-ink);
-  -webkit-mask: url("../img/texture-contours.webp") 0 0 / 420px 420px repeat, linear-gradient(to bottom, #000, transparent);
-  mask: url("../img/texture-contours.webp") 0 0 / 420px 420px repeat, linear-gradient(to bottom, #000, transparent);
-  -webkit-mask-composite: source-in; mask-composite: intersect; }
-.jp-card > * { position: relative; z-index: 1; }
-.jp-t thead th { background: var(--jp-head-bg); color: var(--p-ink-2); border-bottom-color: var(--jp-line); }
-.jp-t thead th:first-child { border-top-left-radius: 10px; } .jp-t thead th:last-child { border-top-right-radius: 10px; }
-.jp-t td, .jp-t .jp-who b, .ss-people .p-person > span:last-child { font-family: var(--jp-font); }
-.jp-head h2, .jp-sum b { font-family: var(--jp-font); }
+
+
+
+
+ 
+.ss-people .p-person > span:last-child { font-family: var(--jp-font); }
+
 /* names a touch heavier, as in the rest of the portal */
-.jp-who b, .ss-people .p-person > span:last-child { font-weight: 600; }
+.ss-people .p-person > span:last-child { font-weight: 600; }
 /* controls: orange ring when focused, orange tint when selected */
-.jp-search:focus-within, .jp-pick select:focus-visible, .jp-sel:focus-visible { border-color: var(--jp-focus); box-shadow: inset 0 0 0 1px var(--jp-focus); }
-.jp-add:focus-visible, .jp-menu button:focus-visible, .jp-more summary:focus-visible { outline-color: var(--jp-focus); }
+
+.jp-add:focus-visible { outline-color: var(--jp-focus); }
 .ss-people input[type=checkbox] { accent-color: #FF9800; }
 .ss-bulk, .ss-rqstrip, .ss-rqbar { box-shadow: inset 3px 0 0 #FF9800; }
 .ss-bulk-go { background: #FF9800; color: #2B1A00; font-weight: 700; }
 .ss-bulk-go:hover { background: #F08A00; }
-.jp-sum b { color: var(--jp-sel-fg); }
+
 /* rows: a warm hover */
-.jp-t tbody tr:hover td { background: color-mix(in srgb, #FF9800 7%, transparent); }
-.ss-people .jp-t tbody tr.ss-picked td { background: var(--jp-sel-bg); }
+
+
 /* squares: the same warmth, a status colour edge along the top, a lift on hover */
 
 /* One style for the portal (Ace, 16 Oct: "we can't have different styles"): Residents, Personnel and Administrators take the portal's own components, the same as Case Reports and Report Summary: the orange band holding the search and filter, an orange header row, ruled rows, round soft pills with a dot, the pill-shaped controls, the red row action. The Jira structure (a toolbar over a table, ticks, a People-style row) stays; the Atlassian look does not. */
 /* Administrators: the same table language (orange header, ruled rows, round pills, pill controls) */
-.jp-t thead th { background: var(--p-orange); color: #2B1A00; border-bottom: 0; font: 700 12px Inter, sans-serif; letter-spacing: .02em; }
-.jp-t thead th:first-child { border-top-left-radius: 10px; } .jp-t thead th:last-child { border-top-right-radius: 10px; }
-.jp-t td { border-bottom: 1px solid var(--p-line); }
-.jp-t tbody tr:last-child td { border-bottom: 0; }
-.jp-lz { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 99px; font: 700 12px Inter, sans-serif; white-space: nowrap; }
-.jp-lz::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.jp-lz--ok { background: var(--p-green-bg); color: var(--p-green); } .jp-lz--warn { background: var(--p-amber-bg); color: var(--p-amber); } .jp-lz--bad { background: var(--p-red-bg); color: var(--p-red); }
-.jp-search, .jp-pick select, .jp-sel { border-radius: 10px; border-color: var(--p-line-2); background-color: var(--p-surface-2); }
-.jp-search { height: 38px; } .jp-pick select { height: 38px; }
+
+ 
+
+
+
+
+  
+
+ 
 .jp-add { height: 38px; padding: 0 16px; border-radius: 10px; font: 700 14px Inter, sans-serif; box-shadow: 0 4px 12px rgba(255,152,0,.3); }
-.jp-head h2 { font-family: Inter Tight, system-ui, sans-serif; } .jp-crumb { font-family: Inter, system-ui, sans-serif; }
-.jp-menu { border-radius: 12px; border: 1px solid var(--p-line-2); box-shadow: var(--p-shadow); background: var(--p-surface); }
-.jp-menu button { font-family: Inter, system-ui, sans-serif; border-radius: 8px; }
+ 
+
+
 .ss-bulk, .ss-rqstrip, .ss-rqbar { border-radius: 12px; background: var(--jp-sel-bg); font-family: Inter, system-ui, sans-serif; }
 .ss-bulk-go, .ss-bulk-clear { border-radius: 10px; height: 34px; line-height: 34px; font-family: Inter, system-ui, sans-serif; }
 .ss-bulk-clear { border: 1px solid var(--p-line-2); }
@@ -855,13 +828,13 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-people table:has(th:nth-child(7)) th:nth-child(5) { width: 18%; }
 
 /* The orange header row, finished (Ace, 16 Oct): the portal's own type instead of the table default, a touch taller with a soft light-to-deep orange and a fine lower edge, headings evenly set, and a proper select-all box. Same on every list that carries it. */
-.ss-ohead thead th, .ss-cases-t thead th, .jp-t thead th {
+.ss-ohead thead th, .ss-cases-t thead th {
   font: 800 12.5px/1 Inter, sans-serif; letter-spacing: .02em; color: #2B1A00;
   padding: 18px 16px; background: linear-gradient(180deg, #FFA824 0%, #FF9800 55%, #F28F00 100%);
   border-bottom: 1px solid rgba(90, 40, 0, .28); box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
 }
-.ss-ohead thead th:first-child, .ss-cases-t thead th:first-child, .jp-t thead th:first-child { border-top-left-radius: 14px; padding-left: 18px; }
-.ss-ohead thead th:last-child, .ss-cases-t thead th:last-child, .jp-t thead th:last-child { border-top-right-radius: 14px; }
+.ss-ohead thead th:first-child, .ss-cases-t thead th:first-child { border-top-left-radius: 14px; padding-left: 18px; }
+.ss-ohead thead th:last-child, .ss-cases-t thead th:last-child { border-top-right-radius: 14px; }
 .ss-ohead thead th .p-th-sort, .ss-cases-t thead th .p-th-sort { color: #2B1A00; }
 .ss-people thead input[type=checkbox] { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #5A2E00; background: #FFF6E5; box-shadow: 0 1px 2px rgba(90,40,0,.25); transition: transform .12s, background-color .12s; }
 .ss-people thead input[type=checkbox]:hover { transform: scale(1.08); background: #fff; }
@@ -869,7 +842,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-people thead input[type=checkbox]:checked::after { left: 5px; top: 1px; width: 5px; height: 10px; }
 .ss-people tbody input[type=checkbox] { width: 18px; height: 18px; border-radius: 5px; }
 .ss-people .ss-cbh { padding-left: 18px; }
-.ss-ohead thead th, .ss-cases-t thead th, .jp-t thead th { font-size: 13.5px; }
+.ss-ohead thead th, .ss-cases-t thead th { font-size: 13.5px; }
 .ss-people .ss-cbc { padding-left: 18px; }
 .ss-people thead input[type=checkbox], .ss-people tbody input[type=checkbox] { margin: 0; vertical-align: middle; }
 .ss-people thead input[type=checkbox] { width: 18px; height: 18px; }
@@ -978,20 +951,20 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .p-band .jp-add:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 /* Administrators, all the way into the portal's look (Ace: it still read as Atlassian): controls that are always visible as the portal's own pills, no see-through inline selects, round bordered "..." button, the online state as a pill, the two cards below as SmartSumbong cards with an orange edge and a proper heading, and the committee boxes wide enough to read. */
-.ss-adm .jp-sel, [data-pane="admins"] .ss-cmap-row .p-input-plain { height: 40px; min-width: 0; width: 100%; max-width: 220px; padding: 0 34px 0 14px; border: 1px solid var(--p-line-2); border-radius: 10px; background-color: var(--p-surface-2); color: var(--p-ink); font: 600 13.5px Inter, sans-serif; cursor: pointer; }
-.ss-adm .jp-sel:disabled { opacity: .55; background-color: transparent; border-style: dashed; cursor: not-allowed; }
-.ss-adm .jp-t tbody tr:hover .jp-sel:not(:disabled) { border-color: var(--p-orange); }
-.ss-adm .jp-sel:focus-visible, [data-pane="admins"] .ss-cmap-row .p-input-plain:focus-visible { border-color: var(--p-orange); box-shadow: 0 0 0 3px rgba(255,152,0,.25); outline: none; }
+[data-pane="admins"] .ss-cmap-row .p-input-plain { height: 40px; min-width: 0; width: 100%; max-width: 220px; padding: 0 34px 0 14px; border: 1px solid var(--p-line-2); border-radius: 10px; background-color: var(--p-surface-2); color: var(--p-ink); font: 600 13.5px Inter, sans-serif; cursor: pointer; }
+
+
+[data-pane="admins"] .ss-cmap-row .p-input-plain:focus-visible { border-color: var(--p-orange); box-shadow: 0 0 0 3px rgba(255,152,0,.25); outline: none; }
 .ss-adm .ss-online { white-space: nowrap; }
 .ss-adm .ss-online { display: table-cell; }
 .ss-adm td.ss-online { font: 600 12.5px Inter, sans-serif; }
 .ss-adm td.ss-online::before { content: none; }
-.ss-adm .jp-more summary { width: 34px; height: 34px; border: 1px solid var(--p-line-2); border-radius: 10px; background: var(--p-surface-2); color: var(--p-ink); font-size: 16px; }
-.ss-adm .jp-more summary:hover, .ss-adm .jp-more[open] summary { border-color: var(--p-orange); background: color-mix(in srgb, var(--p-orange) 12%, var(--p-surface-2)); }
-.ss-adm .jp-t td:last-child { text-align: right; }
-.ss-adm .jp-t th:last-child, .ss-adm .jp-t td:last-child { width: 70px; }
-.ss-adm .jp-who b { font: 700 14px Inter, sans-serif; }
-.ss-adm .jp-who span > small { font: 500 12px Inter, sans-serif; }
+
+
+
+
+
+
 .ss-posinfo, .ss-addadmin { border-left: 4px solid var(--p-orange); }
 .ss-posinfo .p-eyebrow, .ss-addadmin .p-eyebrow { font: 800 15px Inter, sans-serif; letter-spacing: 0; text-transform: none; color: var(--p-ink); margin-bottom: 4px; }
 .ss-posinfo .p-label { font: 700 13px Inter, sans-serif; color: var(--p-ink-2); margin: 10px 0 2px; }
@@ -1191,7 +1164,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 }
 :root:not([data-theme="dark"]) .p-band .p-pill-select .p-lbl, :root:not([data-theme="dark"]) .p-lbl { color: #666; }
 :root:not([data-theme="dark"]) .p-updated { color: #6A6D72; }
-:root:not([data-theme="dark"]) .p-chip-num.p-hot, :root:not([data-theme="dark"]) .p-badge-n#pending-wrap { background: #D32F32; }
+:root:not([data-theme="dark"]) .p-badge-n#pending-wrap { background: #D32F32; }
 .p-btn-orange, .p-btn-orange:hover { color: #2B1A00; }
 :root:not([data-theme="dark"]) .bd-lv { color: color-mix(in srgb, var(--c) 58%, #000); }
 :root:not([data-theme="dark"]) .ss-ic { filter: brightness(.7) saturate(1.2); }
@@ -1205,7 +1178,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 :root[data-theme="dark"] .bd-lv { color: color-mix(in srgb, var(--c) 62%, #fff); }
 :root[data-theme="dark"] .p-btn-danger-solid { background: #D63B3B; border-color: #D63B3B; }
 :root[data-theme="dark"] .ss-num { background: color-mix(in srgb, var(--lc) 66%, #000); }
-:root[data-theme="dark"] .p-chip-num.p-hot, :root[data-theme="dark"] .p-badge-n#pending-wrap { background: #D32F32; }
+:root[data-theme="dark"] .p-badge-n#pending-wrap { background: #D32F32; }
 
 
 /* The engine mark on light backgrounds (Ace asked if it is still visible): a firm dark-navy outline all round so the yellow lettering and the brain read on white and pale cards */

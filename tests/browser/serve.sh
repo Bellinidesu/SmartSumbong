@@ -3,6 +3,11 @@
 # administrator (router.php), talking to a fake Supabase on 127.0.0.1:54399 (fake/). Never the live project:
 # the copy has its own .env, so the repo's real one is not read. Stop with: kill $(cat "$SITE/pids")
 set -eu
+# On Windows a test server or fake from an earlier run keeps answering on 8013/54399 and the new one cannot bind, so the run talks to a
+# stale copy (old code, an old clock). Stop them first. Linux CI starts clean and has no powershell.exe.
+if command -v powershell.exe >/dev/null 2>&1; then
+  powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { \$_.CommandLine -match 'fake_ws|fake_sb|router\.php' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" > /dev/null 2>&1 || true
+fi
 here=$(cd "$(dirname "$0")" && pwd); root=$(cd "$here/../.." && pwd)
 SITE=${SITE:-$(mktemp -d)}
 rm -rf "$SITE/admin"; cp -r "$root/admin" "$SITE/admin"; cp "$here/router.php" "$SITE/"

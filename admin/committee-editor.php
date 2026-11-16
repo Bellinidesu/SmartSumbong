@@ -162,6 +162,6 @@ layout_head($isNew ? t('New committee', 'Bagong komite') : t('Edit committee', '
     <div class="ce-df"><button type="button" class="p-btn p-btn-ghost" data-ce-stay><?= e(t('Keep editing', 'Ituloy ang pag-edit')) ?></button><a class="p-btn p-btn-danger-solid" href="administrative-services.php#access" id="ce-leave-go"><?= e(t('Leave without saving', 'Umalis nang hindi nagse-save')) ?></a></div>
   </dialog>
 </div>
-<script src="assets/js/sd-icons.js?v=<?= e(asset_version('../js/sd-icons.js')) ?>" defer></script>
-<script src="assets/js/committee-editor.js?v=<?= e(asset_version('../js/committee-editor.js')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-icons.js?v=<?= e(asset_version('../js/sd-icons.js')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/committee-editor.js?v=<?= e(asset_version('../js/committee-editor.js')) ?>" defer></script>
 <?php layout_foot();

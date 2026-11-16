@@ -54,7 +54,9 @@
 
   // ---------- the checks (as before) ----------
   function timed(p) { var t0 = performance.now(); return p.then(function (ok) { return { ok: ok, ms: Math.round(performance.now() - t0) }; }, function () { return { ok: false, ms: null }; }); }
-  function reach(url) { return timed(fetch(url, { cache: 'no-store', mode: 'cors' }).then(function (r) { return r.ok; })); }
+  // every check gives up after 10 s, so one hung service can never stall the live re-check (sweep, 16 Nov 2026)
+  function cap() { return window.AbortSignal && AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined; }
+  function reach(url) { return timed(fetch(url, { cache: 'no-store', mode: 'cors', signal: cap() }).then(function (r) { return r.ok; })); }
   function realtime() {
     return timed(new Promise(function (res) {
       var done = false, ws = new WebSocket(SB_URL.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SB_KEY) + '&vsn=1.0.0');
@@ -63,7 +65,7 @@
     }));
   }
   function set(key, r) { var st = !r.ok ? 'down' : (r.ms != null && r.ms > SLOW ? 'slow' : 'ok'); R[key] = { state: st, ms: r.ms }; pushH(key, st, r.ms); paintRow(key); paintHero(); if (mapOn) paintMap(); if (openKey === key) fillDrawerService(key, true); }
-  function checkServer() { return fetch('settings.php?check=server', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return null; }); }
+  function checkServer() { return fetch('settings.php?check=server', { cache: 'no-store', signal: cap() }).then(function (r) { return r.json(); }).catch(function () { return null; }); }
   function checkOne(key) {
     var s = svc(key); R[key] = { state: 'checking' }; paintRow(key);
     if (key === 'tiles') return reach('https://tiles.openfreemap.org/planet').then(function (r) { set('tiles', r); });
@@ -101,11 +103,12 @@
       (bad.length ? bad.map(function (s) { return s.down; }).join(' ') + ' ' : '') + (slow.length ? T('Slow to answer: ', 'Mabagal sumagot: ') + names(slow) + '.' : '') + (S.length - bad.length - slow.length > 0 ? ' ' + T('Everything else is working.', 'Gumagana ang iba.') : '');
     var good = S.filter(function (s) { return st(s.key) === 'ok'; }).length;
     var mem = cfg.memNow != null ? cfg.memNow + ' MB' : '—';
-    el.innerHTML = '<span class="st-hdot" aria-hidden="true"></span><span class="st-ht"><b>' + esc(head) + '</b><small>' + esc(why) + '</small></span>' +
+    var html = '<span class="st-hdot" aria-hidden="true"></span><span class="st-ht"><b>' + esc(head) + '</b><small>' + esc(why) + '</small></span>' +
       '<span class="st-hmini"><span><b>' + good + T(' of ', ' sa ') + S.length + '</b><small>' + esc(T('services answering well', 'serbisyong mabilis sumasagot')) + '</small></span>' +
       '<span><b>' + esc(cfg.up7 || '—') + '</b><small>' + esc(T('uptime, last 7 days', 'uptime, nakaraang 7 araw')) + '</small></span>' +
       '<span><b>' + esc(mem) + '</b><small>' + esc(cfg.memLimit ? T('of ', 'sa ') + cfg.memLimit + ' MB ' + T('memory', 'memorya') : T('memory', 'memorya')) + '</small></span>' +
       '<span><b>' + esc(cfg.smartLast || '—') + '</b><small>' + esc(T('SMART last ran', 'huling tumakbo ang SMART')) + '</small></span></span>';
+    if (el._h !== html) { el._h = html; el.innerHTML = html; }   // the banner is a live region: it speaks only when what it says changed
   }
   function rowHtml(s) {
     var r = R[s.key] || {}, B = BADGE[r.state || 'checking'], pl = PLACES[s.key] || ['', ''];
@@ -297,7 +300,11 @@
     var clr = host.querySelector('[data-st-plan-clear]'); if (clr) clr.addEventListener('click', function () { planSel = ''; usageUI(); });
   }
   function dimTo(id) { $$('#st-ul .st-um').forEach(function (u) { u.classList.toggle('dim', !!id && u.dataset.plan !== id); }); }
-  function usage() { return fetch('settings.php?usage=1', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return null; }).then(function (u) { U = u; usageUI(); }); }
+  // the Plan and usage numbers cost the server four reads and a Cloudinary call, so they are fetched when that tab is first opened, not on every visit (speed sweep, 16 Nov 2026)
+  var usageLoaded = false;
+  function usagePaneOn() { var p = document.querySelector('.st-pane[data-pane="usage"]'); return !!p && !p.hidden; }
+  function usageOnce() { if (!usageLoaded) { usageLoaded = true; usage(); } }
+  function usage() { return fetch('settings.php?usage=1', { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined }).then(function (r) { return r.json(); }).catch(function () { return null; }).then(function (u) { U = u; usageUI(); }); }
 
   // ---------- SMART > Rules: the scale follows the three inputs ----------
   (function () {
@@ -313,12 +320,13 @@
     $$('.st-tabs [data-st]').forEach(function (x) { x.classList.toggle('p-on', x === b); });
     $$('.st-pane').forEach(function (p) { p.hidden = p.dataset.pane !== b.dataset.st; });
     document.body.classList.toggle('st-smart-on', b.dataset.st === 'smart');   // 15 Nov 2026 (Ace): the SMART tab turns the whole page navy
+    if (b.dataset.st === 'usage') { usageOnce(); }
     var live = b.dataset.st === 'status' || b.dataset.st === 'usage'; $('st-check').hidden = !live; $('st-checked').hidden = b.dataset.st !== 'status';
   }); });
-  var checkBtn = $('st-check'); if (checkBtn) checkBtn.addEventListener('click', function () { check(); usage(); });
+  var checkBtn = $('st-check'); if (checkBtn) checkBtn.addEventListener('click', function () { check(); if (usagePaneOn()) { usageLoaded = true; usage(); } else { usageLoaded = false; } });
   var since = 0;
   setInterval(function () { paintLive(); since++; if (since >= 45 && statusVisible() && !busy) { since = 0; check(); } }, 1000);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && statusVisible() && lastAt && Date.now() - lastAt > 45000 && !busy) check(); });
 
-  S.forEach(function (s) { R[s.key] = { state: 'checking' }; paintRow(s.key); }); built = true; paintHero(); var v0 = 'list'; try { v0 = localStorage.getItem('ss-st-view') === 'map' ? 'map' : 'list'; } catch (e) { /* list */ } setView(v0); check(); usage();
+  S.forEach(function (s) { R[s.key] = { state: 'checking' }; paintRow(s.key); }); built = true; paintHero(); var v0 = 'list'; try { v0 = localStorage.getItem('ss-st-view') === 'map' ? 'map' : 'list'; } catch (e) { /* list */ } setView(v0); check(); if (usagePaneOn()) { usageOnce(); }
 })();

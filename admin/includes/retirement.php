@@ -358,7 +358,7 @@ function render_retirement_queue(): void
       <a class="cm-chip cm-sd" href="#" data-role="tanod" style="--cc:#0E8F8A;--ct:#FFFFFF;--g1:#0E8F8A;--g2:#35D0A8;--g3:#35D0A8"><span class="cm-n"><?= e(t('Tanods', 'Mga tanod')) ?></span><b id="ret-n-tanod">0</b></a>
       <a class="cm-chip cm-sd" href="#" data-role="staff" style="--cc:#6C7A9C;--ct:#FFFFFF;--g1:#6C7A9C;--g2:#9AA6C4;--g3:#9AA6C4"><span class="cm-n"><?= e(t('Staff', 'Kawani')) ?></span><b id="ret-n-staff">0</b></a>
     </nav>
-    <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
 
     <div class="p-card p-table-card"><div class="p-tscroll">
       <table class="p-t ss-ohead">
@@ -375,7 +375,7 @@ function render_retirement_queue(): void
     <p class="p-hint" style="margin-top:12px"><?= e(t('A tanod files this from the app when they stop serving. Approving it retires the account, so they no longer appear when you dispatch.',
                                                   'Inihahain ito ng tanod mula sa app kapag titigil na sila. Kapag inaprubahan, nireretiro ang account kaya hindi na sila lalabas sa pag-dispatch.')) ?></p>
 
-    <script>
+    <script nonce="<?= csp_nonce() ?>">
     // Show/hide the handover-length fields as the checkbox toggles.
     (function () {
       var box    = document.getElementById('t-handover-toggle');
@@ -401,8 +401,8 @@ function render_retirement_queue(): void
     });
     </script>
 
-    <script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
-    <script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>">
     // Realtime for the retirement queue — explicit ask, 6 Sep 2026: "the
     // entire system needs to work realtime," and this page was the one
     // named gap left once resident and tanod caught up to the rest of

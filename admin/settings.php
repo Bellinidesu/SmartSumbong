@@ -537,27 +537,40 @@ const SERVICE_PLACES = [
 ];
 
 /** One timed HTTP request: any answer below 500 means the service is reachable. */
-function probe(string $url, array $headers = [], string $method = 'GET'): array
+/**
+ * Several HTTP checks at once (speed sweep, 16 Nov 2026: they ran one after another, about 0.6 s; together they take as long as the slowest).
+ * $list: name => [url, headers, method]. Each answer: ok (it answered, below 500), ms (its own time), code.
+ */
+function probe_all(array $list): array
 {
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_NOBODY         => $method === 'HEAD',
-        CURLOPT_CUSTOMREQUEST  => $method === 'HEAD' ? null : $method,
-        CURLOPT_HTTPHEADER     => $headers,
-        CURLOPT_TIMEOUT        => 8,
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_FOLLOWLOCATION => false,
-    ]);
-    $t0 = microtime(true);
-    curl_exec($ch);
-    $ms   = (int) round((microtime(true) - $t0) * 1000);
-    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    return ['ok' => $code > 0 && $code < 500, 'ms' => $code > 0 ? $ms : null, 'code' => $code];
+    $mh = curl_multi_init(); $hs = []; $t0 = microtime(true);
+    foreach ($list as $name => [$url, $headers, $method]) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_NOBODY         => $method === 'HEAD',
+            CURLOPT_CUSTOMREQUEST  => $method === 'HEAD' ? null : $method,
+            CURLOPT_HTTPHEADER     => $headers,
+            CURLOPT_TIMEOUT        => 8,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_FOLLOWLOCATION => false,
+        ]);
+        curl_multi_add_handle($mh, $ch); $hs[$name] = $ch;
+    }
+    do { $st = curl_multi_exec($mh, $running); if ($running) { curl_multi_select($mh, 0.5); } } while ($running && $st === CURLM_OK);
+    $out = [];
+    foreach ($hs as $name => $ch) {
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $ms   = (int) round(((float) curl_getinfo($ch, CURLINFO_TOTAL_TIME)) * 1000) ?: (int) round((microtime(true) - $t0) * 1000);
+        $out[$name] = ['ok' => $code > 0 && $code < 500, 'ms' => $code > 0 ? $ms : null, 'code' => $code];
+        curl_multi_remove_handle($mh, $ch); curl_close($ch);
+    }
+    curl_multi_close($mh);
+    return $out;
 }
 
 if (($_GET['check'] ?? '') === 'server') {
+    if (!is_super()) { http_response_code(403); header('Content-Type: application/json'); echo '{}'; exit; }   // the system's health and the barangay's plans are the super admins' (sweep, 16 Nov 2026)
     header('Content-Type: application/json');
     header('Cache-Control: no-store');
     $out = [];
@@ -566,27 +579,36 @@ if (($_GET['check'] ?? '') === 'server') {
     try { $db->select('reports', ['select' => 'id', 'limit' => '1']); $out['db'] = ['ok' => true, 'ms' => (int) round((microtime(true) - $t0) * 1000)]; }
     catch (Throwable $e) { $out['db'] = ['ok' => false, 'ms' => null]; }
     $key = ['apikey: ' . supabase_key()];
-    $out['auth']  = probe(supabase_url() . '/auth/v1/health', $key);
-    $out['push']  = probe(supabase_url() . '/functions/v1/send-dispatch-push', $key, 'OPTIONS');
     $cloud = env('CLOUDINARY_CLOUD_NAME', '');
-    $out['media'] = $cloud !== '' ? probe('https://res.cloudinary.com/' . rawurlencode($cloud) . '/image/upload/v1/ping', [], 'HEAD') : ['ok' => false, 'ms' => null, 'unset' => true];
-    $fcm = probe('https://fcm.googleapis.com/', [], 'HEAD');
-    if ($out['push']['ok'] && !$fcm['ok']) { $out['push'] = ['ok' => false, 'ms' => null]; }
+    $jobs = ['auth' => [supabase_url() . '/auth/v1/health', $key, 'GET'], 'push' => [supabase_url() . '/functions/v1/send-dispatch-push', $key, 'OPTIONS'],
+             'fcm' => ['https://fcm.googleapis.com/', [], 'HEAD']];
+    if ($cloud !== '') { $jobs['media'] = ['https://res.cloudinary.com/' . rawurlencode($cloud) . '/image/upload/v1/ping', [], 'HEAD']; }
+    $got = probe_all($jobs);
+    $out['auth'] = $got['auth']; $out['push'] = $got['push'];
+    $out['media'] = $got['media'] ?? ['ok' => false, 'ms' => null, 'unset' => true];
+    if ($out['push']['ok'] && !$got['fcm']['ok']) { $out['push'] = ['ok' => false, 'ms' => null]; }
     echo json_encode($out);
     exit;
 }
 
 if (($_GET['usage'] ?? '') === '1') {
+    if (!is_super()) { http_response_code(403); header('Content-Type: application/json'); echo '{}'; exit; }   // the system's health and the barangay's plans are the super admins' (sweep, 16 Nov 2026)
     header('Content-Type: application/json');
     header('Cache-Control: no-store');
     $tz    = new DateTimeZone('Asia/Manila');
     $month = (new DateTimeImmutable('first day of this month', $tz))->setTime(0, 0)->format(DateTimeInterface::ATOM);
     $out = ['plans' => PLAN_TIERS];
     try { $out['supabase'] = $db->rpc('system_usage'); } catch (Throwable $e) { $out['supabase'] = null; }
-    try {
-        $media = $db->select('report_media', ['select' => 'bytes', 'limit' => '20000']);
-        $out['photos'] = ['files' => count($media), 'bytes' => array_sum(array_map(fn($m) => (int) $m['bytes'], $media))];
-    } catch (Throwable $e) { $out['photos'] = null; }
+    // the photos on record: summed from up to 20,000 rows, so the answer is kept for 10 minutes rather than read on every Check again (sweep, 16 Nov 2026)
+    $pf = sys_get_temp_dir() . '/ss-usage-photos-' . substr(md5((string) env('SUPABASE_URL', '')), 0, 8) . '.json';
+    $out['photos'] = (is_file($pf) && filemtime($pf) > time() - 600) ? json_decode((string) @file_get_contents($pf), true) : null;
+    if (!is_array($out['photos'])) {
+        try {
+            $media = $db->select('report_media', ['select' => 'bytes', 'limit' => '20000']);
+            $out['photos'] = ['files' => count($media), 'bytes' => array_sum(array_map(fn($m) => (int) ($m['bytes'] ?? 0), $media))];
+            @file_put_contents($pf, json_encode($out['photos']), LOCK_EX);
+        } catch (Throwable $e) { $out['photos'] = null; }
+    }
     try { $out['alerts'] = $db->count('dispatches', ['assigned_at' => 'gte.' . $month]); } catch (Throwable $e) { $out['alerts'] = null; }
     // Cloudinary's own usage figures, only when its API key and secret are set.
     $cloud = env('CLOUDINARY_CLOUD_NAME', ''); $ck = env('CLOUDINARY_API_KEY', ''); $cs = env('CLOUDINARY_API_SECRET', '');
@@ -799,13 +821,13 @@ if ($stPage !== 'mine') try {
       <a class="cm-chip cm-sd<?= $rk === '' ? ' p-on' : '' ?>" href="#" data-role="<?= e($rk) ?>" style="--cc:<?= e($c1) ?>;--ct:<?= e($ink) ?>;--g1:<?= e($c1) ?>;--g2:<?= e($c2) ?>;--g3:<?= e($c2) ?>" title="<?= e($rl) ?>"><i class="cm-sym"><svg class="cm-ic" data-ic="<?= e($ic) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg></i><span class="cm-n"><?= e($rl) ?></span><b><?= (int) ($rkN[$rk] ?? 0) ?></b></a>
     <?php endforeach; ?>
   </nav>
-  <script>
+  <script nonce="<?= csp_nonce() ?>">
   (function () {   // a position banner filters the table the way the position menu did
     var sel = document.getElementById('jp-role'), chips = [].slice.call(document.querySelectorAll('.ad-roles .cm-chip')); if (!sel) return;
     chips.forEach(function (c) { c.addEventListener('click', function (e) { e.preventDefault(); sel.value = c.dataset.role; sel.dispatchEvent(new Event('change', { bubbles: true })); chips.forEach(function (x) { x.classList.toggle('p-on', x === c); x.toggleAttribute('aria-current', x === c); }); }); });
   })();
   </script>
-  <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
+  <script nonce="<?= csp_nonce() ?>" src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
   <div class="p-card p-table-card jp-scope ss-people ss-adm" id="ss-people"><div class="p-tscroll">
     <table class="p-t ss-ohead">
     <thead><tr>
@@ -1092,8 +1114,8 @@ endif;
       <div class="cmx-grid"><?= $offHtml ?></div>
     </details>
     <?php endif; ?>
-    <script src="assets/js/tiles.js?v=<?= e(asset_version('../js/tiles.js')) ?>" defer></script>
-    <script src="assets/js/fit-grid.js?v=<?= e(asset_version('../js/fit-grid.js')) ?>" defer></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/tiles.js?v=<?= e(asset_version('../js/tiles.js')) ?>" defer></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/fit-grid.js?v=<?= e(asset_version('../js/fit-grid.js')) ?>" defer></script>
     <?= committee_banner_script() ?>
     <?= sd_chip_script() ?>
     <?php // 16 Nov 2026 (Ace): "New committee" and each committee's Edit open committee-editor.php. The first time, a notice says the rest of the portal cannot be opened while in the editor; "Do not show this again" is remembered in this browser (committee-gate.js) ?>
@@ -1103,7 +1125,7 @@ endif;
       <label class="ce-skip"><input type="checkbox" id="ce-skip"><span><?= e(t('Do not show this again', 'Huwag na itong ipakita muli')) ?></span></label>
       <div class="ce-df"><button type="button" class="p-btn p-btn-ghost" data-ce-no><?= e(t('Cancel', 'Kanselahin')) ?></button><a class="p-btn p-btn-primary" href="committee-editor.php" id="ce-enter-go"><?= e(t('Open the editor', 'Buksan ang editor')) ?></a></div>
     </dialog>
-    <script src="assets/js/committee-gate.js?v=<?= e(asset_version('../js/committee-gate.js')) ?>" defer></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/committee-gate.js?v=<?= e(asset_version('../js/committee-gate.js')) ?>" defer></script>
   </div>
   <?php $supHex = (string) (barangay()['super_colour'] ?? SUPER_BLUE); ?>
   <div class="p-card p-card-pad" id="acc-super">
@@ -1395,13 +1417,13 @@ $stCfg = [
 $stAlertN = count((array) $alerts);
 ?>
 <section class="st-pane" data-pane="status">
-  <script type="application/json" id="st-cfg"><?= json_encode($stCfg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) ?></script>
+  <script nonce="<?= csp_nonce() ?>" type="application/json" id="st-cfg"><?= json_encode($stCfg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) ?></script>
   <div class="st-hero" id="st-banner" data-tone="checking" aria-live="polite"></div>
   <div class="st-main">
     <div class="p-card p-card-pad st-svcs" id="st-svcs">
       <div class="st-svch"><h2><?= e(t('Services', 'Mga serbisyo')) ?></h2>
         <div class="st-view" role="group" aria-label="<?= e(t('How to show the services', 'Paano ipakita ang mga serbisyo')) ?>"><button type="button" class="p-on" data-st-view="list" aria-pressed="true"><?= e(t('List', 'Listahan')) ?></button><button type="button" data-st-view="map" aria-pressed="false"><?= e(t('Diagram', 'Dayagram')) ?></button></div></div>
-      <div class="st-legend" aria-label="<?= e(t('How to read the bars', 'Paano basahin ang mga guhit')) ?>">
+      <div class="st-legend" role="note" aria-label="<?= e(t('How to read the bars', 'Paano basahin ang mga guhit')) ?>">
         <span><?= e(t('Each bar is one check, the oldest on the left and the newest on the right.', 'Ang bawat guhit ay isang pagsusuri, ang pinakamatanda sa kaliwa at ang pinakabago sa kanan.')) ?></span>
         <span class="st-lg"><i class="g"></i><?= e(t('Answered fast', 'Mabilis sumagot')) ?></span><span class="st-lg"><i class="a"></i><?= e(t('Slow', 'Mabagal')) ?></span><span class="st-lg"><i class="r"></i><?= e(t('No answer', 'Walang sagot')) ?></span>
       </div>
@@ -1547,7 +1569,7 @@ endif;
     <button type="button" class="st-link" role="tab" data-go="words" aria-selected="false"><?= e(t('Words', 'Mga salita')) ?><?php if (!empty($words)): ?><b class="pd-tn"><?= count($words) ?></b><?php endif; ?></button>
     <button type="button" class="st-link" role="tab" data-go="test" aria-selected="false"><?= e(t('Try and measure', 'Subukan at sukatin')) ?></button>
   </nav>
-  <script>
+  <script nonce="<?= csp_nonce() ?>">
   (function () {   // one group of the SMART tab at a time; the one you were in is the one you come back to after a save
     var bar = document.getElementById('sm-tabs'), pane = bar && bar.closest('.st-pane'); if (!pane) return;
     var KEY = 'ss-smart-sub', ok = ['overview', 'rules', 'words', 'test'];
@@ -1942,7 +1964,7 @@ endif;
       </div>
     </div>
     <div class="ss-posform ru-bar"><span class="cmx-dirty-note" aria-live="polite"><?= e(t('Unsaved changes', 'May hindi pang-save na pagbabago')) ?></span><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></div>
-    <script>
+    <script nonce="<?= csp_nonce() ?>">
     (function () {
       var f = document.getElementById('brgy-card'), snap = new URLSearchParams(new FormData(f)).toString();
       function chk() { f.classList.toggle('cmx-dirty', new URLSearchParams(new FormData(f)).toString() !== snap); }
@@ -2017,9 +2039,9 @@ endif;
 <?php endif; ?>
 
 <?php if (st_on('status')): ?>
-<script src="assets/js/settings-status.js?v=<?= e(asset_version('../js/settings-status.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/settings-status.js?v=<?= e(asset_version('../js/settings-status.js')) ?>"></script>
 <?php else: ?>
-<script>
+<script nonce="<?= csp_nonce() ?>">
 document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEventListener('click', function () {
   document.querySelectorAll('.st-tabs [data-st]').forEach(function (x) { x.classList.toggle('p-on', x === b); });
   document.querySelectorAll('.st-pane').forEach(function (p) { p.hidden = p.dataset.pane !== b.dataset.st; });
@@ -2028,7 +2050,7 @@ document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEven
 </script>
 <?php endif; ?>
 <?php if (st_on('admins')): ?>
-<script>
+<script nonce="<?= csp_nonce() ?>">
 (function () {
   const $ = id => document.getElementById(id);
   // Administrators: search and position filter, an Edit button that opens the position and committee, an explicit Save
@@ -2059,7 +2081,7 @@ document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEven
 })();
 </script>
 <?php endif; ?>
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // Theme: Light or Dark, kept in this browser (the sidebar switch moved here, 14 Oct).
 (function () {
   var wrap = document.getElementById('st-theme'); if (!wrap) return;
@@ -2074,7 +2096,7 @@ document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEven
   paint();
 })();
 </script>
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // Sidebar: a handle on its edge, or a rail that opens when you point at it; kept in this browser.
 (function () {
   var wrap = document.getElementById('st-side'); if (!wrap) return;
@@ -2091,7 +2113,7 @@ document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEven
   paint();
 })();
 </script>
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // Back on the Administrators tab after adding or resetting.
 // #places is a card inside Appearance: open that tab, then bring the card into view
 // A tab that moved to another page (30 Oct 2026) sends the old link on to it.

@@ -30,6 +30,15 @@
   });
   var queued = false;
   function later() { if (queued) { return; } queued = true; requestAnimationFrame(function () { queued = false; scan(document); }); }
-  new MutationObserver(later).observe(document.documentElement, { childList: true, subtree: true });
+  // only a change that adds pills (or a box of them) is worth a look; a ticking clock or a live "checked 3 s ago" is not (speed sweep, 16 Nov 2026)
+  function relevant(muts) {
+    for (var i = 0; i < muts.length; i++) {
+      var m = muts[i];
+      if (m.target.nodeType === 1 && m.target.closest && m.target.closest('.p-badges')) { return true; }
+      for (var j = 0; j < m.addedNodes.length; j++) { var n = m.addedNodes[j]; if (n.nodeType === 1 && (n.matches('.p-badges, .p-badge') || n.querySelector('.p-badges'))) { return true; } }
+    }
+    return false;
+  }
+  new MutationObserver(function (muts) { if (relevant(muts)) { later(); } }).observe(document.documentElement, { childList: true, subtree: true });
   scan(document);
 })();

@@ -83,7 +83,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
       <b><?= e(t('Select a chat', 'Pumili ng chat')) ?></b><span><?= e(t('Choose a conversation on the left to read it and answer here.', 'Pumili ng usapan sa kaliwa para mabasa at masagot dito.')) ?></span></div><?php endif; ?>
   </div>
 </div>
-<script src="assets/js/emoji.js?v=<?= e(asset_version('../js/emoji.js')) ?>" defer></script>
-<script src="assets/js/msgr.js?v=<?= e(asset_version('../js/msgr.js')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/emoji.js?v=<?= e(asset_version('../js/emoji.js')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/msgr.js?v=<?= e(asset_version('../js/msgr.js')) ?>" defer></script>
 </div><?php // #ib-main ?>
 <?php layout_foot();

@@ -504,7 +504,7 @@ $noteBadge = $notesUnread + $escCount;
   </div>
 </div>
 <?php render_board($queue, $bmeta, $admin, $bscope, $queueErr); ?>
-<script src="assets/js/board.js?v=<?= e(asset_version('../js/board.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/board.js?v=<?= e(asset_version('../js/board.js')) ?>"></script>
 <?php endif; ?>
 
 <?php if ($tab === 'notes'): ?>
@@ -555,7 +555,7 @@ $noteBadge = $notesUnread + $escCount;
   <a class="cm-chip cm-chip-sys<?= $nCom === 'system' ? ' p-on' : '' ?>" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?> title="<?= e(t('System', 'Sistema')) ?>" data-nc="system"><i class="cm-sym cm-sym-sys">S</i><span class="cm-n"><?= e(t('System', 'Sistema')) ?></span><b><?= (int) ($ncN['system'] ?? 0) ?></b></a>
 </nav>
 <?= committee_banner_script() ?>
-<script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
 <?php endif; ?>
 
 <!-- ---------- escalation requests (0073) ---------- -->
@@ -819,7 +819,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   <?php endif; ?>
 </nav>
 <?= committee_banner_script() ?>
-<script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
 <?php if (is_super()): ?>
 <div class="fw-bulk" id="fw-bulk" hidden><span id="fw-bulk-n"></span><button type="button" class="p-btn p-btn-primary p-btn-sm" data-fw-open="bulk"><?= e(t('Forward the selected cases', 'Ipasa ang mga napili')) ?></button></div>
 <?php endif; ?>
@@ -889,7 +889,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 
 <?php endif; ?>
 
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // 0152: the Forward / Flag dialog, for one case (its row's button) or for the cases ticked (super admins)
 (function () {
   var dlg = document.getElementById('fw-dlg'); if (!dlg) return;
@@ -922,8 +922,8 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   dlg.addEventListener('htmx:afterRequest', function (e) { if (e.detail && e.detail.successful) dlg.close(); });
 })();
 </script>
-<script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
-<script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">
 // Realtime for the case list + notifications panel — explicit ask, 6 Sep
 // 2026: "the entire system needs to work realtime." reports, dispatches,
 // status_logs and notifications have all been in the supabase_realtime

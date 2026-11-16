@@ -11,7 +11,6 @@ function nav_items(): array
 {
     $items = [
         ['dashboard.php',  t('Dashboard', 'Dashboard'),                       'i-dash'],
-        ['home.php',       t('Home', 'Tahanan'),                              'i-home'],   // a Kagawad's and staff member's own (4 Nov 2026)
         ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
         ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
@@ -182,7 +181,8 @@ function smart_brain(int $size = 20): string
 function smart_logo(int $height = 34): string
 {
     $w = (int) round($height * 840 / 328);
-    return '<span class="ss-engine" role="img" aria-label="SMART engine"><img src="assets/img/smart-engine.webp" width="' . $w . '" height="' . $height . '" alt="" decoding="async"></span>';
+    // 16 Nov 2026 (speed sweep): the browser picks the smallest file that is sharp at this size and screen (12 KB / 38 KB / 100 KB), not always the 840 px one
+    return '<span class="ss-engine" role="img" aria-label="SMART engine"><img src="assets/img/smart-engine-lg.webp" srcset="assets/img/smart-engine-md.webp 210w, assets/img/smart-engine-lg.webp 420w, assets/img/smart-engine.webp 840w" sizes="' . $w . 'px" width="' . $w . '" height="' . $height . '" alt="" decoding="async"></span>';
 }
 
 /** SMART's level for a case, always with its word beside the colour (Urgent red, High orange, Normal blue, Low grey). */
@@ -459,7 +459,7 @@ function dev_switcher(): string
             . '<label><span>' . e(t('Kagawad and staff of', 'Kagawad at kawani ng')) . '</span><select name="committee">' . $sel . '</select></label>'
             . '<button type="submit">' . e($levels ? t('Move them', 'Ilipat sila') : t('Make my test accounts', 'Gawin ang aking mga test account')) . '</button></form>';
     }
-    return '<div class="dv-float" id="dv-float">' . $o . '</div></details></div><script src="assets/js/dev-widget.js?v=' . e(asset_version('../js/dev-widget.js')) . '" defer></script>';
+    return '<div class="dv-float" id="dv-float">' . $o . '</div></details></div><script nonce="' . csp_nonce() . '" src="assets/js/dev-widget.js?v=' . e(asset_version('../js/dev-widget.js')) . '" defer></script>';
 }
 
 /** While a developer looks through a test account: a band across the top that says so, with the way back. */
@@ -483,7 +483,7 @@ function layout_head(string $title, string $active = ''): void
 <meta charset="utf-8">
 <?= theme_head(false) ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // Error tracking (0097): this page's script errors are recorded for the
 // admins (Settings → System status), at most five per page load.
 (function () {
@@ -569,7 +569,7 @@ window.ssSupabase = function (url, key, initial) {
 <?php if ($active === 'spatial.php') : // Spatial Distribution in the current look (12 Nov 2026), written over the map's own styles ?>
 <link href="assets/css/sd-skin.css?v=<?= e(asset_version('sd-skin.css')) ?>" rel="stylesheet">
 <?php endif; ?>
-<?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php', 'home.php'], true)) : // Case Reports, the Dashboard, Report Summary and Home (overview.css) ?>
+<?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php'], true)) : // Case Reports, the Dashboard, Report Summary and Home (overview.css) ?>
 <link href="assets/css/overview.css?v=<?= e(asset_version('overview.css')) ?>" rel="stylesheet">
 <?php endif; ?>
 <?php if (in_array($active, ['administrative-services.php', 'control-room.php', 'settings.php'], true)) : // the super admin consoles (console.css) ?>
@@ -589,13 +589,13 @@ window.ssSupabase = function (url, key, initial) {
 <?php endif; ?>
 <link href="assets/css/motion.css?v=<?= e(asset_version('motion.css')) ?>" rel="stylesheet">
 <link href="assets/css/pills.css?v=<?= e(asset_version('pills.css')) ?>" rel="stylesheet">
-<?= side_colour_style() ?><script src="assets/js/motion.js?v=<?= e(asset_version('../js/motion.js')) ?>" defer></script><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script><script src="assets/js/pill-stack.js?v=<?= e(asset_version('../js/pill-stack.js')) ?>" defer></script>
+<?= side_colour_style() ?><script nonce="<?= csp_nonce() ?>" src="assets/js/motion.js?v=<?= e(asset_version('../js/motion.js')) ?>" defer></script><script nonce="<?= csp_nonce() ?>" src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script><script nonce="<?= csp_nonce() ?>" src="assets/js/pill-stack.js?v=<?= e(asset_version('../js/pill-stack.js')) ?>" defer></script>
 <?php // The press flow (7 Nov 2026): htmx swaps only what a press changes. No eval, no scripts from swapped HTML, no page HTML in
       // localStorage (Back fetches the page fresh), same-origin only; assets/js/press.js is the portal's layer over it. ?>
 <meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"refreshOnHistoryMiss":true,"selfRequestsOnly":true,"includeIndicatorStyles":false,"scrollIntoViewOnBoost":false,"defaultSettleDelay":0,"getCacheBusterParam":false}'>
 <link href="assets/css/press.css?v=<?= e(asset_version('press.css')) ?>" rel="stylesheet">
-<script src="assets/vendor/htmx/htmx.min.js?v=<?= e(vendor_version('htmx')) ?>" defer></script>
-<script src="assets/js/press.js?v=<?= e(asset_version('../js/press.js')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/htmx/htmx.min.js?v=<?= e(vendor_version('htmx')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/press.js?v=<?= e(asset_version('../js/press.js')) ?>" defer></script>
 <?php // Speed work, step 4 (7 Nov 2026): a page link held under the pointer (or pressed) is fetched a moment early, so the next page
       // is often already here when the click lands (Speculation Rules, prefetch only, never prerender: no page runs before it is
       // opened). Browsers without it ignore this. Left out, because opening them is not only reading: an Inbox message (opening it
@@ -611,7 +611,7 @@ window.ssSupabase = function (url, key, initial) {
       // marks a message read, is not in the sidebar. Everything else keeps the plain prefetch. ?>
 <?php $sameUrl = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
       $sameRule = preg_match('~^/[A-Za-z0-9_./-]+\.php$~', $sameUrl) ? '{"not":{"href_matches":' . json_encode($sameUrl . '*', JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '}},' : ''; ?>
-<script type="speculationrules">{"prerender":[{"source":"document","eagerness":"moderate","where":{"and":[{"selector_matches":"#side-nav a[href]"},{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"]"}}]}}],"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-boost=\"true\"], a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
+<script nonce="<?= csp_nonce() ?>" type="speculationrules">{"prerender":[{"source":"document","eagerness":"moderate","where":{"and":[{"selector_matches":"#side-nav a[href]"},{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"]"}}]}}],"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-boost=\"true\"], a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
 <link href="assets/css/material.css?v=<?= e(asset_version('material.css')) ?>" rel="stylesheet">   <?php // the portal is Material: solid surfaces, scrims that dim, glows as coloured elevation (15 Nov 2026) ?>
 </head>
 <?php // 12 Nov 2026 (Ace): motion (motion.css, motion.js) on every page but Control Room, Settings and Profile: mo-on for hover and press, mo-in for the first open, mo-hold while a prerendered page waits to be shown ?>
@@ -765,7 +765,7 @@ function idle_timeout(): void
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     </form>
 
-    <script>
+    <script nonce="<?= csp_nonce() ?>">
     (function () {
       var IDLE_MS = 18 * 60 * 1000, GRACE_S = 120;
       var veil = document.getElementById('idle-veil'),
@@ -882,7 +882,7 @@ function layout_foot(): void
 </div>
 <?= dev_switcher() ?>
 <?php if ($me = current_admin()): ?>
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // 0087: who is online and which case each admin has open (presence.js).
 window.SS_PRESENCE = <?= json_encode([
     'url'      => supabase_url(),
@@ -903,10 +903,10 @@ window.SS_PRESENCE = <?= json_encode([
     ],
 ], JSON_UNESCAPED_UNICODE) ?>;
 </script>
-<script src="assets/js/presence.js?v=<?= e(asset_version('../js/presence.js')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/presence.js?v=<?= e(asset_version('../js/presence.js')) ?>" defer></script>
 <?php // 12 Nov 2026: the chat head (a floating bubble for a case's chat) works on every page, so its style and script ride with the footer. ?>
 <link rel="stylesheet" href="assets/css/chat-head.css?v=<?= e(asset_version('chat-head.css')) ?>">
-<script src="assets/js/chat-head.js?v=<?= e(asset_version('../js/chat-head.js')) ?>" data-csrf="<?= e(csrf_token()) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/chat-head.js?v=<?= e(asset_version('../js/chat-head.js')) ?>" data-csrf="<?= e(csrf_token()) ?>" defer></script>
 <?php endif; ?>
 <?php if (can_view_mode() && !view_mode_on()): ?>
 <div class="p-scrim" id="p-m-viewmode"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="p-mv-t">
@@ -937,8 +937,8 @@ window.SS_PRESENCE = <?= json_encode([
   <div class="p-actions"><button class="p-btn p-btn-ghost" type="button" data-p-close><?= e(t('Cancel', 'Kanselahin')) ?></button><button class="p-btn p-btn-primary" type="button" id="p-mc-go"></button></div>
 </div></div>
 <div class="p-toast" id="p-toast" role="status"></div>
-<script src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
-<script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">
 // Every dropdown and month box in the portal is the portal's own glass picker (Ace, 6 Nov 2026: the category dropdown and the calendar are the standard).
 // The real controls stay underneath, so forms, auto-submit, required and the keyboard behave as before. A dropdown of categories or of committees
 // shows each one's own colour dot, read from the system's own lists, so a category added in Settings arrives with its colour.
@@ -967,7 +967,7 @@ window.SS_PRESENCE = <?= json_encode([
 })();
 </script>
 <?= prefs_script() ?>
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // The three bars shrink the sidebar to its icons and bring it back; the choice is kept in this browser.
 (function () {
   var b = document.getElementById('side-edge'), root = document.documentElement;
@@ -990,7 +990,7 @@ window.SS_PRESENCE = <?= json_encode([
 </script>
 <?php idle_timeout(); ?>
 <?php if (current_admin()): ?>
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // Street labels for complaints that have none yet (0068, geocode.php):
 // a few at a time in the background, at most every five minutes per
 // tab, and never in the way of the page.

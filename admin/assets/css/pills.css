@@ -112,7 +112,7 @@ td.ss-smart .p-badge + .p-badge { margin-left: 0; }
 .tp-t b { font: 800 16px/1.2 'Inter Tight', Inter, sans-serif; letter-spacing: -.005em; }
 .tp-t small { font-size: 13px; color: var(--p-muted); }
 .tp-chev { flex: none; color: var(--p-muted); transition: transform .18s ease; }
-.tc-propose[open] > .tp-summary .tp-chev, .tc-propose[open] > summary .tp-chev { transform: rotate(180deg); }
+.tc-propose[open] > summary .tp-chev { transform: rotate(180deg); }
 .tc-propose[open] > summary { border-bottom: 1px solid var(--p-line); }
 .tc-propose > :not(summary) { margin: 14px 20px 16px 22px; }
 @media (prefers-reduced-motion: reduce) { .tp-chev { transition: none; } }

@@ -123,13 +123,14 @@ function html_lang(): string
  */
 function theme_head(bool $fit = true): string
 {
-    return '<script>'
+    return '<script nonce="' . csp_nonce() . '">'
         . 'window.LANG=' . json_encode(lang()) . ';'
         . 'window.T=function(en,fil){return window.LANG==="fil"?fil:en;};'
         . '(function(){var t=null;try{t=localStorage.getItem("ss-theme");}catch(e){}'
         . 'if(t!=="light"&&t!=="dark"){t=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}'
         . 'document.documentElement.setAttribute("data-theme",t);'
         . 'document.documentElement.setAttribute("data-bs-theme",t);document.documentElement.setAttribute("data-surface","solid");'
+        . 'try{if(localStorage.getItem("ss-case-chat-mode")==="page")document.documentElement.classList.add("cc-chat-page");}catch(e){}'   // the case page hides its bubble before it paints, not after (sweep, 16 Nov 2026)
         . 'try{var m=localStorage.getItem("ss-side-mode");if(m==="hover")document.documentElement.setAttribute("data-side","hover");else if(localStorage.getItem("ss-side")==="min")document.documentElement.setAttribute("data-side","min");}catch(e){}})();'
         // Screen fit (branch B): the design is drawn at 1440 wide, so on a
         // bigger screen the whole portal is scaled up rather than stretched
@@ -200,8 +201,7 @@ function prefs_switches(string $extraClass = ''): string
 /** The theme and language switch behaviour, for any [data-theme-toggle] and .pref-lang [data-lang]. */
 function prefs_script(): string
 {
-    return <<<'HTML'
-<script>
+    return '<script nonce="' . csp_nonce() . '">' . <<<'HTML'
 (function () {
   var root = document.documentElement;
   function label() {

@@ -30,7 +30,7 @@
 :root:root[data-theme="dark"] .wx-dot { box-shadow: 0 0 0 2px #1d2229, 0 1px 3px color-mix(in srgb, var(--c) 85%, transparent), 0 3px 8px color-mix(in srgb, var(--c) 45%, transparent); }
 :root:root .ss-wxt { box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 3px 8px rgba(53,108,249,.5), 0 7px 16px rgba(53,108,249,.24); }
 :root:root .ss-wxt-g svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)) drop-shadow(0 2px 5px rgba(255,152,0,.4)); }
-:root:root .fw-chip .fw-dot, :root:root .fw-level .fw-dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--fw) 26%, transparent), 0 2px 6px color-mix(in srgb, var(--fw) 65%, transparent); }
+:root:root .fw-chip .fw-dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--fw) 26%, transparent), 0 2px 6px color-mix(in srgb, var(--fw) 65%, transparent); }
 :root:root .ss-mapside::before { box-shadow: 0 2px 6px color-mix(in srgb, var(--lv) 65%, transparent); }
 :root:root #s-spatial .p-dock-btn .p-cnt { box-shadow: 0 0 0 2px rgba(21,22,29,.9), 0 2px 5px rgba(229,56,59,.55); }
 :root:root :is(.p-live, .p-watching):not(.p-down):not(.p-cnt) i { filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)) drop-shadow(0 2px 4px rgba(124,255,168,.5)); }

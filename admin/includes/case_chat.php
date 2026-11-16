@@ -220,10 +220,6 @@ function case_chat_load_build(array $got): ?array
     return ['report' => $report, 'convs' => $convs, 'evidence' => is_array($got['evidence'] ?? null) ? $got['evidence'] : [], 'dispatches' => is_array($got['dispatches'] ?? null) ? $got['dispatches'] : []];
 }
 
-function case_chat_load(Supabase $db, string $id): ?array
-{
-    return case_chat_load_build($db->selectMany(case_chat_load_reads($id)));
-}
 
 /**
  * The Inbox's Case chats list, one row per CONVERSATION (the resident of a case, a tanod on one of its dispatches), the newest
@@ -279,21 +275,4 @@ function case_chat_list_rows(array $got, string $me): array
     return $list;
 }
 
-function case_chat_list(Supabase $db, string $me, int $keep = 300): array
-{
-    return case_chat_list_rows($db->selectMany(case_chat_list_reads($keep)), $me);
-}
 
-/** The reader's chat, drawn in the page (not floating): the conversations of one case, open at once. */
-function case_chat_inline(array $convs, string $id, string $tracking): string
-{
-    ob_start();
-    ?>
-<div class="ch ch-inline" data-inline="1" data-report="<?= e($id) ?>" data-tracking="<?= e($tracking) ?>" data-url="case.php?id=<?= e(urlencode($id)) ?>&amp;chat=1">
-  <section class="ch-panel" role="region" aria-label="<?= e(t('Messages', 'Mga Mensahe')) ?>">
-    <div class="ch-body"><?= case_chat_body($convs, $id) ?></div>
-  </section>
-</div>
-    <?php
-    return (string) ob_get_clean();
-}

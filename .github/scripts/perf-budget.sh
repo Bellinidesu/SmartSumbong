@@ -5,7 +5,8 @@
 # Raising a limit is allowed, but on purpose, in the same pull request.
 #
 #   sign-in page, everything it loads      336 KB (was 320: the small SMART engine mark under the card)
-#   each portal script (assets/js)          16 KB   (was 14, 8 before: widgets-core.js holds the Workspace widget engine and library)
+#   each portal script (assets/js)          16 KB   (was 14, 8 before: widgets-core.js holds the Workspace widget engine and library); spatial.js 64 KB
+#   each inline script in a page            40 KB raw
 #   each stylesheet (assets/css)            36 KB   (was 20: flair-map.css carries the map controls and panels; only Spatial Distribution loads it)
 #   each .webp photo (assets/img)          160 KB
 #
@@ -17,7 +18,10 @@ fail=0
 size() { case "$1" in *.css|*.js|*.svg|*.html|*.json) gzip -9 -c "$1" | wc -c ;; *) wc -c < "$1" ;; esac; }
 over() { echo "FAIL $1: $2 bytes, budget $3"; fail=1; }
 
-for f in admin/assets/js/*.js;   do s=$(size "$f"); [ "$s" -le 16384 ]  || over "$f" "$s" 16384;   done
+for f in admin/assets/js/*.js;   do
+  case "$f" in admin/assets/js/spatial.js) lim=65536 ;; *) lim=16384 ;; esac   # Spatial's map engine (16 Nov 2026: moved out of the page so it is cached)
+  s=$(size "$f"); [ "$s" -le $lim ] || over "$f" "$s" $lim
+done
 for f in admin/assets/css/*.css; do s=$(size "$f"); [ "$s" -le 36864 ]  || over "$f" "$s" 36864;  done
 for f in admin/assets/img/*.webp; do s=$(size "$f"); [ "$s" -le 163840 ] || over "$f" "$s" 163840; done
 
@@ -37,5 +41,11 @@ for f in inter-regular inter-semibold inter-tight-bold; do
   total=$((total + $(size "admin/assets/vendor/fonts/$f.woff2")))
 done
 if [ "$total" -le 344064 ]; then echo "ok   sign-in page: $total bytes of 344064"; else over "sign-in page" "$total" 344064; fi
+# Inline scripts (16 Nov 2026 sweep): a script written into the page is downloaded and compiled on every visit and never cached,
+# so a page's own logic belongs in assets/js/. Each inline <script> block in a page source stays under 40 KB.
+for f in admin/*.php admin/includes/*.php; do
+  big=$(php -r '$s = file_get_contents($argv[1]); preg_match_all("#<script(?![^>]*\bsrc=)(?![^>]*application/json)[^>]*>(.*?)</script>#s", $s, $m); $mx = 0; foreach ($m[1] as $b) { $mx = max($mx, strlen($b)); } echo $mx;' "$f")
+  [ "$big" -le 40960 ] || over "$f (largest inline script)" "$big" 40960
+done
 [ $fail = 0 ] && echo "ok   every script, stylesheet and photo within budget"
 exit $fail

@@ -299,7 +299,7 @@ function render_account_screen(string $role): void
       <?php if (!$isTanod): ?><button type="button" class="rs-banner-x" id="overdue-x" aria-label="<?= e(t('Keep this in the engine button', 'Itabi ito sa button ng engine')) ?>" title="<?= e(t('Keep this in the engine button', 'Itabi ito sa button ng engine')) ?>"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><?php endif; ?>
     </div>
     <?php if (!$isTanod): ?>
-    <script>
+    <script nonce="<?= csp_nonce() ?>">
     // The red banner can be put away; it is kept in the engine button, and comes back only if more registrations go past the window.
     // It reads the banner and the chooser that are on screen each time, so it keeps working after the list is swapped in place.
     (function () {
@@ -380,7 +380,7 @@ function render_account_screen(string $role): void
       <a class="cm-chip cm-chip-none<?= $comF === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $comF === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b><?= $comN('none') ?></b></a>
     </nav>
     <?= committee_banner_script() ?>
-    <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
     <?php elseif (!$isTanod):
         // Residents: the slices of the list are banners with their counts (the dropdown they replace did the same in words)
         $rsHref = fn (string $k) => 'residents.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $k], fn ($v) => $v !== ''));
@@ -392,7 +392,7 @@ function render_account_screen(string $role): void
       <?php endforeach; ?>
     </nav>
     <?= committee_banner_script() ?>
-    <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
     <?php endif; ?>
 
     <div class="ss-bulk" id="ss-bulk" hidden>
@@ -478,10 +478,10 @@ function render_account_screen(string $role): void
     </div></div>
     <div id="accounts-pager" hx-boost="true" hx-swap="outerHTML show:#people-list:top"><?= pager($accTotal, $accPage, 'page', $perPage) ?></div>
     </div><?php // #people-list ?>
-    <script src="assets/js/people-list.js?v=<?= e(asset_version('../js/people-list.js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/people-list.js?v=<?= e(asset_version('../js/people-list.js')) ?>"></script>
 
-    <script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
-    <script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>">
     // Realtime for the verification queue — explicit ask, 6 Sep 2026: "the
     // entire system needs to work realtime," and this is exactly the
     // "new additions" case: a fresh registration should appear here on
@@ -1220,7 +1220,7 @@ function render_account_detail(
       <a class="ss-bulk-go" id="ss-rqbar-next" href="#"><?= e(t('Next in the queue', 'Susunod sa pila')) ?> &rarr;</a>
       <button type="button" class="ss-bulk-clear" id="ss-rqbar-drop"><?= e(t('Drop the queue', 'Alisin ang pila')) ?></button>
     </div>
-    <script src="assets/js/people-list.js?v=<?= e(asset_version('../js/people-list.js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/people-list.js?v=<?= e(asset_version('../js/people-list.js')) ?>"></script>
 
     <div class="p-acc-top">
       <a class="p-back" href="<?= e($self) ?>" aria-label="<?= e(t('Back to the list', 'Bumalik sa listahan')) ?>"><?= p_icon('i-back', 18) ?><?= e($navFile === 'personnel.php' ? t('Personnel', 'Mga Tanod') : t('Residents', 'Mga Residente')) ?></a>
@@ -1628,7 +1628,7 @@ function render_account_detail(
       </aside>
     </div>
 
-    <script>
+    <script nonce="<?= csp_nonce() ?>">
     (function () {
       var grid = document.getElementById('pd-grid'); if (!grid) return;
       var tabs = [].slice.call(document.querySelectorAll('.pd-tabs [data-tab]'));
@@ -1650,7 +1650,7 @@ function render_account_detail(
       else { var t = document.createElement('textarea'); t.value = v; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) {} t.remove(); }
     }, true);
     </script>
-    <script>
+    <script nonce="<?= csp_nonce() ?>">
     // The two-hour window is the point of this screen, so it ticks rather
     // than reporting what was true when the page happened to load.
     (function () {
@@ -1697,8 +1697,8 @@ function render_account_detail(
     })();
     </script>
 
-    <script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
-    <script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>">
     // Same polling idiom as the list view above, and the same reason:
     // public.users carries no realtime push (0046's privacy decision).
     // This page has a deny/suspend textarea and password fields on

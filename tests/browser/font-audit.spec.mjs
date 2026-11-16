@@ -7,7 +7,7 @@ test.setTimeout(900000);
 const CASE = 'c0000000-0000-0000-0000-000000000001';
 const PAGES = ['dashboard.php', 'summary.php', 'spatial.php', 'cases.php', `case.php?id=${CASE}`, 'workspace.php', 'notifications.php', 'inbox.php', 'residents.php',
   'residents.php?id=u1', 'personnel.php', 'personnel.php?id=u2', 'personnel.php?view=staff', 'retirement-requests.php', 'activity.php', 'administrative-services.php',
-  'control-room.php', 'settings.php', 'profile.php', 'home.php', `complaint-summary.php?id=${CASE}`, 'widgets.php', 'login.php', 'request-access.php', 'error.php', 'hall.php'];
+  'control-room.php', 'settings.php', 'profile.php', `complaint-summary.php?id=${CASE}`, 'widgets.php', 'login.php', 'request-access.php', 'error.php', 'hall.php'];
 const findings = new Map();
 async function scan(page, tag) {
   const rows = await page.evaluate(() => {

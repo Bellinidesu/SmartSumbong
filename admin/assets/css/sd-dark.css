@@ -78,8 +78,8 @@
 :root[data-theme="dark"] .cs-sheet .cs-hero.has-photo { background: #1C1D22; }
 :root[data-theme="dark"] .cs-sheet .cs-acts > * span { background: var(--cs); }
 :root[data-theme="dark"] .cs-sheet .cs-acts .ac-look span { background: none; }
-:root[data-theme="dark"] .cs-steps li.on:has(+ li.on)::after { box-shadow: none; }
-:root[data-theme="dark"] .cs-steps li.cur::before { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cv) 22%, transparent); }
+
+
 /* the main buttons: a solid fill at level 1, rising to 2 on hover; the quiet button is a tonal surface */
 :root[data-theme="dark"] .qv-act .p-btn-primary, :root[data-theme="dark"] .cs-foot .cs-open, :root[data-theme="dark"] .cs-sheet .cs-foot .p-btn-primary,
 :root[data-theme="dark"] #s-spatial#s-spatial :is(.cc-suggest, .cc-side, .p-map-stats) :is(.p-btn-primary, .cc-sug-on) { background: var(--p-orange); background-image: none; text-shadow: none; box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 1px 3px 1px rgba(0,0,0,.35); }

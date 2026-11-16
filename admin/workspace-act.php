@@ -46,6 +46,11 @@ function refuse(string $en, string $fil, int $code = 400): never
     aout(['error' => t($en, $fil)], $code);
 }
 
+// Workspace is the super admins' page (access.php), so its writes are too; row-level security was the only guard before (sweep, 16 Nov 2026).
+if (!page_allowed('workspace.php')) {
+    refuse('Only a super admin can do that.', 'Super admin lamang ang makagagawa niyan.', 403);
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     aout(['error' => 'method'], 405);
 }

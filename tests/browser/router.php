@@ -8,7 +8,7 @@ if (str_ends_with((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH
     $tier = in_array($_GET['tier'] ?? '', ['super', 'committee', 'moderator', 'captain'], true) ? $_GET['tier'] : 'super';
     $com = preg_match('/^[a-z_]+$/', $_GET['committee'] ?? '') ? $_GET['committee'] : '';
     $theme = in_array($_GET['theme'] ?? '', ['light', 'dark'], true) ? $_GET['theme'] : 'light';
-    $to = preg_match('/^[a-z-]+\.php$/', $_GET['to'] ?? '') ? $_GET['to'] : ($tier === 'super' || $tier === 'captain' ? 'dashboard.php' : 'home.php');
+    $to = preg_match('/^[a-z-]+\.php$/', $_GET['to'] ?? '') ? $_GET['to'] : ($tier === 'super' || $tier === 'captain' ? 'dashboard.php' : 'notifications.php');
     setcookie('ss_tier', $tier, 0, '/'); setcookie('ss_committee', $com, $com === '' ? 1 : 0, '/');
     header('Content-Type: text/html; charset=utf-8');
     echo '<!doctype html><title>Switching</title><script>try{localStorage.setItem("ss-theme","' . $theme . '")}catch(e){}location.replace("' . $to . '")</script>';

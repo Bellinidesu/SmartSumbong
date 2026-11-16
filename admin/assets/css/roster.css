@@ -171,7 +171,7 @@
 .pd-details, .pd-duty, .pd-id, .pd-ocr, .pd-selfie, .pd-abuse { align-self: stretch; }
 .pc-name { color: inherit; text-decoration: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pc-name:hover b { text-decoration: underline; text-decoration-color: var(--id-acc, #FF9800); text-underline-offset: 3px; }
-.pd-grid .pd-staffcom { grid-column: 1 / -1; grid-row: auto; }
+
 .pc-offday td { color: var(--p-muted); }
 
 /* ================= Tabs on the account page: Overview, Dispatches, Documents ================= */
@@ -248,3 +248,5 @@
 .pd-box .pd-kv dd { margin: 0; font: 700 16px/1.35 Inter, sans-serif; color: var(--p-ink); overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pd-box .pd-kv dd:empty::before { content: "—"; color: var(--p-faint, var(--p-muted)); font-weight: 600; }
 .pd-box .pd-duty .p-shift { height: 14px; border-radius: 99px; overflow: hidden; }
+/* the Add to the committee button is as tall as the fields beside it (rules audit, 17 Nov 2026) */
+#tc-card .tc-add > .p-btn { min-height: 42px; }

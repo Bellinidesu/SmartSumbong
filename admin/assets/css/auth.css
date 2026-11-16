@@ -115,20 +115,8 @@ a { text-decoration: none; color: inherit; }
   gap: 46px;
   padding: 48px 32px;
 }
-.rail-logo { width: 240px; height: auto; object-fit: contain; }   /* the Barangay 183 seal leads, alone */
-.rail-logo--missing {
-  display: grid;
-  place-items: center;
-  width: 186px;
-  min-height: 96px;
-  padding: 12px;
-  border: 1px dashed var(--rule);
-  border-radius: 12px;
-  font-size: 11px;
-  line-height: 1.4;
-  text-align: center;
-  color: var(--ink-soft);
-}
+   /* the Barangay 183 seal leads, alone */
+
 .login-panel {
   position: relative;
   overflow: hidden;
@@ -298,37 +286,18 @@ a { text-decoration: none; color: inherit; }
     gap: 24px;
     padding: 28px 16px;
   }
-  .rail-logo, .rail-logo--missing { width: 96px; }
+  
   .login-card { padding: 40px 28px 32px; border-radius: 32px; }
 }
-.field-label {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  margin-bottom: 6px;
-}
+
 .field-hint { font-size: 11.5px; color: var(--ink-soft); margin: 6px 0 0; line-height: 1.5; }
 /* case.php's "Flag as abusive" checkbox in the Deny panel -- same
    inline-checkbox shape as .remember on the login screen, sized up
    slightly since this one sits in a form full of larger controls
    rather than beside a small "Forgot password?" link. */
-.field-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  cursor: pointer;
-  margin: 10px 0 2px;
-}
-.field-check input { width: 14px; height: 14px; accent-color: var(--navy); }
-.btn-period {
-  border: 0; background: var(--navy); color: #fff;
-  border-radius: var(--r-input); padding: 8px 16px;
-  font-family: var(--font-display); font-weight: 600; font-size: 13px; cursor: pointer;
-}
+
+
+
 @media (max-width: 900px) {
   .login-panel { min-height: auto; padding: 40px 24px 56px; }
   .login-wordmark, .login-wordmark--missing {
@@ -351,19 +320,10 @@ a { text-decoration: none; color: inherit; }
 .caps-warn[hidden] { display: none; }
 /* ---------- audit trail integrity ---------- */
 
-.trail-ok, .trail-bad {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 12px;
-  border-radius: var(--r-input);
-  padding: 8px 12px;
-  margin: 0 0 16px;
-  line-height: 1.5;
-}
-.trail-ok  { background: var(--dk-green-bg, #e9f6ec); color: var(--dk-green-ink, #16652c); }
-.trail-bad { background: var(--dk-red-bg, #fdeaea); color: var(--dk-red-ink, #a01818); flex-direction: column; gap: 3px; }
-.trail-ok svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+
+
+
+
 /* ---------- Request access, in the sign-in layout (branch B) ---------- */
 .access-card { padding: 48px 72px 40px; text-align: center; }
 .access-card .login-title { margin-bottom: 10px; }
@@ -396,10 +356,10 @@ a { text-decoration: none; color: inherit; }
   cursor: pointer;
 }
 .pref-theme:hover { background: rgba(255, 255, 255, .1); }
-.pref-ic { width: 20px; height: 20px; flex: none; }
-.pref-ic--sun { display: none; }
-:root[data-theme="dark"] .pref-ic--sun { display: block; }
-:root[data-theme="dark"] .pref-ic--moon { display: none; }
+
+
+
+
 .pref-lang {
   display: grid; grid-template-columns: 1fr 1fr;
   padding: 3px;
@@ -469,8 +429,7 @@ a { text-decoration: none; color: inherit; }
 /* The sidebar keeps the brand navy, one step deeper so it reads apart
    from the page; the active item keeps dark ink on its orange. */
 :root[data-theme="dark"] .sidebar { background: #2A3038; }
-:root[data-theme="dark"] .nav-item.active,
-:root[data-theme="dark"] .nav-item.active svg { color: #141b34; }
+
 /* The barangay seals carry navy lettering: they stay on light, as the
    apps' loading screen puts them on a light plate. */
 :root[data-theme="dark"] .login-rail { background: #f3f3f3; }
@@ -484,12 +443,12 @@ a { text-decoration: none; color: inherit; }
 :root[data-theme="dark"] .maplibregl-ctrl button .maplibregl-ctrl-icon { filter: invert(1) hue-rotate(180deg); }
 :root[data-theme="dark"] .maplibregl-ctrl-attrib { background: rgba(22, 38, 74, .85); color: var(--ink-soft); }
 :root[data-theme="dark"] .maplibregl-ctrl-attrib a { color: var(--ink-soft); }
-:root[data-theme="dark"] .profile-confirm::backdrop { background: rgba(9, 14, 30, .5); }
-:root[data-theme="dark"] .panel-bar .toggle { color: #141b34; }
-:root[data-theme="dark"] .case-grid .tl-dot { background: #a9c1ff; border-color: var(--card); box-shadow: 0 0 0 1.5px #a9c1ff; }
-:root[data-theme="dark"] .case-grid .tl-dot--now { background: var(--orange); box-shadow: 0 0 0 1.5px var(--orange); }
-:root[data-short] .prefs--sidebar { gap: 6px; margin-bottom: 8px; }
-:root[data-tight] .sidebar .nav-item { min-height: 42px; margin-bottom: 6px; padding-block: 4px; }
-:root[data-tight] .sidebar .brand { max-width: 112px; }
+
+
+
+
+
+
+
 :root[data-tight] .pref-theme { min-height: 34px; }
 :root[data-tight] .pref-lang button { min-height: 26px; }

@@ -33,6 +33,7 @@
     paint(); closeMenu(); btn.focus();
   });
   document.addEventListener('click', function (e) { if (!menu.hidden && !root.contains(e.target)) { closeMenu(); } });
+  root.addEventListener('focusout', function (e) { if (!menu.hidden && !root.contains(e.relatedTarget)) { closeMenu(); } });   // Tab out of the menu closes it
   root.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !menu.hidden) { e.stopPropagation(); closeMenu(); car.focus(); }
     if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !menu.hidden) { e.preventDefault(); var bs = [].slice.call(menu.querySelectorAll('[data-cc-mode]')), i = bs.indexOf(document.activeElement); bs[(i + (e.key === 'ArrowDown' ? 1 : bs.length - 1)) % bs.length].focus(); }
