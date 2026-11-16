@@ -45,6 +45,16 @@ function st_on(string $tab): bool
     return in_array($tab, ST_PAGES[$GLOBALS['stPage']]['tabs'], true);
 }
 
+/** Minutes as a reading a person takes in: "45 min", "3 h 20 min", "28 d 3 h" (16 Nov 2026: the table showed 40504). */
+function smart_duration(float $min): string
+{
+    $m = (int) round($min);
+    if ($m < 60) return $m . ' ' . t('min', 'minuto');
+    if ($m < 1440) return intdiv($m, 60) . ' ' . t('h', 'oras') . ($m % 60 ? ' ' . ($m % 60) . ' ' . t('min', 'minuto') : '');
+    $h = intdiv($m % 1440, 60);
+    return intdiv($m, 1440) . ' ' . t('d', 'araw') . ($h ? ' ' . $h . ' ' . t('h', 'oras') : '');
+}
+
 /** A tab's address on the page that owns it ('places' is a card inside Appearance). */
 function st_url(string $tab, string $query = ''): string
 {
@@ -1596,7 +1606,7 @@ endif;
       <?php foreach ($words as $w): $wd = (string) $w['word']; $kindLabel = category_pairs()[(string) ($w['mostly_category'] ?? '')] ?? null; ?>
         <li>
           <div class="sw-head"><b class="sw-w"><?= e($wd) ?></b>
-            <span class="p-hint"><?= (int) $w['reports'] ?> <?= e(t('reports', 'ulat')) ?><?= $kindLabel ? ' · ' . (int) round((float) $w['share'] * 100) . '% ' . e(t($kindLabel[0], $kindLabel[1])) : '' ?></span></div>
+            <span class="p-hint"><?= (int) $w['reports'] ?> <?= e(t('reports', 'ulat')) ?><?= $kindLabel ? ' · ' . (int) round((float) $w['share']) . '% ' . e(t($kindLabel[0], $kindLabel[1])) : '' ?></span></div>
           <?php if (!empty($w['example'])): ?><p class="sw-ex">&ldquo;<?= e((string) $w['example']) ?>&rdquo;</p><?php endif; ?>
           <?php if (!empty($w['likely_spelling_of'])): ?><p class="sw-likely"><?= e(t('Likely a spelling of', 'Posibleng baybay ng')) ?> <b><?= e((string) $w['likely_spelling_of']) ?></b></p><?php endif; ?>
           <details class="sw-teach"><summary><?= e(t('Teach it', 'Ituro ito')) ?></summary>
@@ -1721,13 +1731,13 @@ endif;
   <?php if ($cal || $fac): ?>
   <div class="ss-two" data-sm="test">
     <?php if ($cal): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('How the levels are doing (90 days)', 'Kumusta ang mga antas (90 araw)')) ?></p>
-      <table class="ss-table"><thead><tr><th><?= e(t('Level', 'Antas')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th><th class="n"><?= e(t('To dispatch (min)', 'Hanggang dispatch (min)')) ?></th></tr></thead><tbody>
-      <?php foreach ($cal as $c): ?><tr><td><?= e($lvl[$c['level']] ?? (string) $c['level']) ?></td><td class="n"><?= (int) $c['reports'] ?></td><td class="n"><?= (int) $c['raised'] ?></td><td class="n"><?= (int) $c['lowered'] ?></td><td class="n"><?= $c['median_minutes_to_dispatch'] === null ? '—' : (int) round((float) $c['median_minutes_to_dispatch']) ?></td></tr><?php endforeach; ?>
+      <table class="ss-table"><thead><tr><th><?= e(t('Level', 'Antas')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th><th class="n"><?= e(t('Typical time to dispatch', 'Karaniwang oras bago i-dispatch')) ?></th></tr></thead><tbody>
+      <?php foreach ($cal as $c): ?><tr><td><?= e($lvl[$c['level']] ?? (string) $c['level']) ?></td><td class="n"><?= (int) $c['reports'] ?></td><td class="n"><?= (int) $c['raised'] ?></td><td class="n"><?= (int) $c['lowered'] ?></td><td class="n"><?= $c['median_minutes_to_dispatch'] === null ? '—' : smart_duration((float) $c['median_minutes_to_dispatch']) ?></td></tr><?php endforeach; ?>
       </tbody></table>
       <p class="p-hint"><?= e(t('If administrators often lower reports with a given factor, it may deserve fewer points.', 'Kung madalas ibaba ng mga administrator ang mga ulat na may isang salik, maaaring bawasan ang puntos nito.')) ?></p></section><?php endif; ?>
     <?php if ($fac): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('Factors administrators change', 'Mga salik na binabago ng administrator')) ?></p>
       <table class="ss-table"><thead><tr><th><?= e(t('Factor', 'Salik')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th></tr></thead><tbody>
-      <?php foreach ($fac as $f): ?><tr><td><?= e(trim((string) $f['factor'] . ' ' . (string) ($f['detail'] ?? ''))) ?></td><td class="n"><?= (int) $f['reports'] ?></td><td class="n"><?= (int) $f['raised'] ?></td><td class="n"><?= (int) $f['lowered'] ?></td></tr><?php endforeach; ?>
+      <?php foreach ($fac as $f): ?><tr><td><?= e(trim((string) $f['factor'] . ' ' . (string) ($f['detail'] ?? '')) ?: t('No single factor', 'Walang iisang salik')) ?></td><td class="n"><?= (int) $f['reports'] ?></td><td class="n"><?= (int) $f['raised'] ?></td><td class="n"><?= (int) $f['lowered'] ?></td></tr><?php endforeach; ?>
       </tbody></table></section><?php endif; ?>
   </div>
   <?php endif; ?>

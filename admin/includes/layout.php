@@ -499,8 +499,13 @@ function layout_head(string $title, string $active = ''): void
     if (e.message) send(e.message, (e.filename || '').split('/').pop() + ':' + e.lineno + ':' + e.colno + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
   });
   window.addEventListener('unhandledrejection', function (e) {
-    var r = e.reason; send('Unhandled: ' + (r && r.message ? r.message : r), r && r.stack);
+    var r = e.reason;
+    // a page transition (sign-in -> portal) that the browser abandons rejects its own promises; that is not a fault of the portal
+    if (r && /^Transition was aborted/.test(String(r.message || ''))) { e.preventDefault(); return; }
+    send('Unhandled: ' + (r && r.message ? r.message : r), r && r.stack);
   });
+  // and the transition's own promises are answered here, so an abandoned one never reaches the handler above (sign-in's @view-transition, signin.css)
+  ['pagereveal', 'pageswap'].forEach(function (n) { window.addEventListener(n, function (e) { var v = e.viewTransition; if (v) { ['ready', 'finished', 'updateCallbackDone'].forEach(function (k) { if (v[k] && v[k].catch) v[k].catch(function () {}); }); } }); });
 })();
 // Whether a purok boundaries file exists (map-theme.js skips the request if not).
 window.SS_ZONES = <?= is_file(__DIR__ . '/../assets/map/zones.geojson') ? 'true' : 'false' ?>;

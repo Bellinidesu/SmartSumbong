@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Settings data fixes (16 Nov)**
+
+- SMART > Words to learn: the share of a word's reports in its kind read "3300%"; the database already answers in percent and the page multiplied it again. It reads 33% now.
+- SMART > Try and measure: a factor row with no name (reports with no single factor) is labelled "No single factor". "To dispatch (min)" showed raw minutes such as 40504; it is "Typical time to dispatch" in minutes, hours or days ("28 d 3 h").
+- Recent errors: the browser's "Transition was aborted" from the sign-in page's page transition (it rejects its own promises when the next page does not opt in) was recorded as an unhandled error. Those promises are now answered where they appear, and that one message is no longer logged.
+
 **The stack, built from Ace's artifact previews (16 Nov)**
 
 - **Committee editor** (`committee-editor.php`, a super admin's page): making or editing a committee is a focus mode. The portal's sidebar is replaced by the sidebar the committee's people will have, drawn live as it is edited (its colour, its logo or symbol faded behind, its name under the seal); the editor takes the page. Name, Tagalog name, short name, a logo upload, a colour (the palette, greyed where the database would refuse it), and "What it sees" in a popup (kinds of complaint, with the options under each to look at). Beside it, "Also shows up as": the Personnel banner, the case page's Committee row and the committee filter chip. Leaving with changes asks first; the first time, a notice on the committees list says the rest of the portal cannot be opened in the editor, with "Do not show this again" (kept in the browser). It posts the same `committee_save` as before: no backend change. A kind of complaint may be seen by several committees, so connecting one another committee has shares it.
