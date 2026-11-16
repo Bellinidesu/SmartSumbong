@@ -923,7 +923,7 @@ test('Report Summary: the chips are tabs, one section at a time, and a link or a
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('System status: health leads, the services are live rows that open a drawer, the diagram opens on request', async ({ page }) => {
+test('System status: health leads, the services are live rows that open a drawer, the diagram is a view of the same card', async ({ page }) => {
   const r = await open(page, 'settings.php');
   await expect(page.locator('#st-banner')).toBeVisible();
   await expect(page.locator('#st-rows .st-row')).toHaveCount(9);
@@ -936,11 +936,17 @@ test('System status: health leads, the services are live rows that open a drawer
   await expect(page.locator('#st-dr-body .st-bars.big i')).toHaveCount(36);
   await page.locator('#st-drawer [data-st-close]').click();
   await expect(page.locator('#st-drawer')).not.toHaveAttribute('open', '');
-  await expect(page.locator('details.st-mapd')).not.toHaveAttribute('open', '');
-  const closed = await page.evaluate(() => document.documentElement.scrollHeight);
-  await page.locator('details.st-mapd summary').click();
+  await expect(page.locator('#st-map')).toBeHidden();
+  await page.locator('[data-st-view="map"]').click();
   await expect(page.locator('#st-map svg')).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollHeight), 'opening it adds the diagram').toBeGreaterThan(closed + 250);
+  await expect(page.locator('#st-map .st-node')).toHaveCount(9);
+  await expect(page.locator('#st-rows')).toBeHidden();
+  await page.locator('#st-map .st-node').first().click();
+  await expect(page.locator('#st-drawer')).toHaveAttribute('open', '');
+  await page.locator('#st-drawer [data-st-close]').click();
+  await page.locator('[data-st-view="list"]').click();
+  await expect(page.locator('#st-rows .st-row')).toHaveCount(9);
+  await expect(page.locator('.st-credits'), 'the map credits left this page').toHaveCount(0);
   expect(r.errors, 'console errors').toEqual([]);
 });
 

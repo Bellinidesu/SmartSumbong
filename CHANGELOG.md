@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Settings follow-up after the live review (16 Nov)**
+
+- System status: the diagram is now a view of the Services card (List / Diagram switch), redrawn with animated flow lines, pulsing hub and clickable nodes that open the same drawers. The Services card and the cards beside it fill the column, with no empty space. Needs attention reads as a normal list again (its text had been squeezed into one word per line).
+- The Map credits card left Settings (parked for review).
+- SMART tab follows the preview: a levels bar on Overview, the scale above the level inputs (it follows the numbers as they are typed), How teaching works beside Words, the Result beside Try it, and the preview's wording on the figures.
+
 **Settings, live and understandable (16 Nov)**
 
 - System status leads with health: a banner says what is wrong, or that everything works, with four figures beside it (services answering well, uptime, memory, SMART last ran).
