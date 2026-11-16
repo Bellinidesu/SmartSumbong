@@ -1146,7 +1146,6 @@ function qvOpen(r) {
   map.easeTo({ center: [lng, lat], zoom: 18, padding: { left: 0, top: 0, right: 0, bottom: 0 }, offset: [-190, 40], duration: 950,
                easing: t => 1 - Math.pow(1 - t, 3) });
   const nearby = all.filter(q => q.id !== r.id && Math.hypot((q.longitude - lng) * 107500, (q.latitude - lat) * 110600) < 150).length;
-  const rejected = r.status === 'rejected' || r.status === 'cancelled';
   const glyph = (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
   const box = document.createElement('div');
   box.id = 'ss-qv'; box.className = 'ss-qv'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', esc(r.subject || ''));
