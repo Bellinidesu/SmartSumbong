@@ -14,7 +14,7 @@
   html[data-side="min"] .p-side-top{justify-content:center;padding-bottom:18px}
   html[data-side="min"] .p-side-top .p-brand{display:none}
   html[data-side="min"] .p-nav a{justify-content:center;padding:0;gap:0}
-  
+  html[data-side="min"] .p-nav a>span:not(.p-count){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   
   html[data-side="min"] .p-side-user{flex-direction:column;padding:8px;gap:8px;align-items:center}
   html[data-side="min"] .p-side-user .p-who{display:none}
@@ -61,7 +61,7 @@ html[data-side="hover"] .p-edge{display:none}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within){padding-inline:14px}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-brand{display:none}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav a{justify-content:center;padding:0;gap:0}
-  
+  html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav a>span:not(.p-count){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user{flex-direction:column;padding:8px;gap:8px;align-items:center}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user .p-who{display:none}

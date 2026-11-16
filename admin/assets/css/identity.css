@@ -16,22 +16,22 @@
 }
 
 /* The Damascus contour lines stay where Figma put them: in the background of the page, not inside the surfaces. */
-.id-on :is(.p-band, .p-kpi, .ss-panel, .p-modal) { position: relative; }
+.id-on :is(.p-band, .p-kpi, .dh-kpi, .ss-panel, .p-modal) { position: relative; }
 .id-on .p-band > * { position: relative; z-index: 1; }
 
 /* ---- the page title: larger, tighter ---- */
 .id-on .p-topbar h1, .id-on .p-dash-top h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
 
 /* ---- hero surfaces: the tiles. A gradient hairline, the contour lines in the tile's accent, a big number ---- */
-.id-on :is(.p-kpi {
+.id-on :is(.p-kpi, .dh-kpi .ss-tile) {
   overflow: hidden; border: 1px solid transparent; border-radius: 16px;
   background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box;
   box-shadow: 0 1px 2px rgba(20,27,52,.05), 0 10px 26px -14px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 45%, transparent);
   transition: transform .18s ease, box-shadow .18s ease;
 }
-.id-on :is(.p-kpi { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(20,27,52,.06), 0 16px 32px -14px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 60%, transparent); }
-.id-on :is(.p-kpi .p-value { font-family: Inter Tight, system-ui, sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -.025em; line-height: 1; }
-.id-on :is(.p-kpi .p-label { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
+.id-on :is(.p-kpi, .dh-kpi .ss-tile):hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(20,27,52,.06), 0 16px 32px -14px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 60%, transparent); }
+.id-on :is(.p-kpi .p-value, .dh-kpi .ss-tile b) { font-family: Inter Tight, system-ui, sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -.025em; line-height: 1; }
+.id-on :is(.p-kpi .p-label, .dh-kpi .ss-tile > span) { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
 
 
 .id-on .ss-k-total { --tile-acc: #356CF9; } .id-on .ss-k-res { --tile-acc: #34C759; } .id-on .ss-k-att { --tile-acc: #FF9800; } .id-on .ss-k-avg { --tile-acc: #7A5AE0; }
@@ -91,23 +91,23 @@
 .id-on .p-scrim { background: color-mix(in srgb, #0A1440 55%, transparent); }
 
 /* ---- dark: the same hierarchy, with glow instead of shadow ---- */
-:root[data-theme="dark"] .p-body.id-on :is(.p-kpi {
+:root[data-theme="dark"] .p-body.id-on :is(.p-kpi, .dh-kpi .ss-tile) {
   background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box;
   box-shadow: 0 0 0 1px rgba(255,255,255,.03), 0 14px 34px -16px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 70%, transparent);
 }
 :root[data-theme="dark"] .p-body.id-on .p-t tbody tr:not(.ss-erow):hover > td { background: color-mix(in srgb, var(--id-acc) 14%, transparent); }
 
-@media (prefers-reduced-motion: reduce) { .id-on :is(.p-kpi { transition: none; } .id-on :is(.p-kpi { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .id-on :is(.p-kpi, .dh-kpi .ss-tile) { transition: none; } .id-on :is(.p-kpi, .dh-kpi .ss-tile):hover { transform: none; } }
 
 /* ---- the Dashboard says whose it is: a greeting, and the tiles lead with their colour ---- */
 .id-on .dh-greet { margin: 0 0 14px; }
 .id-on .dh-greet h1 { margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -.025em; line-height: 1.1;
   background: linear-gradient(100deg, var(--p-ink) 0%, var(--p-ink) 55%, var(--id-acc) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .id-on .dh-greet p { margin: 6px 0 0; font-size: 14.5px; color: var(--p-muted); }
-:root:not([data-theme="dark"]) .p-body.id-on :is(.p-kpi {
+:root:not([data-theme="dark"]) .p-body.id-on :is(.p-kpi, .dh-kpi .ss-tile) {
   background: linear-gradient(135deg, color-mix(in srgb, var(--tile-acc, var(--id-acc)) 11%, #fff) 0%, #fff 58%) padding-box, var(--id-hair) border-box;
 }
-.id-on :is(.p-kpi .p-value { font-size: 46px; }
+.id-on :is(.p-kpi .p-value, .dh-kpi .ss-tile b) { font-size: 46px; }
 
 
 /* ---- the Dashboard, like a product: one summary band (not four tiles), one header row, rows of one height ---- */

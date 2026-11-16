@@ -7,10 +7,10 @@
    Spatial Distribution has its own pair (sd-light.css, sd-dark.css). */
 
 /* ---- 1. frosted surfaces become solid ---- */
-:root:root :is(.ss-jump, .bd-bar, .ru-bar, .ss-mapside, .ss-wx, .ss-brain, .ss-street-tag, .bd-col, .wx-card, .sdp-pop, .cd-insp, .cd-tools) {
+:root:root :is(.ss-jump, .bd-bar, .pf-bar, .ru-bar, .ss-mapside, .ss-wx, .ss-brain, .ss-street-tag, .bd-col, .wx-card, .sdp-pop, .cd-insp, .cd-tools) {
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
 }
-:root:root :is(.ss-jump, .bd-bar, .ru-bar) { background: var(--p-surface); }
+:root:root :is(.ss-jump, .bd-bar, .pf-bar, .ru-bar) { background: var(--p-surface); }
 :root:root[data-theme="dark"] .bd-cols { --bd-sunk: #1B2026; --bd-card: #22282F; --bd-card-h: #2A3139; }
 :root:root[data-theme="dark"] .wx-card { background: linear-gradient(150deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 60%), #1F242B; }
 :root:root[data-theme="dark"] .sdp-pop { background: var(--p-surface); box-shadow: 0 4px 8px 3px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.7); }

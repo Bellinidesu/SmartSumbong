@@ -1907,6 +1907,7 @@ test('Chat heads float (12 Nov 2026): right-click the bubble for a menu; Float o
   await expect(head.locator('.ch-badge')).toBeVisible();
   await head.locator('.ch-fab').click();
   await expect(head.locator('.ch-row')).toHaveCount(2);
+  await head.locator('.ch-panel').evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)));   // axe reads colours, so not mid-fade
   expect(await axe(page), 'axe with a floating chat open').toEqual([]);
   await page.keyboard.press('Escape');
   await expect(head.locator('.ch-panel')).toBeHidden();
