@@ -248,3 +248,5 @@
 .pd-box .pd-kv dd { margin: 0; font: 700 16px/1.35 Inter, sans-serif; color: var(--p-ink); overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pd-box .pd-kv dd:empty::before { content: "—"; color: var(--p-faint, var(--p-muted)); font-weight: 600; }
 .pd-box .pd-duty .p-shift { height: 14px; border-radius: 99px; overflow: hidden; }
+/* the Add to the committee button is as tall as the fields beside it (rules audit, 17 Nov 2026) */
+#tc-card .tc-add > .p-btn { min-height: 42px; }
