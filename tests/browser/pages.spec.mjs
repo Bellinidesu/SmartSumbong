@@ -188,12 +188,9 @@ test('SMART Iteration 2: measured, healthy, and the recheck stage', async ({ pag
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('Settings, peak: the SMART tab shows one group at a time and remembers it; the services are a band over a blue header', async ({ page }) => {
+test('Settings, peak: the SMART tab shows one group at a time and remembers it', async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'settings.php#status');
-  const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(); return { band: Math.round(R('.st-svcband').bottom), table: Math.round(R('.st-svc').top), th: getComputedStyle(document.querySelector('.st-svc thead th')).backgroundColor }; });
-  expect(Math.abs(g.band - g.table), 'the band and the table touch').toBeLessThanOrEqual(1);
-  expect(g.th, 'blue under the orange band').toBe('rgb(0, 48, 143)');
   await page.evaluate(() => { try { localStorage.removeItem('ss-smart-sub'); } catch (e) {} });   // a clean start: no group remembered
   await page.locator('.st-tabs [data-st="smart"]').click();
   await page.reload();
@@ -477,6 +474,23 @@ test('Committee editor (16 Nov): the sidebar is the committee\'s, live; kinds in
   expect(await axe(page), 'the committee editor').toEqual([]);
   await page.locator('.ce-top [data-ce-leave]').click(); await page.locator('#ce-leave-go').click();
   await page.waitForURL(/administrative-services\.php/);
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
+test('Committee editor (16 Nov): its sidebar folds like the live one, starts expanded whatever was stored, and leaves the stored choice alone', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.addInitScript(() => { try { localStorage.setItem('ss-side', 'min'); } catch (e) {} });
+  const r = await open(page, 'committee-editor.php');
+  const attr = () => page.evaluate(() => document.documentElement.getAttribute('data-side'));
+  expect(await attr(), 'expanded on arrival although the live sidebar is folded').toBeNull();
+  await expect(page.locator('.p-side-com b')).toBeVisible();
+  await page.locator('#side-edge').click();
+  expect(await attr()).toBe('min');
+  await expect(page.locator('.p-side-com'), 'folded: the seal and icons stay, the committee name goes').toBeHidden();
+  await page.locator('#side-edge').click();
+  expect(await attr()).toBeNull();
+  await expect(page.locator('.p-side-com b')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('ss-side')), 'the stored choice is untouched').toBe('min');
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
 });
 
@@ -909,14 +923,41 @@ test('Report Summary: the chips are tabs, one section at a time, and a link or a
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('System status: the table is the page, the diagram of the same services opens on request', async ({ page }) => {
+test('System status: health leads, the services are live rows that open a drawer, the diagram opens on request', async ({ page }) => {
   const r = await open(page, 'settings.php');
-  await expect(page.locator('#st-rows tr')).toHaveCount(9);
+  await expect(page.locator('#st-banner')).toBeVisible();
+  await expect(page.locator('#st-rows .st-row')).toHaveCount(9);
+  await expect(page.locator('.st-hmini > span')).toHaveCount(4);
+  await expect(page.locator('#st-drawer')).not.toHaveAttribute('open', '');
+  await page.locator('#st-rows .st-row').first().click();
+  await expect(page.locator('#st-drawer')).toHaveAttribute('open', '');
+  await expect(page.locator('#st-dr-t')).not.toBeEmpty();
+  await expect(page.locator('#st-dr-body [data-st-recheck]')).toHaveCount(1);
+  await expect(page.locator('#st-dr-body .st-bars.big i')).toHaveCount(36);
+  await page.locator('#st-drawer [data-st-close]').click();
+  await expect(page.locator('#st-drawer')).not.toHaveAttribute('open', '');
   await expect(page.locator('details.st-mapd')).not.toHaveAttribute('open', '');
   const closed = await page.evaluate(() => document.documentElement.scrollHeight);
   await page.locator('details.st-mapd summary').click();
   await expect(page.locator('#st-map svg')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollHeight), 'opening it adds the diagram').toBeGreaterThan(closed + 250);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Plan and usage: the plans sit beside the usage; hovering focuses a plan, pressing keeps it, Show all clears it', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'settings.php');
+  await page.locator('.st-tabs [data-st="usage"]').click();
+  await expect(page.locator('.st-pl')).toHaveCount(6);
+  await expect(page.locator('.st-uk > div')).toHaveCount(4);
+  const first = page.locator('.st-pl').first();
+  await first.hover();
+  await expect(page.locator('#st-ul .st-um.dim').first()).toBeAttached();
+  await first.click();
+  await expect(first).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#st-ul .st-drs')).toHaveCount(3);
+  await page.locator('[data-st-plan-clear]').click();
+  await expect(page.locator('.st-pl[aria-pressed="true"]')).toHaveCount(0);
   expect(r.errors, 'console errors').toEqual([]);
 });
 

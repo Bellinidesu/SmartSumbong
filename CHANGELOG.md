@@ -9,6 +9,15 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Settings, live and understandable (16 Nov)**
+
+- System status leads with health: a banner says what is wrong, or that everything works, with four figures beside it (services answering well, uptime, memory, SMART last ran).
+- The services are live rows: a new check every 45 seconds while the tab is open, a bar of the last 36 checks made from that browser, and a drawer for each row (what it does, the reading, what a failure means, Check again, the provider's status page, Copy a note). Needs attention, Server memory, Portal uptime, SMART engine and every recent error open the same kind of drawer.
+- Plan and usage fills the page: four figures, the usage against limits beside the plans. Hovering a plan focuses its meters and dims the rest; pressing it keeps it (with About this plan, At the limit, what you can do); Show all clears it. Meters say Plenty of room, Getting full or Almost full, with ticks at 75% and 90%. Only what is really measured gets a meter.
+- The SMART tab's logo no longer shows a rectangular halo.
+- The committee editor's sidebar folds and expands like the live one, always opens expanded, and leaves the stored choice alone.
+- Moves the Settings script out of settings.php into assets/js/settings-status.js.
+
 **Settings data fixes (16 Nov)**
 
 - SMART > Words to learn: the share of a word's reports in its kind read "3300%"; the database already answers in percent and the page multiplied it again. It reads 33% now.

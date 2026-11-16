@@ -729,7 +729,7 @@ $stTitle = ['settings' => t('Settings', 'Mga Setting'), 'mine' => t('Settings', 
             'control' => t('Control Room', 'Silid-Kontrol')][$stPage];
 layout_head($stTitle, ST_PAGES[$stPage]['file']);
 ?>
-<div class="p-topbar"><h1><?= e($stTitle) ?></h1><?php if (st_on('status')): ?><span class="p-updated" id="st-checked"></span><span style="flex:1"></span>
+<div class="p-topbar"><h1><?= e($stTitle) ?></h1><?php if (st_on('status')): ?><span class="p-updated st-livepill" id="st-checked"></span><span style="flex:1"></span>
   <button class="p-btn p-btn-primary p-btn-sm" id="st-check" type="button"><?= e(t('Check again', 'Suriin muli')) ?></button><?php endif; ?></div>
 
 <?php
@@ -1381,82 +1381,130 @@ endif;
 <?php endif; ?>
 
 <?php if (st_on('status')): ?>
+<?php
+// 16 Nov 2026 (Ace's Settings preview): System status leads with health. A banner says what is wrong or that everything works, with four figures beside it; the services are live (a new
+// check every 45 seconds while the tab is open, a history bar of the last 36 checks from this browser); every card and row opens a drawer with the details and what the person may do.
+// The figures the server knows (uptime, memory, SMART) are handed to assets/js/settings-status.js as JSON; the checks themselves run in the browser, as before.
+$stCfg = [
+    'places' => SERVICE_PLACES, 'sbUrl' => supabase_url(), 'sbKey' => supabase_key(),
+    'up7' => is_array($up) ? $upPct((int) $up['week_ok'], (int) $up['week_checks']) : null,
+    'memNow' => is_array($up) ? ($up['mem_now'] ?? null) : null, 'memLimit' => is_array($up) ? ($up['mem_limit'] ?? null) : null,
+    'smartLast' => is_array($smh) && !empty($smh['watch_last_at']) ? relative_time($smh['watch_last_at']) : null,
+    'smartOk' => is_array($smh) ? !empty($smh['watch_last_ok']) : null,
+];
+$stAlertN = count((array) $alerts);
+?>
 <section class="st-pane" data-pane="status">
-  <div class="st-banner" id="st-banner"></div>
-  <?php if ($alerts): ?>
-  <div class="p-card p-card-pad st-alerts" role="alert">
-    <p class="p-eyebrow"><?= e(t('Needs attention', 'Kailangang tingnan')) ?></p>
-    <ul class="st-err-list">
-      <?php foreach ($alerts as $al): ?>
-        <li><span class="p-badge p-b-denied"><?= e(t('Open', 'Bukas')) ?></span>
-          <div><b><?= e(ucfirst((string) $al['message'])) ?></b><small><?= e(t('Since ', 'Mula ') . relative_time($al['raised_at'])) ?></small></div></li>
-      <?php endforeach; ?>
-    </ul>
-    <p class="st-note"><?= e(t('Checked every hour. An alert closes on its own once the problem is gone; see docs/INCIDENTS.md for what to do.', 'Sinusuri bawat oras. Kusang nagsasara ang alerto kapag nawala na ang problema; tingnan ang docs/INCIDENTS.md.')) ?></p>
-  </div>
-  <?php endif; ?>
-  <div class="st-statgrid">
-  <?php if (is_array($up)): ?>
-  <div class="p-card p-card-pad st-uptime">
-    <p class="p-eyebrow"><?= e(t('Portal uptime', 'Uptime ng portal')) ?></p>
-    <div class="st-uptime-tiles">
-      <div class="st-uptime-tile"><b><?= e($upPct((int) $up['day_ok'], (int) $up['day_checks'])) ?></b><span><?= e(sprintf(t('Last 24 hours · %d checks', 'Nakaraang 24 oras · %d pagsusuri'), (int) $up['day_checks'])) ?></span></div>
-      <div class="st-uptime-tile"><b><?= e($upPct((int) $up['week_ok'], (int) $up['week_checks'])) ?></b><span><?= e(sprintf(t('Last 7 days · %d checks', 'Nakaraang 7 araw · %d pagsusuri'), (int) $up['week_checks'])) ?></span></div>
-      <div class="st-uptime-tile<?= $up['last_ok'] === false ? ' st-down' : '' ?>"><b><?= e($up['last_at'] ? ($up['last_ok'] ? t('Answering', 'Sumasagot') : t('Not answering', 'Hindi sumasagot')) : '—') ?></b><span><?= e($up['last_at'] ? t('Last check ', 'Huling pagsusuri ') . relative_time($up['last_at']) : t('No checks yet', 'Wala pang pagsusuri')) ?></span></div>
+  <script type="application/json" id="st-cfg"><?= json_encode($stCfg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) ?></script>
+  <div class="st-hero" id="st-banner" data-tone="checking" aria-live="polite"></div>
+  <div class="st-main">
+    <div class="p-card p-card-pad st-svcs" id="st-svcs">
+      <div class="st-svch"><h2><?= e(t('Services', 'Mga serbisyo')) ?></h2><small><?= e(t('Tap one for details and what you can do', 'Pindutin ang isa para sa detalye at kung ano ang magagawa mo')) ?></small></div>
+      <div class="st-legend" aria-label="<?= e(t('How to read the bars', 'Paano basahin ang mga guhit')) ?>">
+        <span><?= e(t('Each bar is one check, the oldest on the left and the newest on the right.', 'Ang bawat guhit ay isang pagsusuri, ang pinakamatanda sa kaliwa at ang pinakabago sa kanan.')) ?></span>
+        <span class="st-lg"><i class="g"></i><?= e(t('Answered fast', 'Mabilis sumagot')) ?></span><span class="st-lg"><i class="a"></i><?= e(t('Slow', 'Mabagal')) ?></span><span class="st-lg"><i class="r"></i><?= e(t('No answer', 'Walang sagot')) ?></span>
+      </div>
+      <div class="st-rowlist" id="st-rows"></div>
+      <p class="st-note"><?= e(t('Under 1.5 seconds counts as working; slower is slow. Supabase, Cloudinary and push alerts are checked from the portal\'s server; maps, address lookup, rain data, live updates and the flood map from this browser, so a failure there can also mean this computer\'s internet connection. No keys or passwords are shown.', 'Mas mababa sa 1.5 segundo ang gumagana; mas mabagal ay mabagal. Sinusuri mula sa server ang Supabase, Cloudinary at push alert; mula sa browser na ito ang mapa, address, ulan, live na update at mapa ng baha.')) ?></p>
     </div>
-    <p class="st-note"><?= e(t('The database asks the portal for a tiny page every 10 minutes, which also keeps the free server from going to sleep.', 'Tuwing 10 minuto, humihingi ang database ng maliit na pahina sa portal; pinipigilan din nito ang pagtulog ng libreng server.')) ?></p>
-  </div>
-  <?php endif; ?>
-  <?php if (is_array($up)): $mLim = $up['mem_limit'] ?? null; $mOf = static fn ($v) => $v === null ? '—' : $v . ' MB'; ?>
-  <div class="p-card p-card-pad st-uptime" id="memory">
-    <p class="p-eyebrow"><?= e(t('Server memory', 'Memorya ng server')) ?></p>
-    <?php if (empty($up['mem_samples'])): ?>
-      <p class="p-none-line"><?= e(t('No reading yet. The check every 10 minutes starts recording it after the next deploy.', 'Wala pang sukat. Magsisimulang itala ito ng pagsusuri bawat 10 minuto pagkatapos ng susunod na deploy.')) ?></p>
-    <?php else: ?>
-    <div class="st-uptime-tiles">
-      <div class="st-uptime-tile"><b><?= e($mOf($up['mem_now'] ?? null)) ?></b><span><?= e($mLim ? sprintf(t('In use now, of %d MB', 'Gamit ngayon, sa %d MB'), (int) $mLim) : t('In use now', 'Gamit ngayon')) ?></span></div>
-      <div class="st-uptime-tile<?= $mLim && ($up['mem_week_max'] ?? 0) > $mLim * 0.85 ? ' st-down' : '' ?>"><b><?= e($mOf($up['mem_week_max'] ?? null)) ?></b><span><?= e(t('Highest this week', 'Pinakamataas ngayong linggo')) ?></span></div>
-      <div class="st-uptime-tile"><b><?= e($mOf($up['mem_week_avg'] ?? null)) ?></b><span><?= e(sprintf(t('Average this week · %d readings', 'Karaniwan ngayong linggo · %d sukat'), (int) $up['mem_samples'])) ?></span></div>
+    <div class="st-side">
+      <?php if ($alerts): ?>
+      <div class="p-card p-card-pad st-open st-alerts" role="button" tabindex="0" data-st-open="attn" title="<?= e(t('Tap to see what to do', 'Pindutin para makita ang gagawin')) ?>">
+        <div class="st-oh"><p class="p-eyebrow"><?= e(t('Needs attention', 'Kailangang tingnan')) ?></p><span class="p-badge p-b-denied"><?= e(sprintf(t('%d open', '%d bukas'), $stAlertN)) ?></span></div>
+        <ul class="st-err-list">
+          <?php foreach ($alerts as $al): ?>
+            <li><div><b><?= e(ucfirst((string) $al['message'])) ?></b><small><?= e(t('Since ', 'Mula ') . relative_time($al['raised_at'])) ?></small></div></li>
+          <?php endforeach; ?>
+        </ul>
+        <small class="st-more"><?= e(t('Tap to see what to do', 'Pindutin para makita ang gagawin')) ?></small>
+      </div>
+      <?php endif; ?>
+      <?php if (is_array($up)): $mLim = $up['mem_limit'] ?? null; $mOf = static fn ($v) => $v === null ? '—' : $v . ' MB'; ?>
+      <div class="p-card p-card-pad st-uptime st-open" id="memory" role="button" tabindex="0" data-st-open="mem" title="<?= e(t('Tap for details', 'Pindutin para sa detalye')) ?>">
+        <div class="st-oh"><p class="p-eyebrow"><?= e(t('Server memory', 'Memorya ng server')) ?></p><span class="st-chev" aria-hidden="true"></span></div>
+        <?php if (empty($up['mem_samples'])): ?>
+          <p class="p-none-line"><?= e(t('No reading yet. The check every 10 minutes starts recording it after the next deploy.', 'Wala pang sukat. Magsisimulang itala ito ng pagsusuri bawat 10 minuto pagkatapos ng susunod na deploy.')) ?></p>
+        <?php else: ?>
+        <?php if ($mLim): $mPct = max(1, min(100, (int) round(100 * (float) ($up['mem_now'] ?? 0) / (float) $mLim))); ?>
+          <div class="st-meterline"><div class="st-lbl"><b><?= e($mOf($up['mem_now'] ?? null)) ?></b><span><?= e(sprintf(t('in use, of %d MB', 'gamit, sa %d MB'), (int) $mLim)) ?></span></div><div class="st-bar" role="img" aria-label="<?= e(sprintf(t('%d percent of the memory is in use', '%d porsyento ng memorya ang gamit'), $mPct)) ?>"><i class="<?= $mPct >= 90 ? 'b' : ($mPct >= 75 ? 'w' : '') ?>" style="width:<?= $mPct ?>%"></i></div></div>
+        <?php endif; ?>
+        <div class="st-uptime-tiles">
+          <div class="st-uptime-tile"><b><?= e($mOf($up['mem_now'] ?? null)) ?></b><span><?= e($mLim ? sprintf(t('In use now, of %d MB', 'Gamit ngayon, sa %d MB'), (int) $mLim) : t('In use now', 'Gamit ngayon')) ?></span></div>
+          <div class="st-uptime-tile<?= $mLim && ($up['mem_week_max'] ?? 0) > $mLim * 0.85 ? ' st-down' : '' ?>"><b><?= e($mOf($up['mem_week_max'] ?? null)) ?></b><span><?= e(t('Highest this week', 'Pinakamataas ngayong linggo')) ?></span></div>
+          <div class="st-uptime-tile"><b><?= e($mOf($up['mem_week_avg'] ?? null)) ?></b><span><?= e(sprintf(t('Average this week · %d readings', 'Karaniwan ngayong linggo · %d sukat'), (int) $up['mem_samples'])) ?></span></div>
+        </div>
+        <?php endif; ?>
+      </div>
+      <div class="p-card p-card-pad st-uptime st-open" role="button" tabindex="0" data-st-open="up" title="<?= e(t('Tap for details', 'Pindutin para sa detalye')) ?>">
+        <div class="st-oh"><p class="p-eyebrow"><?= e(t('Portal uptime', 'Uptime ng portal')) ?></p><span class="st-chev" aria-hidden="true"></span></div>
+        <div class="st-uptime-tiles">
+          <div class="st-uptime-tile"><b><?= e($upPct((int) $up['day_ok'], (int) $up['day_checks'])) ?></b><span><?= e(sprintf(t('Last 24 hours · %d checks', 'Nakaraang 24 oras · %d pagsusuri'), (int) $up['day_checks'])) ?></span></div>
+          <div class="st-uptime-tile"><b><?= e($upPct((int) $up['week_ok'], (int) $up['week_checks'])) ?></b><span><?= e(sprintf(t('Last 7 days · %d checks', 'Nakaraang 7 araw · %d pagsusuri'), (int) $up['week_checks'])) ?></span></div>
+          <div class="st-uptime-tile<?= $up['last_ok'] === false ? ' st-down' : '' ?>"><b><?= e($up['last_at'] ? ($up['last_ok'] ? t('Answering', 'Sumasagot') : t('Not answering', 'Hindi sumasagot')) : '—') ?></b><span><?= e($up['last_at'] ? t('Last check ', 'Huling pagsusuri ') . relative_time($up['last_at']) : t('No checks yet', 'Wala pang pagsusuri')) ?></span></div>
+        </div>
+      </div>
+      <?php endif; ?>
+      <?php if (is_array($smh)): ?>
+      <div class="p-card p-card-pad st-uptime st-open" id="smart-health" role="button" tabindex="0" data-st-open="smart" title="<?= e(t('Tap for details', 'Pindutin para sa detalye')) ?>">
+        <div class="st-oh"><p class="p-eyebrow"><?= e(t('SMART engine', 'Makina ng SMART')) ?></p><span class="st-chev" aria-hidden="true"></span></div>
+        <div class="st-uptime-tiles">
+          <div class="st-uptime-tile<?= empty($smh['watch_last_ok']) ? ' st-down' : '' ?>"><b><?= e(!empty($smh['watch_last_at']) ? relative_time($smh['watch_last_at']) : '—') ?></b><span><?= e(!empty($smh['watch_last_ok']) ? t('The watcher last ran, and succeeded', 'Huling tumakbo ang watcher, at nagtagumpay') : t('The watcher last ran, and failed', 'Huling tumakbo ang watcher, at pumalpak')) ?></span></div>
+          <div class="st-uptime-tile<?= (int) ($smh['unscored'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($smh['unscored'] ?? 0) ?></b><span><?= e(sprintf(t('Open reports not scored, of %d', 'Bukas na ulat na walang marka, sa %d'), (int) ($smh['open_reports'] ?? 0))) ?></span></div>
+          <div class="st-uptime-tile<?= (int) ($smh['watch_failures_24h'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($smh['watch_failures_24h'] ?? 0) ?></b><span><?= e(sprintf(t('Failed runs in 24 hours · %d things decided or asked', 'Pumalpak na takbo sa 24 oras · %d ang pinasya o itinanong'), (int) ($smh['events_24h'] ?? 0))) ?></span></div>
+        </div>
+      </div>
+      <?php endif; ?>
     </div>
-    <?php endif; ?>
-    <p class="st-note"><?= e(t('Render\'s free plan shows no metrics, so the portal reports its own with each check. Reading an ID photo on this server would need about 220 MB more, for under a second.', 'Walang metrics ang libreng plan ng Render, kaya ang portal mismo ang nag-uulat sa bawat pagsusuri. Ang pagbasa ng ID sa server na ito ay mangangailangan ng mga 220 MB pa, sa wala pang isang segundo.')) ?></p>
-  </div>
-  <?php endif; ?>
-  <?php if (is_array($smh)): ?>
-  <div class="p-card p-card-pad st-uptime" id="smart-health">
-    <p class="p-eyebrow"><?= e(t('SMART engine', 'Makina ng SMART')) ?></p>
-    <div class="st-uptime-tiles">
-      <div class="st-uptime-tile<?= empty($smh['watch_last_ok']) ? ' st-down' : '' ?>"><b><?= e(!empty($smh['watch_last_at']) ? relative_time($smh['watch_last_at']) : '—') ?></b><span><?= e(!empty($smh['watch_last_ok']) ? t('The watcher last ran, and succeeded', 'Huling tumakbo ang watcher, at nagtagumpay') : t('The watcher last ran, and failed', 'Huling tumakbo ang watcher, at pumalpak')) ?></span></div>
-      <div class="st-uptime-tile<?= (int) ($smh['unscored'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($smh['unscored'] ?? 0) ?></b><span><?= e(sprintf(t('Open reports not scored, of %d', 'Bukas na ulat na walang marka, sa %d'), (int) ($smh['open_reports'] ?? 0))) ?></span></div>
-      <div class="st-uptime-tile<?= (int) ($smh['watch_failures_24h'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($smh['watch_failures_24h'] ?? 0) ?></b><span><?= e(sprintf(t('Failed runs in 24 hours · %d things decided or asked', 'Pumalpak na takbo sa 24 oras · %d ang pinasya o itinanong'), (int) ($smh['events_24h'] ?? 0))) ?></span></div>
-    </div>
-    <p class="st-note"><?= e(t('SMART scores every report, ranks the tanods and keeps the queue. It runs inside the database every few minutes; this says whether it did.', 'Minamarkahan ng SMART ang bawat ulat, nire-rank ang mga tanod at pinananatili ang pila. Tumatakbo ito sa loob ng database kada ilang minuto; ito ang nagsasabi kung ginawa nga.')) ?></p>
-  </div>
-  <?php endif; ?>
   </div>
   <?php if (is_array($errs)): ?>
   <div class="p-card p-card-pad st-errors">
-    <p class="p-eyebrow"><?= e(t('Recent errors', 'Mga kamakailang error')) ?></p>
+    <div class="st-svch"><p class="p-eyebrow"><?= e(t('Recent errors', 'Mga kamakailang error')) ?></p><?php if ($errs): ?><small><?= e(t('Tap one for what it means', 'Pindutin ang isa para sa kahulugan nito')) ?></small><?php endif; ?></div>
     <?php if (!$errs): ?>
       <p class="p-none-line"><?= e(t('No errors recorded. Anything that goes wrong on the portal, on the server, in a browser or in an Edge Function, is listed here.', 'Walang naitalang error. Dito lalabas ang anumang mali sa portal, sa server man o sa browser.')) ?></p>
     <?php else: ?>
-      <ul class="st-err-list">
-        <?php foreach ($errs as $er): ?>
-          <li><span class="p-badge <?= $er['source'] === 'browser' ? 'p-b-progress' : 'p-b-denied' ?>"><?= e(match ($er['source']) { 'server' => t('Server', 'Server'), 'function' => t('Function', 'Function'), default => t('Browser', 'Browser') }) ?></span>
-            <div><b><?= e($er['message']) ?></b><small><?= e($er['page']) ?> · <?= e(sprintf(t('%d time(s)', '%d beses'), (int) $er['count'])) ?> · <?= e(relative_time($er['last_seen'])) ?></small></div></li>
+      <div class="st-errlist">
+        <?php foreach ($errs as $er): $src = (string) $er['source']; ?>
+          <button type="button" class="st-erow" data-st-err data-src="<?= e($src) ?>" data-msg="<?= e((string) $er['message']) ?>" data-page="<?= e((string) $er['page']) ?>" data-count="<?= (int) $er['count'] ?>" data-last="<?= e(relative_time($er['last_seen'])) ?>">
+            <span class="p-badge <?= $src === 'browser' ? 'p-b-progress' : 'p-b-denied' ?>"><?= e(match ($src) { 'server' => t('Server', 'Server'), 'function' => t('Function', 'Function'), default => t('Browser', 'Browser') }) ?></span>
+            <span class="st-ert"><b><?= e($er['message']) ?></b><small><?= e($er['page']) ?> · <?= e(sprintf(t('%d time(s)', '%d beses'), (int) $er['count'])) ?> · <?= e(relative_time($er['last_seen'])) ?></small></span><span class="st-chev" aria-hidden="true"></span>
+          </button>
         <?php endforeach; ?>
-      </ul>
+      </div>
     <?php endif; ?>
   </div>
   <?php endif; ?>
-  <div class="p-band ss-pband st-svcband"><h2><?= e(t('Services', 'Mga serbisyo')) ?></h2><span class="p-spacer"></span><small class="ss-subnote"><?= e(t('Each one this portal depends on, and how it answered just now', 'Bawat isang umaasa ang portal na ito, at paano sila sumagot ngayon lang')) ?></small></div>
-  <div class="p-card p-table-card st-svc"><div class="p-tscroll"><table class="p-t st-table">
-    <thead><tr><th><?= e(t('Service', 'Serbisyo')) ?></th><th><?= e(t('Where it runs', 'Saan tumatakbo')) ?></th><th class="p-right"><?= e(t('Response', 'Tugon')) ?></th><th><?= e(t('Status', 'Katayuan')) ?></th></tr></thead>
-    <tbody id="st-rows"></tbody></table></div></div>
-  <p class="st-note"><?= e(t('Supabase, Cloudinary and push alerts are checked from the portal\'s server; maps, address lookup, rain data, live updates and the flood map from this browser, so a failure there can also mean this computer\'s internet connection. No keys or passwords are shown.', 'Sinusuri mula sa server ang Supabase, Cloudinary at push alert; mula sa browser na ito ang mapa, address, ulan, live na update at mapa ng baha.')) ?></p>
   <details class="p-card p-card-pad st-mapd"><summary><span class="p-eyebrow"><?= e(t('How the portal connects', 'Paano kumokonekta ang portal')) ?></span><small><?= e(t('The same services as a diagram', 'Ang parehong serbisyo bilang diagram')) ?></small></summary><div id="st-map"></div></details>
   <div class="p-card p-card-pad st-credits"><p class="p-eyebrow"><?= e(t('Map credits', 'Mga kredito ng mapa')) ?></p>
     <p class="st-credit-line"><?= e(t('Map data © OpenStreetMap contributors (ODbL) · tiles by OpenFreeMap and OpenMapTiles · building footprints also from Overture Maps (Google Open Buildings, Microsoft ML Buildings) · tree heights from the Meta and World Resources Institute canopy height map (CC BY 4.0) · floor counts from Overture Maps and OpenStreetMap · flood hazard maps © UP NOAH Center (Project NOAH) · air quality and rain by Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · photos from Wikimedia Commons, credited where shown · icons from Lucide (ISC) and Tabler Icons (MIT).', 'Datos ng mapa © OpenStreetMap contributors (ODbL) · tiles mula sa OpenFreeMap at OpenMapTiles · mga hugis ng gusali mula rin sa Overture Maps (Google Open Buildings, Microsoft ML Buildings) · taas ng puno mula sa canopy height map ng Meta at World Resources Institute (CC BY 4.0) · mapa ng baha © UP NOAH Center (Project NOAH) · kalidad ng hangin at ulan mula sa Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · mga larawan mula sa Wikimedia Commons, may kredito kung saan ipinapakita · mga icon mula sa Lucide (ISC) at Tabler Icons (MIT).')) ?></p></div>
+  <?php // the drawer's content for the cards the server knows about; assets/js/settings-status.js opens the right one ?>
+  <template id="st-t-attn"><div data-title><?= e(t('Needs attention', 'Kailangang tingnan')) ?></div><div data-sub><?= e($stAlertN ? sprintf(t('%d open · checked every hour', '%d bukas · sinusuri bawat oras'), $stAlertN) : '') ?></div>
+    <div data-body>
+      <?php foreach ((array) $alerts as $al): ?><div class="st-drs"><div class="p-eyebrow"><?= e(t('Since ', 'Mula ') . relative_time($al['raised_at'])) ?></div><p><b><?= e(ucfirst((string) $al['message'])) ?></b></p></div><?php endforeach; ?>
+      <div class="st-drs"><div class="p-eyebrow"><?= e(t('What it means', 'Ano ang ibig sabihin')) ?></div><p><?= e(t('The hourly health check found this and has not seen it clear yet.', 'Nakita ito ng oras-orasang pagsusuri at hindi pa nakikitang nawala.')) ?></p></div>
+      <div class="st-drs"><div class="p-eyebrow"><?= e(t('What to do', 'Ano ang gagawin')) ?></div><p><?= e(t('docs/INCIDENTS.md says what to do for each alert. Most are fixed in the Supabase or Render dashboard, outside the portal. The alert closes on its own once the problem is gone; press Check again to ask now.', 'Sinasabi ng docs/INCIDENTS.md ang gagawin sa bawat alerto. Karamihan ay naaayos sa dashboard ng Supabase o Render, labas sa portal. Kusang nagsasara ang alerto kapag nawala na ang problema; pindutin ang Suriin muli para magtanong ngayon.')) ?></p></div>
+    </div></template>
+  <template id="st-t-mem"><div data-title><?= e(t('Server memory', 'Memorya ng server')) ?></div><div data-sub><?= e(is_array($up) && ($up['mem_now'] ?? null) !== null ? ($up['mem_now'] . ' MB' . (($up['mem_limit'] ?? null) ? sprintf(t(' in use of %d MB', ' gamit sa %d MB'), (int) $up['mem_limit']) : '')) : '') ?></div>
+    <div data-body>
+      <div class="st-drs"><div class="p-eyebrow"><?= e(t('What it is', 'Ano ito')) ?></div><p><?= e(t('The portal server\'s short-term workspace. More people and bigger jobs use more of it.', 'Ang pansamantalang espasyo ng server ng portal. Mas maraming tao at mas malalaking gawain, mas maraming nagagamit.')) ?></p></div>
+      <div class="st-drs"><div class="p-eyebrow"><?= e(t('Good to know', 'Mabuting malaman')) ?></div><p><?= e(t('Render\'s free plan shows no metrics, so the portal reports its own with each check. Reading an ID photo on this server would need about 220 MB more, for under a second.', 'Walang metrics ang libreng plan ng Render, kaya ang portal mismo ang nag-uulat sa bawat pagsusuri. Ang pagbasa ng ID sa server na ito ay mangangailangan ng mga 220 MB pa, sa wala pang isang segundo.')) ?></p></div>
+      <div class="st-drs"><div class="p-eyebrow"><?= e(t('What you can do', 'Ang magagawa mo')) ?></div><p><?= e(t('Nothing is needed while there is room. If it ever passes 85% of the limit, the highest reading turns red here.', 'Walang kailangang gawin habang may espasyo. Kapag lumampas sa 85% ng limit, magiging pula rito ang pinakamataas na sukat.')) ?></p></div>
+    </div></template>
+  <template id="st-t-up"><div data-title><?= e(t('Portal uptime', 'Uptime ng portal')) ?></div><div data-sub><?= e(is_array($up) && $up['last_at'] ? ($up['last_ok'] ? t('Answering', 'Sumasagot') : t('Not answering', 'Hindi sumasagot')) . ' · ' . t('last check ', 'huling pagsusuri ') . relative_time($up['last_at']) : '') ?></div>
+    <div data-body>
+      <?php if (is_array($up)): ?><div class="st-drs st-big2"><div><b><?= e($upPct((int) $up['day_ok'], (int) $up['day_checks'])) ?></b><small><?= e(sprintf(t('last 24 hours · %d checks', 'nakaraang 24 oras · %d pagsusuri'), (int) $up['day_checks'])) ?></small></div><div><b><?= e($upPct((int) $up['week_ok'], (int) $up['week_checks'])) ?></b><small><?= e(sprintf(t('last 7 days · %d checks', 'nakaraang 7 araw · %d pagsusuri'), (int) $up['week_checks'])) ?></small></div></div><?php endif; ?>
+      <div class="st-drs"><div class="p-eyebrow"><?= e(t('What it is', 'Ano ito')) ?></div><p><?= e(t('How often the portal answered when asked. The database asks the portal for a tiny page every 10 minutes, which also keeps the free server from going to sleep.', 'Gaano kadalas sumagot ang portal kapag tinanong. Tuwing 10 minuto, humihingi ang database ng maliit na pahina sa portal; pinipigilan din nito ang pagtulog ng libreng server.')) ?></p></div>
+      <div class="st-drs"><div class="p-eyebrow"><?= e(t('What you can do', 'Ang magagawa mo')) ?></div><p><?= e(t('If the portal ever stops answering, this number drops and the banner at the top turns red. Press Check again to ask now.', 'Kapag tumigil ang portal sa pagsagot, bababa ang numerong ito at magiging pula ang banner sa itaas. Pindutin ang Suriin muli para magtanong ngayon.')) ?></p></div>
+    </div></template>
+  <template id="st-t-smart"><div data-title><?= e(t('SMART engine', 'Makina ng SMART')) ?></div><div data-sub><?= e(is_array($smh) && !empty($smh['watch_last_at']) ? (!empty($smh['watch_last_ok']) ? t('The watcher last ran, and succeeded', 'Huling tumakbo ang watcher, at nagtagumpay') : t('The watcher last ran, and failed', 'Huling tumakbo ang watcher, at pumalpak')) . ' · ' . relative_time($smh['watch_last_at']) : '') ?></div>
+    <div data-body>
+      <?php if (is_array($smh)): ?><div class="st-drs st-big2"><div><b><?= (int) ($smh['unscored'] ?? 0) ?></b><small><?= e(sprintf(t('open reports not scored, of %d', 'bukas na ulat na walang marka, sa %d'), (int) ($smh['open_reports'] ?? 0))) ?></small></div><div><b><?= (int) ($smh['watch_failures_24h'] ?? 0) ?></b><small><?= e(t('failed runs in 24 hours', 'pumalpak na takbo sa 24 oras')) ?></small></div><div><b><?= (int) ($smh['events_24h'] ?? 0) ?></b><small><?= e(t('things decided or asked', 'ang pinasya o itinanong')) ?></small></div></div><?php endif; ?>
+      <div class="st-drs"><div class="p-eyebrow"><?= e(t('What it is', 'Ano ito')) ?></div><p><?= e(t('SMART scores every report, ranks the tanods and keeps the queue. It runs inside the database every few minutes; this says whether it did.', 'Minamarkahan ng SMART ang bawat ulat, nire-rank ang mga tanod at pinananatili ang pila. Tumatakbo ito sa loob ng database kada ilang minuto; ito ang nagsasabi kung ginawa nga.')) ?></p></div>
+      <div class="st-drs"><div class="p-eyebrow"><?= e(t('What you can do', 'Ang magagawa mo')) ?></div><p><button type="button" class="p-btn p-btn-primary p-btn-sm" data-st-go="smart"><?= e(t('Open SMART settings', 'Buksan ang mga setting ng SMART')) ?></button></p></div>
+    </div></template>
+  <dialog class="st-drawer" id="st-drawer" aria-labelledby="st-dr-t">
+    <div class="st-drh"><div><h3 id="st-dr-t"></h3><div class="st-dr-sub" id="st-dr-sub"></div></div><button type="button" class="p-btn p-btn-ghost p-btn-sm" data-st-close aria-label="<?= e(t('Close', 'Isara')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="st-drb" id="st-dr-body"></div>
+  </dialog>
 </section>
 <?php endif; ?>
 
@@ -1493,7 +1541,7 @@ endif;
 <section class="st-pane" data-pane="smart" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
-  <div class="ss-head"><?= smart_logo(44) ?><p><?= e(t('How the engine scores and sorts complaints. Change a rule, try it, then re-score.', 'Paano minamarkahan at inaayos ng engine ang mga sumbong. Baguhin ang patakaran, subukan, saka muling markahan.')) ?></p></div>
+  <div class="ss-head"><?= smart_logo(62) ?><p><?= e(t('How the engine scores and sorts complaints. Change a rule, try it, then re-score.', 'Paano minamarkahan at inaayos ng engine ang mga sumbong. Baguhin ang patakaran, subukan, saka muling markahan.')) ?></p></div>
   <nav class="st-tabs sm-tabs" id="sm-tabs" role="tablist" aria-label="<?= e(t('SMART sections', 'Mga bahagi ng SMART')) ?>">
     <button type="button" class="st-link p-on" role="tab" data-go="overview" aria-selected="true"><?= e(t('Overview', 'Buod')) ?></button>
     <button type="button" class="st-link" role="tab" data-go="rules" aria-selected="false"><?= e(t('Rules', 'Mga patakaran')) ?><?php if (!empty($hist)): ?><b class="pd-tn"><?= count($hist) ?></b><?php endif; ?></button>
@@ -1933,160 +1981,12 @@ endif;
 <?php if (st_on('usage')): ?>
 <section class="st-pane" data-pane="usage" hidden>
   <p class="st-note"><?= e(t('Which plan each service is on and how close the barangay is to its limits. Amber at 75%, red at 90%.', 'Kung anong plano ang bawat serbisyo at gaano kalapit sa limitasyon. Dilaw sa 75%, pula sa 90%.')) ?></p>
-  <div class="st-plans" id="st-plans"><p class="st-note"><?= e(t('Loading…', 'Naglo-load…')) ?></p></div>
+  <div class="st-usage" id="st-usage"><p class="st-note"><?= e(t('Loading…', 'Naglo-load…')) ?></p></div>
 </section>
 <?php endif; ?>
 
 <?php if (st_on('status')): ?>
-<script>
-(function () {
-  const PLACES = <?= json_encode(SERVICE_PLACES) ?>;
-  const SB_URL = <?= json_encode(supabase_url()) ?>, SB_KEY = <?= json_encode(supabase_key()) ?>;
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const $ = id => document.getElementById(id);
-
-  // Each service: what it does for the barangay, and what a failure means.
-  const S = [
-    { key: 'db',    job: T('Database', 'Database'), prov: 'Supabase', side: 'L',
-      down: T('Complaints and accounts can’t be read or saved.', 'Hindi mabasa o maisave ang mga sumbong at account.') },
-    { key: 'auth',  job: T('Sign-in', 'Pag-sign in'), prov: 'Supabase Auth', side: 'L',
-      down: T('Nobody can sign in to the portal or the app.', 'Walang makapag-sign in sa portal o sa app.') },
-    { key: 'live',  job: T('Live updates', 'Live na update'), prov: 'Supabase Realtime', side: 'L',
-      down: T('New complaints won’t appear until the page is refreshed.', 'Hindi lalabas ang bagong sumbong hangga’t hindi nire-refresh.') },
-    { key: 'media', job: T('Photos and videos', 'Larawan at video'), prov: 'Cloudinary', side: 'L',
-      down: T('Residents’ photos and videos won’t upload or show.', 'Hindi maa-upload o makikita ang mga larawan at video.') },
-    { key: 'push',  job: T('Push alerts', 'Push alert'), prov: 'Firebase, via send-dispatch-push', side: 'L',
-      down: T('Push alerts to tanod phones are not going out. Call or text the tanod on duty.', 'Hindi naipapadala ang push alert sa mga tanod. Tawagan o i-text ang naka-duty.') },
-    { key: 'tiles', job: T('Map tiles', 'Mapa'), prov: 'OpenFreeMap', side: 'R',
-      down: T('The map shows no streets.', 'Walang kalye sa mapa.') },
-    { key: 'geo',   job: T('Address lookup', 'Paghahanap ng address'), prov: 'OpenStreetMap Nominatim', side: 'R',
-      down: T('New pins won’t get a street address.', 'Walang address ang bagong pin.') },
-    { key: 'rain',  job: T('Rain data', 'Datos ng ulan'), prov: 'Open-Meteo · flood watch', side: 'R',
-      down: T('Flood watch shows offline; flood zones stay manual.', 'Offline ang bantay-baha.') },
-    { key: 'noah',  job: T('Flood zones', 'Bahaing lugar'), prov: 'Project NOAH map, stored with the portal', side: 'R',
-      down: T('The flood zones can’t be drawn on the map.', 'Hindi maiguguhit ang mga bahaing lugar.') },
-  ];
-  const R = {};   // key -> {state: 'checking'|'ok'|'slow'|'down', ms}
-  const SLOW = 1500;
-
-  function timed(p) { const t0 = performance.now(); return p.then(ok => ({ ok, ms: Math.round(performance.now() - t0) }), () => ({ ok: false, ms: null })); }
-  function reach(url) { return timed(fetch(url, { cache: 'no-store', mode: 'cors' }).then(r => r.ok)); }
-  function realtime() {
-    return timed(new Promise((res) => {
-      let done = false; const ws = new WebSocket(SB_URL.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SB_KEY) + '&vsn=1.0.0');
-      const end = ok => { if (done) return; done = true; try { ws.close(); } catch (e) {} res(ok); };
-      ws.onopen = () => end(true); ws.onerror = () => end(false); setTimeout(() => end(false), 8000);
-    }));
-  }
-  function set(key, r) { R[key] = { state: !r.ok ? 'down' : (r.ms != null && r.ms > SLOW ? 'slow' : 'ok'), ms: r.ms }; render(); }
-
-  async function check() {
-    S.forEach(s => R[s.key] = { state: 'checking' }); render();
-    const server = fetch('settings.php?check=server', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
-    reach('https://tiles.openfreemap.org/planet').then(r => set('tiles', r));
-    reach('https://nominatim.openstreetmap.org/status?format=json').then(r => set('geo', r));
-    reach('https://api.open-meteo.com/v1/forecast?latitude=14.5269&longitude=121.0155&current=precipitation').then(r => set('rain', r));
-    reach('assets/map/hazards.geojson').then(r => set('noah', r));
-    realtime().then(r => set('live', r));
-    const sv = await server;
-    ['db', 'auth', 'push', 'media'].forEach(k => set(k, sv && sv[k] ? sv[k] : { ok: false, ms: null }));
-    $('st-checked').textContent = T('Checked ', 'Sinuri ') + new Date().toLocaleTimeString(window.LANG === 'fil' ? 'fil-PH' : 'en-US', { hour: 'numeric', minute: '2-digit' });
-  }
-
-  const BADGE = { ok: ['p-b-done', T('Working', 'Gumagana'), '#22c55e'], slow: ['p-b-pending', T('Slow', 'Mabagal'), '#f59e0b'], down: ['p-b-denied', T('Down', 'Hindi gumagana'), '#ef4444'], checking: ['p-b-grey', T('Checking…', 'Sinusuri…'), '#9AA1AB'] };
-  const fmtMs = ms => ms == null ? '—' : ms >= 1000 ? (ms / 1000).toFixed(1) + ' s' : ms + ' ms';
-
-  function render() {
-    const st = k => (R[k] || {}).state || 'checking';
-    const bad = S.filter(s => st(s.key) === 'down'), slow = S.filter(s => st(s.key) === 'slow'), busy = S.some(s => st(s.key) === 'checking');
-    const tone = bad.length ? 'down' : slow.length ? 'slow' : busy ? 'checking' : 'ok';
-    const b = $('st-banner'); b.dataset.tone = tone;
-    const head = tone === 'checking' ? T('Checking every connection…', 'Sinusuri ang bawat koneksyon…')
-      : tone === 'ok' ? T('Everything is working', 'Gumagana ang lahat')
-      : [bad.length ? bad.length + T(bad.length === 1 ? ' service down' : ' services down', ' hindi gumagana') : '', slow.length ? slow.length + T(' slow', ' mabagal') : ''].filter(Boolean).join(', ');
-    const why = tone === 'ok' ? T('Complaints, sign-in, photos, push alerts, maps and flood data are all reachable.', 'Naaabot ang lahat ng serbisyo.')
-      : tone === 'checking' ? '' : [...bad.map(s => s.down), ...slow.map(s => s.job + T(' is answering slowly.', ' ay mabagal.'))].join(' ') + (S.length - bad.length - slow.length > 0 ? ' ' + T('Everything else is working.', 'Gumagana ang iba.') : '');
-    b.innerHTML = '<span class="st-big"></span><span><b>' + esc(head) + '</b><small>' + esc(why) + '</small></span>';
-
-    $('st-rows').innerHTML = S.map(s => { const r = R[s.key] || {}, B = BADGE[r.state || 'checking'], pl = PLACES[s.key];
-      return '<tr><td><b>' + esc(s.job) + '</b><small>' + esc(s.prov) + '</small></td><td><span class="st-where"><span class="st-cc">' + esc(pl[0]) + '</span>' + esc(pl[1]) + '</span></td>' +
-        '<td class="st-ms">' + (r.state === 'checking' ? '…' : s.key === 'noah' && r.state === 'ok' ? 'local' : fmtMs(r.ms)) + '</td><td><span class="p-badge ' + B[0] + '">' + esc(B[1]) + '</span></td></tr>'; }).join('');
-
-    // The system map: the portal in the middle, a line to each service in its state's colour.
-    const W = 640, H = 310, cx = 320, cy = 155, L = S.filter(s => s.side === 'L'), Rt = S.filter(s => s.side === 'R');
-    const ys = (arr, i) => 20 + i * ((H - 70) / Math.max(1, arr.length - 1));
-    let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(T('Diagram of the portal and the services it connects to', 'Diagram ng portal at mga serbisyo')) + '">';
-    const nodes = [];
-    L.forEach((s, i) => nodes.push([s, 10, ys(L, i)])); Rt.forEach((s, i) => nodes.push([s, 470, ys(Rt, i)]));
-    nodes.forEach(([s, x, y]) => { const r = R[s.key] || {}, c = BADGE[r.state || 'checking'][2], tx = s.side === 'L' ? x + 160 : x;
-      svg += '<path class="st-flow' + (r.state === 'down' ? ' st-bad' : '') + '" stroke="' + c + '" d="M' + cx + ' ' + cy + ' C ' + (s.side === 'L' ? cx - 90 : cx + 90) + ' ' + cy + ' ' + (s.side === 'L' ? tx + 50 : tx - 50) + ' ' + (y + 15) + ' ' + tx + ' ' + (y + 15) + '"/>'; });
-    svg += '<rect x="' + (cx - 75) + '" y="' + (cy - 30) + '" width="150" height="60" rx="14" fill="#00308F"/><text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" class="st-hub">SmartSumbong</text><text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" class="st-hub2">portal · Render</text>';
-    const short = { db: 'Supabase', auth: 'Supabase', live: 'Supabase', media: 'Cloudinary', push: 'Firebase', tiles: 'OpenFreeMap', geo: 'Nominatim', rain: 'Open-Meteo', noah: 'Project NOAH' };
-    nodes.forEach(([s, x, y]) => { const r = R[s.key] || {}, c = BADGE[r.state || 'checking'][2];
-      svg += '<g class="st-node"><rect x="' + x + '" y="' + y + '" width="160" height="30" rx="8"/><circle cx="' + (x + 14) + '" cy="' + (y + 15) + '" r="4.5" fill="' + c + '"/>' +
-        '<text x="' + (x + 26) + '" y="' + (y + 13) + '" class="st-t">' + esc(s.job.length > 22 ? s.job.slice(0, 21) + '…' : s.job) + '</text>' +
-        '<text x="' + (x + 26) + '" y="' + (y + 25) + '" class="st-s">' + esc(short[s.key]) + ' · ' + (r.state === 'checking' ? '…' : s.key === 'noah' && r.state === 'ok' ? 'local' : fmtMs(r.ms)) + '</text></g>'; });
-    $('st-map').innerHTML = svg + '</svg>';
-  }
-
-  // Plan and usage.
-  const mb = b => b == null ? '—' : b >= 1073741824 ? (b / 1073741824).toFixed(2) + ' GB' : (b / 1048576).toFixed(1) + ' MB';
-  function meter(label, val, pct) {
-    const cls = pct == null ? '' : pct >= 90 ? 'b' : pct >= 75 ? 'w' : '';
-    return '<div class="st-meter"><div class="st-lbl"><span>' + esc(label) + '</span><span>' + esc(val) + '</span></div>' +
-      (pct == null ? '' : '<div class="st-bar"><i class="' + cls + '" style="width:' + Math.max(1.5, Math.min(100, pct)) + '%"></i></div>') + '</div>';
-  }
-  // each service's colour as an accent and a plain letter of ours; never a logo (brand rules differ)
-  const ACCENT = { 'Supabase': ['S', '#3ECF8E'], 'Cloudinary': ['C', '#3448C5'], 'Render': ['R', '#6E5CF6'], 'Firebase push': ['F', '#F5A623'], 'Open-Meteo': ['O', '#2D9CDB'], 'Nominatim · OpenFreeMap': ['N', '#7EBC6F'] };
-  function card(name, tier, body, catchTxt, foot) {
-    const ac = ACCENT[name] || ['', '#9AA1AB'];
-    return '<div class="p-card p-card-pad st-plan" style="--ac:' + ac[1] + '"><header><b><span class="st-mono" aria-hidden="true">' + ac[0] + '</span>' + esc(name) + '</b>' + (tier ? '<span class="st-tier">' + esc(tier) + '</span>' : '') + '</header>' + body +
-      (catchTxt ? '<div class="st-catch">' + catchTxt + '</div>' : '') + (foot ? '<span class="st-foot">' + foot + '</span>' : '') + '</div>';
-  }
-  async function usage() {
-    let u = null; try { u = await fetch('settings.php?usage=1', { cache: 'no-store' }).then(r => r.json()); } catch (e) {}
-    if (!u) { $('st-plans').innerHTML = '<p class="st-note">' + esc(T('Usage could not be loaded. Try again.', 'Hindi ma-load. Subukan muli.')) + '</p>'; return; }
-    const sb = u.supabase, P = u.plans || {}, next = new Date(); next.setMonth(next.getMonth() + 1, 1);
-    const resets = T('Resets ', 'Magre-reset sa ') + next.toLocaleDateString(window.LANG === 'fil' ? 'fil-PH' : 'en-US', { month: 'short', day: 'numeric' });
-    const cards = [];
-    cards.push(card('Supabase', P.supabase,
-      sb ? meter(T('Database', 'Database'), mb(sb.db_bytes) + ' ' + T('of', 'sa') + ' 500 MB', sb.db_bytes / 524288000 * 100)
-         + meter(T('File storage', 'Imbakan'), mb(sb.storage_bytes) + ' ' + T('of', 'sa') + ' 1 GB', sb.storage_bytes / 1073741824 * 100)
-         + meter(T('Active users this month', 'Aktibong user ngayong buwan'), Number(sb.active_users || 0).toLocaleString() + ' ' + T('of', 'sa') + ' 50,000', (sb.active_users || 0) / 50000 * 100)
-         : '<p class="st-note">' + esc(T('Database size and active users need the system_usage function (migration 0078).', 'Kailangan ang migration 0078.')) + '</p>',
-      esc(T('Free projects pause after a week with no activity. Data sent out is shown only in Supabase’s dashboard.', 'Humihinto ang libreng proyekto pagkalipas ng isang linggong walang aktibidad.')),
-      esc(resets) + ' · ' + esc(T('limits shown are the Free plan’s', 'limitasyon ng Free plan'))));
-    const cl = u.cloudinary, ph = u.photos;
-    cards.push(card('Cloudinary', cl && cl.plan ? cl.plan : P.cloudinary,
-      (cl && cl.credits_limit ? meter(T('Monthly credits', 'Buwanang credit'), (+cl.credits_used).toFixed(1) + ' ' + T('of', 'sa') + ' ' + cl.credits_limit, cl.credits_used / cl.credits_limit * 100) : '')
-      + (ph ? meter(T('Complaint photos on record', 'Mga larawan sa talaan'), ph.files.toLocaleString() + ' · ' + mb(ph.bytes), null) : ''),
-      cl ? esc(T('1 credit = 1 GB stored, 1 GB served or 1,000 resizes.', '1 credit = 1 GB imbak, 1 GB ipinadala o 1,000 resize.'))
-         : esc(T('Credits aren’t connected yet: add CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET to the server’s environment in Render to see them here.', 'Idagdag ang CLOUDINARY_API_KEY at CLOUDINARY_API_SECRET sa server.')),
-      esc(T('Photos on record are counted from the database', 'Binilang mula sa database'))));
-    cards.push(card('Render', P.render, '',
-      esc(T('On the Free plan the portal sleeps after 15 minutes with no visitors; the next visit takes about a minute to wake it. Open it a minute before presenting.', 'Natutulog ang portal pagkalipas ng 15 minutong walang bisita.')),
-      esc(T('750 instance hours a month on the Free plan', '750 oras bawat buwan sa Free plan'))));
-    cards.push(card(T('Firebase push', 'Firebase push'), T('No cost', 'Walang bayad'),
-      u.alerts != null ? meter(T('Dispatch alerts this month', 'Dispatch alert ngayong buwan'), Number(u.alerts).toLocaleString(), null) : '', '',
-      esc(T('Cloud Messaging has no usage charge', 'Walang singil ang Cloud Messaging'))));
-    cards.push(card('Open-Meteo', 'Free', meter(T('Rain checks allowed', 'Pinapayagang pagsuri'), T('10,000 a day', '10,000 bawat araw'), null), '',
-      esc(T('Free for non-commercial use · each open map checks every 10 minutes', 'Libre para sa hindi pangkomersyo · bawat 10 minuto'))));
-    cards.push(card('Nominatim · OpenFreeMap', 'Free', meter(T('Address lookups', 'Paghahanap ng address'), T('at most 1 per second', 'hanggang 1 bawat segundo'), null), '',
-      esc(T('OpenFreeMap tiles have no limit', 'Walang limitasyon ang OpenFreeMap'))));
-    $('st-plans').innerHTML = cards.join('');
-  }
-
-
-  document.querySelectorAll('.st-tabs [data-st]').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('.st-tabs [data-st]').forEach(x => x.classList.toggle('p-on', x === b));
-    document.querySelectorAll('.st-pane').forEach(p => p.hidden = p.dataset.pane !== b.dataset.st);
-    document.body.classList.toggle('st-smart-on', b.dataset.st === 'smart');   // 15 Nov 2026 (Ace): the SMART tab turns the whole page navy
-    const live = b.dataset.st === 'status' || b.dataset.st === 'usage'; $('st-check').hidden = !live; $('st-checked').hidden = !live;
-  }));
-  $('st-check').addEventListener('click', () => { check(); usage(); });
-  check(); usage();
-})();
-</script>
+<script src="assets/js/settings-status.js?v=<?= e(asset_version('../js/settings-status.js')) ?>"></script>
 <?php else: ?>
 <script>
 document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEventListener('click', function () {

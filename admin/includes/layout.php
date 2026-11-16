@@ -620,9 +620,10 @@ window.ssSupabase = function (url, key, initial) {
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
 <div id="app" class="p-on">
   <aside class="p-sidebar<?= side_colour()['label'] !== null ? ' has-mark' : '' ?>" aria-label="<?= e(t('Main menu', 'Pangunahing menu')) ?>">
-    <?php if (empty($GLOBALS['ss_side_override'])): ?><button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"
+    <?php // 16 Nov 2026 (Ace): the committee editor's sidebar folds like the live one, so a super admin sees how it looks both ways; there it opens expanded whatever the stored choice, and the choice is not changed ?>
+    <button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"<?= !empty($GLOBALS['ss_side_override']) ? ' data-preview="1"' : '' ?>
             data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
-            aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><?php endif; ?>
+            aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
     <div class="p-side-top"><?= side_brand() ?></div>
     <?php $sideC = side_colour(); if ($sideC['label'] !== null): ?>
       <?php // 0150: a committee admin's sidebar names the committee, in its colour ?>
@@ -971,6 +972,8 @@ window.SS_PRESENCE = <?= json_encode([
 (function () {
   var b = document.getElementById('side-edge'), root = document.documentElement;
   if (!b) return;
+  var preview = b.dataset.preview === '1';   // the committee editor: starts expanded, and folding it there does not touch the stored choice
+  if (preview) root.removeAttribute('data-side');
   function paint() {
     var min = root.getAttribute('data-side') === 'min', t = min ? b.dataset.expand : b.dataset.collapse;
     b.setAttribute('aria-expanded', String(!min)); b.setAttribute('aria-label', t); b.title = t;
@@ -978,7 +981,7 @@ window.SS_PRESENCE = <?= json_encode([
   b.addEventListener('click', function () {
     var min = root.getAttribute('data-side') === 'min';
     if (min) root.removeAttribute('data-side'); else root.setAttribute('data-side', 'min');
-    try { localStorage.setItem('ss-side', min ? 'max' : 'min'); } catch (e) {}
+    if (!preview) { try { localStorage.setItem('ss-side', min ? 'max' : 'min'); } catch (e) {} }
     paint();
     window.dispatchEvent(new Event('resize'));   // charts and the map redraw to the new width
   });
