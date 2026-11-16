@@ -324,9 +324,9 @@ test('0144 feature switches: with the Workspace and the command center off, neit
 
 test('0145 access: a super admin sets up committees, access and switches in Settings', async ({ page }) => {
   const r = await open(page, 'administrative-services.php#access');
-  await expect(page.locator('#acc-committees form.acc-row:not(.acc-new)')).toHaveCount(5);
+  await expect(page.locator('#acc-committees .cmx-card')).toHaveCount(5);
   await expect(page.locator('#acc-committees')).toContainText('Anti-Drug');
-  await expect(page.locator('#acc-committees form.acc-off')).toHaveCount(1);
+  await expect(page.locator('#acc-committees .cmx-card.acc-off')).toHaveCount(1);
   expect(await axe(page), 'Administrative Services > Committees').toEqual([]);
   await page.locator('.st-tabs [data-st="admins"]').click();
   await expect(page.locator('#jp-rows .ss-arow').first()).toContainText('Super admin');
@@ -408,25 +408,87 @@ test('Roles and pages 1a: Administrative Services and the Control Room take thei
   expect(r.errors.concat(q.errors), 'console errors').toEqual([]);
 });
 
-test('Committees tab: a card each, a live banner, chips for the kinds of complaint, and Save only when something changed', async ({ page }) => {
+test('Committees tab (16 Nov): a compact list, an Edit and a New committee that open the editor, the notice first with "do not show again"', async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1000 });
   const r = await open(page, 'administrative-services.php');
   await page.locator('.st-tabs [data-st="access"]').click();
-  await expect(page.locator('#acc-committees .cmx-card:not(.cmx-card-new)')).toHaveCount(5);
+  await expect(page.locator('#acc-committees .cmx-card')).toHaveCount(5);
   await expect(page.locator('.cmx-note'), 'a note says which kinds of complaint nobody sees').toBeVisible();
-  const card = page.locator('#acc-committees .cmx-card').first();
-  await expect(card.locator('.cmx-save'), 'nothing changed, nothing to save').toBeDisabled();
-  const before = await card.locator('.cmx-banner .cm-chip').evaluate(e => e.style.getPropertyValue('--g1') + '|' + e.querySelectorAll('.cm-sym svg').length);
-  await card.locator('.cmx-t:not(:has(input:checked))').first().click();
-  await expect(card.locator('.cmx-save'), 'a change lights Save up').toBeEnabled();
-  await expect(card.locator('.cmx-dirty-note')).toBeVisible();
-  const after = await card.locator('.cmx-banner .cm-chip').evaluate(e => e.style.getPropertyValue('--g1') + '|' + e.querySelectorAll('.cm-sym svg').length);
-  expect(after, 'and the banner follows the kinds of complaint it has').not.toBe(before);
-  await card.locator('.cmx-t:has(input:checked)').last().click();   // undo what was just added or a second change: still a change
-  expect(await card.locator('.cmx-banner').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the banner is slim').toBeLessThanOrEqual(80);
-  expect(await card.locator('.cmx-t').evaluateAll(ts => ts.filter(t => getComputedStyle(t).borderTopWidth === '0px').length), 'every kind is a bordered chip').toBe(0);
-  await expect(page.locator('#acc-super'), 'the super admin colour is the last thing on the tab').toBeVisible();
+  expect(await page.locator('#acc-committees .cmx-card input[name="name_en"]:visible').count(), 'the names are edited in the editor, not on the list').toBe(0);
+  const openC = page.locator('#acc-committees .cmx-grid > .tile-open').first();
+  await expect(openC.locator('a[href^="committee-editor.php?key="]'), 'each committee has an Edit').toBeVisible();
+  await expect(openC.locator('.cmx-t-ro').first(), 'its kinds, read only, in their colours').toBeVisible();
+  expect(await openC.locator('.cmx-banner').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the banner is slim').toBeLessThanOrEqual(80);
+  // New committee: the notice first
+  await page.locator('.cmx-new').click();
+  await expect(page.locator('#ce-enter'), 'a notice before the editor').toBeVisible();
+  await expect(page.locator('#ce-enter')).toContainText('cannot be opened');
+  await page.locator('#ce-enter [data-ce-no]').click();
+  await expect(page.locator('#ce-enter')).toBeHidden();
+  await page.locator('.cmx-new').click(); await page.locator('#ce-skip').check(); await page.locator('#ce-enter-go').click();
+  await page.waitForURL(/committee-editor\.php$/);
+  await expect(page.locator('.p-side-com b'), 'the sidebar is the committee\'s own').toHaveText('New committee');
+  await expect(page.locator('#side-nav a[href]'), 'nothing in the preview sidebar opens').toHaveCount(0);
+  await page.goBack();
+  await page.locator('.st-tabs [data-st="access"]').click().catch(() => {});
+  await page.locator('.cmx-new').click();
+  await page.waitForURL(/committee-editor\.php$/);   // "do not show this again": straight in the second time
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
+test('Committee editor (16 Nov): the sidebar is the committee\'s, live; kinds in a popup; leaving with changes asks; the save form posts the old action', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  const r = await open(page, 'committee-editor.php');
+  const side = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--p-side-a').trim());
+  const was = await side();
+  await page.locator('#ce-name').fill('Senior Citizens and PWD');
+  await expect(page.locator('.p-side-com b')).toHaveText('Senior Citizens and PWD');
+  await expect(page.locator('#ce-banner-n')).toHaveText('Senior Citizens and PWD');
+  await expect(page.locator('#ce-crow-n')).toHaveText('Senior Citizens and PWD');
+  await expect(page.locator('#ce-save')).toBeEnabled();
+  await page.locator('#ce-short').fill('Seniors');
+  await expect(page.locator('.p-side-com b'), 'the short name is what the sidebar shows').toHaveText('Seniors');
+  await page.locator('.ce-swatch:not(:disabled):not(.on)').first().click();
+  expect(await side(), 'a colour changes the sidebar at once').not.toBe(was);
+  // a logo picked shows in its slot and, faded, in the sidebar (redrawn on a canvas, never the file's own address)
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  await page.setInputFiles('#ce-logo', { name: 'logo.png', mimeType: 'image/png', buffer: png });
+  await expect(page.locator('#ce-lgi img')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--p-side-mark')), 'the sidebar\'s faded mark is the logo').toContain('data:image/png');
+  expect(await page.locator('#ce-lgi img').getAttribute('src')).not.toMatch(/^blob:/);
+  // the kinds popup
+  const before = await page.locator('#ce-banner').evaluate(e => e.style.getPropertyValue('--g1'));
+  await page.locator('#ce-kinds-open').click();
+  await expect(page.locator('#ce-kinds')).toBeVisible();
+  await page.locator('#ce-kinds .ce-kl').nth(1).click();
+  await expect(page.locator('#ce-kcount')).toContainText('1 kind');
+  await page.locator('#ce-kinds [data-ce-close]').last().click();
+  await expect(page.locator('#ce-ksum .cmx-t-ro')).toHaveCount(1);
+  expect(await page.locator('#ce-banner').evaluate(e => e.style.getPropertyValue('--g1')), 'the banner takes the kind\'s colour').not.toBe(before);
+  // a form that posts what committee_save reads
+  const names = await page.locator('#ce-form').evaluate(f => [...new FormData(f).keys()]);
+  for (const k of ['csrf', 'action', 'key', 'name_en', 'name_fil', 'short_en', 'colour', 'cats[]']) expect(names, k).toContain(k);
+  expect(await page.locator('#ce-form').getAttribute('action')).toBe('administrative-services.php');
+  // leaving with changes asks first
+  await page.locator('.ce-top [data-ce-leave]').click();
+  await expect(page.locator('#ce-leave')).toBeVisible();
+  await page.locator('#ce-leave [data-ce-stay]').click();
+  await expect(page.locator('#ce-leave')).toBeHidden();
+  expect(await axe(page), 'the committee editor').toEqual([]);
+  await page.locator('.ce-top [data-ce-leave]').click(); await page.locator('#ce-leave-go').click();
+  await page.waitForURL(/administrative-services\.php/);
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
+test('Committee editor (16 Nov): editing one keeps its colour, and only a super admin can open it', async ({ page, context }) => {
+  await open(page, 'committee-editor.php?key=peace_order');
+  await expect(page.locator('#ce-colour')).toHaveValue('#d32f2f');
+  await expect(page.locator('h1')).toHaveText('Edit committee');
+  await expect(page.locator('#ce-save'), 'nothing changed, nothing to save').toBeDisabled();
+  await expect(page.locator('#ce-form input[name="active"]')).toBeChecked();
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  await page.goto('committee-editor.php');
+  expect(page.url(), 'a Kagawad is sent to their own page').not.toMatch(/committee-editor/);
 });
 
 test('Roles and Escalation, peak: the position chooser filters the table, the band, chooser and table are three objects, kinds of complaint wear their colour', async ({ page }) => {
@@ -600,8 +662,7 @@ test('Case page: each concern shows its category and option, and what it was fil
 test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
   let r = await open(page, 'administrative-services.php#access');
   await expect(page.locator('#acc-super input[type="color"]')).toHaveValue('#00308f');
-  await expect(page.locator('#acc-committees form.acc-row input[type="color"]')).toHaveCount(6);
-  await expect(page.locator('#acc-committees form.acc-row').first().locator('input[type="color"]')).toHaveValue('#d32f2f');
+  expect(await page.locator('#acc-committees input[type="color"]').count(), 'committee colours are chosen in the editor now').toBe(0);
   expect(await axe(page), 'Administrative Services > Committees, with colours').toEqual([]);
   await expect(page.locator('.p-side-com')).toHaveCount(0);   // a super admin's sidebar is branding blue, with no committee banner
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--p-side-a').trim().toUpperCase())).toBe('#00308F');
@@ -2159,15 +2220,19 @@ test('Looks 15 Nov: from four committees they become tiles; one open and wide, t
   await expect(grid).toHaveClass(/ss-tiles/);
   await expect(grid.locator('> .tile-open')).toHaveCount(1);
   const cards = grid.locator('> [data-tile]'); const n = await cards.count(); expect(n).toBeGreaterThanOrEqual(4);
-  expect(await grid.locator('> [data-tile]:not(.tile-open) .cmx-body:visible').count(), 'the others show only their banner').toBe(0);
+  expect(await grid.locator('> [data-tile]:not(.tile-open) .cmx-body:visible').count(), 'the others show only their banner and one line under it').toBe(0);
+  expect(await grid.locator('> [data-tile]:not(.tile-open) [data-tile-meta]:visible').count(), 'each small tile says what is inside (16 Nov)').toBe(n - 1);
+  await expect(grid.locator('> [data-tile]:not(.tile-open) [data-tile-meta]').first()).toContainText(/kind/);
+  const cols = await grid.locator('> [data-tile]:not(.tile-open)').evaluateAll(ts => new Set(ts.map(t => Math.round(t.getBoundingClientRect().top))).size);
+  expect(cols, 'the small tiles fill their rows, none left alone').toBeLessThanOrEqual(Math.ceil((n - 1) / 2));
   const closed = grid.locator('> [data-tile]:not(.tile-open)').first();
   const was = await grid.locator('> .tile-open').getAttribute('data-tile');
-  await closed.locator('[data-tile-head]').click();
+  await closed.locator('[data-tile-meta]').click();
   await expect(grid.locator('> .tile-open')).toHaveCount(1);
   expect(await grid.locator('> .tile-open').getAttribute('data-tile'), 'the clicked tile opened').not.toBe(was);
   await expect(page.locator('.cmx-offd summary')).toContainText('Turned off');
   expect(await page.locator('.cmx-offd').evaluate(e => e.open), 'closed by default').toBe(false);
-  expect(await page.locator('#acc-committees > .cmx-grid[data-tiles] form.acc-off').count(), 'no turned-off committee among the live ones').toBe(0);
+  expect(await page.locator('#acc-committees > .cmx-grid[data-tiles] .acc-off').count(), 'no turned-off committee among the live ones').toBe(0);
   expect(await axe(page), 'Administrative Services, committees as tiles').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
 });
@@ -2657,4 +2722,62 @@ test('The view-only tier (16 Nov sweep): a Captain account sent away from a page
     expect(res.status(), p + ': it answers').toBe(200);
     expect(new URL(page.url()).pathname, p + ': lands on the Dashboard').toMatch(/dashboard\.php$/);
   }
+});
+
+test('Looks 16 Nov, pills B: the account status stays a solid pill, the states beside it are soft pills, in light and dark', async ({ page }) => {
+  for (const mode of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme: mode });
+    await open(page, 'residents.php');
+    await page.evaluate(m => document.documentElement.setAttribute('data-theme', m), mode);
+    const st = page.locator('#accounts-tbody .p-badge:not(.p-tag)').first(), tag = page.locator('#accounts-tbody .p-badge.p-tag').first();
+    await expect(tag, 'there are tags (Overdue, On an incident, duty states)').toBeVisible();
+    const sty = await st.evaluate(e => { const c = getComputedStyle(e); return { bg: c.backgroundColor, h: Math.round(e.getBoundingClientRect().height) }; });
+    const tg = await tag.evaluate(e => { const c = getComputedStyle(e); return { bg: c.backgroundColor, color: c.color, ring: c.boxShadow, h: Math.round(e.getBoundingClientRect().height) }; });
+    expect(sty.bg, 'the status is a solid colour: ' + mode).toMatch(/^rgb\(/);
+    expect(tg.bg, 'a tag is a tint, not the solid status colour: ' + mode).not.toBe(sty.bg);
+    expect(tg.ring, 'a tag has a thin ring, no glow: ' + mode).toMatch(/inset/);
+    expect(tg.color, 'a tag\'s lettering is its own colour, not white: ' + mode).not.toBe('rgb(255, 255, 255)');
+    expect(tg.h, 'a tag is a little lower than a status').toBeLessThan(sty.h);
+  }
+});
+
+test('Looks 16 Nov, locked tiles: a tile the person cannot use stays in place, locked, with the reason; a named person wears the rank colour', async ({ page, context }) => {
+  const CASE = 'c0000000-0000-0000-0000-000000000001';   // handled by someone else in the fake
+  for (const [label, cookies] of [['super', [['ss_tier', 'super']]], ['staff', [['ss_tier', 'moderator'], ['ss_committee', 'peace_order']]]]) {
+    await context.clearCookies();
+    await context.addCookies(cookies.map(([n, v]) => ({ name: n, value: v, url: 'http://127.0.0.1:8013' })));
+    await open(page, 'case.php?id=' + CASE);
+    const locked = page.locator('.cc-tiles .cc-locked');
+    expect(await locked.count(), label + ': some tiles are locked').toBeGreaterThanOrEqual(2);
+    await expect(locked.first(), label + ': a locked tile cannot be pressed').toHaveAttribute('inert', '');
+    const who = locked.first().locator('.cc-who');
+    await expect(who, label + ': the reason names who holds the case').toBeVisible();
+    expect(await who.getAttribute('data-r'), label + ': with the rank\'s colour').toMatch(/^(staff|kagawad|chair)$/);
+    expect(await who.evaluate(e => getComputedStyle(e).fontWeight), label + ': bolder').toBe('800');
+    const col = await who.evaluate(e => getComputedStyle(e).color), body = await locked.first().locator('.cc-st').evaluate(e => getComputedStyle(e).color);
+    expect(col, label + ': in a colour of its own').not.toBe(body);
+    expect(await page.locator('.cc-tiles').evaluate(g => g.children.length % 2), label + ': the grid ends on a full row or a spanning tile').toBeGreaterThanOrEqual(0);
+  }
+  await context.clearCookies();
+  await context.addCookies([{ name: 'ss_tier', value: 'captain', url: 'http://127.0.0.1:8013' }, { name: 'ss_role', value: 'chairman', url: 'http://127.0.0.1:8013' }]);
+  await open(page, 'case.php?id=' + CASE);
+  expect(await page.locator('.cc-locked').count(), 'a view-only account sees the one note, not a grid of locks').toBe(0);
+});
+
+test('Looks 16 Nov, case page: the map is as wide as the card on a wide screen (no dead space beside it)', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000006');
+  const m = await page.locator('.cc-where .p-minimap').evaluate(e => { const c = e.closest('.cc-body').getBoundingClientRect(), b = e.getBoundingClientRect(); return { gap: Math.round(c.right - b.right), h: Math.round(b.height) }; });
+  expect(m.gap, 'the map reaches the card\'s right padding').toBeLessThanOrEqual(40);
+  expect(m.h, 'and is at least its old height').toBeGreaterThanOrEqual(220);
+});
+
+test('Looks 16 Nov, committee staff: each group has the line a small tile shows (in now, staff, faces)', async ({ page }) => {
+  await open(page, 'personnel.php?view=staff');
+  const groups = await page.locator('.pc-groups > [data-tile]').count();
+  expect(groups, 'there are groups').toBeGreaterThan(0);
+  expect(await page.locator('.pc-groups > [data-tile] > [data-tile-meta]').count(), 'each has its line').toBe(groups);
+  await expect(page.locator('.pc-groups > [data-tile] > [data-tile-meta]').first()).toContainText(/in now/);
+  expect(await page.locator('.pc-groups > [data-tile] > [data-tile-meta]').first().isVisible(), 'hidden while the groups are wide (fewer than four)').toBe(groups >= 4);
+  expect(await page.locator('.pc-grid').first().evaluate(g => g.style.gridTemplateColumns || 'auto'), 'the cards share the width').toMatch(/repeat|auto/);
 });

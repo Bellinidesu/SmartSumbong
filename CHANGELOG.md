@@ -9,6 +9,15 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The stack, built from Ace's artifact previews (16 Nov)**
+
+- **Committee editor** (`committee-editor.php`, a super admin's page): making or editing a committee is a focus mode. The portal's sidebar is replaced by the sidebar the committee's people will have, drawn live as it is edited (its colour, its logo or symbol faded behind, its name under the seal); the editor takes the page. Name, Tagalog name, short name, a logo upload, a colour (the palette, greyed where the database would refuse it), and "What it sees" in a popup (kinds of complaint, with the options under each to look at). Beside it, "Also shows up as": the Personnel banner, the case page's Committee row and the committee filter chip. Leaving with changes asks first; the first time, a notice on the committees list says the rest of the portal cannot be opened in the editor, with "Do not show this again" (kept in the browser). It posts the same `committee_save` as before: no backend change. A kind of complaint may be seen by several committees, so connecting one another committee has shares it.
+- **Committees list** (Administrative Services): compact. A New committee button and each committee's Edit open the editor; the open committee shows who leads it, its kinds (read only) and its On / Off switch. Small tiles (from four committees) say what is inside: kinds and On / Off. The per-committee forms and the "Add a committee" form are gone. A latent bug is fixed: the Turned-off list's starting values sat inside a comment.
+- **Committee staff** (Personnel): small tiles say who is in now, how many staff, and show faces; the cards in an open group share the full width in rows that fill (`fit-grid.js`: six cards go three by two, never four and two).
+- **Pills, B** (Residents and Personnel): the account status stays a solid pill; the states beside it (Overdue, minutes left, On an incident, duty state, OCR flag, Re-check pending) are soft pills (`.p-tag`). The dark-mode Staff and Secretary position chips are deeper (3.1:1 became 4.7:1 under white).
+- **Case page**: tiles the person cannot use stay in place, locked, with the reason in one line (someone else handles it, nobody yet, closed, not validated, already at the top or the bottom of the ladder, the tanod's report waits, already escalated out). A person or rank named in a reason is bold and in that rank's colour, in "Only X can act" too. The map fills the card's width and the height left under the report.
+- Tests: the committees list, the editor, the pills, the locked tiles, the map, the staff tiles; the sweep tool lists the editor.
+
 **Squares mode removed (16 Nov)**
 
 - Residents and Personnel no longer have the List / Squares switch; the list is the one view. A new Squares design is being previewed first, then it comes back. Its CSS and the remembered view are gone.

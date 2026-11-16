@@ -227,7 +227,7 @@ function render_punch_page(Supabase $db): void
         <small><?= e(t('by all of them together', 'ng lahat nang magkakasama')) ?></small></a>
     </div>
     <?php if (!$groups): ?><div class="p-card pc-none"><b><?= e(t('No one here right now.', 'Walang tao rito ngayon.')) ?></b></div><?php endif; ?>
-    <div class="pc-groups" data-tiles="staff">
+    <div class="pc-groups" data-tiles="staff" data-fit="250">
     <?php foreach ($groups as $ck => $people):
         $label = $ck !== '' ? (string) (committees_all()[$ck]['short_en'] ?? $ck) : t('No committee yet', 'Wala pang komite');
         $inNow = count(array_filter($people, fn ($c) => $stateOf($c) === 'in')); ?>
@@ -239,7 +239,10 @@ function render_punch_page(Supabase $db): void
             <a class="cm-chip cm-chip-none" title="<?= e($label) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e($label) ?><small class="pc-gn">· <?= e(sprintf(t('%d in now', '%d pasok ngayon'), $inNow)) ?></small></span><b><?= count($people) ?></b></a>
           <?php endif; ?>
         </div>
-        <div class="pc-grid">
+        <?php // 16 Nov 2026 (Ace's preview): the line a small tile shows under its banner: who is in, how many, and their faces (pills.css, tiles.js) ?>
+        <div class="pc-gmeta" data-tile-meta><span><b><?= $inNow ?></b> <?= e(t('in now', 'pasok')) ?> · <?= count($people) ?> <?= e(t('staff', 'kawani')) ?></span>
+          <span class="pc-stack"><?php foreach (array_slice($people, 0, 3) as $c0): ?><?= account_avatar_html(null, (string) $c0['name'], 'sm') ?><?php endforeach; ?></span></div>
+        <div class="pc-grid" data-fit="300">
         <?php foreach ($people as $c): $days = (array) ($c['days'] ?? []); $today = $days[0] ?? []; $state = $stateOf($c); ?>
           <article class="p-card pc-card pc-<?= e($state) ?>" id="pc-<?= e($c['id']) ?>">
             <header>
@@ -271,6 +274,7 @@ function render_punch_page(Supabase $db): void
     <?php endforeach; ?>
     </div>
     <script src="assets/js/tiles.js?v=<?= e(asset_version('../js/tiles.js')) ?>" defer></script>
+    <script src="assets/js/fit-grid.js?v=<?= e(asset_version('../js/fit-grid.js')) ?>" defer></script>
     <?= committee_banner_script() ?>
     <?php endif;
     layout_foot();

@@ -932,6 +932,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     $mine    = $hid !== '' && $hid === $admin['id'];
     $theirs  = $hid !== '' && !$mine;
     $hName   = (string) ($report['handler']['full_name'] ?? '');
+    // 16 Nov 2026 (Ace): wherever a reason names who holds the case, the name is bold and in that rank's colour (shell.css [data-r]), so who it is shows at a glance
+    $ccWho   = $hid !== '' ? '<b class="cc-who" data-r="' . e(rank_of((string) ($report['handler']['official_role'] ?? ''))) . '">' . e($hName) . '</b>' : '';
     $GLOBALS['ss_case'] = ['id' => $id, 'tracking' => $report['tracking_id']];
   ?>
   <aside aria-label="<?= e(t('Admin Controls', 'Kontrol ng Admin')) ?>" class="p-card p-controls<?= $theirs ? ' ss-readonly' : '' ?><?= is_captain() ? ' ss-viewonly' : '' ?>">
@@ -958,7 +960,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b><div class="ss-hrow"><?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div></div>
     <?php else: ?>
       <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><div class="ss-hrow"><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?></div><?php if (!empty($report['handled_since'])): ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span><?php endif; ?></div></div>
-      <div class="ss-locked"><?= e(sprintf(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.'), $hName)) ?></div>
+      <div class="ss-locked"><?= sprintf(e(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.')), $ccWho) ?></div>
       <details class="p-fix" data-keep-details data-ic="user">
         <summary><span class="cc-st"><?= e(t('Take over', 'Kunin')) ?><small><?= e(t('Make the case yours', 'Gawing sa iyo ang kaso')) ?></small></span></summary>
         <form method="post" class="p-ctl-stack" data-keep>
@@ -1626,7 +1628,33 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </form>
       </details><?php $ccTiles['sens'] = ob_get_clean(); ?>
     <?php endif; ?>
-    <?php $ccGrid = ''; foreach (['status', 'forward', 'flag', 'esc_up', 'esc_out', 'down', 'sens', 'hist'] as $ccK) { $ccGrid .= $ccTiles[$ccK] ?? ''; }
+    <?php // 16 Nov 2026 (Ace's preview): a tile this person cannot use stays in its place, locked, with the reason in one line, so the grid does not change shape from one role to the next.
+    // The reasons are the page's own rules (which are what hid the tile before): the case is someone else's, or nobody's yet; it is closed or not yet validated; it is already at the top or
+    // the bottom of the ladder; a tanod's report waits for approval; it was already escalated out. A reason that names a person or a rank is bold and in that rank's colour (.cc-who).
+    // A view-only account sees the one note at the top instead.
+    $ccClosed = in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true);
+    $ccRef = (string) ($report['referred_to'] ?? '');
+    $ccHolder = $theirs ? sprintf(e(t('%s is handling this case', 'Si %s ang humahawak sa kasong ito')), $ccWho) : e(t('Nobody is handling it yet: any action on it makes it yours', 'Wala pang humahawak: ang anumang kilos dito ay magiging sa iyo'));
+    $ccRung = static fn (string $r, string $label): string => '<b class="cc-who" data-r="' . $r . '">' . e($label) . '</b>';
+    $ccWhy = [
+        'status' => $status === 'pending_review' ? e(t('The report has not been validated yet', 'Hindi pa na-validate ang ulat'))
+            : (!empty($report['resolution_submitted_at']) && !$ccClosed ? e(t('The tanod\'s report is waiting for approval', 'Naghihintay ng pag-apruba ang ulat ng tanod'))
+            : ($ccClosed ? e(t('The case is closed', 'Sarado na ang kaso')) : '')),
+        'esc_up' => !$mine ? $ccHolder : ($ccClosed || $ccRef !== '' ? e(t('The case is closed', 'Sarado na ang kaso'))
+            : ($tier >= 2 ? sprintf(e(t('Already with the %s', 'Nasa %s na ito')), $ccRung('chair', t('Chairman', 'Punong Barangay'))) : '')),
+        'esc_out' => $ccRef !== '' ? sprintf(e(t('Already escalated to %s', 'Na-escalate na sa %s')), '<b>' . e($ccRef) . '</b>') : ($ccClosed ? e(t('The case is closed', 'Sarado na ang kaso')) : ''),
+        'down' => !$mine ? $ccHolder : ($tier === 0 ? sprintf(e(t('Already with %s, the first level', 'Nasa %s na, ang unang antas')), $ccRung('staff', t('Staff and tanods', 'Kawani at tanod'))) : ''),
+        'sens' => !$mine ? $ccHolder : ($ccClosed || $ccRef !== '' ? e(t('The case is closed', 'Sarado na ang kaso')) : ''),
+    ];
+    $ccTitle = ['status' => [t('Update status', 'I-update ang katayuan'), 'pen'], 'esc_up' => [t('Escalate up the ladder', 'I-escalate pataas'), 'up'], 'esc_out' => [t('Escalate to an outside office', 'I-escalate sa ibang tanggapan'), 'bld'],
+                'down' => [t('Send it back down', 'Ibalik pababa'), 'down'], 'sens' => [t('Mark as sensitive', 'Markahang sensitibo'), 'shield']];
+    if (!is_captain()) {
+        foreach ($ccTitle as $ccK => [$ccT, $ccI]) {
+            if (!empty($ccTiles[$ccK]) || ($ccWhy[$ccK] ?? '') === '') continue;
+            $ccTiles[$ccK] = '<details class="p-fix cc-locked" data-ic="lock" inert><summary><span class="cc-st">' . e($ccT) . '<small>' . $ccWhy[$ccK] . '</small></span></summary></details>';
+        }
+    }
+    $ccGrid = ''; foreach (['status', 'forward', 'flag', 'esc_up', 'esc_out', 'down', 'sens', 'hist'] as $ccK) { $ccGrid .= $ccTiles[$ccK] ?? ''; }
           if ($ccGrid !== '' || !empty($ccTiles['pub'])): ?>
     <div class="cc-more">
       <p class="p-flabel ss-zl"><?= e(t('More', 'Iba pa')) ?></p>
