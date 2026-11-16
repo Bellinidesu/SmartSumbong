@@ -1291,11 +1291,10 @@ function render_account_detail(
         <div class="p-card p-card-pad pd-details">
           <p class="p-eyebrow"><?= e(t('Account Details', 'Detalye ng Account')) ?></p>
           <dl class="p-dl">
-            <dt><?= e(t('Full name', 'Buong pangalan')) ?></dt><dd><?= e(formal_name($p['full_name'])) ?></dd>
-            <dt><?= e(t('Email address', 'Email address')) ?></dt><dd><?= e($p['email']) ?><?= copy_btn((string) ($p['email'] ?? ''), t('the email', 'ang email')) ?></dd>
-            <dt><?= e(t('Mobile number', 'Mobile number')) ?></dt><dd class="p-mono"><?= e($p['mobile_number']) ?><?= copy_btn((string) ($p['mobile_number'] ?? ''), t('the number', 'ang numero')) ?></dd>
-            <dt><?= e(t('Registered', 'Nagparehistro')) ?></dt><dd><?= e(long_datetime($p['created_at'])) ?></dd>
-          </dl>
+            <div class="pd-kv"><dt><?= e(t('Full name', 'Buong pangalan')) ?></dt><dd><?= e(formal_name($p['full_name'])) ?></dd></div>
+            <div class="pd-kv"><dt><?= e(t('Email address', 'Email address')) ?></dt><dd><?= e($p['email']) ?><?= copy_btn((string) ($p['email'] ?? ''), t('the email', 'ang email')) ?></dd></div>
+            <div class="pd-kv"><dt><?= e(t('Mobile number', 'Mobile number')) ?></dt><dd class="p-mono"><?= e($p['mobile_number']) ?><?= copy_btn((string) ($p['mobile_number'] ?? ''), t('the number', 'ang numero')) ?></dd></div>
+            <div class="pd-kv"><dt><?= e(t('Registered', 'Nagparehistro')) ?></dt><dd><?= e(long_datetime($p['created_at'])) ?></dd></div></dl>
         </div>
         <?php if ($tcRow !== null) { render_tc_card($p, $tcRow); } ?>
 
