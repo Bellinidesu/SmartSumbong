@@ -22,7 +22,7 @@ function signin_head(): string
 /** The script that fills the panel; at the foot of the page. */
 function signin_foot(): string
 {
-    return '<script src="assets/js/glance.js?v=' . e(asset_version('../js/glance.js')) . '" defer></script>';
+    return '<script nonce="' . csp_nonce() . '" src="assets/js/glance.js?v=' . e(asset_version('../js/glance.js')) . '" defer></script>';
 }
 
 /** One ray of the Philippine sun: a tapered point, drawn pointing up and turned. */

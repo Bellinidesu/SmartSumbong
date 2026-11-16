@@ -85,9 +85,9 @@ function render_widget_panel(Supabase $db, array $admin, ?string $solo = null): 
     </div>
   </div>
 </section>
-<script>window.SS_WS = <?= json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
+<script nonce="<?= csp_nonce() ?>">window.SS_WS = <?= json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
 <link rel="stylesheet" href="assets/css/widgets.css?v=<?= e(asset_version('widgets.css')) ?>">
 <link rel="stylesheet" href="assets/css/widgets-x.css?v=<?= e(asset_version('widgets-x.css')) ?>">
-<script src="assets/js/widgets-core.js?v=<?= e(asset_version('../js/widgets-core.js')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/widgets-core.js?v=<?= e(asset_version('../js/widgets-core.js')) ?>" defer></script>
 <?php
 }

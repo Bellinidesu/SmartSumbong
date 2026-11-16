@@ -165,7 +165,7 @@ function forwarding_pins(Supabase $db): array
     foreach (isset($more['track']) && is_array($more['track']) ? $more['track'] : [] as $r) { $track[(string) $r['id']] = (string) $r['tracking_id']; }
 
     foreach ($places as $r) {
-        $pins[] = ['report' => (string) $r['id'], 'tracking' => (string) $r['tracking_id'], 'kind' => 'place', 'at' => (string) $r['updated_at'],
+        $pins[] = ['report' => (string) $r['id'], 'tracking' => (string) $r['tracking_id'], 'kind' => 'place', 'at' => (string) ($r['updated_at'] ?? ''),
                    'text' => t('Forwarded to the super admins: place it with a committee.', 'Ipinasa sa mga super admin: ilagay ito sa isang komite.')];
     }
     foreach ($questions as $q) {
@@ -236,8 +236,7 @@ function cm_sym_tag(string $ck, array $sdTypes, string $label): string
 /** Draws the banners' symbols from the Spatial Distribution icon family, and the large faint symbol at the right of each banner (the app's DHero). */
 function committee_banner_script(): string
 {
-    return '<script src="assets/js/sd-icons.js?v=' . e(asset_version('../js/sd-icons.js')) . '"></script>' . <<<'JS'
-<script>
+    return '<script nonce="' . csp_nonce() . '" src="assets/js/sd-icons.js?v=' . e(asset_version('../js/sd-icons.js')) . '"></script><script nonce="' . csp_nonce() . '">' . <<<'JS'
 (function () {   // each committee symbol is drawn from the Spatial Distribution icon family
   var I = window.SD_ICONS || {};
   document.querySelectorAll('.cm-chips .cm-ic').forEach(function (s) {
@@ -269,8 +268,7 @@ function committee_fade(string $ck, array $sdTypes, string $label): string
 /** Draws the Spatial Distribution symbols inside complaint-type chips (`svg.cmx-ti[data-ic]`). */
 function sd_chip_script(): string
 {
-    return '<script src="assets/js/sd-icons.js?v=' . e(asset_version('../js/sd-icons.js')) . '"></script>' . <<<'JS'
-<script>
+    return '<script nonce="' . csp_nonce() . '" src="assets/js/sd-icons.js?v=' . e(asset_version('../js/sd-icons.js')) . '"></script><script nonce="' . csp_nonce() . '">' . <<<'JS'
 (function () {
   var I = window.SD_ICONS || {};
   document.querySelectorAll('.cmx-ti').forEach(function (s) {

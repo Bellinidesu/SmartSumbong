@@ -103,12 +103,12 @@ function render_board(array $queue, array $meta, array $admin, string $scope, bo
               $href = 'case.php?id=' . rawurlencode((string) $q['report_id']);
               $short = $q['tracking_id'] ? preg_replace('/^[A-Z]+-\d{4}-/', '#', (string) $q['tracking_id']) : '';
           ?>
-            <article class="bd-card" draggable="true" data-id="<?= e((string) $q['report_id']) ?>" data-href="<?= e($href) ?>" data-title="<?= e((string) $q['tracking_id']) ?>" style="--c:<?= e($lvC) ?>">
-              <div class="bd-top"><span class="bd-lv"><?= e($lvName) ?></span><span class="bd-age"><?= e(waiting_text($q['waiting_since'])) ?></span>
+            <article class="bd-card" draggable="true" data-id="<?= e((string) ($q['report_id'] ?? '')) ?>" data-href="<?= e($href) ?>" data-title="<?= e((string) $q['tracking_id']) ?>" style="--c:<?= e($lvC) ?>">
+              <div class="bd-top"><span class="bd-lv"><?= e($lvName) ?></span><span class="bd-age"><?= e(waiting_text($q['waiting_since'] ?? null)) ?></span>
                 <details class="bd-menu"><summary aria-label="<?= e(t('More actions', 'Iba pang aksyon')) ?>">&#8943;</summary>
                   <div><a href="<?= e($href) ?>"><?= e(t('Open the case', 'Buksan ang kaso')) ?></a>
                     <?php if ($ok && $verb !== ''): ?><a href="<?= e($href . $hash) ?>"><?= e($verb) ?></a><?php endif; ?>
-                    <a href="<?= e($href) ?>"><?= e((string) $q['next_action']) ?></a></div></details></div>
+                    <a href="<?= e($href) ?>"><?= e((string) ($q['next_action'] ?? t('Open the case', 'Buksan ang kaso'))) ?></a></div></details></div>
               <a class="bd-title" href="<?= e($href) ?>"><span class="bd-id"><?= e($short) ?></span><b><?= e((string) $q['subject']) ?></b></a>
               <p class="bd-cat"><?= e(category_label((string) $q['category'])) ?></p>
               <div class="bd-own">

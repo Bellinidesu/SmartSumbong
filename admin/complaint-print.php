@@ -75,7 +75,7 @@ $lng         = (float) ($report['longitude'] ?? 0);
 
 doc_head('Barangay Complaint ' . ($report['tracking_id'] ?? ''), true);
 ?>
-<link href="assets/vendor/maplibre/maplibre-gl.css" rel="stylesheet">
+<link href="assets/vendor/maplibre/maplibre-gl.css?v=<?= e(vendor_version('maplibre-gl')) ?>" rel="stylesheet">
 <style>
   .cp p { margin: 0 0 10px; line-height: 1.45; }
   .cp .cp-cat { text-align: center; font-weight: 700; margin: -0.15in 0 4px; }
@@ -130,7 +130,7 @@ doc_head('Barangay Complaint ' . ($report['tracking_id'] ?? ''), true);
     <div class="cp-row" id="cp-media-row"><b>Media:</b>
       <div>
         <?php if (!$media): ?>
-          <span class="cp-none">No photos were attached.</span>
+          <span class="cp-none"><?= e(t('No photos were attached.', 'Walang larawang kalakip.')) ?></span>
         <?php else: ?>
           <div class="cp-media">
             <?php foreach (array_slice($media, 0, 6) as $m): ?>
@@ -155,18 +155,18 @@ doc_head('Barangay Complaint ' . ($report['tracking_id'] ?? ''), true);
     </div></div>
     <div class="cd-tools" role="toolbar" aria-label="Zoom">
       <button type="button" id="cd-zo" aria-label="Zoom out">&minus;</button><span class="cd-z" id="cd-zl">100%</span><button type="button" id="cd-zi" aria-label="Zoom in">+</button>
-      <span class="cd-sep"></span><button type="button" id="cd-zf">Fit page</button><button type="button" id="cd-zw">Fit width</button><span class="cd-sep"></span><span>Letter</span>
+      <span class="cd-sep"></span><button type="button" id="cd-zf"><?= e(t('Fit page', 'Buong pahina')) ?></button><button type="button" id="cd-zw"><?= e(t('Fit width', 'Buong lapad')) ?></button><span class="cd-sep"></span><span>Letter</span>
     </div>
   </section>
 
   <aside class="cd-insp" aria-label="Complaint details">
     <div class="cd-sec"><h2>Ready to print <span class="cd-count wait" id="cd-cnt"></span></h2><div class="cd-chk" id="cd-chk"></div></div>
-    <div class="cd-sec"><h2>On the page</h2>
+    <div class="cd-sec"><h2><?= e(t('On the page', 'Nasa pahina')) ?></h2>
       <div class="cd-field"><label for="f-by">Requested by</label><input id="f-by" value="<?= e($by) ?>" autocomplete="off"></div>
       <label class="cd-tick"><input type="checkbox" id="f-map" checked> Map of the pinned location</label>
       <label class="cd-tick"><input type="checkbox" id="f-media" <?= $media ? 'checked' : '' ?> <?= $media ? '' : 'disabled' ?>> Photos (<?= count($media) ?>)</label>
     </div>
-    <div class="cd-sec"><h2>The complaint</h2>
+    <div class="cd-sec"><h2><?= e(t('The complaint', 'Ang sumbong')) ?></h2>
       <div class="cd-chk">
         <div class="y"><i>&#10003;</i><?= e($report['tracking_id'] ?? '') ?> · <?= e(status_label((string) ($report['status'] ?? ''))) ?></div>
         <div class="y"><i>&#10003;</i><?= e($catLabel) ?></div>
@@ -176,9 +176,9 @@ doc_head('Barangay Complaint ' . ($report['tracking_id'] ?? ''), true);
 </div>
 <div class="cd-toast" id="cd-toast" role="status"></div>
 
-<script src="assets/vendor/maplibre/maplibre-gl.js"></script>
-<script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
-<script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/maplibre/maplibre-gl.js?v=<?= e(vendor_version('maplibre-gl')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var CSRF = <?= json_encode(csrf_token()) ?>, LAT = <?= json_encode($lat) ?>, LNG = <?= json_encode($lng) ?>;

@@ -218,8 +218,8 @@ function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
 </div>
 <?php endif; ?>
 <?php if ($part !== 'strip'): ?>
-<script>window.SS_WX = {lat: 14.5194, lng: 121.0122, labels: <?= json_encode(["clear" => t("Clear", "Maaliwalas"), "mostly" => t("Mostly clear", "Halos maaliwalas"), "partly" => t("Partly cloudy", "Bahagyang maulap"), "cloudy" => t("Cloudy", "Maulap"), "fog" => t("Fog", "Hamog"), "drizzle" => t("Drizzle", "Ambon"), "rain" => t("Rain", "Ulan"), "shower" => t("Rain showers", "Pagulan"), "storm" => t("Thunderstorm", "Pagkulog at pagkidlat"), "off" => t("Weather unavailable", "Walang datos ng panahon"), "feels" => t("Feels like", "Pakiramdam"), "wind" => t("Wind", "Hangin"), "rainnow" => t("Rain now", "Ulan ngayon"), "humidity" => t("Humidity", "Halumigmig")], JSON_UNESCAPED_UNICODE) ?>};</script>
-<script src="assets/js/briefing.js?v=<?= e(asset_version('../js/briefing.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">window.SS_WX = {lat: 14.5194, lng: 121.0122, labels: <?= json_encode(["clear" => t("Clear", "Maaliwalas"), "mostly" => t("Mostly clear", "Halos maaliwalas"), "partly" => t("Partly cloudy", "Bahagyang maulap"), "cloudy" => t("Cloudy", "Maulap"), "fog" => t("Fog", "Hamog"), "drizzle" => t("Drizzle", "Ambon"), "rain" => t("Rain", "Ulan"), "shower" => t("Rain showers", "Pagulan"), "storm" => t("Thunderstorm", "Pagkulog at pagkidlat"), "off" => t("Weather unavailable", "Walang datos ng panahon"), "feels" => t("Feels like", "Pakiramdam"), "wind" => t("Wind", "Hangin"), "rainnow" => t("Rain now", "Ulan ngayon"), "humidity" => t("Humidity", "Halumigmig")], JSON_UNESCAPED_UNICODE) ?>};</script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/briefing.js?v=<?= e(asset_version('../js/briefing.js')) ?>"></script>
 <?php endif; ?>
 <?php
 }

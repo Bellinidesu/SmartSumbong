@@ -257,10 +257,10 @@
     const end = TL.start + (TL.idx + 1) * DAY, from = TL.win === 'day' ? end - DAY : TL.win === 'week' ? end - 7 * DAY : TL.start;
     return t >= from && t < end;
   } };
-  const tBtn = mkBtn('tl-btn', 'clock', T('Time slider', 'Time slider')); tBtn.setAttribute('aria-pressed', 'false');
+  const tBtn = mkBtn('tl-btn', 'clock', T('Time slider', 'Panggalaw ng oras')); tBtn.setAttribute('aria-pressed', 'false');
   dock.insertBefore(tBtn, document.getElementById('legend-toggle'));
   const tBar = mkPop('ss-tl', 'ss-tl');
-  tBar.setAttribute('role', 'group'); tBar.setAttribute('aria-label', T('Time slider', 'Time slider'));
+  tBar.setAttribute('role', 'group'); tBar.setAttribute('aria-label', T('Time slider', 'Panggalaw ng oras'));
   tBar.innerHTML = '<button type="button" class="tl-play" aria-label="' + esc(T('Play', 'I-play')) + '"><span class="i-play">' + sdIcon('play') + '</span><span class="i-pause">' + sdIcon('pause') + '</span></button>' +
     '<div class="tl-mid"><div class="tl-bars" id="tl-bars"></div><input type="range" id="tl-rng" min="0" max="1" step="1" value="0" aria-label="' + esc(T('Day', 'Araw')) + '"><div class="tl-lbl"><b id="tl-day"></b><span id="tl-n"></span></div></div>' +
     '<div class="tl-seg" role="group"><button type="button" data-w="day">' + esc(T('Day', 'Araw')) + '</button><button type="button" data-w="week">' + esc(T('Week', 'Linggo')) + '</button><button type="button" data-w="all">' + esc(T('To date', 'Hanggang ngayon')) + '</button></div>' +

@@ -182,7 +182,7 @@ $when  = fn(string $iso) => (new DateTimeImmutable($iso))->setTimezone($tzM)->fo
     </div></div>
     <div class="cd-tools" role="toolbar" aria-label="Zoom">
       <button type="button" id="cd-zo" aria-label="Zoom out">&minus;</button><span class="cd-z" id="cd-zl">100%</span><button type="button" id="cd-zi" aria-label="Zoom in">+</button>
-      <span class="cd-sep"></span><button type="button" id="cd-zf">Fit page</button><button type="button" id="cd-zw">Fit width</button><span class="cd-sep"></span><span>Letter</span>
+      <span class="cd-sep"></span><button type="button" id="cd-zf"><?= e(t('Fit page', 'Buong pahina')) ?></button><button type="button" id="cd-zw"><?= e(t('Fit width', 'Buong lapad')) ?></button><span class="cd-sep"></span><span>Letter</span>
     </div>
   </section>
 
@@ -209,7 +209,7 @@ $when  = fn(string $iso) => (new DateTimeImmutable($iso))->setTimezone($tzM)->fo
     </div>
     <div class="cd-sec"><h2>History</h2>
       <ul class="cd-hist" id="cd-hist">
-        <?php if (!$history): ?><li><span>No activity recorded yet.</span></li><?php endif; ?>
+        <?php if (!$history): ?><li><span><?= e(t('No activity recorded yet.', 'Wala pang naitalang gawain.')) ?></span></li><?php endif; ?>
         <?php foreach ($history as $h):
           $printed = str_starts_with((string) ($h['remark'] ?? ''), CERT_PRINT_REMARK);
           $what = $printed ? 'Certificate printed' : ($h['old_status'] === null ? 'Filed' : status_label((string) $h['new_status'])); ?>
@@ -223,7 +223,7 @@ $when  = fn(string $iso) => (new DateTimeImmutable($iso))->setTimezone($tzM)->fo
 </div>
 <div class="cd-toast" id="cd-toast" role="status"></div>
 
-<script>
+<script nonce="<?= csp_nonce() ?>">
 (function () {
   var REASONS = <?= json_encode(array_map(fn($k, $r) => [$k, $short[$k], $r['office'], $r['lead']], array_keys(CERT_REASONS), CERT_REASONS), JSON_UNESCAPED_UNICODE) ?>;
   var CSRF = <?= json_encode(csrf_token()) ?>, ADMIN = <?= json_encode(name_or($admin['full_name'] ?? null, 'Admin')) ?>;

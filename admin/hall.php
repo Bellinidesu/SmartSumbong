@@ -103,6 +103,6 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
   </main>
   <footer><span><?= $e(t('Counts only. Reports stay private.', 'Mga bilang lamang. Pribado ang mga ulat.')) ?></span><span>SmartSumbong · SMART</span></footer>
 <?php endif; ?>
-<?php if (is_array($h) || $h === false): ?><script>setTimeout(function () { location.reload(); }, 30000);</script><?php endif; ?>
+<?php if (is_array($h) || $h === false): ?><script nonce="<?= csp_nonce() ?>">setTimeout(function () { location.reload(); }, 30000);</script><?php endif; ?>
 </body>
 </html>

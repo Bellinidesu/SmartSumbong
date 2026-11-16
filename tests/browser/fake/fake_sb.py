@@ -271,7 +271,7 @@ RPC = {
     'propose_tanod_committee': 'proposed', 'decide_tanod_committee': None, 'remove_tanod_committee': None, 'punch': None,
     'app_release_publish': 'e1000000-0000-0000-0000-000000000009', 'app_release_set_active': None,
 
-    'preview_start': lambda p: {'id': 'e0000000-0000-0000-0000-000000000001', 'code': 'ABCD2345', 'channel': 'c' * 36, 'expires_at': ahead(0.5)}, 'preview_end': None,
+    'preview_start': lambda p: {'id': 'e0000000-0000-0000-0000-000000000001', 'code': 'ABCD2345', 'channel': 'c' * 36, 'expires_at': (dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=30)).isoformat()}   # the real clock: a fake that has run for hours must not hand out an expired code, 'preview_end': None,
     'dev_levels': [{'level': 'super', 'account': 't-super', 'name': 'Test Super admin, Marites', 'committee': None},
                    {'level': 'captain', 'account': 't-captain', 'name': 'Test Captain, Marites', 'committee': None},
                    {'level': 'committee', 'account': 't-committee', 'name': 'Test Kagawad, Marites', 'committee': 'peace_order'},

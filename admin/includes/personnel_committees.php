@@ -273,8 +273,8 @@ function render_punch_page(Supabase $db): void
       </section>
     <?php endforeach; ?>
     </div>
-    <script src="assets/js/tiles.js?v=<?= e(asset_version('../js/tiles.js')) ?>" defer></script>
-    <script src="assets/js/fit-grid.js?v=<?= e(asset_version('../js/fit-grid.js')) ?>" defer></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/tiles.js?v=<?= e(asset_version('../js/tiles.js')) ?>" defer></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/js/fit-grid.js?v=<?= e(asset_version('../js/fit-grid.js')) ?>" defer></script>
     <?= committee_banner_script() ?>
     <?php endif;
     layout_foot();

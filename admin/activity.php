@@ -57,7 +57,7 @@ foreach ((array) ($got['logs'] ?? []) as $l) {
     if (!is_array($l)) continue;
     $by = $l['by'] ?? null;
     $items[] = [
-        'at' => $l['created_at'], 'report' => $l['report_id'], 'case' => $l['report'] ?? [],
+        'at' => $l['created_at'], 'report' => $l['report_id'] ?? null, 'case' => $l['report'] ?? [],
         'who' => !empty($l['is_system']) ? null : $by,
         'what' => trim((string) ($l['remark'] ?? '')) !== '' ? (string) $l['remark'] : t('Status: ', 'Katayuan: ') . status_label((string) $l['new_status']),
     ];
@@ -138,8 +138,8 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
 </div>
 </div><?php // #act-list ?>
 
-<script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
-<script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">
 // New rows anywhere reload the feed (debounced), the same way Case Reports
 // keeps itself current.
 (function () {

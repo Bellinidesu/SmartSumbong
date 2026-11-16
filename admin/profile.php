@@ -416,7 +416,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     <?php endif; ?>
     <p class="st-note ss-al-note"><span id="ss-al-saved" role="status"></span><?= e(t('These choices also apply to the SmartSumbong app on your phone. Notifications here in the portal always keeps everything; only the alert is held back.', 'Ganito rin sa SmartSumbong app sa telepono mo. Laging kumpleto ang Notifications dito sa portal; ang alerto lamang ang hindi ipinapadala.')) ?></p>
   </div>
-  <script src="assets/js/alerts.js?v=<?= e(asset_version('../js/alerts.js')) ?>" defer></script>
+  <script nonce="<?= csp_nonce() ?>" src="assets/js/alerts.js?v=<?= e(asset_version('../js/alerts.js')) ?>" defer></script>
 </div></div>
 
 <form method="post" id="profile-form" enctype="multipart/form-data" novalidate>
@@ -478,10 +478,10 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
       <label class="p-field" for="mobile_number"><span><?= e(t('Mobile number', 'Mobile number')) ?></span>
         <?php if ($mobileLocked): ?>
           <!-- Sent unchanged, so the server still sees the same number. -->
-          <div class="p-input"><input form="profile-form" type="tel" id="mobile_number" name="mobile_number" readonly value="<?= e($me['mobile_number']) ?>"></div>
+          <div class="p-input"><input form="profile-form" type="tel" id="mobile_number" name="mobile_number" readonly value="<?= e((string) ($me['mobile_number'] ?? '')) ?>"></div>
           <small class="p-hint"><?= e(t('This is how you sign in to the Smart Sumbong app, so it cannot be changed here.', 'Ito ang ginagamit mo sa pag-sign in sa Smart Sumbong app, kaya hindi ito mapapalitan dito.')) ?></small>
         <?php else: ?>
-          <div class="p-input"><input form="profile-form" type="tel" id="mobile_number" name="mobile_number" required pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>"></div>
+          <div class="p-input"><input form="profile-form" type="tel" id="mobile_number" name="mobile_number" required pattern="(09|\+639)[0-9]{9}" value="<?= e((string) ($me['mobile_number'] ?? '')) ?>"></div>
           <small class="p-hint"><?= e(t('Eleven digits, starting 09.', 'Labing-isang digit, nagsisimula sa 09.')) ?></small>
         <?php endif; ?></label>
       <label class="p-field" for="email_ro"><span><?= e(t('Email', 'Email')) ?></span><div class="p-input"><input form="profile-form" type="email" id="email_ro" value="<?= e($me['email']) ?>" disabled></div>
@@ -505,8 +505,8 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
   <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-pf-cancel><?= e(t('Cancel', 'Kanselahin')) ?></button><button type="button" class="p-btn p-btn-primary" data-pf-save><?= e(t('Save', 'I-save')) ?></button></div>
 </div></div>
 
-<script src="assets/js/cropper.js?v=<?= e(asset_version('../js/cropper.js')) ?>"></script>
-<script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/cropper.js?v=<?= e(asset_version('../js/cropper.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">
 (function () {
   var $ = function (id) { return document.getElementById(id); }, form = $('profile-form');
   var X = <?= json_encode(['photo' => t('Your photo', 'Iyong larawan'), 'banner' => t('Your banner', 'Iyong banner'), 'use' => t('Use this picture', 'Gamitin ang larawang ito'), 'cancel' => t('Cancel', 'Kanselahin')]) ?>;
@@ -570,7 +570,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
 })();
 </script>
 
-<script>
+<script nonce="<?= csp_nonce() ?>">
 (function () {
   // A password change needs all three boxes: any one filled makes the other two required.
   var pwBoxes = ['current_password', 'new_password', 'confirm_password'].map(function (id) { return document.getElementById(id); }).filter(Boolean);

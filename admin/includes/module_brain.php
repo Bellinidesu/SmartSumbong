@@ -121,7 +121,7 @@ function module_brain(Supabase $db, bool $homeLink = true): string
     <?php if ($home): ?><a class="p-btn p-btn-ghost p-btn-sm mb-home" href="<?= e($home[0]) ?>"><?= e($home[1]) ?> &rarr;</a><?php endif; ?>
   </div></div>
 </div>
-<script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php return (string) ob_get_clean();
 }
 
@@ -172,6 +172,6 @@ function residents_brain(array $n, int $requests = 0): string
     <a class="p-btn p-btn-ghost p-btn-sm mb-home" href="residents.php"><?= e(t('Show every resident', 'Ipakita ang lahat ng residente')) ?> &rarr;</a>
   </div></div>
 </div>
-<script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php return (string) ob_get_clean();
 }

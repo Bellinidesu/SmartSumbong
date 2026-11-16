@@ -103,7 +103,7 @@ require_once __DIR__ . '/includes/signin_shell.php';   // the side panel and the
   </main>
 </div>
 
-<script>
+<script nonce="<?= csp_nonce() ?>">
 (function () {
   var SUPABASE_URL = <?= json_encode(supabase_url()) ?>;
   var SUPABASE_ANON_KEY = <?= json_encode(supabase_key()) ?>;

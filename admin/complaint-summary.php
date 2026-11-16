@@ -360,7 +360,7 @@ $dutyPct = fn(array $d) => ($d['on'] + $d['off']) > 0 ? (int) round($d['on'] / (
     </div></div>
     <div class="cd-tools" role="toolbar" aria-label="Zoom">
       <button type="button" id="cd-zo" aria-label="Zoom out">&minus;</button><span class="cd-z" id="cd-zl">100%</span><button type="button" id="cd-zi" aria-label="Zoom in">+</button>
-      <span class="cd-sep"></span><button type="button" id="cd-zf">Fit page</button><button type="button" id="cd-zw">Fit width</button><span class="cd-sep"></span><span>Letter</span>
+      <span class="cd-sep"></span><button type="button" id="cd-zf"><?= e(t('Fit page', 'Buong pahina')) ?></button><button type="button" id="cd-zw"><?= e(t('Fit width', 'Buong lapad')) ?></button><span class="cd-sep"></span><span>Letter</span>
     </div>
   </section>
 
@@ -388,7 +388,7 @@ $dutyPct = fn(array $d) => ($d['on'] + $d['off']) > 0 ? (int) round($d['on'] / (
   </aside>
 </div>
 
-<script>
+<script nonce="<?= csp_nonce() ?>">
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   // Month reloads the figures; Requested by fills in live.

@@ -312,7 +312,7 @@ $flair = greeting_flair($now, $first);
 </section>
   </div></div>
 </div>
-<script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php endif; ?>
 
 <!-- ---------- the Dashboard's own layout again (Rose, 2 Nov 2026; Ace agreed): the month's reports across the top, then the
@@ -385,10 +385,10 @@ $flair = greeting_flair($now, $first);
 $intro = empty($_SESSION['dash_intro']);
 $_SESSION['dash_intro'] = true;
 ?>
-<script>window.SS_INTRO = <?= $intro ? 'true' : 'false' ?>;</script>
-<script src="assets/js/dash-intro.js?v=<?= e(asset_version('../js/dash-intro.js')) ?>"></script>
-<script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
-<script>
+<script nonce="<?= csp_nonce() ?>">window.SS_INTRO = <?= $intro ? 'true' : 'false' ?>;</script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/dash-intro.js?v=<?= e(asset_version('../js/dash-intro.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">
 (function () {
   var M = {
     daily: <?= json_encode($daily, JSON_UNESCAPED_UNICODE) ?>,

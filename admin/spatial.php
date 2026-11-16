@@ -109,7 +109,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     <div class="pl-head"><h2 id="pl-ttl"><?= e(t('The barangay’s places', 'Mga lugar ng barangay')) ?></h2><button type="button" class="p-btn p-btn-ghost p-btn-sm" data-pl-close><?= e(t('Close', 'Isara')) ?></button></div>
     <div class="pl-body" id="pl-body"></div>
   </dialog>
-  <script src="assets/js/places-panel.js?v=<?= e(asset_version('../js/places-panel.js')) ?>" defer></script>
+  <script nonce="<?= csp_nonce() ?>" src="assets/js/places-panel.js?v=<?= e(asset_version('../js/places-panel.js')) ?>" defer></script>
   <?php endif; ?>
   <aside class="p-map-detail" id="pin-detail" hidden></aside>
   <aside class="cs-sheet" id="case-sheet" hidden aria-label="<?= e(t('Complaint details', 'Detalye ng sumbong')) ?>"></aside>
@@ -241,7 +241,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
   </div>
 </section>
 
-<link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
+<link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css?v=<?= e(vendor_version('maplibre-gl')) ?>">
 <link rel="stylesheet" href="assets/css/sd-widgets.css?v=<?= e(asset_version('sd-widgets.css')) ?>">
 <link rel="stylesheet" href="assets/css/sd-look.css?v=<?= e(asset_version('sd-look.css')) ?>">
 <link rel="stylesheet" href="assets/css/sd-light.css?v=<?= e(asset_version('sd-light.css')) ?>">
@@ -249,16 +249,13 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 <?php if ($ccOn): ?>
 <link rel="stylesheet" href="assets/css/sd-command.css?v=<?= e(asset_version('sd-command.css')) ?>">
 <?php endif; ?>
-<script src="assets/vendor/maplibre/maplibre-gl.js"></script>
-<?php if (env('MAPILLARY_TOKEN', '') !== ''): ?>
-<link rel="stylesheet" href="assets/vendor/mapillary/mapillary.css">
-<script src="assets/vendor/mapillary/mapillary.js"></script>
-<?php endif; ?>
-<script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
-<script src="assets/js/sd-icons.js?v=<?= e(asset_version('../js/sd-icons.js')) ?>"></script>
-<script src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
-<script src="assets/vendor/supabase/supabase.js"></script>
-<script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/maplibre/maplibre-gl.js?v=<?= e(vendor_version('maplibre-gl')) ?>"></script>
+<?php // Mapillary (1 MB) loads the first time StreetLook opens, not with the page (speed sweep, 16 Nov 2026); see mlyLoad() ?>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-icons.js?v=<?= e(asset_version('../js/sd-icons.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">
 // Self-hosted rather than imported from esm.sh. This script runs with the
 // administrator's session token in scope, so third-party delivery of it
 // would mean a compromised CDN could read that token and act as the
@@ -1155,9 +1152,15 @@ function lkClose(silent) {
   if (silent) { el.remove(); return; }
   el.classList.remove('open'); el.classList.add('out'); setTimeout(() => el.remove(), 520);
 }
+function mlyLoad(cb) {
+  if (window.mapillary) { cb(); return; }
+  if (!document.querySelector('link[data-mly]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'assets/vendor/mapillary/mapillary.css?v=<?= e(vendor_version('mapillary-js')) ?>'; l.dataset.mly = '1'; document.head.appendChild(l); }
+  const sc = document.createElement('script'); sc.src = 'assets/vendor/mapillary/mapillary.js?v=<?= e(vendor_version('mapillary-js')) ?>'; sc.onload = cb; document.head.appendChild(sc);
+}
 function lkOpen(r) {
   lkClose(true);
-  if (!window.mapillary || !MLY) return;
+  if (!MLY) return;
+  if (!window.mapillary) { mlyLoad(() => lkOpen(r)); return; }
   const sec = document.getElementById('s-spatial'), lng = +r.longitude, lat = +r.latitude, col = catColour(r.category);
   const here = { lng, lat }, glyph = (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
   const el = document.createElement('div'); el.id = 'ss-lk'; el.className = 'ss-lk'; el.style.setProperty('--cs', col); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', T('StreetLook: street view of the case', 'StreetLook: street view ng kaso')); el.dataset.from = (document.activeElement && document.activeElement.id) || '';
@@ -2470,20 +2473,20 @@ if (HOTSPOTS) hotspotToggleBtn.addEventListener('click', () => {
 loadBoundary();
 load();
 </script>
-<script src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
-<script src="assets/js/sd-dock.js?v=<?= e(asset_version('../js/sd-dock.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-dock.js?v=<?= e(asset_version('../js/sd-dock.js')) ?>"></script>
 <?php if ($smartOn): ?>
-<script>window.SS_SMART = <?= json_encode(['levels' => (object) $smartLevels, 'late' => array_column($smartLate, 'report_id'),
+<script nonce="<?= csp_nonce() ?>">window.SS_SMART = <?= json_encode(['levels' => (object) $smartLevels, 'late' => array_column($smartLate, 'report_id'),
     'recur' => array_map(fn($p) => ['lat' => (float) $p['lat'], 'lng' => (float) $p['lng']], $patterns),
     'recurIds' => array_values(array_unique(array_merge(...array_map(fn($p) => array_map('strval', (array) ($p['tracking_ids'] ?? [])), $patterns ?: [[]])))),
     'busy' => $smartBusy,
     'lateInfo' => (object) array_column(array_map(fn($r) => ['id' => $r['report_id'], 'left' => (float) $r['hours_left'], 'typical' => (float) $r['typical_hours']], $smartLate), null, 'id'),
     'spikes' => count($smartSpikes), 'recurring' => count($patterns)], JSON_UNESCAPED_UNICODE) ?>;</script>
-<script src="assets/js/sd-smart.js?v=<?= e(asset_version('../js/sd-smart.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-smart.js?v=<?= e(asset_version('../js/sd-smart.js')) ?>"></script>
 <?php endif; ?>
 <?php if ($ccOn): ?>
-<script>window.SS_CMD = <?= json_encode(['csrf' => csrf_token(), 'status' => status_labels()], JSON_UNESCAPED_UNICODE) ?>;</script>
-<script src="assets/js/sd-command.js?v=<?= e(asset_version('../js/sd-command.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">window.SS_CMD = <?= json_encode(['csrf' => csrf_token(), 'status' => status_labels()], JSON_UNESCAPED_UNICODE) ?>;</script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-command.js?v=<?= e(asset_version('../js/sd-command.js')) ?>"></script>
 <?php endif; ?>
 
 <?php layout_foot(); ?>

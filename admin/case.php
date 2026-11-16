@@ -968,9 +968,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php if ($hid === ''): ?>
       <div class="ss-handler"><div><b><?= e(t('Nobody is handling this case yet', 'Wala pang humahawak sa kasong ito')) ?></b><span class="p-hint"><?= e(t('Accepting it, or any action on it, makes it yours.', 'Kapag tinanggap mo ito o kumilos ka rito, ikaw na ang hahawak.')) ?></span></div></div>
     <?php elseif ($mine): ?>
-      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b><div class="ss-hrow"><?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div></div>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b><div class="ss-hrow"><?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime(($report['handled_since'] ?? null))) ?></span></div></div></div>
     <?php else: ?>
-      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><div class="ss-hrow"><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?></div><?php if (!empty($report['handled_since'])): ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span><?php endif; ?></div></div>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><div class="ss-hrow"><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?></div><?php if (!empty(($report['handled_since'] ?? null))): ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime(($report['handled_since'] ?? null))) ?></span><?php endif; ?></div></div>
       <div class="ss-locked"><?= sprintf(e(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.')), $ccWho) ?></div>
       <details class="p-fix" data-keep-details data-ic="user">
         <summary><span class="cc-st"><?= e(t('Take over', 'Kunin')) ?><small><?= e(t('Make the case yours', 'Gawing sa iyo ang kaso')) ?></small></span></summary>
@@ -1680,20 +1680,20 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
 </div>
 
-<script>
+<script nonce="<?= csp_nonce() ?>">
 // 0087 (D): every form on this page says which version of the case it saw.
 document.querySelectorAll('form[method="post"]').forEach(function (f) {
   var v = document.createElement('input'); v.type = 'hidden'; v.name = 'v'; v.value = <?= json_encode((string) ($report['version'] ?? '0')) ?>; f.appendChild(v);
 });
 </script>
-<link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
-<script src="assets/vendor/maplibre/maplibre-gl.js"></script>
-<script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
-<script src="assets/js/case-smart.js?v=<?= e(asset_version('../js/case-smart.js')) ?>" defer></script>
-<script src="assets/js/case-chat-button.js?v=<?= e(asset_version('../js/case-chat-button.js')) ?>" defer></script>
-<script src="assets/js/case-tabs.js?v=<?= e(asset_version('../js/case-tabs.js')) ?>" defer></script>
-<?php if (count($concerns) > 1): ?><script src="assets/js/case-focus.js?v=<?= e(asset_version('../js/case-focus.js')) ?>" defer></script><?php endif; ?>
-<script>
+<link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css?v=<?= e(vendor_version('maplibre-gl')) ?>">
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/maplibre/maplibre-gl.js?v=<?= e(vendor_version('maplibre-gl')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/case-smart.js?v=<?= e(asset_version('../js/case-smart.js')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/case-chat-button.js?v=<?= e(asset_version('../js/case-chat-button.js')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/case-tabs.js?v=<?= e(asset_version('../js/case-tabs.js')) ?>" defer></script>
+<?php if (count($concerns) > 1): ?><script nonce="<?= csp_nonce() ?>" src="assets/js/case-focus.js?v=<?= e(asset_version('../js/case-focus.js')) ?>" defer></script><?php endif; ?>
+<script nonce="<?= csp_nonce() ?>">
 (function () {
   // ---- copy the tracking id ----
   document.querySelectorAll('[data-copy]').forEach(function (btn) {
@@ -1884,8 +1884,8 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
       }
       function loadMly(cb) {
         if (window.mapillary) { cb(); return; }
-        var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'assets/vendor/mapillary/mapillary.css'; document.head.appendChild(l);
-        var sc = document.createElement('script'); sc.src = 'assets/vendor/mapillary/mapillary.js'; sc.onload = cb; document.head.appendChild(sc);
+        var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'assets/vendor/mapillary/mapillary.css?v=<?= e(vendor_version('mapillary-js')) ?>'; document.head.appendChild(l);
+        var sc = document.createElement('script'); sc.src = 'assets/vendor/mapillary/mapillary.js?v=<?= e(vendor_version('mapillary-js')) ?>'; sc.onload = cb; document.head.appendChild(sc);
       }
       function closeStreet() { var el = document.getElementById('case-street'); try { if (street) street.remove(); } catch (e) { /* gone */ } street = null; if (el) el.remove(); }
       if (snap) snap.addEventListener('click', function () {
@@ -1904,8 +1904,8 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 </script>
 
 <?= case_chat_head(case_chat_conversations($report, $dispatches, $thread, $threadMedia, $messages, $status), $id, (string) $report['tracking_id']) ?>
-<script src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
-<script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>">
 // Realtime, added 6 Sep 2026 — explicit ask: "the entire system needs to
 // work realtime." This is the one page in the portal with live form
 // inputs on screen at the same time as the data that could change under
