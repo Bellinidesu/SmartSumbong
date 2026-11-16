@@ -5,7 +5,7 @@
   'use strict';
   var root = document.getElementById('cc-chat'); if (!root) { return; }
   var KEY = 'ss-case-chat-mode', id = root.getAttribute('data-case');
-  var uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '') ? id.toLowerCase() : '';   // the address is built here from a checked id, not read off the page
+  var go = root.querySelector('[data-cc-inbox]');   // a real link, drawn by the page; the button only follows it
   var btn = root.querySelector('[data-cc-chat]'), car = root.querySelector('[data-cc-chat-menu]'), menu = root.querySelector('.ss-chatmenu'), n = root.querySelector('.ss-chatn');
   var T = window.T || function (en) { return en; };
   var mode = 'head'; try { mode = localStorage.getItem(KEY) === 'page' ? 'page' : 'head'; } catch (e) { /* the default */ }
@@ -20,7 +20,7 @@
   function openMenu() { menu.hidden = false; car.setAttribute('aria-expanded', 'true'); var on = menu.querySelector('[aria-checked="true"]'); if (on) { on.focus(); } }
 
   btn.addEventListener('click', function () {
-    if (mode === 'page') { if (uuid) { window.location.assign('inbox.php?app=chats&c=' + uuid + '&k=r'); } return; }
+    if (mode === 'page') { if (go) { go.click(); } return; }
     var core = window.ssChatCore;
     if (core && core.store) { core.store.patch(id, { pin: true }); }   // it floats on every other page too
     var head = document.getElementById('chat-head'), panel = document.getElementById('ch-panel'), fab = document.getElementById('ch-fab');
