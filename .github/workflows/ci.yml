@@ -91,12 +91,12 @@ jobs:
         run: bash .github/scripts/portal-smoke.sh
 
   browser:
-    # The slow job (about 6 minutes), and not a required check. During the super admin overhaul it is skipped on pull requests
+    # The slow job (about 20 minutes since Nov 2026), and not a required check. During the super admin overhaul it is skipped on pull requests
     # (the same suite runs locally before each push) and still runs after a merge to main, on manual dispatch, and on any pull
     # request labelled full-ci. Remove this line to run it on every pull request again.
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 40   # the suite grew past 15 minutes in Nov 2026 and every run on main was cancelled (sweep, 16 Nov 2026)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
