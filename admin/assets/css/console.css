@@ -489,3 +489,10 @@
 .ss-vhead p.p-eyebrow em { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: 10px; padding: 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-muted) 18%, transparent); color: var(--p-ink); font: 700 12px Inter, sans-serif; font-style: normal; vertical-align: middle; letter-spacing: 0; }
 .ss-vhead .p-hint { margin: 0; }
 .ss-pdot { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .5); }
+/* SMART > Try and measure: two columns of stacked cards, so neither side has empty space beside it (Ace, 16 Nov 2026) */
+.page-settings .st-pane[data-pane="smart"] .ss-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.page-settings .st-pane[data-pane="smart"] .ss-col { display: grid; gap: 16px; min-width: 0; align-content: start; }
+.page-settings .st-pane[data-pane="smart"] .ss-col > .p-card { margin: 0; }
+@media (max-width: 900px) { .page-settings .st-pane[data-pane="smart"] .ss-cols { grid-template-columns: minmax(0, 1fr); } }
+/* Appearance: the two cards side by side, so a label is never a thousand pixels from its switch */
+@media (min-width: 1280px) { .page-settings .st-pane[data-pane="look"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } .page-settings .st-pane[data-pane="look"] > :not(.p-card) { grid-column: 1 / -1; } }

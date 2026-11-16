@@ -1261,15 +1261,6 @@ function render_account_detail(
         <?php endif; ?>
 
         </div>
-        <div class="p-card p-card-pad pd-details">
-          <p class="p-eyebrow"><?= e(t('Account Details', 'Detalye ng Account')) ?></p>
-          <dl class="p-dl">
-            <dt><?= e(t('Full name', 'Buong pangalan')) ?></dt><dd><?= e(formal_name($p['full_name'])) ?></dd>
-            <dt><?= e(t('Email address', 'Email address')) ?></dt><dd><?= e($p['email']) ?><?= copy_btn((string) ($p['email'] ?? ''), t('the email', 'ang email')) ?></dd>
-            <dt><?= e(t('Mobile number', 'Mobile number')) ?></dt><dd class="p-mono"><?= e($p['mobile_number']) ?><?= copy_btn((string) ($p['mobile_number'] ?? ''), t('the number', 'ang numero')) ?></dd>
-            <dt><?= e(t('Registered', 'Nagparehistro')) ?></dt><dd><?= e(long_datetime($p['created_at'])) ?></dd>
-          </dl>
-        </div>
 
         <?php if ($filed !== null):
               $isOpenSt = fn ($st) => !in_array((string) $st, ['resolved', 'closed', 'archived', 'rejected'], true);
@@ -1282,14 +1273,6 @@ function render_account_detail(
           <div class="<?= $nFlag > 0 ? 'pd-hot' : '' ?>"><span><?= e(t('Flagged', 'Namarkahan')) ?></span><b class="p-num"><?= $nFlag ?></b><small><?= e(t('as abusive or fabricated', 'bilang mapang-abuso o gawa-gawa')) ?></small></div>
         </div>
         <?php endif; ?>
-        <nav class="st-tabs pd-tabs" role="tablist" aria-label="<?= e(t('Sections of this account', 'Mga seksyon ng account na ito')) ?>">
-          <button type="button" class="st-link<?= $tab0 === 'overview' ? ' p-on' : '' ?>" role="tab" data-tab="overview" aria-selected="<?= $tab0 === 'overview' ? 'true' : 'false' ?>"><?= e(t('Overview', 'Buod')) ?></button>
-          <?php if ($filed !== null): ?><button type="button" class="st-link" role="tab" data-tab="reports" aria-selected="false"><?= e(t('Reports', 'Mga ulat')) ?><b class="pd-tn"><?= count($filed) ?></b></button><?php endif; ?>
-          <?php if ($duty): ?><button type="button" class="st-link" role="tab" data-tab="dispatches" aria-selected="false"><?= e(t('Dispatches', 'Mga dispatch')) ?><b class="pd-tn"><?= count($duty['recent']) ?></b></button><?php endif; ?>
-          <button type="button" class="st-link<?= $tab0 === 'documents' ? ' p-on' : '' ?>" role="tab" data-tab="documents" aria-selected="<?= $tab0 === 'documents' ? 'true' : 'false' ?>"><?= e(t('Documents', 'Mga dokumento')) ?></button>
-        </nav>
-        <?php if ($tcRow !== null) { render_tc_card($p, $tcRow); } ?>
-
         <?php if ($duty): $st = $duty['stats']; ?>
         <div class="pd-fig" aria-label="<?= e(t('Duty', 'Tungkulin')) ?> &middot; <?= e($st['month']) ?>">
           <div><span><?= e(t('Dispatched', 'Na-dispatch')) ?></span><b class="p-num"><?= (int) $st['dispatched'] ?></b><small><?= e($st['month']) ?></small></div>
@@ -1297,6 +1280,26 @@ function render_account_detail(
           <div><span><?= e(t('Resolved', 'Nalutas')) ?></span><b class="p-num"><?= (int) $st['resolved'] ?></b><small><?= e(t('closed by this tanod', 'naisara ng tanod na ito')) ?></small></div>
           <div><span><?= e(t('Avg. response', 'Karaniwang tugon')) ?></span><b class="p-num"><?= $st['avg_min'] === null ? '—' : ($st['avg_min'] < 60 ? (int) round($st['avg_min']) . ' min' : round($st['avg_min'] / 60, 1) . ' h') ?></b><small><?= e(t('assigned to accepted', 'mula na-assign hanggang tinanggap')) ?></small></div>
         </div>
+        <?php endif; ?>
+        <div class="p-card pd-box">
+        <nav class="st-tabs pd-tabs" role="tablist" aria-label="<?= e(t('Sections of this account', 'Mga seksyon ng account na ito')) ?>">
+          <button type="button" class="st-link<?= $tab0 === 'overview' ? ' p-on' : '' ?>" role="tab" data-tab="overview" aria-selected="<?= $tab0 === 'overview' ? 'true' : 'false' ?>"><?= e(t('Overview', 'Buod')) ?></button>
+          <?php if ($filed !== null): ?><button type="button" class="st-link" role="tab" data-tab="reports" aria-selected="false"><?= e(t('Reports', 'Mga ulat')) ?><b class="pd-tn"><?= count($filed) ?></b></button><?php endif; ?>
+          <?php if ($duty): ?><button type="button" class="st-link" role="tab" data-tab="dispatches" aria-selected="false"><?= e(t('Dispatches', 'Mga dispatch')) ?><b class="pd-tn"><?= count($duty['recent']) ?></b></button><?php endif; ?>
+          <button type="button" class="st-link<?= $tab0 === 'documents' ? ' p-on' : '' ?>" role="tab" data-tab="documents" aria-selected="<?= $tab0 === 'documents' ? 'true' : 'false' ?>"><?= e(t('Documents', 'Mga dokumento')) ?></button>
+        </nav>
+        <div class="p-card p-card-pad pd-details">
+          <p class="p-eyebrow"><?= e(t('Account Details', 'Detalye ng Account')) ?></p>
+          <dl class="p-dl">
+            <dt><?= e(t('Full name', 'Buong pangalan')) ?></dt><dd><?= e(formal_name($p['full_name'])) ?></dd>
+            <dt><?= e(t('Email address', 'Email address')) ?></dt><dd><?= e($p['email']) ?><?= copy_btn((string) ($p['email'] ?? ''), t('the email', 'ang email')) ?></dd>
+            <dt><?= e(t('Mobile number', 'Mobile number')) ?></dt><dd class="p-mono"><?= e($p['mobile_number']) ?><?= copy_btn((string) ($p['mobile_number'] ?? ''), t('the number', 'ang numero')) ?></dd>
+            <dt><?= e(t('Registered', 'Nagparehistro')) ?></dt><dd><?= e(long_datetime($p['created_at'])) ?></dd>
+          </dl>
+        </div>
+        <?php if ($tcRow !== null) { render_tc_card($p, $tcRow); } ?>
+
+        <?php if ($duty): ?>
         <div class="p-card p-card-pad pd-duty">
           <p class="p-eyebrow"><?= e(t("Today's shift", 'Shift ngayong araw')) ?></p>
           <?php $sh = $duty['shift']; $tot = array_sum($sh); ?>
@@ -1481,6 +1484,7 @@ function render_account_detail(
             <?php endif; ?>
           </div>
         <?php endif; ?>
+        </div><?php // .pd-box ?>
       </div>
 
       <aside class="p-card p-controls" aria-label="<?= e(t('Account controls', 'Kontrol ng account')) ?>">
