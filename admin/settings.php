@@ -1399,12 +1399,14 @@ $stAlertN = count((array) $alerts);
   <div class="st-hero" id="st-banner" data-tone="checking" aria-live="polite"></div>
   <div class="st-main">
     <div class="p-card p-card-pad st-svcs" id="st-svcs">
-      <div class="st-svch"><h2><?= e(t('Services', 'Mga serbisyo')) ?></h2><small><?= e(t('Tap one for details and what you can do', 'Pindutin ang isa para sa detalye at kung ano ang magagawa mo')) ?></small></div>
+      <div class="st-svch"><h2><?= e(t('Services', 'Mga serbisyo')) ?></h2>
+        <div class="st-view" role="group" aria-label="<?= e(t('How to show the services', 'Paano ipakita ang mga serbisyo')) ?>"><button type="button" class="p-on" data-st-view="list" aria-pressed="true"><?= e(t('List', 'Listahan')) ?></button><button type="button" data-st-view="map" aria-pressed="false"><?= e(t('Diagram', 'Dayagram')) ?></button></div></div>
       <div class="st-legend" aria-label="<?= e(t('How to read the bars', 'Paano basahin ang mga guhit')) ?>">
         <span><?= e(t('Each bar is one check, the oldest on the left and the newest on the right.', 'Ang bawat guhit ay isang pagsusuri, ang pinakamatanda sa kaliwa at ang pinakabago sa kanan.')) ?></span>
         <span class="st-lg"><i class="g"></i><?= e(t('Answered fast', 'Mabilis sumagot')) ?></span><span class="st-lg"><i class="a"></i><?= e(t('Slow', 'Mabagal')) ?></span><span class="st-lg"><i class="r"></i><?= e(t('No answer', 'Walang sagot')) ?></span>
       </div>
       <div class="st-rowlist" id="st-rows"></div>
+      <div class="st-mapwrap" id="st-mapwrap" hidden><div id="st-map"></div></div>
       <p class="st-note"><?= e(t('Under 1.5 seconds counts as working; slower is slow. Supabase, Cloudinary and push alerts are checked from the portal\'s server; maps, address lookup, rain data, live updates and the flood map from this browser, so a failure there can also mean this computer\'s internet connection. No keys or passwords are shown.', 'Mas mababa sa 1.5 segundo ang gumagana; mas mabagal ay mabagal. Sinusuri mula sa server ang Supabase, Cloudinary at push alert; mula sa browser na ito ang mapa, address, ulan, live na update at mapa ng baha.')) ?></p>
     </div>
     <div class="st-side">
@@ -1473,9 +1475,6 @@ $stAlertN = count((array) $alerts);
     <?php endif; ?>
   </div>
   <?php endif; ?>
-  <details class="p-card p-card-pad st-mapd"><summary><span class="p-eyebrow"><?= e(t('How the portal connects', 'Paano kumokonekta ang portal')) ?></span><small><?= e(t('The same services as a diagram', 'Ang parehong serbisyo bilang diagram')) ?></small></summary><div id="st-map"></div></details>
-  <div class="p-card p-card-pad st-credits"><p class="p-eyebrow"><?= e(t('Map credits', 'Mga kredito ng mapa')) ?></p>
-    <p class="st-credit-line"><?= e(t('Map data © OpenStreetMap contributors (ODbL) · tiles by OpenFreeMap and OpenMapTiles · building footprints also from Overture Maps (Google Open Buildings, Microsoft ML Buildings) · tree heights from the Meta and World Resources Institute canopy height map (CC BY 4.0) · floor counts from Overture Maps and OpenStreetMap · flood hazard maps © UP NOAH Center (Project NOAH) · air quality and rain by Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · photos from Wikimedia Commons, credited where shown · icons from Lucide (ISC) and Tabler Icons (MIT).', 'Datos ng mapa © OpenStreetMap contributors (ODbL) · tiles mula sa OpenFreeMap at OpenMapTiles · mga hugis ng gusali mula rin sa Overture Maps (Google Open Buildings, Microsoft ML Buildings) · taas ng puno mula sa canopy height map ng Meta at World Resources Institute (CC BY 4.0) · mapa ng baha © UP NOAH Center (Project NOAH) · kalidad ng hangin at ulan mula sa Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · mga larawan mula sa Wikimedia Commons, may kredito kung saan ipinapakita · mga icon mula sa Lucide (ISC) at Tabler Icons (MIT).')) ?></p></div>
   <?php // the drawer's content for the cards the server knows about; assets/js/settings-status.js opens the right one ?>
   <template id="st-t-attn"><div data-title><?= e(t('Needs attention', 'Kailangang tingnan')) ?></div><div data-sub><?= e($stAlertN ? sprintf(t('%d open · checked every hour', '%d bukas · sinusuri bawat oras'), $stAlertN) : '') ?></div>
     <div data-body>
@@ -1565,11 +1564,19 @@ endif;
   <div class="p-card p-card-pad st-uptime" id="smart-measured" data-sm="overview">
     <p class="p-eyebrow"><?= e(t('How SMART is doing, last 90 days', 'Kumusta ang SMART, nakaraang 90 araw')) ?></p>
     <div class="st-uptime-tiles">
-      <div class="st-uptime-tile"><b><?= isset($pk['top_pick_pct']) ? e(rtrim(rtrim(number_format((float) $pk['top_pick_pct'], 1), '0'), '.')) . '%' : '—' ?></b><span><?= e(sprintf(t('Its first choice of tanod was taken · %d of %d dispatches ranked', 'Kinuha ang unang pinili nitong tanod · %d sa %d na dispatch ang na-rank'), (int) ($pk['top_pick'] ?? 0), (int) ($pk['ranked'] ?? 0))) ?></span></div>
-      <div class="st-uptime-tile"><b><?= (int) ($fx['answered'] ?? 0) > 0 ? e((string) round(100 * (int) ($fx['fixed'] ?? 0) / (int) $fx['answered'])) . '%' : '—' ?></b><span><?= e(sprintf(t('Residents confirmed it was fixed · %d of %d answered', 'Kinumpirma ng mga residente na naayos · %d sa %d ang sumagot'), (int) ($fx['fixed'] ?? 0), (int) ($fx['answered'] ?? 0))) ?></span></div>
-      <div class="st-uptime-tile<?= (int) ($fx['waiting_for_barangay'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($fx['waiting_for_barangay'] ?? 0) ?></b><span><?= e(t('Cases a resident says are not fixed, waiting for the barangay', 'Mga kasong sabi ng residente ay hindi pa naayos, naghihintay sa barangay')) ?></span></div>
+      <div class="st-uptime-tile"><b><?= isset($pk['top_pick_pct']) ? e(rtrim(rtrim(number_format((float) $pk['top_pick_pct'], 1), '0'), '.')) . '%' : '—' ?></b><span><?= e(sprintf(t('Its first choice of tanod was taken. %d of %d dispatches were ranked.', 'Kinuha ang unang pinili nitong tanod. %d sa %d na dispatch ang na-rank.'), (int) ($pk['top_pick'] ?? 0), (int) ($pk['ranked'] ?? 0))) ?></span></div>
+      <div class="st-uptime-tile"><b><?= (int) ($fx['answered'] ?? 0) > 0 ? e((string) round(100 * (int) ($fx['fixed'] ?? 0) / (int) $fx['answered'])) . '%' : '—' ?></b><span><?= e(sprintf(t('Residents confirmed it was fixed. %d of %d have answered.', 'Kinumpirma ng mga residente na naayos. %d sa %d ang sumagot.'), (int) ($fx['fixed'] ?? 0), (int) ($fx['answered'] ?? 0))) ?></span></div>
+      <div class="st-uptime-tile<?= (int) ($fx['waiting_for_barangay'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($fx['waiting_for_barangay'] ?? 0) ?></b><span><?= e(t('Cases a resident says are not fixed, waiting for the barangay.', 'Mga kasong sabi ng residente ay hindi pa naayos, naghihintay sa barangay.')) ?></span></div>
     </div>
-    <p class="st-note"><?= e(t('SMART advises; the barangay decides. The first figure is how often the barangay chose the tanod SMART ranked first. It is not a score of anyone: a lower pick is often the right call.', 'Nagpapayo ang SMART; ang barangay ang nagpapasya. Ang unang bilang ay kung gaano kadalas pinili ng barangay ang tanod na unang nire-rank ng SMART. Hindi ito marka ng sinuman: madalas tama ang mas mababang pinili.')) ?></p>
+    <p class="st-note"><?= e(t('SMART advises; the barangay decides. SMART ranks the tanods for each dispatch, and the first figure is how often the barangay chose the one ranked first. A lower pick is often the right call, so it is not a score of anyone.', 'Nagpapayo ang SMART; ang barangay ang nagpapasya. Nire-rank ng SMART ang mga tanod sa bawat dispatch, at ang unang bilang ay kung gaano kadalas pinili ng barangay ang unang nasa ranggo. Madalas tama ang mas mababang pinili, kaya hindi ito marka ng sinuman.')) ?></p>
+  </div>
+  <?php endif; ?>
+  <?php if (!empty($cal)): $lvCol = ['urgent' => '#E5384A', 'high' => '#FF9800', 'normal' => '#2F6BFF', 'low' => '#8E9DBB']; $lvOrder = ['urgent', 'high', 'normal', 'low']; $lvBy = []; foreach ($cal as $c) { $lvBy[(string) $c['level']] = (int) $c['reports']; } ?>
+  <div class="p-card p-card-pad ss-lvcard" id="smart-levels" data-sm="overview">
+    <p class="p-eyebrow"><?= e(t('Levels of the last 90 days', 'Mga antas sa nakaraang 90 araw')) ?></p>
+    <div class="ss-lvbar" role="img" aria-label="<?= e(implode(', ', array_map(fn ($k) => ($lvl[$k] ?? $k) . ' ' . ($lvBy[$k] ?? 0), $lvOrder))) ?>"><?php foreach ($lvOrder as $k): if (empty($lvBy[$k])) continue; ?><i style="flex:<?= (int) $lvBy[$k] ?>;background:<?= $lvCol[$k] ?>" title="<?= e(($lvl[$k] ?? $k) . ': ' . $lvBy[$k]) ?>"></i><?php endforeach; ?></div>
+    <div class="ss-lvkey"><?php foreach ($lvOrder as $k): ?><span><i style="background:<?= $lvCol[$k] ?>"></i><b><?= (int) ($lvBy[$k] ?? 0) ?></b> <?= e($lvl[$k] ?? $k) ?></span><?php endforeach; ?></div>
+    <p class="st-note"><?= e(t('A longer bar means more reports got that level.', 'Mas mahabang guhit, mas maraming ulat ang nakakuha ng antas na iyon.')) ?></p>
   </div>
   <?php endif; ?>
   <?php if (!$sr): ?>
@@ -1644,7 +1651,8 @@ endif;
   </section>
   <?php endif; ?>
 
-  <section class="p-card p-card-pad" id="smart-words" data-sm="words">
+  <div class="ss-two ss-two--top" data-sm="words">
+  <section class="p-card p-card-pad" id="smart-words">
     <p class="p-eyebrow"><?= e(t('Words to learn', 'Mga salitang aaralin')) ?><em><?= count($words) ?></em></p>
     <p class="p-hint"><?= e(t('Words residents keep using that SMART does not know yet. You teach each one, or dismiss it; nothing is learned on its own.', 'Mga salitang madalas gamitin ng mga residente na hindi pa alam ng SMART. Ikaw ang nagtuturo ng bawat isa, o hindi ito pinapansin; walang natututuhan nang kusa.')) ?></p>
     <?php if (!$words): ?>
@@ -1654,7 +1662,7 @@ endif;
       <?php foreach ($words as $w): $wd = (string) $w['word']; $kindLabel = category_pairs()[(string) ($w['mostly_category'] ?? '')] ?? null; ?>
         <li>
           <div class="sw-head"><b class="sw-w"><?= e($wd) ?></b>
-            <span class="p-hint"><?= (int) $w['reports'] ?> <?= e(t('reports', 'ulat')) ?><?= $kindLabel ? ' · ' . (int) round((float) $w['share']) . '% ' . e(t($kindLabel[0], $kindLabel[1])) : '' ?></span></div>
+            <span class="p-hint"><?= (int) $w['reports'] ?> <?= e(t('reports', 'ulat')) ?><?= $kindLabel ? ' · ' . e(t('mostly ', 'karamihan ay ')) . e(t($kindLabel[0], $kindLabel[1])) : '' ?></span></div>
           <?php if (!empty($w['example'])): ?><p class="sw-ex">&ldquo;<?= e((string) $w['example']) ?>&rdquo;</p><?php endif; ?>
           <?php if (!empty($w['likely_spelling_of'])): ?><p class="sw-likely"><?= e(t('Likely a spelling of', 'Posibleng baybay ng')) ?> <b><?= e((string) $w['likely_spelling_of']) ?></b></p><?php endif; ?>
           <details class="sw-teach"><summary><?= e(t('Teach it', 'Ituro ito')) ?></summary>
@@ -1682,6 +1690,15 @@ endif;
     </ul>
     <?php endif; ?>
   </section>
+  <section class="p-card p-card-pad ss-how">
+    <p class="p-eyebrow"><?= e(t('How teaching works', 'Paano ang pagtuturo')) ?></p>
+    <ol class="ss-howl">
+      <li><b><?= e(t('SMART notices', 'Napapansin ng SMART')) ?></b> <?= e(t('a word that keeps turning up and that it does not know.', 'ang isang salitang paulit-ulit lumalabas na hindi nito alam.')) ?></li>
+      <li><b><?= e(t('You decide', 'Ikaw ang magpapasya')) ?></b> <?= e(t('what it counts as and how many points it adds, or dismiss it.', 'kung ano ang bilang nito at ilang puntos ang idadagdag, o ipagwalang-bahala ito.')) ?></li>
+      <li><b><?= e(t('Test, then save', 'Subukan, saka i-save')) ?></b> <?= e(t('in Rules. A new version keeps who taught it and why.', 'sa Mga patakaran. Itinatago ng bagong bersyon kung sino ang nagturo at bakit.')) ?></li>
+    </ol>
+  </section>
+  </div>
 
   <form method="post" class="p-card p-card-pad" data-sm="rules">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rules">
@@ -1694,6 +1711,8 @@ endif;
       <?php endforeach; ?>
     </div>
     <p class="p-eyebrow" style="margin-top:14px"><?= e(t('Where the levels start (out of 100)', 'Kung saan nagsisimula ang mga antas (sa 100)')) ?></p>
+    <div class="ss-scale" id="ss-scale" role="img" aria-label="<?= e(sprintf(t('Normal from %d, High from %d, Urgent from %d', 'Katamtaman mula %d, Mataas mula %d, Madalian mula %d'), (int) $sr['normal_from'], (int) $sr['high_from'], (int) $sr['urgent_from'])) ?>"
+         style="--n:<?= (int) $sr['normal_from'] ?>;--h:<?= (int) $sr['high_from'] ?>;--u:<?= (int) $sr['urgent_from'] ?>"><span class="ss-sn"><b><?= e($lvl['normal']) ?></b><i><?= (int) $sr['normal_from'] ?></i></span><span class="ss-sh"><b><?= e($lvl['high']) ?></b><i><?= (int) $sr['high_from'] ?></i></span><span class="ss-su"><b><?= e($lvl['urgent']) ?></b><i><?= (int) $sr['urgent_from'] ?></i></span></div>
     <div class="ss-cmap ss-cmap--3">
       <?php foreach (['urgent_from' => t('Urgent from', 'Madalian mula'), 'high_from' => t('High from', 'Mataas mula'), 'normal_from' => t('Normal from', 'Katamtaman mula')] as $fk => $fl): ?>
         <div class="ss-cmap-row"><label for="lv-<?= e($fk) ?>"><?= e($fl) ?></label><input class="p-input-plain" id="lv-<?= e($fk) ?>" type="number" name="<?= e($fk) ?>" min="1" max="100" value="<?= (int) $sr[$fk] ?>"></div>
@@ -1757,7 +1776,8 @@ endif;
   </div>
   <?php endif; ?>
 
-  <form method="post" class="p-card p-card-pad" data-sm="test">
+  <div class="ss-two ss-two--top" data-sm="test">
+  <form method="post" class="p-card p-card-pad">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_try">
     <p class="p-eyebrow"><?= e(t('Try it', 'Subukan')) ?></p>
     <p class="p-hint"><?= e(t('Type a complaint and see what level SMART would give it, and why. Nothing is saved.', 'Mag-type ng sumbong at tingnan ang antas na ibibigay ng SMART, at kung bakit. Walang mase-save.')) ?></p>
@@ -1770,14 +1790,22 @@ endif;
         <div class="ss-posform"><input class="p-input-plain" id="tr-lat" name="lat" inputmode="decimal" placeholder="14.5"><input class="p-input-plain" name="lng" inputmode="decimal" placeholder="121.0" aria-label="Longitude"></div></div>
       <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Score it', 'Markahan')) ?></button>
     </div>
+  </form>
+  <section class="p-card p-card-pad ss-result" id="smart-result">
+    <p class="p-eyebrow"><?= e(t('Result', 'Resulta')) ?></p>
     <?php if (is_array($try)): ?>
       <div class="ss-tryout"><p><b><?= e($lvl[$try['level'] ?? ''] ?? (string) ($try['level'] ?? '')) ?></b> · <?= (int) ($try['score'] ?? 0) ?>/100</p>
         <ul class="ss-reasons"><?php foreach ((array) ($try['reasons'] ?? []) as $rs): ?><li><span><?= e((string) ($rs['detail'] ?? $rs['factor'] ?? '')) ?></span><b>+<?= (int) ($rs['points'] ?? 0) ?></b></li><?php endforeach; ?></ul></div>
+    <?php else: ?>
+      <p class="st-note"><?= e(t('The level and the reasons show here after you score it.', 'Lalabas dito ang antas at ang mga dahilan pagkatapos itong markahan.')) ?></p>
+      <p class="p-hint" style="margin-top:12px"><?= e(t('The levels as they are set now:', 'Ang mga antas ngayon:')) ?></p>
+      <ul class="ss-levref"><?php foreach ([['urgent', '#E5384A'], ['high', '#FF9800'], ['normal', '#2F6BFF']] as [$lk, $lc]): ?><li><i style="background:<?= $lc ?>"></i><?= e($lvl[$lk]) ?><b><?= e(t('from ', 'mula ')) . (int) $sr[$lk . '_from'] ?></b></li><?php endforeach; ?><li><i style="background:#8E9DBB"></i><?= e($lvl['low']) ?><b><?= e(t('below ', 'sa ibaba ng ')) . (int) $sr['normal_from'] ?></b></li></ul>
     <?php endif; ?>
-  </form>
+  </section>
+  </div>
 
   <?php if ($cal || $fac): ?>
-  <div class="ss-two" data-sm="test">
+  <div class="ss-two ss-two--top" data-sm="test">
     <?php if ($cal): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('How the levels are doing (90 days)', 'Kumusta ang mga antas (90 araw)')) ?></p>
       <table class="ss-table"><thead><tr><th><?= e(t('Level', 'Antas')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th><th class="n"><?= e(t('Typical time to dispatch', 'Karaniwang oras bago i-dispatch')) ?></th></tr></thead><tbody>
       <?php foreach ($cal as $c): ?><tr><td><?= e($lvl[$c['level']] ?? (string) $c['level']) ?></td><td class="n"><?= (int) $c['reports'] ?></td><td class="n"><?= (int) $c['raised'] ?></td><td class="n"><?= (int) $c['lowered'] ?></td><td class="n"><?= $c['median_minutes_to_dispatch'] === null ? '—' : smart_duration((float) $c['median_minutes_to_dispatch']) ?></td></tr><?php endforeach; ?>

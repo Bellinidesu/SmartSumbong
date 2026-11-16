@@ -62,7 +62,7 @@
       ws.onopen = function () { end(true); }; ws.onerror = function () { end(false); }; setTimeout(function () { end(false); }, 8000);
     }));
   }
-  function set(key, r) { var st = !r.ok ? 'down' : (r.ms != null && r.ms > SLOW ? 'slow' : 'ok'); R[key] = { state: st, ms: r.ms }; pushH(key, st, r.ms); paintRow(key); paintHero(); if (openKey === key) fillDrawerService(key, true); }
+  function set(key, r) { var st = !r.ok ? 'down' : (r.ms != null && r.ms > SLOW ? 'slow' : 'ok'); R[key] = { state: st, ms: r.ms }; pushH(key, st, r.ms); paintRow(key); paintHero(); if (mapOn) paintMap(); if (openKey === key) fillDrawerService(key, true); }
   function checkServer() { return fetch('settings.php?check=server', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return null; }); }
   function checkOne(key) {
     var s = svc(key); R[key] = { state: 'checking' }; paintRow(key);
@@ -120,20 +120,41 @@
     el.setAttribute('aria-label', s.job + ', ' + (BADGE[r.state || 'checking'][1]) + '. ' + T('Open details', 'Buksan ang detalye'));
     el.innerHTML = rowHtml(s);
   }
+  var mapOn = false;
   function paintMap() {
-    var host = $('st-map'); if (!host) return;
-    var W = 640, H2 = 310, cx = 320, cy = 155, L = S.filter(function (s) { return s.side === 'L'; }), Rt = S.filter(function (s) { return s.side === 'R'; });
-    var ys = function (arr, i) { return 20 + i * ((H2 - 70) / Math.max(1, arr.length - 1)); };
-    var svg = '<svg viewBox="0 0 ' + W + ' ' + H2 + '" role="img" aria-label="' + esc(T('Diagram of the portal and the services it connects to', 'Diagram ng portal at mga serbisyo')) + '">', nodes = [];
-    L.forEach(function (s, i) { nodes.push([s, 10, ys(L, i)]); }); Rt.forEach(function (s, i) { nodes.push([s, 470, ys(Rt, i)]); });
-    nodes.forEach(function (n) { var s = n[0], x = n[1], y = n[2], r = R[s.key] || {}, c = BADGE[r.state || 'checking'][2], tx = s.side === 'L' ? x + 160 : x;
-      svg += '<path class="st-flow' + (r.state === 'down' ? ' st-bad' : '') + '" stroke="' + c + '" d="M' + cx + ' ' + cy + ' C ' + (s.side === 'L' ? cx - 90 : cx + 90) + ' ' + cy + ' ' + (s.side === 'L' ? tx + 50 : tx - 50) + ' ' + (y + 15) + ' ' + tx + ' ' + (y + 15) + '"/>'; });
-    svg += '<rect x="' + (cx - 75) + '" y="' + (cy - 30) + '" width="150" height="60" rx="14" fill="#00308F"/><text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" class="st-hub">SmartSumbong</text><text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" class="st-hub2">portal · Render</text>';
+    var host = $('st-map'); if (!host || !mapOn) return;
+    var W = 900, Hh = 470, cx = 450, cy = 235, NW = 262, NH = 54, L = S.filter(function (s) { return s.side === 'L'; }), Rt = S.filter(function (s) { return s.side === 'R'; });
+    var ys = function (arr, i) { return 14 + i * ((Hh - 28 - NH) / Math.max(1, arr.length - 1)); };
     var short = { db: 'Supabase', auth: 'Supabase', live: 'Supabase', media: 'Cloudinary', push: 'Firebase', tiles: 'OpenFreeMap', geo: 'Nominatim', rain: 'Open-Meteo', noah: 'Project NOAH' };
-    nodes.forEach(function (n) { var s = n[0], x = n[1], y = n[2], r = R[s.key] || {}, c = BADGE[r.state || 'checking'][2];
-      svg += '<g class="st-node"><rect x="' + x + '" y="' + y + '" width="160" height="30" rx="8"/><circle cx="' + (x + 14) + '" cy="' + (y + 15) + '" r="4.5" fill="' + c + '"/>' +
-        '<text x="' + (x + 26) + '" y="' + (y + 13) + '" class="st-t">' + esc(s.job.length > 22 ? s.job.slice(0, 21) + '…' : s.job) + '</text><text x="' + (x + 26) + '" y="' + (y + 25) + '" class="st-s">' + esc(short[s.key]) + ' · ' + esc(reading(s)) + '</text></g>'; });
+    var nodes = []; L.forEach(function (s, i) { nodes.push([s, 8, ys(L, i)]); }); Rt.forEach(function (s, i) { nodes.push([s, W - 8 - NW, ys(Rt, i)]); });
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + Hh + '" role="group" aria-label="' + esc(T('Diagram of the portal and the services it connects to. Each service opens its details.', 'Diagram ng portal at mga serbisyo. Bawat serbisyo ay nagbubukas ng detalye.')) + '">';
+    var paths = '', dots = '', cards = '';
+    nodes.forEach(function (n, k) {
+      var s = n[0], x = n[1], y = n[2], r = R[s.key] || {}, B = BADGE[r.state || 'checking'], c = B[2], left = s.side === 'L';
+      var x0 = left ? x + NW : x, x1 = left ? cx - 98 : cx + 98, y0 = y + NH / 2, y1 = cy + (y0 - cy) * .18, mx = (x0 + x1) / 2;
+      var d = 'M' + x0 + ' ' + y0 + ' C ' + mx + ' ' + y0 + ' ' + mx + ' ' + y1 + ' ' + x1 + ' ' + y1;
+      paths += '<path class="st-flowbg" stroke="' + c + '" d="' + d + '"/><path class="st-flow' + (r.state === 'down' ? ' st-bad' : '') + '" stroke="' + c + '" d="' + d + '" style="animation-delay:' + (-k * 0.23).toFixed(2) + 's"/>';
+      if (!REDUCED && r.state !== 'down' && r.state !== 'checking') dots += '<circle r="4.2" fill="' + c + '"><animateMotion dur="' + (2.2 + (k % 4) * 0.35).toFixed(2) + 's" begin="-' + (k * 0.4).toFixed(1) + 's" repeatCount="indefinite" path="' + d + '"/></circle>';
+      cards += '<g class="st-node" style="--sc:' + c + '" data-st-svc="' + s.key + '" tabindex="0" role="button" aria-label="' + esc(s.job + ', ' + B[1] + '. ' + T('Open details', 'Buksan ang detalye')) + '" data-tip="' + esc(s.job + ': ' + B[1] + (s.local && r.state === 'ok' ? '' : ' · ' + reading(s))) + '">' +
+        '<rect class="st-nbg" x="' + x + '" y="' + y + '" width="' + NW + '" height="' + NH + '" rx="14"/><rect x="' + x + '" y="' + (y + 12) + '" width="5" height="' + (NH - 24) + '" rx="2.5" fill="' + c + '"/>' +
+        '<circle class="' + (r.state === 'checking' ? 'st-pulse' : '') + '" cx="' + (x + 24) + '" cy="' + (y + NH / 2) + '" r="5.5" fill="' + c + '"/>' +
+        '<text x="' + (x + 40) + '" y="' + (y + 23) + '" class="st-t">' + esc(s.job.length > 24 ? s.job.slice(0, 23) + '…' : s.job) + '</text><text x="' + (x + 40) + '" y="' + (y + 41) + '" class="st-s">' + esc(short[s.key]) + ' · ' + esc(reading(s)) + '</text>' +
+        '<text x="' + (x + NW - 14) + '" y="' + (y + 23) + '" text-anchor="end" class="st-w" fill="' + c + '">' + esc(B[1]) + '</text></g>';
+    });
+    var good = S.filter(function (s) { return (R[s.key] || {}).state === 'ok'; }).length;
+    svg += '<defs><linearGradient id="st-hubg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1B4FD1"/><stop offset="1" stop-color="#00308F"/></linearGradient></defs>' + paths +
+      '<circle class="st-ring" cx="' + cx + '" cy="' + cy + '" r="64"/><circle class="st-ring b" cx="' + cx + '" cy="' + cy + '" r="64"/>' +
+      '<rect x="' + (cx - 98) + '" y="' + (cy - 46) + '" width="196" height="92" rx="22" fill="url(#st-hubg)"/>' +
+      '<text x="' + cx + '" y="' + (cy - 8) + '" text-anchor="middle" class="st-hub">SmartSumbong</text><text x="' + cx + '" y="' + (cy + 12) + '" text-anchor="middle" class="st-hub2">portal · Render</text>' +
+      '<text x="' + cx + '" y="' + (cy + 32) + '" text-anchor="middle" class="st-hub2">' + good + T(' of ', ' sa ') + S.length + T(' working', ' gumagana') + '</text>' + dots + cards;
     host.innerHTML = svg + '</svg>';
+  }
+  function setView(v) {
+    mapOn = v === 'map';
+    $$('[data-st-view]').forEach(function (b) { var on = b.dataset.stView === v; b.classList.toggle('p-on', on); b.setAttribute('aria-pressed', String(on)); });
+    var rows = $('st-rows'), wrap = $('st-mapwrap'); if (rows) rows.hidden = mapOn; if (wrap) wrap.hidden = !mapOn;
+    try { localStorage.setItem('ss-st-view', v); } catch (e) { /* not kept */ }
+    paintMap();
   }
   var agoN = 0;
   function paintLive() {
@@ -198,9 +219,10 @@
   document.addEventListener('focusout', function () { if (tipEl) tipEl.hidden = true; }); window.addEventListener('scroll', function () { if (tipEl) tipEl.hidden = true; }, true);
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest && e.target.closest('[data-st-svc], [data-st-open], [data-st-err], [data-st-close], [data-st-recheck], [data-st-copy], [data-st-go]');
+    var t = e.target.closest && e.target.closest('[data-st-view], [data-st-svc], [data-st-open], [data-st-err], [data-st-close], [data-st-recheck], [data-st-copy], [data-st-go]');
     if (!t) { if (drawer && e.target === drawer) closeDrawer(); return; }
-    if (t.dataset.stSvc) openService(t.dataset.stSvc);
+    if (t.dataset.stView) setView(t.dataset.stView);
+    else if (t.dataset.stSvc) openService(t.dataset.stSvc);
     else if (t.dataset.stOpen) openTemplate(t.dataset.stOpen);
     else if (t.hasAttribute('data-st-err')) openError(t);
     else if (t.hasAttribute('data-st-close')) closeDrawer();
@@ -208,7 +230,7 @@
     else if (t.dataset.stCopy) copyText(t.dataset.stCopy, t);
     else if (t.dataset.stGo) { closeDrawer(); var tb = document.querySelector('.st-tabs [data-st="' + t.dataset.stGo + '"]'); if (tb) tb.click(); }
   });
-  document.addEventListener('keydown', function (e) { var c = e.target.closest && e.target.closest('[data-st-open]'); if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openTemplate(c.dataset.stOpen); } });
+  document.addEventListener('keydown', function (e) { var g = e.target.closest && e.target.closest('g[data-st-svc]'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openService(g.dataset.stSvc); return; } var c = e.target.closest && e.target.closest('[data-st-open]'); if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openTemplate(c.dataset.stOpen); } });
   if (drawer) drawer.addEventListener('close', function () { openKey = null; });
 
   // ---------- Plan and usage ----------
@@ -277,6 +299,14 @@
   function dimTo(id) { $$('#st-ul .st-um').forEach(function (u) { u.classList.toggle('dim', !!id && u.dataset.plan !== id); }); }
   function usage() { return fetch('settings.php?usage=1', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return null; }).then(function (u) { U = u; usageUI(); }); }
 
+  // ---------- SMART > Rules: the scale follows the three inputs ----------
+  (function () {
+    var sc = $('ss-scale'); if (!sc) return;
+    var ins = { n: $('lv-normal_from'), h: $('lv-high_from'), u: $('lv-urgent_from') };
+    function upd() { ['n', 'h', 'u'].forEach(function (k) { var v = ins[k] ? Math.max(1, Math.min(100, +ins[k].value || 0)) : null; if (v == null) return; sc.style.setProperty('--' + k, v); var sp = sc.querySelector({ n: '.ss-sn', h: '.ss-sh', u: '.ss-su' }[k] + ' i'); if (sp) sp.textContent = v; }); }
+    ['n', 'h', 'u'].forEach(function (k) { if (ins[k]) ins[k].addEventListener('input', upd); });
+  })();
+
   // ---------- the tabs, the Check again button, the live timer ----------
   function statusVisible() { var b = $('st-banner'); return !!b && !b.closest('.st-pane').hidden && document.visibilityState === 'visible'; }
   $$('.st-tabs [data-st]').forEach(function (b) { b.addEventListener('click', function () {
@@ -290,5 +320,5 @@
   setInterval(function () { paintLive(); since++; if (since >= 45 && statusVisible() && !busy) { since = 0; check(); } }, 1000);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && statusVisible() && lastAt && Date.now() - lastAt > 45000 && !busy) check(); });
 
-  S.forEach(function (s) { R[s.key] = { state: 'checking' }; paintRow(s.key); }); built = true; paintHero(); paintMap(); check(); usage();
+  S.forEach(function (s) { R[s.key] = { state: 'checking' }; paintRow(s.key); }); built = true; paintHero(); var v0 = 'list'; try { v0 = localStorage.getItem('ss-st-view') === 'map' ? 'map' : 'list'; } catch (e) { /* list */ } setView(v0); check(); usage();
 })();
