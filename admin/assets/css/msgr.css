@@ -192,3 +192,22 @@
 .mg-bub { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--mg-field); color: var(--mg-blue); }
 .mg-sel .mg-bub { background: var(--mg-card); color: var(--mg-blue); }
 @media (prefers-reduced-motion: reduce) { .mg-chev { transition: none; } }
+
+/* ---------- the case's own colour (16 Nov 2026, Ace) ----------
+   --cc is the colour of the case's kind of complaint (the one the dashboard and the map use), --ci the ink that reads on it; both come from the page.
+   The case number and its bubble take it in the list; the open thread rests on a smooth wash of it and the barangay's bubbles carry it. */
+.mg-av--img { overflow: hidden; background: var(--mg-field); }
+.mg-av--img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mg-thr .mg-cname b { color: color-mix(in srgb, var(--cc, var(--p-ink)) 72%, var(--p-ink)); }
+.mg-bub { background: color-mix(in srgb, var(--cc, #8a93a3) 22%, var(--mg-card)); color: color-mix(in srgb, var(--cc, #8a93a3) 78%, var(--p-ink)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--cc, #8a93a3) 42%, transparent); }
+.mg-sel .mg-bub { background: var(--cc, var(--mg-card)); color: var(--ci, var(--mg-blue)); box-shadow: none; }
+.mg-center { --cw: var(--cc, transparent); }
+.mg-chead { background: linear-gradient(180deg, color-mix(in srgb, var(--cw) 16%, var(--mg-bg)), color-mix(in srgb, var(--cw) 7%, var(--mg-bg))); border-bottom-color: color-mix(in srgb, var(--cw) 32%, var(--mg-line)); }
+.mg-msgs { background: linear-gradient(180deg, color-mix(in srgb, var(--cw) 15%, var(--mg-bg)) 0%, color-mix(in srgb, var(--cw) 8%, var(--mg-bg)) 38%, color-mix(in srgb, var(--cw) 3%, var(--mg-bg)) 78%, var(--mg-bg) 100%); }
+.mg-out .mg-b { background: linear-gradient(135deg, color-mix(in srgb, var(--cc, #2E333C) 62%, #20242C), color-mix(in srgb, var(--cc, #2E333C) 36%, #20242C)); }
+:root[data-theme="dark"] .mg-chead { background: linear-gradient(180deg, color-mix(in srgb, var(--cw) 17%, var(--mg-bg)), color-mix(in srgb, var(--cw) 8%, var(--mg-bg))); }
+:root[data-theme="dark"] .mg-msgs { background: linear-gradient(180deg, color-mix(in srgb, var(--cw) 15%, var(--mg-bg)) 0%, color-mix(in srgb, var(--cw) 8%, var(--mg-bg)) 38%, color-mix(in srgb, var(--cw) 3%, var(--mg-bg)) 78%, var(--mg-bg) 100%); }
+:root[data-theme="dark"] .mg-thr .mg-cname b { color: color-mix(in srgb, var(--cc, #fff) 70%, #fff); }
+:root[data-theme="dark"] .mg-bub { color: color-mix(in srgb, var(--cc, #aab) 70%, #fff); }
+:root[data-theme="dark"] .mg-sel .mg-bub { color: var(--ci, #fff); }
+.mg-failed .mg-b { background: #B42318; }

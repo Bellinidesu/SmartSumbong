@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Inbox in the case's colour, SMART like the preview, profiles without dead space (16 Nov)**
+
+- Inbox: the case number and its chat bubble take the colour of the case's kind of complaint (the one the dashboard and map use); the open thread rests on a smooth wash of that colour and the barangay's bubbles carry it, light and dark.
+- Inbox now shows the account's own picture (Edit Profile's photo) in the list, the thread header and the details, with initials only when there is none. A resident who filed as anonymous shows no picture to others.
+- SMART > Rules: each kind of complaint has its colour dot; Re-score sits in the Versions card, as in the preview.
+- Resident and personnel profiles (one shared page): cards hug their content instead of stretching into empty space beside a taller neighbour.
+
 **Settings follow-up after the live review (16 Nov)**
 
 - System status: the diagram is now a view of the Services card (List / Diagram switch), redrawn with animated flow lines, pulsing hub and clickable nodes that open the same drawers. The Services card and the cards beside it fill the column, with no empty space. Needs attention reads as a normal list again (its text had been squeezed into one word per line).
