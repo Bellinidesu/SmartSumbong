@@ -1687,8 +1687,9 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 });
 </script>
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css?v=<?= e(vendor_version('maplibre-gl')) ?>">
-<script nonce="<?= csp_nonce() ?>" src="assets/vendor/maplibre/maplibre-gl.js?v=<?= e(vendor_version('maplibre-gl')) ?>"></script>
-<script nonce="<?= csp_nonce() ?>" src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
+<?php // speed sweep, 17 Nov 2026: MapLibre (1.1 MB) and the map theme no longer stop the page from being read; the map below is drawn once they have run ?>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/maplibre/maplibre-gl.js?v=<?= e(vendor_version('maplibre-gl')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/case-smart.js?v=<?= e(asset_version('../js/case-smart.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/case-chat-button.js?v=<?= e(asset_version('../js/case-chat-button.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/case-tabs.js?v=<?= e(asset_version('../js/case-tabs.js')) ?>" defer></script>
@@ -1771,6 +1772,8 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
   // small. The full interactive map is Spatial Distribution; expanding
   // this one to full screen (below) briefly turns those back on, since a
   // fixed, uninteractive view stops making sense once it fills the screen.
+  // speed sweep, 17 Nov 2026: MapLibre and map-theme.js are deferred, so the map is drawn once the page has been read (they run just before that)
+  function caseMap() {
   var el = document.getElementById('case-map');
   if (el && window.maplibregl) {
     var lat = <?= json_encode((float) $report['latitude']) ?>,
@@ -1900,11 +1903,13 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
       });
     }
   }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', caseMap); } else { caseMap(); }
 })();
 </script>
 
 <?= case_chat_head(case_chat_conversations($report, $dispatches, $thread, $threadMedia, $messages, $status), $id, (string) $report['tracking_id']) ?>
-<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>">
 // Realtime, added 6 Sep 2026 — explicit ask: "the entire system needs to
 // work realtime." This is the one page in the portal with live form
@@ -1912,7 +1917,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 // it (a deny reason mid-type, a dispatch note, a target date), so unlike
 // cases.php/dashboard.php it never rewrites the DOM itself — it only
 // raises the .update-banner above and leaves reloading to the admin.
-(function () {
+document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
   if (!window.supabase) { return; }
   const { createClient } = supabase;
 
@@ -1975,7 +1980,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
     }
   }
   setInterval(pollUnpublished, 25000);
-})();
+});
 </script>
 
 <?php layout_foot(); ?>

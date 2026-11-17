@@ -937,12 +937,13 @@ window.SS_PRESENCE = <?= json_encode([
   <div class="p-actions"><button class="p-btn p-btn-ghost" type="button" data-p-close><?= e(t('Cancel', 'Kanselahin')) ?></button><button class="p-btn p-btn-primary" type="button" id="p-mc-go"></button></div>
 </div></div>
 <div class="p-toast" id="p-toast" role="status"></div>
-<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>">
 // Every dropdown and month box in the portal is the portal's own glass picker (Ace, 6 Nov 2026: the category dropdown and the calendar are the standard).
 // The real controls stay underneath, so forms, auto-submit, required and the keyboard behave as before. A dropdown of categories or of committees
 // shows each one's own colour dot, read from the system's own lists, so a category added in Settings arrives with its colour.
-(function () {
+// sd-pickers.js is deferred (speed sweep, 17 Nov 2026), so the pickers are set up once the page has been read; Summary and Spatial still load their own copy first
+document.addEventListener('DOMContentLoaded', function () {
   if (!window.sdPickers) return;
   var COLOURS = { cat: <?= json_encode(category_colours()) ?>, com: <?= json_encode((function () { $o = []; foreach (array_keys(committees_all()) as $k) { $o[(string) $k] = committee_colour((string) $k); } return $o; })()) ?>,
     // 16 Nov 2026 (Ace, the sweep): a dropdown of statuses wears the same colours as the status pills, on every page (it was only on Case Reports)
@@ -964,7 +965,7 @@ window.SS_PRESENCE = <?= json_encode([
     root.querySelectorAll('input[type="color"]').forEach(function (i) { if (!i.dataset.native) sdPickers.colour(i); });
   };
   window.ssPickersInit(document);
-})();
+});
 </script>
 <?= prefs_script() ?>
 <script nonce="<?= csp_nonce() ?>">

@@ -380,9 +380,9 @@ $_SESSION['dash_intro'] = true;
 ?>
 <script nonce="<?= csp_nonce() ?>">window.SS_INTRO = <?= $intro ? 'true' : 'false' ?>;</script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/dash-intro.js?v=<?= e(asset_version('../js/dash-intro.js')) ?>"></script>
-<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>">
-(function () {
+document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
   var M = {
     daily: <?= json_encode($daily, JSON_UNESCAPED_UNICODE) ?>,
     efficiency: <?= json_encode($efficiency, JSON_UNESCAPED_UNICODE) ?>,
@@ -637,7 +637,7 @@ $_SESSION['dash_intro'] = true;
       if (s === 'SUBSCRIBED') { badge.classList.remove('p-down'); text.textContent = T('Live', 'Live'); if (wasDown) { wasDown = false; refresh(); } }
       else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') { wasDown = true; badge.classList.add('p-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…'); }
     });
-})();
+});
 </script>
 
 <?php layout_foot(); ?>
