@@ -15,7 +15,8 @@ The production system today:
 | Database, Auth, Realtime, Edge Functions | Supabase, Singapore | project `vmtzyyyxcmhtqgeeorhg` |
 | Photos and video | Cloudinary | cloud `nwb2kryl` |
 | Push, crash reports | Firebase | the project in `mobile/resident/android/app/google-services.json` |
-| SMS | Semaphore | the account whose key is `SEMAPHORE_API_KEY` |
+| Reset and confirming codes by email | Gmail (SMTP, `smtp.gmail.com:465`) | the address in `SMTP_USER`, with a Gmail app password in `SMTP_PASS` |
+| SMS (fallback) | Semaphore | the account whose key is `SEMAPHORE_API_KEY` |
 
 ## What you need
 
@@ -63,7 +64,10 @@ Set the secrets (Edge Functions → Secrets, or `supabase secrets set NAME=value
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `send-dispatch-push` | browser alerts (0136): our key pair (P-256, base64url) and an https or mailto address for the push services; without them browsers get nothing, phones still do |
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | `sign-upload`, `media-cleanup` | signing uploads and private links; deleting old identity photos |
 | `MEDIA_CLEANUP_SECRET` | `media-cleanup` | the shared secret pg_cron sends (also stored in Vault, below) |
-| `SEMAPHORE_API_KEY` | `password-otp` | sending SMS codes (by Semaphore's OTP route, `/api/v4/otp`) |
+| `SMTP_USER` | `password-otp` | the Gmail address reset and confirming codes are sent from (0174) |
+| `SMTP_PASS` | `password-otp` | a **Gmail app password** for that address (below), never the account's own password |
+| `SMTP_FROM_NAME` (optional) | `password-otp` | the sender's name; without it, `SmartSumbong · Barangay 183` |
+| `SEMAPHORE_API_KEY` (optional) | `password-otp` | the SMS fallback: a reset code goes by text to an account with no confirmed email (by Semaphore's OTP route, `/api/v4/otp`); also needed to change one's own number by code |
 | `SEMAPHORE_SENDER_NAME` (optional) | `password-otp` | a sender name Semaphore has approved for the account; without it codes come from Semaphore's default name |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are
@@ -84,6 +88,45 @@ done
 
 `supabase/config.toml` sets each function's JWT check; never run
 `supabase config push` from it.
+
+### Forgot password by email (0174)
+
+Residents and tanods sign in with an address made from their number, which
+cannot receive mail, so `password-otp` emails the reset code to the real email
+on their profile, once they have confirmed it in Edit Profile. It sends from
+one Gmail account over SMTP (port 465, TLS from the start; Supabase blocks
+25 and 587). To turn it on:
+
+1. **A Gmail app password.** Sign in to the Gmail account the codes should
+   come from → <https://myaccount.google.com/security> → turn on **2-Step
+   Verification** (app passwords need it) → <https://myaccount.google.com/apppasswords>
+   → name it `SmartSumbong` → **Create**. Google shows 16 letters once; copy
+   them (the spaces do not matter). Revoking it there stops the codes at once
+   and touches nothing else on the account.
+2. **Apply 0174** (it adds `users.email_confirmed_at` and the `email` code
+   purpose): `supabase db push`, or paste
+   `supabase/migrations/0174_email_reset.sql` into the SQL editor.
+3. **Set the secrets** (the app password is needed only here, typed in by
+   you; it is never written to the repository or a file):
+
+   ```bash
+   supabase secrets set --project-ref <ref> \
+     SMTP_USER=<the gmail address> \
+     SMTP_PASS='<the 16-letter app password>' \
+     SMTP_FROM_NAME='SmartSumbong · Barangay 183'
+   ```
+
+4. **Deploy the function:** `supabase functions deploy password-otp --project-ref <ref> --use-api`
+   (or Actions → **Deploy**).
+5. **Try it** with a test account: Edit Profile → save an email you can open
+   → **Confirm it** → type the emailed code; the row says **Confirmed**. Sign
+   out → **Forgot password?** → the number → the code arrives by email.
+   A failure to send shows under Settings → System status → Recent errors.
+
+Gmail allows about 500 messages a day from one account, far more than codes
+need (3 per person per hour at most). The app works before 0174 is applied
+(Edit Profile simply shows no mark), and **Forgot password?** answers
+"No email on this account" until the secrets are set.
 
 Then wire them up:
 

@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Forgot password by email (17 Nov, 0174)**
+
+- Residents and tanods get their reset code by email: "Forgot password?" asks for the number and sends the 6-digit code to the confirmed email on that account ("We sent a code to the email on your account: a•••@gmail.com"). With no confirmed email it says "No email on this account. Add one in Edit Profile, or ask the barangay hall to reset it." SMS stays as the fallback when Semaphore is set up; the hall's counter reset still works.
+- Edit Profile confirms the email with a code: the row shows **Confirmed** or **Not confirmed** with "Confirm it"; saving a different address asks for its code straight away.
+- 0174: `users.email_confirmed_at`, set only by the function and cleared whenever the email changes; codes for confirming an email are their own purpose, bound to the address they went to. Checks in `supabase/tests/52_email_reset.sql`.
+- `password-otp` sends from Gmail over SMTP (implicit TLS on 465, its own small client in `smtp.ts`), in the look of the administrators' reset email, as HTML and plain text. New secrets `SMTP_USER`, `SMTP_PASS` (a Gmail app password), `SMTP_FROM_NAME`; steps in DEPLOY.md.
+
 **Dispatch any tanod on duty (17 Nov, Fix A)**
 
 - The app sends a tanod's location only at key moments (going on duty, opening the app, each step of a job) to save the battery, so the portal no longer refuses an on-duty tanod whose last location is old. The tanod reads ON DUTY in amber with "last seen a while ago" or "location may be old", the Dispatch button opens for anyone on duty, and a note says how many locations are old. SMART still recommends a fresh location first and falls back to the best tanod who can take it. The work board and the dispatch check follow the same rule; a tanod who cannot take a job is "Unavailable" (off duty, suspended or at the limit).

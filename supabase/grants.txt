@@ -27,6 +27,7 @@ fn _committee_label(p text) anon=call authenticated=call
 fn _concern_backfill() anon=- authenticated=-
 fn _concern_snapshot() anon=call authenticated=call
 fn _dispatch_cap_guard() anon=call authenticated=call
+fn _email_confirmation_guard() anon=- authenticated=-
 fn _flag_sensitive() anon=call authenticated=call
 fn _guard_admin_access() anon=- authenticated=-
 fn _guard_case_committee() anon=call authenticated=call

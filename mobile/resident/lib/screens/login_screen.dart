@@ -11,11 +11,9 @@
 //
 // WHAT IS NOT BUILT YET, and both are on the open list:
 //
-//   * "Forgot password?" needs OTP by SMS through Semaphore, which is not
-//     configured. Rose's design has the whole branch drawn (Forgot
-//     Password -> Verify OTP -> Reset Password -> Success). Until then it
-//     tells the resident to visit the barangay, which is true and is what
-//     an admin would have to do anyway.
+//   * (Built 17 Nov 2026, 0174.) "Forgot password?" opens Rose's branch
+//     (Forgot Password -> Verify OTP -> Reset Password -> Success); the
+//     code goes to the account's confirmed email.
 //   * "Back to Roles" needs the role picker (2315:55). Residents and
 //     tanods use different apps in this build, so it is not reachable
 //     from here yet.
@@ -30,7 +28,6 @@ import '../theme.dart';
 import '../d/d_switches.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
-import '../widgets/figma_ui.dart';
 import 'forgot_password_screen.dart';
 
 /// Whether this handset should keep the session across app launches.
@@ -331,26 +328,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Rose's design: Forgot Password → Verify OTP → Reset Password →
-  // Success, by SMS through Semaphore (0085, forgot_password_screen.dart).
-  // Switched off until the Semaphore account has credits (kSmsResetEnabled);
-  // until then this shows the counter-reset route (0028), which always works.
+  // Success (0085, forgot_password_screen.dart). Since 0174 (17 Nov 2026)
+  // the code goes to the account's confirmed email, by SMS when there is
+  // none and Semaphore is set up; the counter reset (0028) is named on the
+  // first step for anyone with neither.
   void _forgotPassword() {
-    if (kSmsResetEnabled) {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ForgotPasswordScreen(mobile: _mobile.text.trim()),
-      ));
-      return;
-    }
-    final s = context.s;
-    showFigmaDialog<void>(
-      context,
-      builder: (context) => FigmaDialog(
-        title: s.loginForgotDialogTitle,
-        body: s.loginForgotDialogBody,
-        primaryLabel: s.loginDialogOk,
-        onPrimary: () => Navigator.of(context).pop(),
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ForgotPasswordScreen(mobile: _mobile.text.trim()),
+    ));
   }
 
 }

@@ -1,10 +1,11 @@
-// SmartSumbong — Forgot password by SMS code (0085).
+// SmartSumbong — Forgot password by a 6-digit code (0085), by email since 0174.
 //
 // Rose's design: Forgot Password → Verify OTP → Reset Password → Success,
-// here as one screen in three steps. The code is texted through Semaphore
-// by the password-otp Edge Function; this screen never sees it. Residents
-// with no load or signal still have the counter reset (0028), named at the
-// foot of the first step.
+// here as one screen in three steps. The password-otp Edge Function emails
+// the code to the account's confirmed email (Edit Profile confirms one),
+// or texts it through Semaphore when there is none and SMS is set up; this
+// screen never sees it. Anyone with neither still has the counter reset
+// (0028), named at the foot of the first step.
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,9 +13,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 
-/// SMS reset is built but needs Semaphore credits. Off: "Forgot password?"
-/// shows the counter-reset instructions instead. Turn on once the account
-/// is approved and topped up (5 Oct 2026: approval pending, no credits).
+/// Changing your own number by SMS code (0104, Edit Profile) needs Semaphore
+/// credits; off, a number change is a request to the barangay. Forgot
+/// password no longer waits on it: it goes by email (0174, 17 Nov 2026).
 const bool kSmsResetEnabled = false;
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -38,6 +39,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _busy = false;
   String? _error;
   String? _info;
+  /// The answer said there is no email to send to (or no account): a note, not an error.
+  bool _noEmail = false;
 
   @override
   void dispose() {
@@ -69,14 +72,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() {
       _busy = true;
       _error = null;
+      _noEmail = false;
     });
     final r = await _call({'action': 'send', 'mobile': _mobile.text.trim()});
     if (!mounted) return;
+    final to = r['to'] as String?;
+    final sentWords = switch (r['channel']) {
+      'email' when to != null => context.tr('We sent a code to the email on your account: $to. It expires in 10 minutes.',
+          'Nagpadala kami ng code sa email ng iyong account: $to. Mag-e-expire ito sa loob ng 10 minuto.'),
+      'sms' => context.tr('If that number has an account, a code is on its way by text. It expires in 10 minutes.',
+          'Kung may account ang numerong iyan, may code na darating sa text. Mag-e-expire ito sa loob ng 10 minuto.'),
+      _ => r['message'] as String?,
+    };
     setState(() {
       _busy = false;
       if (r['ok'] == true) {
         _step = _Step.code;
-        _info = r['message'] as String?;
+        _info = sentWords;
+      } else if (r['code'] == 'no_email') {
+        _noEmail = true;
       } else {
         _error = r['message'] as String?;
       }
@@ -159,10 +173,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ]),
           const SizedBox(height: 18),
           if (_step == _Step.number) ...[
-            Text(context.tr('We will text a 6-digit code to the mobile number you signed up with.', 'Magte-text kami ng 6-digit na code sa mobile number na ginamit mo sa pag-sign up.'),
+            Text(context.tr('Enter the mobile number you sign in with. We will email a 6-digit code to the confirmed email on that account.',
+                    'Ilagay ang mobile number na ginagamit mo sa pag-sign in. Magpapadala kami ng 6-digit na code sa kumpirmadong email ng account na iyon.'),
                 style: DType.body(d.ink2, size: 14.5).copyWith(height: 1.5)),
             const SizedBox(height: 18),
             field(context.tr('Mobile number', 'Mobile number'), _mobile, hint: '09XXXXXXXXX', type: TextInputType.phone, max: 13),
+            if (_noEmail) ...[
+              const SizedBox(height: 14),
+              DNote(
+                title: context.tr('No email on this account', 'Walang email ang account na ito'),
+                body: context.tr('Add one in Edit Profile, or ask the barangay hall to reset it.',
+                    'Magdagdag sa Edit Profile, o hilingin sa barangay hall na i-reset ito.'),
+              ),
+            ],
           ] else if (_step == _Step.code) ...[
             if (_info != null) DNote(title: context.tr('Code sent', 'Naipadala ang code'), body: _info!),
             const SizedBox(height: 16),
@@ -200,8 +223,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           if (_step == _Step.number) ...[
             const SizedBox(height: 22),
             Text(
-              context.tr("No load or no signal? Visit the barangay hall with a valid ID and they will give you a temporary password.",
-                  'Walang load o signal? Pumunta sa barangay hall na may valid ID at bibigyan ka nila ng pansamantalang password.'),
+              context.tr('No email you can open? Visit the barangay hall with a valid ID and they will give you a temporary password.',
+                  'Walang email na mabubuksan? Pumunta sa barangay hall na may valid ID at bibigyan ka nila ng pansamantalang password.'),
               textAlign: TextAlign.center,
               style: DType.body(d.muted, size: 13).copyWith(height: 1.5),
             ),
