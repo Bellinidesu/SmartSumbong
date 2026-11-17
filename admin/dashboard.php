@@ -366,7 +366,7 @@ $flair = greeting_flair($now, $first);
                                      'Karaniwang oras bago matapos ang isang sumbong, kumpara sa oras na itinakda para sa kategorya nito. Ang nasa ilalim ng putol-putol na linya ay pasok sa SLA.')) ?>
     <?php if ($effCategory): ?><?= e(t('Showing ', 'Ipinapakita lamang ang ') . category_label($effCategory) . t(' only.', '.')) ?><?php endif; ?></p>
   <div class="p-chart-wrap"><svg id="chart-efficiency" width="100%" height="240" style="display:block" role="img" aria-label="<?= e(t('Hours taken against hours allowed', 'Oras na inabot kumpara sa itinakda')) ?>"></svg><div class="p-chart-tip"></div>
-    <div class="p-empty-state" id="efficiency-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div></div>
+    <div class="p-empty-state" id="efficiency-empty" hidden><span><?= e(t('Nothing to chart for this month. Pick another month or category.', 'Walang maipapakita para sa buwang ito. Pumili ng ibang buwan o kategorya.')) ?></span></div></div>
   <div class="p-eff-legend" id="eff-legend">
     <button type="button" aria-pressed="true" data-s="taken"><i style="border-color:#FF9800"></i><span><?= e(t('Hours taken', 'Oras na inabot')) ?></span></button>
     <button type="button" aria-pressed="true" data-s="allowed"><i class="p-dash" style="border-color:var(--p-muted)"></i><span><?= e(t('Hours allowed', 'Oras na itinakda')) ?></span></button>
@@ -593,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function () {   // supabase.js is 
     $('category-donut-label').textContent = T(total === 1 ? 'Report' : 'Reports', 'Ulat');
 
     var hasEff = eff.some(function (d) { return d.actual != null || d.allowed != null; });
-    $('efficiency-empty').hidden = hasEff; $('chart-efficiency').style.visibility = hasEff ? '' : 'hidden'; $('eff-legend').style.visibility = hasEff ? '' : 'hidden';
+    $('efficiency-empty').hidden = hasEff; $('chart-efficiency').style.display = hasEff ? 'block' : 'none'; $('eff-legend').style.visibility = hasEff ? '' : 'hidden';   // empty: the 240 px chart goes, the card does not hold air (17 Nov 2026)
     efficiencyChart($('chart-efficiency'), eff.map(function (d) { return d.actual == null ? null : +d.actual; }), eff.map(function (d) { return d.allowed == null ? null : +d.allowed; }), eff.map(function (d) { return d.label; }));
 
     $('tile-resolved-value').textContent = tiles.resolved || 0;

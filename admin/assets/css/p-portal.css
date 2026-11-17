@@ -786,6 +786,8 @@ td.tc-cell .cm-pill::before, td.tc-cell .cm-pill > i { margin-top: .42em; flex: 
 .nf-rail .ss-strip { grid-template-columns: 1fr; margin: 0; }
 .nf-wait .p-card-head { padding: 18px 20px 6px; }
 .nf-wait .p-notif { grid-template-columns: auto minmax(0, 1fr) auto; }
+.nf-wait .p-notif > .p-btn { white-space: nowrap; }   /* "Pick a tanod" never wraps round a circle (17 Nov 2026) */
+@media (max-width: 640px) { .nf-wait .p-notif { grid-template-columns: auto minmax(0, 1fr); } .nf-wait .p-notif > .p-btn { grid-column: 2; justify-self: start; margin-top: 6px; } }
 @media (max-width: 1900px) { .nf-grid { grid-template-columns: 1fr; } .nf-rail { order: -1; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); align-items: start; } }
 
 /* Inbox message rows (30 Oct, the way Gmail and Outlook list mail): an avatar, the sender, the subject and the time; unread in bold with a dot,

@@ -495,8 +495,15 @@
 .page-settings .st-pane[data-pane="smart"] .ss-col > .p-card { margin: 0; }
 @media (max-width: 900px) { .page-settings .st-pane[data-pane="smart"] .ss-cols { grid-template-columns: minmax(0, 1fr); } }
 /* Appearance: the two cards side by side, so a label is never a thousand pixels from its switch */
-@media (min-width: 1280px) { .page-settings .st-pane[data-pane="look"] { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } .page-settings .st-pane[data-pane="look"] > :not(.p-card) { grid-column: 1 / -1; } }
 /* rules audit, 17 Nov 2026 sweep: the two Appearance cards are one height (the shorter one spreads its rows), the legends' sentence has its own line so the swatches never wrap 3+1, figures under 17 px are Inter */
-@media (min-width: 1280px) { .page-settings .st-pane[data-pane="look"] { align-items: stretch; } .page-settings .st-pane[data-pane="look"] > .p-card { display: flex; flex-direction: column; } .page-settings .st-pane[data-pane="look"] > .p-card > .st-prefs { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; } }
 .st-legend > span:first-child:not(.st-lg) { flex-basis: 100%; }
 .ss-lvkey b, .ss-levref b { font-family: Inter, sans-serif; }
+/* Settings > Appearance (17 Nov 2026, the role walk-through): the cards flow into two balanced columns and keep their own height, for
+   the super admin (two cards) and for a Kagawad or staff member (three); nothing is stretched, so no card holds empty air */
+@media (min-width: 1280px) {
+  .page-settings .st-pane[data-pane="look"] { display: block; columns: 2; column-gap: 16px; }
+  .page-settings .st-pane[data-pane="look"] > * { break-inside: avoid; margin: 0 0 16px; }
+  .page-settings .st-pane[data-pane="look"] > :not(.p-card) { column-span: all; }
+}
+/* the Settings tabs wrap on a phone instead of hiding the last tab off the edge */
+@media (max-width: 640px) { .page-settings .st-tabs { flex-wrap: wrap; overflow: visible; } }

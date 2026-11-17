@@ -212,7 +212,7 @@ function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
     <article class="ss-nt" style="--c:#356CF9"><span class="ss-ic" aria-hidden="true">☂</span>
       <div><b><?= e(t('Storm mode is on', 'Naka-on ang storm mode')) ?></b>
         <p><?= e(t('until', 'hanggang')) ?> <?= e((new DateTimeImmutable((string) $storm['storm_until']))->setTimezone($tz)->format('M j, g:i A')) ?><?= !empty($storm['storm_reason']) ? ' · ' . e((string) $storm['storm_reason']) : '' ?></p></div>
-      <a class="p-btn p-btn-sm p-btn-ghost" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a></article>
+      <?php if (is_super()): // only a super admin manages storm mode (17 Nov 2026) ?><a class="p-btn p-btn-sm p-btn-ghost" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a><?php endif; ?></article>
   <?php endif; ?>
   <?php if (!$risk && !$spikes && !$recur && !$stuck && !$storm): ?><p class="p-none-line ss-calm"><?= e(t('Nothing unusual right now.', 'Walang kakaiba sa ngayon.')) ?></p><?php endif; ?>
 </div>
