@@ -2019,7 +2019,8 @@ class _ResolveSheetState extends State<_ResolveSheet> {
                       style: TextButton.styleFrom(padding: EdgeInsets.zero),
                     ),
                   ),
-                  Text(context.tr('RESOLVE', 'IRESOLBA'), style: DType.label(green)),
+                  // Rose's Figma (SEND UPDATE, 17 Nov 2026): the tanod's report with its proof is "Send an update"
+                  Text(context.tr('SEND AN UPDATE', 'MAGPADALA NG UPDATE'), style: DType.label(d.muted)),
                   const SizedBox(height: 4),
                   Text(widget.ticket.subject, style: DType.h1(d.ink).copyWith(fontSize: 24)),
                   Text(widget.ticket.trackingId, style: DType.mono(d.muted, size: 13)),
@@ -2081,7 +2082,7 @@ class _ResolveSheetState extends State<_ResolveSheet> {
                   TextField(
                     controller: _update,
                     enabled: !_busy,
-                    maxLength: 300,
+                    maxLength: 500,   // the Figma's 0/500
                     minLines: 4,
                     maxLines: 8,
                     onChanged: (_) => setState(() => _error = null),
@@ -2120,7 +2121,7 @@ class _ResolveSheetState extends State<_ResolveSheet> {
                   Expanded(child: DButton(context.tr('Back', 'Bumalik'), kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: DButton(context.tr('Submit', 'Ipasa'), kind: DButtonKind.green, expand: true, busy: _busy, onTap: _busy ? null : _submit),
+                    child: DButton(context.tr('Submit', 'Ipasa'), kind: DButtonKind.accent, expand: true, busy: _busy, onTap: _busy ? null : _submit),
                   ),
                 ]),
               ]),
@@ -2264,11 +2265,17 @@ class _EscalationPageState extends State<_EscalationPage> {
                   style: TextButton.styleFrom(padding: EdgeInsets.zero),
                 ),
               ),
-              Text(context.tr('ESCALATION', 'ESCALATION'), style: DType.label(red)),
-              const SizedBox(height: 4),
               Text(s.escTitle, style: DType.h1(d.ink).copyWith(fontSize: 26)),
-              const SizedBox(height: 2),
-              Text('${widget.ticket.subject} · ${widget.ticket.trackingId}', style: DType.body(d.muted, size: 13)),
+              const SizedBox(height: 8),
+              // the case as a chip, as in Rose's frame
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(99), border: Border.all(color: d.ink2, width: 1.2)),
+                  child: Text('${widget.ticket.subject} • ${widget.ticket.trackingId}', style: DType.body(d.ink, size: 12.5, w: FontWeight.w700)),
+                ),
+              ),
               const SizedBox(height: 10),
               Text(s.escBody, style: DType.body(d.ink2, size: 14)),
               const SizedBox(height: 18),
@@ -2293,7 +2300,10 @@ class _EscalationPageState extends State<_EscalationPage> {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(s.escOffice, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
+              Text.rich(TextSpan(children: [
+                TextSpan(text: context.tr('Offices', 'Mga tanggapan'), style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
+                TextSpan(text: context.tr('  (optional)', '  (hindi kailangan)'), style: DType.body(d.muted, size: 12.5)),
+              ])),
               const SizedBox(height: 8),
               for (final o in _offices) ...[
                 InkWell(

@@ -69,6 +69,11 @@ const _videoUploadPresetRaw = String.fromEnvironment(
 
 const _red = kFigmaRed;
 
+/// Rose's Figma (VIEW ASSIGNED REPORT, 17 Nov 2026): an accepted dispatch opens as this same Dispatch Order page with four
+/// stacked buttons (Send "Arrived at scene", Send an update, Request more details, Escalate) instead of the map-and-steps job
+/// page. Switched, not removed: false sends Open dispatch / Open the job back to [DispatchWindow] as before.
+const bool kSimpleJobPage = true;
+
 /// Which body the card is showing.
 enum _Pane { order, map, media, instructions, rerouteConfirm, accepted }
 
@@ -128,6 +133,15 @@ class _DispatchOrderState extends State<_DispatchOrder>
   bool _changed = false;
   String? _error;
 
+  /// The job page's state (kSimpleJobPage): the dispatch's own state and step, and whether it was accepted on this card.
+  String? _dispState;
+  String? _step;
+  bool _acceptedHere = false;
+  bool _acting = false;
+
+  bool get _isAccepted => widget.ticket.state == DispatchState.accepted || _acceptedHere || _dispState == 'accepted';
+  bool get _jobMode => kSimpleJobPage && _isAccepted;
+
   final _reason = TextEditingController();
 
   @override
@@ -180,8 +194,17 @@ class _DispatchOrderState extends State<_DispatchOrder>
       final report = got[0] as Map<String, dynamic>;
       final media = got[1] as List<Map<String, dynamic>>;
 
+      Map<String, dynamic>? disp;
+      try {
+        disp = await client.from('dispatches').select('state, step').eq('id', widget.ticket.dispatchId).maybeSingle();
+      } catch (_) {
+        disp = null;   // the card still works without it; the job buttons assume an open dispatch
+      }
+
       if (!mounted) return;
       setState(() {
+        _dispState = disp?['state'] as String?;
+        _step = disp?['step'] as String?;
         _report = report;
         _evidence = [
           for (final m in media)
@@ -219,6 +242,8 @@ class _DispatchOrderState extends State<_DispatchOrder>
       setState(() {
         _busy = false;
         _changed = true;
+        _acceptedHere = true;
+        _dispState = 'accepted';
         _pane = _Pane.accepted;
       });
     } on PostgrestException catch (e) {
@@ -273,11 +298,196 @@ class _DispatchOrderState extends State<_DispatchOrder>
 
   void _close() => Navigator.of(context).pop(_changed);
 
-  /// On into the dispatch window, in the card's place.
-  void _toWindow({bool startOnTheWay = false}) => Navigator.of(context).pushReplacement(
+  /// On to the job. Rose's Figma (kSimpleJobPage): the job is this page with its four buttons, and I'm on the way tells the
+  /// resident first. Switched off: into the dispatch window, in the card's place.
+  void _toWindow({bool startOnTheWay = false}) {
+    if (kSimpleJobPage) {
+      if (startOnTheWay) {
+        _onTheWay();
+      } else {
+        setState(() {
+          _pane = _Pane.order;
+          _error = null;
+        });
+      }
+      return;
+    }
+    _toFullJob(startOnTheWay: startOnTheWay);
+  }
+
+  /// The map-and-steps job page (still reachable from the simple page's quiet link).
+  void _toFullJob({bool startOnTheWay = false}) => Navigator.of(context).pushReplacement(
     MaterialPageRoute(builder: (_) => DispatchWindow(ticket: widget.ticket, startOnTheWay: startOnTheWay)),
     result: true,
   );
+
+  // ---------- the job (Rose's Figma) ------------------------------
+
+  /// One step for the resident to hear about: on the way, arrived. With no signal it waits on the phone and goes by itself.
+  Future<bool> _setStep(String step) async {
+    try {
+      await Supabase.instance.client.rpc('set_dispatch_step', params: {'p_dispatch': widget.ticket.dispatchId, 'p_step': step});
+      unawaited(DutyController.instance.keyMoment());   // a dispatch step is one of the few moments a location is sent
+      _changed = true;
+      if (mounted) setState(() => _step = step);
+      return true;
+    } catch (e) {
+      if (Outbox.isNetworkError(e)) {
+        await TanodOutbox.instance.enqueue(kind: 'step', dispatchId: widget.ticket.dispatchId, step: step);
+        _changed = true;
+        if (mounted) {
+          setState(() => _step = step);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.ts.outboxSaved)));
+        }
+        return true;
+      }
+      if (mounted) setState(() => _error = context.ts.windowStepFailed);
+      return false;
+    }
+  }
+
+  /// The Figma's small popup: "Resident has been notified." and Back.
+  Future<void> _notified() => showDialog<void>(
+        context: context,
+        builder: (ctx) => FigmaDialog(
+          title: context.tr('Resident has been notified.', 'Naabisuhan na ang residente.'),
+          primaryLabel: context.tr('Back', 'Bumalik'),
+          onPrimary: () => Navigator.of(ctx).pop(),
+        ),
+      );
+
+  /// Dispatch accepted's I'm on the way: the step, the popup, then the job page.
+  Future<void> _onTheWay() async {
+    if (_acting) return;
+    setState(() => _acting = true);
+    final ok = _step == 'on_the_way' || _step == 'arrived' ? true : await _setStep('on_the_way');
+    if (!mounted) return;
+    setState(() {
+      _acting = false;
+      _pane = _Pane.order;
+    });
+    if (ok) await _notified();
+  }
+
+  /// Send "Arrived at scene": a confirm, the step, then the popup.
+  Future<void> _arrive() async {
+    if (_acting) return;
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => FigmaDialog(
+        title: context.tr('Let the complainant know you’ve arrived at the scene.', 'Ipaalam sa nagreklamo na nakarating ka na sa lugar.'),
+        primaryLabel: context.tr('Confirm', 'Kumpirmahin'),
+        onPrimary: () => Navigator.of(ctx).pop(true),
+        secondaryLabel: context.tr('Back', 'Bumalik'),
+        onSecondary: () => Navigator.of(ctx).pop(false),
+      ),
+    );
+    if (go != true || !mounted) return;
+    setState(() => _acting = true);
+    final ok = await _setStep('arrived');
+    if (!mounted) return;
+    setState(() => _acting = false);
+    if (ok) await _notified();
+  }
+
+  /// Send an update: the field report with its photo and video proof, for the barangay's approval (submit_field_report).
+  Future<void> _sendUpdate() async {
+    final done = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => _ResolveSheet(ticket: widget.ticket)));
+    if (done == null || done == 'false' || !mounted) return;
+    _changed = true;
+    if (done == 'queued') {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.ts.outboxSaved)));
+      return;
+    }
+    await showDSuccessPage(
+      context,
+      title: context.tr('Sent for approval', 'Naipasa para aprubahan'),
+      body: context.ts.windowAwaitingApproval,
+      button: context.tr('Back to the job', 'Bumalik sa trabaho'),
+      ticketId: widget.ticket.trackingId,
+      tone: DTicketTone.awaitingApproval,
+      status: context.tr('Waiting for approval', 'Hinihintay ang pag-apruba'),
+    );
+    if (mounted) await _load();
+  }
+
+  /// Request more details: the shared popup, then request_additional_details; the resident answers from their app.
+  Future<void> _requestDetails() async {
+    final s = context.ts;
+    final message = await showDialog<String>(context: context, builder: (_) => const _DetailsRequestDialog());
+    if (message == null || message.trim().isEmpty || !mounted) return;
+    String note;
+    try {
+      await Supabase.instance.client.rpc('request_additional_details', params: {'p_report': widget.ticket.reportId, 'p_message': message});
+      _changed = true;
+      note = s.dispatchDetailsSent;
+    } on PostgrestException catch (e) {
+      note = e.message.contains('already a request') ? s.dispatchDetailsAlreadyOpen : s.dispatchDetailsFailed;
+    } catch (_) {
+      note = s.dispatchDetailsFailed;
+    }
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(note)));
+  }
+
+  /// Escalate: the Request escalation page, then request_escalation; the barangay decides.
+  Future<void> _escalate() async {
+    final s = context.ts;
+    final res = await Navigator.of(context).push<(String, String?)>(MaterialPageRoute(builder: (_) => _EscalationPage(ticket: widget.ticket)));
+    if (res == null || !mounted) return;
+    final text = res.$1.trim();
+    if (text.isEmpty) {
+      setState(() => _error = s.escReasonRequired);
+      return;
+    }
+    String note;
+    try {
+      await Supabase.instance.client.rpc('request_escalation', params: {'p_dispatch': widget.ticket.dispatchId, 'p_reason': text, 'p_office': res.$2});
+      _changed = true;
+      note = s.escSent;
+    } on PostgrestException catch (e) {
+      note = e.message.contains('already waiting') ? s.escAlreadyWaiting : s.escFailed;
+    } catch (_) {
+      note = s.escFailed;
+    }
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(note)));
+  }
+
+  /// The four stacked buttons (Rose's Figma), or what the job is waiting for once the report is in.
+  Widget _jobActions() {
+    final d = context.d;
+    if (_dispState != null && _dispState != 'accepted') {
+      return DNote(
+        title: _dispState == 'resolved' ? context.tr('Sent for approval', 'Naipasa para aprubahan') : context.tr('This dispatch is closed', 'Sarado na ang dispatch na ito'),
+        body: _dispState == 'resolved'
+            ? context.tr('The barangay approves your report before the case closes.', 'Inaaprubahan ng barangay ang ulat bago isara ang kaso.')
+            : context.tr('Nothing more is needed from you on this one.', 'Wala nang kailangan mula sa iyo rito.'),
+      );
+    }
+    final arrived = _step == 'arrived';
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      DButton(
+        arrived ? context.tr('Arrived at scene · sent', 'Nakarating na · naipadala') : context.tr('Send “Arrived at scene”', 'Ipadala ang “Nakarating na”'),
+        kind: DButtonKind.accent,
+        expand: true,
+        busy: _acting,
+        onTap: arrived || _acting ? null : _arrive,
+      ),
+      const SizedBox(height: 10),
+      DButton(context.tr('Send an update', 'Magpadala ng update'), expand: true, onTap: _acting ? null : _sendUpdate),
+      const SizedBox(height: 10),
+      DButton(context.tr('Request more details', 'Humingi ng karagdagang detalye'),
+          kind: DButtonKind.line, expand: true, onTap: _acting ? null : _requestDetails),
+      const SizedBox(height: 10),
+      DButton(context.tr('Escalate', 'I-escalate'), kind: DButtonKind.danger, expand: true, onTap: _acting ? null : _escalate),
+      const SizedBox(height: 6),
+      Center(
+        child: TextButton(
+          onPressed: _acting ? null : () => _toFullJob(),
+          child: Text(context.tr('Directions and updates', 'Direksyon at mga update'), style: DType.body(d.link, size: 13, w: FontWeight.w700)),
+        ),
+      ),
+    ]);
+  }
 
   // ---------- shell ---------------------------------------------
 
@@ -331,7 +541,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
               ),
             ]),
           ),
-          if (order) _orderBar(),
+          if (order && !_jobMode) _orderBar(),
         ]),
       ),
     );
@@ -427,6 +637,10 @@ class _DispatchOrderState extends State<_DispatchOrder>
       if (_error != null) ...[
         const SizedBox(height: 10),
         Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
+      ],
+      if (_jobMode) ...[
+        const SizedBox(height: 18),
+        _jobActions(),
       ],
     ]);
   }
@@ -692,7 +906,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
                 child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  DButton(s.windowActionOnTheWay, expand: true, height: 54, radius: 16, fontSize: 17, onTap: () => _toWindow(startOnTheWay: true)),
+                  DButton(s.windowActionOnTheWay, expand: true, height: 54, radius: 16, fontSize: 17, busy: _acting, onTap: _acting ? null : () => _toWindow(startOnTheWay: true)),
                   const SizedBox(height: 8),
                   // Rose's Figma: an outlined Open the job, not a quiet text link
                   DButton(context.tr('Open the job', 'Buksan ang trabaho'), kind: DButtonKind.line, expand: true, height: 46, radius: 16, onTap: _toWindow),
@@ -882,7 +1096,7 @@ class _DetailsRequestDialogState extends State<_DetailsRequestDialog> {
       content: TextField(
         controller: _text,
         autofocus: true,
-        maxLength: 300,
+        maxLength: 200,   // the Figma's 0/200
         minLines: 3,
         maxLines: 5,
         onChanged: (_) => setState(() {}),
@@ -900,7 +1114,7 @@ class _DetailsRequestDialogState extends State<_DetailsRequestDialog> {
       ),
       primaryLabel: s.dispatchRequestDetailsSend,
       onPrimary: _text.text.trim().isEmpty ? null : () => Navigator.of(context).pop(_text.text.trim()),
-      secondaryLabel: s.dispatchRequestDetailsCancel,
+      secondaryLabel: context.tr('Back', 'Bumalik'),   // the Figma's Send / Back
       onSecondary: () => Navigator.of(context).pop(),
     );
   }
