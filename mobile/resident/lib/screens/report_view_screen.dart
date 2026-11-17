@@ -2451,7 +2451,7 @@ class _RateCardState extends State<_RateCard> {
             hintText: context.tr('Tell us more (optional)', 'Sabihin pa (opsyonal)'),
             hintStyle: DType.body(d.muted, size: 13.5),
             filled: true,
-            fillColor: d.card2,
+            fillColor: d.field,   // was card2, the navy of the role cards: dark ink on dark navy could not be read (Rose, 16 Nov 2026)
             contentPadding: const EdgeInsets.all(10),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: d.line)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: d.line)),

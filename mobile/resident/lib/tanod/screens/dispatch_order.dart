@@ -635,7 +635,8 @@ class _DispatchOrderState extends State<_DispatchOrder>
             ),
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-              child: Stack(children: [
+              // centred (Rose, 16 Nov 2026: "ala sha sa gitna"): the Stack had no alignment and its Column shrank to the left
+              child: Stack(alignment: Alignment.topCenter, children: [
                 Positioned.fill(
                   child: Image.asset('assets/images/texture.png', fit: BoxFit.cover, color: Colors.white.withValues(alpha: .10), colorBlendMode: BlendMode.srcIn),
                 ),
@@ -643,7 +644,8 @@ class _DispatchOrderState extends State<_DispatchOrder>
                   bottom: false,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(22, 26, 22, 28),
-                    child: Column(children: [
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                      const SizedBox(width: double.infinity),
                       const _AcceptedTick(),
                       const SizedBox(height: 14),
                       Text(context.tr('Dispatch accepted', 'Tinanggap ang dispatch'),
@@ -657,17 +659,6 @@ class _DispatchOrderState extends State<_DispatchOrder>
                         near != null && near.isNotEmpty ? '${widget.ticket.trackingId} · ${s.dispatchNear(near)}' : widget.ticket.trackingId,
                         textAlign: TextAlign.center,
                         style: DType.mono(Colors.white.withValues(alpha: .88), size: 13),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .18), borderRadius: BorderRadius.circular(99)),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.visibility_outlined, size: 16, color: Colors.white),
-                          const SizedBox(width: 6),
-                          Text(context.tr('The barangay can see you took it', 'Nakikita ng barangay na tinanggap mo'),
-                              style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white)),
-                        ]),
                       ),
                     ]),
                   ),
@@ -703,7 +694,8 @@ class _DispatchOrderState extends State<_DispatchOrder>
                 child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   DButton(s.windowActionOnTheWay, expand: true, height: 54, radius: 16, fontSize: 17, onTap: () => _toWindow(startOnTheWay: true)),
                   const SizedBox(height: 8),
-                  DButton(context.tr('Not yet · open the job', 'Hindi pa · buksan ang trabaho'), kind: DButtonKind.ghost, expand: true, height: 46, radius: 16, onTap: _toWindow),
+                  // Rose's Figma: an outlined Open the job, not a quiet text link
+                  DButton(context.tr('Open the job', 'Buksan ang trabaho'), kind: DButtonKind.line, expand: true, height: 46, radius: 16, onTap: _toWindow),
                 ]),
               ),
             ),

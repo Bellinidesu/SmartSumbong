@@ -680,6 +680,40 @@ class DNote extends StatelessWidget {
 
 /// A sensitive case's mark on the tanod's dispatch (Rose, 21 Oct 2026): the barangay marked it sensitive, so the tanod
 /// handles it with care. The same plum the portal's Sensitive status uses. Residents never see it.
+/// A status as the portal draws it (12 Nov pill system, carried to the app 17 Nov 2026): a solid fill, white lettering (dark on the
+/// amber, which is too bright for white), 24 high, a soft shadow of its own colour.
+class DStatusPill extends StatelessWidget {
+  const DStatusPill(this.label, this.colour, {super.key});
+
+  final String label;
+  final Color colour;
+
+  /// The portal's solid status colours.
+  static const done = Color(0xFF087F31);
+  static const progress = Color(0xFF2457E6);
+  static const pending = Color(0xFFFFB300);
+  static const denied = Color(0xFFC4172A);
+  static const violet = Color(0xFF6A3FD1);
+  static const grey = Color(0xFF566285);
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = colour == pending ? const Color(0xFF2B1A00) : Colors.white;
+    return Container(
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 11),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: colour,
+        borderRadius: BorderRadius.circular(99),
+        boxShadow: [BoxShadow(color: colour.withValues(alpha: .38), blurRadius: 12, spreadRadius: -5, offset: const Offset(0, 4))],
+      ),
+      child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11.5, height: 1, color: fg)),
+    );
+  }
+}
+
 class DSensitivePill extends StatelessWidget {
   const DSensitivePill({super.key});
 
