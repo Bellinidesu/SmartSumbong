@@ -377,6 +377,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // handed to. Separate and optional, so an older database (or a
       // failure here) never blanks the report.
       Future<void> barangay() async {
+        // the two reads run together (17 Nov 2026: one wait, as the portal does)
+        await Future.wait([() async {
         try {
           final ev = await client
               .from('report_evidence')
@@ -389,6 +391,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                 ]);
           }
         } catch (_) {}
+        }(), () async {
         try {
           final o = await client
               .from('reports')
@@ -402,6 +405,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             });
           }
         } catch (_) {}
+        }()]);
       }
 
       // Panel ask 3b (7 Sep 2026): the resident sees each concern's own status. Separate and
@@ -2451,7 +2455,7 @@ class _RateCardState extends State<_RateCard> {
             hintText: context.tr('Tell us more (optional)', 'Sabihin pa (opsyonal)'),
             hintStyle: DType.body(d.muted, size: 13.5),
             filled: true,
-            fillColor: d.card2,
+            fillColor: d.field,   // was card2, the navy of the role cards: dark ink on dark navy could not be read (Rose, 16 Nov 2026)
             contentPadding: const EdgeInsets.all(10),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: d.line)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: d.line)),

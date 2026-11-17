@@ -26,6 +26,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'i18n.dart';
 import 'models/barangay_profile.dart';
+import 'net_timeout.dart';
 import 'models/complaint_catalogue.dart';
 import 'models/wording.dart';
 import 'models/complaint_category.dart';
@@ -158,6 +159,7 @@ Future<void> main() async {
       authOptions: FlutterAuthClientOptions(
         localStorage: SecureLocalStorage(),
       ),
+      httpClient: TimeoutClient(),   // no screen waits forever on a weak signal (net_timeout.dart)
     );
 
     // One app for both roles (branch C): a resident's tap opens the

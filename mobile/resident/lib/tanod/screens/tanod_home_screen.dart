@@ -506,8 +506,37 @@ class _IncomingCardState extends State<_IncomingCard> with SingleTickerProviderS
 
 /// `.loc`: the green "location shared" note, shown while the tanod is on
 /// duty and the phone has shared its place.
-class _LocCard extends StatelessWidget {
+/// The tanod's location, as the barangay sees it. Fresh: a green line. On duty but old or not reaching the barangay (17 Nov 2026,
+/// the reverse of the portal's "location may be old"): an amber card that says how old it is and sends a fix on demand.
+class _LocCard extends StatefulWidget {
   const _LocCard();
+
+  @override
+  State<_LocCard> createState() => _LocCardState();
+}
+
+class _LocCardState extends State<_LocCard> {
+  static const _stale = Duration(minutes: 10);
+  Timer? _tick;
+  bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 30), (_) { if (mounted) setState(() {}); });   // the age counts up while the card is on screen
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _sendNow() async {
+    setState(() => _sending = true);
+    await DutyController.instance.pushLocation();
+    if (mounted) setState(() => _sending = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -516,22 +545,60 @@ class _LocCard extends StatelessWidget {
       listenable: duty,
       builder: (context, _) {
         final d = context.d;
-        final on = duty.status == DutyState.onDuty && (duty.note == LocationNote.shared || duty.note == LocationNote.sharing);
-        if (!on) return const SizedBox.shrink();
-        const g = Color(0xFF1F8A45);
+        if (duty.status != DutyState.onDuty) return const SizedBox.shrink();
+        final age = duty.fixAge;
+        final failing = duty.note == LocationNote.off || duty.note == LocationNote.failed;
+        final stale = failing || (duty.note != LocationNote.sharing && (age == null || age > _stale));
+        if (!stale) {
+          if (duty.note != LocationNote.shared && duty.note != LocationNote.sharing) return const SizedBox.shrink();
+          const g = Color(0xFF1F8A45);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Color.alphaBlend(g.withValues(alpha: .12), d.card),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: g.withValues(alpha: .3)),
+              ),
+              child: Row(children: [
+                Container(width: 9, height: 9, decoration: BoxDecoration(shape: BoxShape.circle, color: g, boxShadow: [BoxShadow(color: g.withValues(alpha: .2), spreadRadius: 4)])),
+                const SizedBox(width: 14),
+                Expanded(child: Text(context.tr('Location shared. You can be sent nearby complaints.', 'Naibahagi ang lokasyon. Maaari kang padalhan ng malapit na sumbong.'), style: DType.body(d.ink2, size: 12.5, w: FontWeight.w400).copyWith(height: 1.35))),
+              ]),
+            ),
+          );
+        }
+        final amber = d.dark ? const Color(0xFFFFC061) : const Color(0xFFA36400);
+        final mins = age?.inMinutes;
+        final String line;
+        if (duty.note == LocationNote.off) {
+          line = context.tr('You’re on duty, but location is off on this phone, so the barangay cannot see where you are. Turn location on, then send it.',
+              'Naka-duty ka, pero naka-off ang lokasyon sa teleponong ito, kaya hindi ka makita ng barangay. I-on ang lokasyon, saka ipadala.');
+        } else if (mins == null) {
+          line = context.tr('You’re on duty, but the barangay has not received your location yet. Keep location on — it updates when you open the app.',
+              'Naka-duty ka, pero wala pang natatanggap na lokasyon mo ang barangay. Panatilihing naka-on ang lokasyon — nag-a-update ito kapag binuksan mo ang app.');
+        } else {
+          line = context.tr('You’re on duty, but the barangay last saw your location $mins min ago. Keep location on — it updates when you open the app.',
+              'Naka-duty ka, pero $mins minuto na ang nakalipas mula nang huling makita ng barangay ang lokasyon mo. Panatilihing naka-on ang lokasyon — nag-a-update ito kapag binuksan mo ang app.');
+        }
         return Padding(
           padding: const EdgeInsets.only(bottom: 14),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
-              color: Color.alphaBlend(g.withValues(alpha: .12), d.card),
+              color: Color.alphaBlend(DColors.orange.withValues(alpha: .12), d.card),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: g.withValues(alpha: .3)),
+              border: Border.all(color: DColors.orange.withValues(alpha: .4)),
             ),
-            child: Row(children: [
-              Container(width: 9, height: 9, decoration: BoxDecoration(shape: BoxShape.circle, color: g, boxShadow: [BoxShadow(color: g.withValues(alpha: .2), spreadRadius: 4)])),
-              const SizedBox(width: 14),
-              Expanded(child: Text(context.tr('Location shared. You can be sent nearby complaints.', 'Naibahagi ang lokasyon. Maaari kang padalhan ng malapit na sumbong.'), style: DType.body(d.ink2, size: 12.5, w: FontWeight.w400).copyWith(height: 1.35))),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.location_searching_rounded, size: 20, color: amber),
+                const SizedBox(width: 10),
+                Expanded(child: Text(line, style: DType.body(d.ink, size: 13, w: FontWeight.w600).copyWith(height: 1.4))),
+              ]),
+              const SizedBox(height: 10),
+              DButton(context.tr('Send my location now', 'Ipadala ang lokasyon ko ngayon'), small: true, busy: _sending, icon: Icons.my_location_rounded, onTap: _sending ? null : _sendNow),
             ]),
           ),
         );

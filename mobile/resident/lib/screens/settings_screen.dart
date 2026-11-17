@@ -363,7 +363,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // D: the branch the app came from, in the build name. (The easter eggs come later.)
             Center(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _tapVersion, child: Padding(padding: const EdgeInsets.all(6), child: Text('SmartSumbong • D · v$_version', style: DType.body(d.muted, size: 11.5))))),
             const SizedBox(height: 2),
-            Center(child: Text(context.tr('Powered by SMART', 'Pinatatakbo ng SMART'), style: DType.body(d.muted, size: 11))),
+            // the engine's own mark, not the word SMART (Ace, 17 Nov 2026); its glow is made for a dark ground, so it sits on a dark chip in both modes
+            Center(
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(context.tr('Powered by', 'Pinatatakbo ng'), style: DType.body(d.muted, size: 11)),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFF0E1428), borderRadius: BorderRadius.circular(8)),
+                  child: Image.asset('assets/images/smart-engine-sm.webp', height: 18, semanticLabel: 'SMARTengine', filterQuality: FilterQuality.medium),
+                ),
+              ]),
+            ),
             if (AppUpdater.supported) Center(child: TextButton(onPressed: () => AppUpdater.checkNow(context), child: Text(context.tr('Check for updates', 'Tingnan kung may update')))),
           ],
         ],

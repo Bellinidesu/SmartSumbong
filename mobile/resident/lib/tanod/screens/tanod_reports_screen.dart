@@ -284,14 +284,6 @@ class _AssignedCard extends StatelessWidget {
     final s = context.ts;
     final overdue = row.dueAt != null && row.dueAt!.isBefore(DateTime.now());
     final red = d.dark ? const Color(0xFFFF8A8A) : DColors.red;
-    Widget look(IconData icon, String tip, DispatchTarget t) => Tooltip(
-          message: tip,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () => _open(context, target: t),
-            child: DWell(icon, size: 40),
-          ),
-        );
     return Container(
       decoration: BoxDecoration(
         color: d.card,
@@ -332,15 +324,8 @@ class _AssignedCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text('“${row.description}”', maxLines: 2, overflow: TextOverflow.ellipsis, style: DType.body(d.ink2, size: 13)),
                   const SizedBox(height: 12),
-                  Row(children: [
-                    look(Icons.map_outlined, s.reportsViewMap, DispatchTarget.map),
-                    const SizedBox(width: 6),
-                    look(Icons.photo_library_outlined, s.reportsViewMedia, DispatchTarget.media),
-                    const SizedBox(width: 6),
-                    look(Icons.assignment_outlined, s.reportsViewInstructions, DispatchTarget.instructions),
-                    const Spacer(),
-                    DButton(s.windowOpen, small: true, onTap: () => _open(context)),
-                  ]),
+                  // one way in (Rose, 16 Nov 2026: the three small links did the same thing); the map, media and instructions are inside
+                  DButton(s.windowOpen, expand: true, onTap: () => _open(context)),
                 ]),
               ),
             ),
@@ -373,18 +358,13 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final d = context.d;
     final (String label, Color c) = row.awaitingApproval
-        ? (context.tr('Waiting for approval', 'Hinihintay ang pag-apruba'), const Color(0xFF8B5CF6))
+        ? (context.tr('Waiting for approval', 'Hinihintay ang pag-apruba'), DStatusPill.violet)
         : switch (row.step) {
-            'arrived' => (context.tr('On site', 'Nasa lugar'), const Color(0xFF7BA428)),
-            'on_the_way' => (context.tr('On the way', 'Papunta na'), const Color(0xFF356CF9)),
-            _ => (context.tr('Accepted', 'Tinanggap'), const Color(0xFF356CF9)),
+            'arrived' => (context.tr('On site', 'Nasa lugar'), DStatusPill.done),
+            'on_the_way' => (context.tr('On the way', 'Papunta na'), DStatusPill.progress),
+            _ => (context.tr('Accepted', 'Tinanggap'), DStatusPill.progress),
           };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(color: c.withValues(alpha: .14), borderRadius: BorderRadius.circular(99)),
-      child: Text(label, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11, color: d.dark ? Color.lerp(c, Colors.white, .35) : c)),
-    );
+    return DStatusPill(label, c);   // the portal's solid pill (17 Nov 2026)
   }
 }

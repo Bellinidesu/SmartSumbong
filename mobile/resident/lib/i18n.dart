@@ -1646,7 +1646,7 @@ class Strings {
 
   // ---------- edit profile ----------
   String get editProfileLoadError =>
-      _t('Could not load your profile.', 'Hindi ma-load ang iyong profile.');
+      _t('Could not load your profile. Check your connection and try again.', 'Hindi ma-load ang iyong profile. Suriin ang koneksyon at subukan muli.');
   String get editProfilePhotoAccessTitle =>
       _t('Photo access', 'Access sa Larawan');
   String get editProfilePhotoAccessRationale => _t(

@@ -134,7 +134,7 @@ class DColors {
   BoxDecoration cardBox(double radius, {Color? edge}) => BoxDecoration(
         color: surface(1),
         borderRadius: BorderRadius.circular(radius),
-        border: edge != null ? Border.all(color: edge) : null,
+        border: Border.all(color: edge ?? (dark ? Colors.white.withValues(alpha: .06) : line)),   // the portal's card edge (17 Nov 2026)
         boxShadow: elevation(1),
       );
 
@@ -146,12 +146,12 @@ class DColors {
   static const residentLight = DColors(
     dark: false,
     tanod: false,
-    bg: Color(0xFFF3F3F3),
+    bg: Color(0xFFEEF2FA),   // the portal's ground (17 Nov 2026)
     card: Color(0xFFFFFFFF),
     ink: Color(0xFF141B34),
     ink2: Color(0xFF3A4058),
     muted: Color(0xFF6B6B6B),
-    line: Color(0xFFE3E6EE),
+    line: Color(0xFFE3E8F3),
     field: Color(0xFFFBFBFB),
     accent: Color(0xFF00308F),
     link: Color(0xFF00308F),
@@ -166,13 +166,13 @@ class DColors {
   static const residentDark = DColors(
     dark: true,
     tanod: false,
-    bg: Color(0xFF0E1322),
-    card: Color(0xFF161C2E),
-    ink: Color(0xFFE9ECF5),
-    ink2: Color(0xFFC3C8D8),
-    muted: Color(0xFF9096AB),
-    line: Color(0xFF273050),
-    field: Color(0xFF1B2236),
+    bg: Color(0xFF101215),   // graphite, as the portal's night (17 Nov 2026); the blue accents below keep a resident apart from a tanod
+    card: Color(0xFF17191D),
+    ink: Color(0xFFF3F3F3),
+    ink2: Color(0xFFC9CCD1),
+    muted: Color(0xFFA8A8A8),
+    line: Color(0xFF2A2D33),
+    field: Color(0xFF1D2025),
     accent: Color(0xFFEAF0FF),
     link: Color(0xFF8DB2FF),
     card1: Color(0xFF13235A),
@@ -186,12 +186,12 @@ class DColors {
   static const tanodLight = DColors(
     dark: false,
     tanod: true,
-    bg: Color(0xFFF3F3F3),
+    bg: Color(0xFFEEF2FA),
     card: Color(0xFFFFFFFF),
     ink: Color(0xFF141B34),
     ink2: Color(0xFF3A4058),
     muted: Color(0xFF6B6B6B),
-    line: Color(0xFFE3E6EE),
+    line: Color(0xFFE3E8F3),
     field: Color(0xFFFBFBFB),
     accent: Color(0xFF14181D),
     link: Color(0xFF14181D),
@@ -206,13 +206,13 @@ class DColors {
   static const tanodDark = DColors(
     dark: true,
     tanod: true,
-    bg: Color(0xFF14181D),
-    card: Color(0xFF1C2127),
+    bg: Color(0xFF101215),
+    card: Color(0xFF17191D),
     ink: Color(0xFFF3F3F3),
     ink2: Color(0xFFC9CCD1),
     muted: Color(0xFFA8A8A8),
-    line: Color(0xFF34383E),
-    field: Color(0xFF1E242B),
+    line: Color(0xFF2A2D33),
+    field: Color(0xFF1D2025),
     accent: Color(0xFFF3F3F3),
     link: Color(0xFFDADDE2),
     card1: Color(0xFF2A3038),

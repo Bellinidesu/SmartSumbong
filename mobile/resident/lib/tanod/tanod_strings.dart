@@ -278,7 +278,7 @@ class TanodStrings {
 
   // ---------- edit profile ----------
   String get editProfileLoadError =>
-      _t('Could not load your profile.', 'Hindi ma-load ang iyong profile.');
+      _t('Could not load your profile. Check your connection and try again.', 'Hindi ma-load ang iyong profile. Suriin ang koneksyon at subukan muli.');
   String get editProfilePhotoAccessTitle =>
       _t('Allow photo access', 'Payagan ang Access sa Larawan');
   String get editProfilePhotoAccessRationale => _t(
@@ -549,7 +549,7 @@ class TanodStrings {
       'Kailangan ng SmartSumbong ng access sa camera para maglagay ng '
       'patunay na video sa dispatch na ito.');
   String get dispatchCameraOpenFailed =>
-      _t('Could not open the camera.', 'Hindi mabuksan ang camera.');
+      _t('Could not open the camera. Allow camera access in your phone’s Settings, or choose a photo from the gallery.', 'Hindi mabuksan ang camera. Payagan ang camera sa Settings ng telepono, o pumili ng larawan sa gallery.');
   // Added 9 Sep 2026: the attach-media flow used to force the camera
   // open with no way to pick an existing photo or video — flagged in the
   // CAPSTONE G12 chat. Mirrors register_screen.dart's source-choice
@@ -570,8 +570,8 @@ class TanodStrings {
       'Kailangan ng SmartSumbong ng access sa iyong mga larawan para '
       'maglagay ng patunay na video sa dispatch na ito.');
   String get dispatchMediaOpenFailed => _t(
-      'Could not open the camera or gallery.',
-      'Hindi mabuksan ang camera o gallery.');
+      'Could not open the camera or gallery. Allow access in your phone’s Settings and try again.',
+      'Hindi mabuksan ang camera o gallery. Payagan ito sa Settings ng telepono at subukan muli.');
   String dispatchTicketNumber(String id) =>
       _t('Ticket #$id', 'Tiket #$id');
   String get dispatchOrderHeaderLabel =>
@@ -768,7 +768,7 @@ class TanodStrings {
       'Mapupunta sa barangay ang iyong huling ulat para aprubahan. Kapag '
       'naaprubahan, sasabihan ang residente na nalutas na ang kaso.');
   String get windowComposerHint =>
-      _t('Send an update\u2026', 'Magpadala ng update\u2026');
+      _t('Message the barangay\u2026', 'Mag-message sa barangay\u2026');   // 17 Nov 2026: "Send an update" is Rose's field-report form now
   String get windowEmpty => _t(
       'Updates you send show here. The barangay sees them; the resident '
       'only sees your steps.',

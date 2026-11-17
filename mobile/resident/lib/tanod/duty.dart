@@ -61,6 +61,13 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
   bool saving = false;
   LocationNote? note;
 
+  /// When the barangay last received this tanod's location (users.last_location_at), read on load and after each push.
+  /// The tanod home warns when it is old while on duty (17 Nov 2026: the portal shows such a tanod as "location may be old").
+  DateTime? lastFix;
+
+  /// How old [lastFix] is, or null when there is none.
+  Duration? get fixAge => lastFix == null ? null : DateTime.now().difference(lastFix!);
+
   String? _uid;
   DateTime? _lastPush;
   // One fix at a time. Indoors a fix can take the full 15-second timeout.
@@ -94,10 +101,12 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final me = await client
           .from('users')
-          .select('duty_status')
+          .select('duty_status,last_location_at')
           .eq('id', uid)
-          .single();
+          .single()
+          .timeout(const Duration(seconds: 15));
       status = DutyState.parse(me['duty_status'] as String?);
+      lastFix = DateTime.tryParse((me['last_location_at'] as String?) ?? '')?.toLocal();
       notifyListeners();
       if (status == DutyState.onDuty) await pushLocation();
     } catch (_) {
@@ -115,7 +124,8 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
       final uid = client.auth.currentUser!.id;
       await client
           .from('users')
-          .update({'duty_status': next.wire}).eq('id', uid);
+          .update({'duty_status': next.wire}).eq('id', uid)
+          .timeout(const Duration(seconds: 15));
       status = next;
       saving = false;
       notifyListeners();
@@ -163,6 +173,7 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
       // The Dart preview has no GPS: the location is shared by decree.
       if (kDemo) {
         note = LocationNote.shared;
+        lastFix = DateTime.now();
         return;
       }
       var perm = await Geolocator.checkPermission();
@@ -182,7 +193,7 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
       ).timeout(const Duration(seconds: 15));
 
       await client.rpc('update_my_location',
-          params: {'p_lat': pos.latitude, 'p_lon': pos.longitude});
+          params: {'p_lat': pos.latitude, 'p_lon': pos.longitude}).timeout(const Duration(seconds: 15));
 
       // Read it back. The RPC returns void and filters on duty_status,
       // so a no-op is indistinguishable from a success at the call site.
@@ -190,8 +201,11 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
           .from('users')
           .select('last_location_at')
           .eq('id', uid)
-          .single();
-      note = (row['last_location_at'] as String?) != null
+          .single()
+          .timeout(const Duration(seconds: 15));
+      final at = DateTime.tryParse((row['last_location_at'] as String?) ?? '')?.toLocal();
+      if (at != null) lastFix = at;
+      note = at != null
           ? LocationNote.shared
           : LocationNote.failed;
       _lastPush = DateTime.now();
@@ -207,6 +221,7 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
   /// status.
   void reset() {
     _lastPush = null;
+    lastFix = null;
     _uid = null;
     status = null;
     note = null;

@@ -1185,12 +1185,7 @@ class _ReportCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 12, 4, 14),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                      decoration: BoxDecoration(color: st.withValues(alpha: .14), borderRadius: BorderRadius.circular(99)),
-                      child: Text(s.reportStatusLabel(report.status.wire),
-                          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11.5, color: d.dark ? Color.lerp(st, Colors.white, .35) : st)),
-                    ),
+                    DStatusPill(s.reportStatusLabel(report.status.wire), st),
                     if (onAddDetails != null) ...[
                       const SizedBox(width: 6),
                       Container(
@@ -1268,13 +1263,13 @@ class _ReportCard extends StatelessWidget {
   }
 }
 
-/// The preview's status colours.
+/// The portal's status colours (17 Nov 2026): the same case reads the same colour in the app and on the portal.
 Color reportStatusColour(ReportStatus s) => switch (s) {
-      ReportStatus.pendingReview || ReportStatus.validated => const Color(0xFFF59E0B),
-      ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => const Color(0xFF356CF9),
-      ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived => const Color(0xFF1F8A45),
-      ReportStatus.rejected => const Color(0xFFC62828),
-      ReportStatus.cancelled => const Color(0xFF9AA1AB),
+      ReportStatus.pendingReview || ReportStatus.validated => DStatusPill.pending,
+      ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => DStatusPill.progress,
+      ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived => DStatusPill.done,
+      ReportStatus.rejected => DStatusPill.denied,
+      ReportStatus.cancelled => DStatusPill.grey,
     };
 
 /// The mockup's `"📍 <place>"` footer meta item, resolved from the
