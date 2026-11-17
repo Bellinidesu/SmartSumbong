@@ -22,6 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check($_POST['csrf'] ?? null)) {
         $flash = t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.');
         $level = 'error';
+    } elseif (is_captain()) {
+        // a Captain account is view only: nothing it posts is sent, the chat included (17 Nov 2026)
+        $flash = t('View only: this account can read the case but not change it or send messages.', 'Tingin lamang: nababasa ng account na ito ang kaso pero hindi ito mababago o makapagpapadala ng mensahe.');
+        $level = 'error';
     } else {
         try {
             $act = (string) ($_POST['action'] ?? '');

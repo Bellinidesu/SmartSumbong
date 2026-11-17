@@ -805,7 +805,7 @@ $tlTone = function (array $l): string {
 </script>
 
   <?php if ($isOngoing): ?>
-  <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+  <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
   <script nonce="<?= csp_nonce() ?>">
   // Realtime, 6 Sep 2026 — only wired up for an open period (see
   // $isOngoing above). This report is meant to be printed and signed, so
@@ -815,7 +815,7 @@ $tlTone = function (array $l): string {
   // accounts.php use. attendance is not in the supabase_realtime
   // publication, so the Tanod Attendance Rate tile isn't watched here —
   // only reports/dispatches/status_logs are.
-  (function () {
+  document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
     if (!window.supabase) { return; }
     const { createClient } = supabase;
     const TOKEN = <?= json_encode(access_token()) ?>;
@@ -837,7 +837,7 @@ $tlTone = function (array $l): string {
           badge.classList.add('p-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
         }
       });
-  })();
+  });
   </script>
   <?php endif; ?>
   <script nonce="<?= csp_nonce() ?>" src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>

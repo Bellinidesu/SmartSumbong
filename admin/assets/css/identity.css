@@ -537,6 +537,7 @@
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead { box-shadow: none; }
 :root:root .p-body:is(.page-residents, .page-personnel) .cm-chips { margin-top: 0; border-top: 0; }
 .cn-was { margin-top: 3px; padding: 2px 8px; display: inline-block; border-radius: 8px; background: color-mix(in srgb, var(--p-orange, #FF9800) 12%, transparent); color: var(--p-orange-d, #8A4B00); font: 700 12px Inter, sans-serif; }
+:root[data-theme="dark"] .cn-was { color: #FFB65C; background: color-mix(in srgb, #FF9800 18%, transparent); }   /* readable in dark (17 Nov 2026) */
 /* The brain button's module (4 Nov 2026): the person's SMART module in the engine's window */
 .ss-win .mb-sec { display: grid; gap: 10px; }
 .ss-win .mb-sec .p-eyebrow { margin: 0; }

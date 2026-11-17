@@ -138,11 +138,11 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
 </div>
 </div><?php // #act-list ?>
 
-<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>">
 // New rows anywhere reload the feed (debounced), the same way Case Reports
 // keeps itself current.
-(function () {
+document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
   const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, <?= json_encode(access_token()) ?>);
   let t = null;
   // the press flow asks the server for the view on screen and swaps the feed; without it, the page reloads as before
@@ -152,6 +152,6 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
   ['status_logs', 'case_handler_log', 'report_messages'].forEach(tb =>
     ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: tb }, later));
   ch.subscribe();
-})();
+});
 </script>
 <?php layout_foot(); ?>

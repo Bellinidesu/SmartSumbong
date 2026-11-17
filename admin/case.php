@@ -400,6 +400,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <article class="p-report">
     <div class="ss-case-actions">
     <?php // 16 Nov 2026 (Ace): the case's chat beside the brain. The button does what this handler chose in its menu: float the chat head (on every page) or open the case chat in the Inbox; the choice is kept in this browser. ?>
+    <?php if (!is_captain()): // a Captain account reads the case; the chat button is for those who answer (17 Nov 2026) ?>
     <div class="ss-chatsplit" id="cc-chat" data-case="<?= e((string) $report['id']) ?>">
       <a class="p-sr" href="inbox.php?app=chats&amp;c=<?= e(urlencode((string) $report['id'])) ?>&amp;k=r" data-cc-inbox tabindex="-1" hx-boost="false"><?= e(t('Open this case\'s chat in the Inbox', 'Buksan ang chat ng kasong ito sa Inbox')) ?></a>
       <button type="button" class="ss-chatbtn" data-cc-chat aria-label="<?= e(t('Case chat', 'Chat ng kaso')) ?>" title="<?= e(t('Case chat', 'Chat ng kaso')) ?>"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.5 1.3 4.7 3.4 6.2-.2 1.3-.8 2.6-1.7 3.6a.5.5 0 0 0 .5.8c2-.3 3.7-1.1 4.9-2A11.7 11.7 0 0 0 12 20c5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/></svg><b class="ss-chatn" hidden>0</b></button><button type="button" class="ss-chatcar" data-cc-chat-menu aria-haspopup="menu" aria-expanded="false" aria-label="<?= e(t('Choose how the chat opens', 'Piliin kung paano bubukas ang chat')) ?>" title="<?= e(t('Choose how the chat opens', 'Piliin kung paano bubukas ang chat')) ?>"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -408,6 +409,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <button type="button" role="menuitemradio" aria-checked="false" data-cc-mode="page"><b><?= e(t('Case chat', 'Chat ng kaso')) ?></b><small><?= e(t('Opens this case\'s chat in the Inbox, no bubble', 'Bubuksan ang chat ng kasong ito sa Inbox, walang bubble')) ?></small></button>
       </div>
     </div>
+    <?php endif; ?>
     <?php if (!empty($smart) && ($smart['score'] ?? null) !== null): // 16 Nov 2026 (Ace): the brain button of THIS case, in the card's header corner, opens "Why this level"
         $sbLv = (string) ($smart['effective_level'] ?? 'low');
         $sbName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')][$sbLv] ?? $sbLv; ?>
@@ -1687,8 +1689,9 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 });
 </script>
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css?v=<?= e(vendor_version('maplibre-gl')) ?>">
-<script nonce="<?= csp_nonce() ?>" src="assets/vendor/maplibre/maplibre-gl.js?v=<?= e(vendor_version('maplibre-gl')) ?>"></script>
-<script nonce="<?= csp_nonce() ?>" src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
+<?php // speed sweep, 17 Nov 2026: MapLibre (1.1 MB) and the map theme no longer stop the page from being read; the map below is drawn once they have run ?>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/maplibre/maplibre-gl.js?v=<?= e(vendor_version('maplibre-gl')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/case-smart.js?v=<?= e(asset_version('../js/case-smart.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/case-chat-button.js?v=<?= e(asset_version('../js/case-chat-button.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/case-tabs.js?v=<?= e(asset_version('../js/case-tabs.js')) ?>" defer></script>
@@ -1771,6 +1774,8 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
   // small. The full interactive map is Spatial Distribution; expanding
   // this one to full screen (below) briefly turns those back on, since a
   // fixed, uninteractive view stops making sense once it fills the screen.
+  // speed sweep, 17 Nov 2026: MapLibre and map-theme.js are deferred, so the map is drawn once the page has been read (they run just before that)
+  function caseMap() {
   var el = document.getElementById('case-map');
   if (el && window.maplibregl) {
     var lat = <?= json_encode((float) $report['latitude']) ?>,
@@ -1900,11 +1905,13 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
       });
     }
   }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', caseMap); } else { caseMap(); }
 })();
 </script>
 
 <?= case_chat_head(case_chat_conversations($report, $dispatches, $thread, $threadMedia, $messages, $status), $id, (string) $report['tracking_id']) ?>
-<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>">
 // Realtime, added 6 Sep 2026 — explicit ask: "the entire system needs to
 // work realtime." This is the one page in the portal with live form
@@ -1912,7 +1919,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 // it (a deny reason mid-type, a dispatch note, a target date), so unlike
 // cases.php/dashboard.php it never rewrites the DOM itself — it only
 // raises the .update-banner above and leaves reloading to the admin.
-(function () {
+document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
   if (!window.supabase) { return; }
   const { createClient } = supabase;
 
@@ -1975,7 +1982,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
     }
   }
   setInterval(pollUnpublished, 25000);
-})();
+});
 </script>
 
 <?php layout_foot(); ?>

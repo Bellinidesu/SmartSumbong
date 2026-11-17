@@ -401,7 +401,7 @@ function render_retirement_queue(): void
     });
     </script>
 
-    <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
     <script nonce="<?= csp_nonce() ?>">
     // Realtime for the retirement queue — explicit ask, 6 Sep 2026: "the
     // entire system needs to work realtime," and this page was the one
@@ -413,7 +413,7 @@ function render_retirement_queue(): void
     // dashboard.php already use for reports/dispatches. This does not
     // cover the succession panel above — public.users still carries no
     // realtime push (0046) — so that half of the page is a plain load.
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
       const TOKEN = <?= json_encode(access_token()) ?>;
       // Same session token every page load (csrf_token() memoizes it) --
       // safe to bake into the JS-rendered Approve/Deny forms below the
@@ -576,7 +576,7 @@ function render_retirement_queue(): void
             badge.classList.add('p-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
           }
         });
-    })();
+    });
     </script>
 
     <?php
