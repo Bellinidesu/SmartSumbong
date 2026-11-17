@@ -9,10 +9,9 @@
 .ss-pager{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 0 4px;font-size:14px}
 .ss-pager a,.ss-pager span.on,.ss-pager span.off{min-width:44px;min-height:44px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--p-line);background:var(--p-surface);color:var(--p-ink);font-weight:700;text-decoration:none}
 .ss-pager a:hover{border-color:var(--p-orange)}
-.ss-pager span.on{background:var(--p-blue);border-color:var(--p-blue);color:#fff}
-.ss-pager span.off{opacity:.45}
+
 .ss-pager .gap{padding:0 4px;color:var(--p-muted)}
-.ss-pager .of{margin-left:auto;color:var(--p-muted);font-weight:600}
+.ss-pager .of{ font-weight: 600; }
 .ss-pager a:focus-visible{outline:2px solid var(--p-orange);outline-offset:2px}
 .ss-score{font-weight:700;color:var(--p-muted);font-variant-numeric:tabular-nums}
 .ss-set{display:block;color:var(--p-muted);font-size:11px}
@@ -20,9 +19,9 @@
 .ss-smart{white-space:nowrap}
 .ss-bar{width:140px;height:8px;border-radius:99px;background:var(--p-surface-2);overflow:hidden}
 .ss-bar i{display:block;height:100%;border-radius:99px;background:var(--p-orange)}
-.ss-why{display:block;margin-top:4px;color:var(--p-muted);font-size:12px;max-width:260px}
+.ss-why{ margin-top: 4px; color: var(--p-muted); font-size: 12px; max-width: 260px; }
 /* the SMART card on a case */
-.ss-smartcard{border-left:4px solid var(--p-orange)}
+
 .ss-sc-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:2px 0 6px}
 .ss-sc-head .p-badge{font-size:14px;padding:5px 12px}
 .ss-sc-head .ss-score{font-size:20px}
@@ -40,7 +39,7 @@
 .ss-sc-change{margin-top:12px}
 /* the ladder, concerns and sensitive cases on a case (0130) */
 .ss-ladder{list-style:none;display:flex;gap:6px;margin:10px 0;padding:0;font-size:13px;font-weight:700}
-.ss-ladder li{flex:1;text-align:center;padding:7px 4px;border-radius:8px;background:var(--p-surface-2);border:1px solid var(--p-line);color:var(--p-muted)}
+.ss-ladder li{ flex: 1; padding: 7px 4px; border-radius: 8px; background: var(--p-surface-2); border: 1px solid var(--p-line); color: var(--p-muted); }
 .ss-ladder li.past{color:var(--p-ink)}
 .ss-ladder li.now{background:var(--p-blue);border-color:var(--p-blue);color:#fff}
 .ss-sensitive{margin:10px 0;padding:10px 12px;border-radius:10px;background:#FDE3E1;color:#8A1C14;font-size:13.5px;border:1px solid #F3B8B3}
@@ -57,9 +56,8 @@
 .ss-posform .p-input-plain{flex:1 1 120px;min-width:0}
 .ss-cmap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 32px;margin-top:6px}
 .ss-cmap--3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.ss-cmap-row{display:flex;justify-content:space-between;gap:12px;align-items:center;min-height:44px}
-.ss-cmap-row .p-input-plain{width:84px;flex:none;text-align:right}
-.ss-resp-row{padding:4px 0}
+.ss-cmap-row{ display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+
 .ss-rec{margin-left:6px}
 .ss-why{display:block}
 /* dashboard: what SMART sees (0124, 0127, 0128) */
@@ -127,11 +125,6 @@
 .ss-panel-in{min-height:0;overflow:hidden;padding-top:14px}
 .ss-panel.is-ready:not(.is-open) .ss-panel-in{visibility:hidden}
 
-
-
-
-
-
 .ss-panel .ss-two,.ss-panel .ss-tiles{margin-bottom:14px}
 @keyframes ssSweep{to{background-position:300% 0}}
 @keyframes ssBreathe{50%{opacity:.55}}
@@ -173,10 +166,10 @@
 @media (prefers-reduced-motion:reduce){.ss-dock::after,.ss-drawer.is-thinking,.ss-drawer.is-rise .ss-drawer-body>*{animation:none!important}}
 /* Notifications: the briefing, the three lanes, day headers (Ace's pick: inbox + briefing + timeline) */
 .ss-brief{display:grid;gap:14px;margin:0 0 18px}
-.ss-brief-hero{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:16px 18px;border-radius:16px;background:var(--p-surface);border:1px solid var(--p-line);overflow:hidden;isolation:isolate}
+.ss-brief-hero{ position: relative; align-items: center; }
 .ss-brief-hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,rgba(53,108,249,.10),rgba(255,152,0,.10),rgba(237,250,4,.08));background-size:200% 100%;animation:ssSweep 12s steps(180) infinite}
 .ss-brief-txt b{font-family:Inter Tight,sans-serif;font-size:17px}
-.ss-brief-txt p{margin:2px 0 0;color:var(--p-muted);font-size:14px;max-width:70ch}
+.ss-brief-txt p{ margin: 2px 0 0; color: var(--p-muted); max-width: 70ch; }
 .ss-brief-txt .ss-thinkline{display:none;color:var(--p-muted)}
 .ss-brief.is-thinking .ss-brief-pane{display:none}
 .ss-brief.is-thinking .ss-thinkline{display:block}
@@ -207,7 +200,7 @@
 .ss-day:first-child{margin-top:4px}
 .ss-smart-tag{display:inline-flex;align-items:center;margin-right:8px;padding:1px 8px;border-radius:99px;font:700 10.5px Inter,sans-serif;letter-spacing:.04em;background:var(--p-violet-bg);color:var(--p-violet-fg)}
 @media (max-width:1100px){.ss-lanes{grid-template-columns:1fr}.ss-brief-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:700px){.ss-brief-hero{grid-template-columns:1fr}.ss-brief-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.ss-nt{grid-template-columns:34px minmax(0,1fr)}.ss-nt>.p-btn{grid-column:2;justify-self:start}}
+@media (max-width:700px){.ss-brief-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.ss-nt{grid-template-columns:34px minmax(0,1fr)}.ss-nt>.p-btn{grid-column:2;justify-self:start}}
 @media (prefers-reduced-motion:reduce){.ss-brief-hero::before{animation:none}}
 /* the engine's own button sits on top of the dock, wider than the round ones, and glows */
 .p-map-dock .ss-dock-logo{order:-10;border-radius:14px;color:#EDFA04;background:linear-gradient(#15181d,#15181d) padding-box,linear-gradient(110deg,#356CF9,#FF9800,#EDFA04,#34C759,#356CF9) border-box;border:2px solid transparent;background-size:auto,300% 100%;animation:ssSweep 6s steps(90) infinite}
@@ -242,7 +235,7 @@
 .ss-clock[data-sky="dusk"]{--sky:linear-gradient(180deg,#3B1F6B,#C2410C 68%,#F59E0B)}
 .ss-clock[data-sky="night"]{--sky:linear-gradient(180deg,#07102E,#14213D 70%,#1E2F5C)}
 .ss-sky{position:absolute;inset:0;z-index:-1;background:var(--sky);overflow:hidden}
-.ss-orb{position:absolute;left:var(--orb-x);top:var(--orb-y);width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;background:#FFD54A;box-shadow:0 0 0 8px rgba(255,213,74,.22),0 0 34px 10px rgba(255,200,60,.55);transition:left 1s,top 1s}
+
 .ss-clock[data-orb="moon"] .ss-orb{background:#F3F3F3;box-shadow:inset -9px -3px 0 0 #B8C0D4,0 0 26px 6px rgba(200,210,255,.35)}
 .ss-cloud{position:absolute;height:20px;width:74px;border-radius:99px;background:rgba(255,255,255,.55);filter:blur(1px);animation:ssDrift 38s linear infinite}
 .ss-cloud::before{content:"";position:absolute;left:14px;top:-10px;width:34px;height:26px;border-radius:50%;background:inherit}
@@ -257,7 +250,7 @@
 .ss-time small{font:700 14px Inter,sans-serif;opacity:.9}
 .ss-date{font:600 13px Inter,sans-serif;opacity:.95}
 .ss-wx{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(0,0,0,.28);backdrop-filter:blur(6px);text-shadow:none}
-.ss-wx-ic{display:grid;place-items:center;flex:none;color:#fff}
+.ss-wx-ic{ place-items: center; flex: none; }
 .ss-wx-txt{display:flex;flex-direction:column;min-width:0;line-height:1.2}
 .ss-wx-txt b{font:800 17px Inter Tight,sans-serif}
 .ss-wx-txt span{font-size:12px;opacity:.92}
@@ -267,7 +260,7 @@
 @keyframes ssTwinkle{50%{opacity:.55}}
 @keyframes ssRain{to{background-position:0 0,-8px 40px}}
 @media (max-width:760px){.ss-brief-hero{grid-template-columns:1fr}.ss-clock{border-radius:16px 16px 0 0;min-height:170px}.ss-brief-main{border-radius:0 0 16px 16px}}
-@media (prefers-reduced-motion:reduce){.ss-brief-hero,.ss-cloud,.ss-stars,.ss-clock .ss-sky::after{animation:none!important}.ss-orb{transition:none}}
+@media (prefers-reduced-motion:reduce){.ss-brief-hero,.ss-cloud,.ss-stars,.ss-clock .ss-sky::after{animation:none!important}}
 /* the tiles under it glow on hover */
 .ss-btile{transition:border-color .2s,box-shadow .2s,transform .2s}
 .ss-btile:hover{box-shadow:0 8px 22px rgba(255,152,0,.18);transform:translateY(-2px)}
@@ -360,26 +353,26 @@
 .ss-strip .ss-lane{display:contents}
 .ss-strip .ss-lane>h3{display:none}
 .ss-strip .ss-nt{height:100%}
-.bd-bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;margin:4px 0 12px}
+.bd-bar{ display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: space-between; }
 .bd-ttl{display:flex;flex-direction:column;gap:2px}
 .bd-ttl h2{margin:0;font:800 20px Inter Tight,sans-serif}
-.bd-scope a{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:9px;color:var(--p-muted);font-weight:700;font-size:13px;text-decoration:none}
-.bd-scope a.p-on{background:var(--p-surface);color:var(--p-ink);box-shadow:var(--p-shadow-sm)}
+.bd-scope a{ display: inline-flex; align-items: center; gap: 7px; color: var(--p-muted); font-weight: 700; font-size: 13px; text-decoration: none; }
+
 .bd-scope b{font:700 11px Inter,sans-serif;color:var(--p-muted)}
-.bd-cols{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(248px,1fr);gap:12px;overflow-x:auto;padding:2px 2px 12px;align-items:stretch}
-.bd-col{display:grid;grid-template-rows:auto 1fr;gap:10px;padding:10px;border-radius:16px;background:color-mix(in srgb,var(--p-surface) 75%,transparent);border:1px solid var(--p-line);min-height:260px;transition:background .2s,border-color .2s}
-.bd-col.is-over{border-color:var(--p-orange);background:color-mix(in srgb,var(--p-orange) 10%,var(--p-surface))}
-.bd-col header{display:flex;justify-content:space-between;align-items:center;height:30px;padding:0 4px}
+.bd-cols{ display: grid; grid-auto-flow: column; overflow-x: auto; align-items: stretch; }
+.bd-col{ display: grid; }
+
+.bd-col header{ display: flex; justify-content: space-between; }
 .bd-col h3,.bd-col h4{margin:0;font:800 14px Inter,sans-serif}
-.bd-col header span{font:700 11px Inter,sans-serif;padding:1px 9px;border-radius:99px;background:var(--p-surface-2);color:var(--p-muted)}
-.bd-list{display:grid;gap:10px;align-content:start}
-.bd-none{display:grid;place-items:center;height:92px;margin:0;border:1.5px dashed var(--p-line-2);border-radius:12px;color:var(--p-muted);font-size:12.5px}
-.bd-card{position:relative;display:grid;gap:7px;min-height:132px;padding:12px 12px 11px 17px;border-radius:14px;background:var(--p-surface);border:1px solid var(--p-line);cursor:grab;transition:transform .2s cubic-bezier(.2,1.25,.3,1),box-shadow .2s}
-.bd-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:14px 0 0 14px;background:var(--c)}
-.bd-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px color-mix(in srgb,var(--c) 26%,transparent)}
-.bd-card.is-drag{opacity:.45;cursor:grabbing}
+
+.bd-list{ align-content: start; }
+.bd-none{ display: grid; place-items: center; height: 92px; margin: 0; font-size: 12.5px; }
+.bd-card{ position: relative; cursor: grab; }
+.bd-card::before{ content: ""; position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); }
+
+.bd-card.is-drag{ cursor: grabbing; }
 .bd-top{display:flex;align-items:center;gap:8px;min-height:28px}
-.bd-lv{font:700 11px Inter,sans-serif;padding:2px 9px;border-radius:99px;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
+.bd-lv{ border-radius: 99px; background: color-mix(in srgb,var(--c) 16%,transparent); color: var(--c); }
 .bd-age{font:600 11.5px Inter,sans-serif;color:var(--p-muted)}
 .bd-menu{margin-left:auto;position:relative}
 .bd-menu summary{list-style:none;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;color:var(--p-muted);font-size:18px;line-height:1;cursor:pointer}
@@ -388,10 +381,10 @@
 .bd-menu>div{position:absolute;right:0;top:32px;z-index:20;display:grid;min-width:200px;padding:6px;border-radius:12px;background:var(--p-surface);border:1px solid var(--p-line-2);box-shadow:var(--p-shadow)}
 .bd-menu>div a{padding:8px 10px;border-radius:8px;color:var(--p-ink);font-weight:600;font-size:13px;text-decoration:none}
 .bd-menu>div a:hover{background:var(--p-surface-2)}
-.bd-title{display:grid;gap:2px;color:var(--p-ink);text-decoration:none}
+.bd-title{ display: grid; gap: 2px; text-decoration: none; }
 .bd-id{font:600 11px ui-monospace,Menlo,monospace;color:var(--p-muted)}
-.bd-title b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:2.6em;font:700 13.5px/1.3 Inter,sans-serif}
-.bd-cat{margin:0;font-size:12px;color:var(--p-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bd-title b{ display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.bd-cat{ margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bd-own{display:flex;align-items:center;gap:9px;padding-top:8px;border-top:1px solid var(--p-line)}
 .bd-ring{display:inline-grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:var(--rk,var(--p-line-2))}
 .bd-ring[data-r="staff"]{--rk:var(--rk-staff)}.bd-ring[data-r="kagawad"]{--rk:var(--rk-kagawad)}.bd-ring[data-r="chair"]{--rk:var(--rk-chair)}
@@ -401,14 +394,10 @@
 .bd-who b{font:700 12.5px Inter,sans-serif}
 .bd-who small{font-size:11.5px;color:var(--p-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-
-
-
-
 @media (prefers-reduced-motion:reduce){.bd-card, .bd-col {transition:none;animation:none}}
 /* the card's panel and the drop ghost: like Trello's card back, on the barangay's rules */
-.bd-card.is-open{box-shadow:0 0 0 2px var(--c),0 10px 24px color-mix(in srgb,var(--c) 26%,transparent)}
-.bd-ghost{display:grid;place-items:center;height:132px;border:2px dashed var(--p-orange);border-radius:14px;background:color-mix(in srgb,var(--p-orange) 8%,transparent);color:var(--p-orange);font:700 12.5px Inter,sans-serif;text-align:center;padding:0 12px}
+
+.bd-ghost{ display: grid; place-items: center; height: 132px; border: 2px dashed var(--p-orange); color: var(--p-orange); font: 700 12.5px Inter,sans-serif; text-align: center; padding: 0 12px; }
 .bd-ghost.is-no{border-color:var(--p-line-2);background:transparent;color:var(--p-muted)}
 .bd-panel{position:fixed;z-index:90;top:0;right:0;bottom:0;display:grid;grid-template-rows:auto 1fr auto;width:min(420px,100%);background:var(--p-surface);border-left:1px solid var(--p-line-2);box-shadow:-24px 0 60px rgba(0,0,0,.4);animation:bdIn .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes bdIn{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
@@ -459,16 +448,16 @@
 /* the board fits the screen like Trello's: columns the same height, each scrolling on its own */
 .bd-cols{height:clamp(520px,calc(100vh / var(--z,1) - 150px),920px);grid-template-rows:minmax(0,1fr);overflow-y:hidden;padding-bottom:14px}
 .bd-col{height:100%;min-height:0;grid-template-rows:auto minmax(0,1fr)}
-.bd-list{overflow-y:auto;min-height:0;padding:2px 3px 2px 0;scrollbar-width:thin;scrollbar-color:var(--p-line-2) transparent}
+.bd-list{ overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--p-line-2) transparent; }
 .bd-list::-webkit-scrollbar{width:6px}.bd-list::-webkit-scrollbar-thumb{background:var(--p-line-2);border-radius:6px}
 /* cards: content on top, the owner always at the foot, no reserved blank line */
-.bd-card{display:flex;flex-direction:column;gap:6px;min-height:124px}
+.bd-card{ display: flex; flex-direction: column; gap: 6px; }
 .bd-title b{min-height:0}
 .bd-own{margin-top:auto}
 .bd-ttl h2{display:none}
 
 /* the board's cards keep their full height inside a scrolling column: children never shrink */
-.bd-list{display:flex;flex-direction:column;gap:10px}
+.bd-list{ display: flex; flex-direction: column; }
 .bd-list>*{flex:none}
 .bd-card>*{flex:none}
 .bd-cat,.bd-title,.bd-own,.bd-top{flex:none}
@@ -479,7 +468,7 @@
 .p-band--calm .p-search{background:var(--p-surface);border:1px solid var(--p-line-2);box-shadow:none}
 .p-band--calm .p-pill-select{background:var(--p-surface);border:1px solid var(--p-line-2);box-shadow:none}
 .p-notif-card .p-notif-list{max-height:none;overflow:visible}
-.p-notif-card{overflow:visible}
+
 .p-notif-list .p-notif{border-radius:0}
 .p-notif-list .p-notif:first-of-type{border-radius:14px 14px 0 0}
 /* Notifications, tidied: one grid for every row (icon, text, action, mark-as-read), a quiet unread edge, an even strip */
@@ -495,7 +484,7 @@
 .p-notif-card .p-notif .p-n-x{margin:0;display:flex;justify-content:flex-end}
 .p-n-check{display:grid;place-items:center;width:34px;height:34px;padding:0;border-radius:10px;border:1px solid var(--p-line-2);background:transparent;color:var(--p-muted);cursor:pointer;transition:background .15s,color .15s,border-color .15s}
 .p-n-check:hover{background:var(--p-surface-2);color:var(--p-green);border-color:var(--p-green)}
-.p-notif-list .ss-day{padding:14px 18px 6px;margin:0;border-top:1px solid var(--p-line)}
+.p-notif-list .ss-day{ border-top: 1px solid var(--p-line); }
 .p-notif-list .ss-day:first-child{border-top:0}
 .p-notif-card{border-radius:16px;overflow:hidden}
 .p-band--calm{align-items:center;gap:12px}
@@ -541,7 +530,7 @@
 .p-band > form.ss-band-filters.ss-six{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:1100px){.p-band > form.ss-band-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.p-band > form.ss-band-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.ss-cases-t{table-layout:fixed;min-width:1080px}
+.ss-cases-t{ table-layout: fixed; }
 .ss-cases-t thead th{background:var(--p-orange);color:#2B1A00;border-color:transparent}
 .ss-cases-t thead th .p-th-sort:hover{color:#000}
 table.ss-cases-t.ss-cases-wide{min-width:980px}
@@ -560,7 +549,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-cases-t td .ss-open:empty,.ss-cases-t td .ss-open .ss-stack:empty{display:none}
 .ss-cases-t td .cm-pill{white-space:normal;line-height:1.25;border-radius:14px;max-width:100%;text-overflow:clip}
 /* the SMART cell: level and score on one line, a duplicate flag under them inside the column */
-.ss-cases-t td.ss-smart{white-space:normal}
+
 .ss-cases-t td.ss-smart .ss-dup{display:flex;width:max-content;max-width:100%;margin-top:5px;white-space:normal}
 
 /* Settings (15 Oct): one rhythm, every card the same width, option cards that fill the card evenly */
@@ -569,9 +558,9 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 @media (max-width: 760px) { .st-pane .st-surfs { grid-template-columns: 1fr; } }
 .st-look .p-eyebrow { margin-bottom: 12px; }
 .st-look .st-note { margin-bottom: 14px; }
-.st-prefs { margin-top: 0; gap: 0; }
+
 .st-pref + .st-pref { border-top: 1px solid var(--p-line); }
-.st-pref { min-height: 58px; }
+
 .ss-posinfo .p-eyebrow, .ss-addadmin .p-eyebrow, .st-pane .p-card-pad > .p-eyebrow:first-child { margin-top: 0; }
 /* women responders in the same three columns as the committee map */
 .ss-posinfo:has(.ss-resp-row) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 24px; align-content: start; }
@@ -609,71 +598,32 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
   --jp-overlay: #2B2C2F; --jp-shadow: 0 8px 12px #0304043D, 0 0 1px #03040480;
 }
 
-
-
-
-
-.jp-add { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--jp-brand); color: var(--jp-on-brand); font: 500 14px/20px var(--jp-font); cursor: pointer; }
+.jp-add { border: 0; background: var(--jp-brand); color: var(--jp-on-brand); cursor: pointer; }
 .jp-add:hover { background: var(--jp-brand-h); } .jp-add:active { background: var(--jp-brand-p); }
 .jp-add:focus-visible { outline: 2px solid var(--jp-focus); outline-offset: 2px; }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 .ss-jrole { display: none; }
 
   
 
-
-
  
-
-
-
-
 
 .ss-addadmin[hidden] { display: none; }
 
 /* Workspace board with Atlassian's real values (15 Oct): read from the published board example in atlassian/pragmatic-drag-and-drop and the @atlaskit/tokens themes, not remembered.
    Column 250px wide on the "sunken" surface (#F8F8F8, dark #18191A), radius 12px, no border; header padding 8px 16px 0 in the subtlest text colour; cards 8px apart in an 8px-padded list; card on the base surface (#FFF, dark #1F1F21), radius 8px, padding 8px, the raised shadow, tinted on hover (#F0F1F2, dark #242528), 40% opacity while dragged; columns 16px apart; a column a card is over turns the selected blue (#CFE1FD, dark #123263). The barangay's urgency colour stays as a thin line down the card's edge. */
-.bd-cols {
-  --bd-sunk: #F8F8F8; --bd-card: #fff; --bd-card-h: #F0F1F2; --bd-over: #CFE1FD; --bd-sub: #6B6E76; --bd-text: #292A2E;
-  --bd-shadow: 0 1px 1px #1E1F2140, 0 0 1px #1E1F214F;
-  font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
-}
+
 :root[data-theme="dark"] .bd-cols { --bd-sunk: #18191A; --bd-card: #1F1F21; --bd-card-h: #242528; --bd-over: #123263; --bd-sub: #96999E; --bd-text: #CECFD2; --bd-shadow: 0 1px 1px #01040480, 0 0 1px #01040480; }
-.bd-cols { grid-auto-columns: 250px; gap: 16px; padding: 2px 2px 12px; }
-.bd-col { padding: 0; gap: 0; border: 0; border-radius: 12px; background: var(--bd-sunk); }
-.bd-col.is-over { border: 0; background: var(--bd-over); }
-.bd-col header { height: auto; padding: 8px 16px 0; color: var(--bd-sub); }
-.bd-col h3, .bd-col h4 { font: 600 14px/20px ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--bd-sub); }
-.bd-col header span { padding: 0; background: transparent; font: 400 12px/16px ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--bd-sub); }
-.bd-list { padding: 8px; gap: 8px; box-sizing: border-box; min-height: 100%; }
-.bd-card { min-height: 0; padding: 8px 8px 8px 12px; border: 0; border-radius: 8px; background: var(--bd-card); box-shadow: var(--bd-shadow); color: var(--bd-text); transition: background-color .2s ease-in-out, opacity .2s; }
-.bd-card::before { width: 3px; border-radius: 8px 0 0 8px; }
-.bd-card:hover { transform: none; background: var(--bd-card-h); box-shadow: var(--bd-shadow); }
-.bd-card.is-drag { opacity: .4; box-shadow: var(--bd-shadow); }
+
+.bd-col.is-over { border: 0; }
+
+.bd-list { box-sizing: border-box; min-height: 100%; }
+.bd-card { min-height: 0; }
+
+.bd-card:hover { box-shadow: var(--bd-shadow); }
+
 .bd-card.is-open { box-shadow: 0 0 0 2px var(--c), var(--bd-shadow); }
 .bd-title { color: var(--bd-text); }
-.bd-ghost { border-radius: 8px; }
-.bd-none { border-radius: 8px; }
 
 /* One table-header language across the list pages (16 Oct audit against the Figma): the orange header row the Case Reports list and the Report Summary ledgers already carry, now on Residents, Personnel, Extra Administrative Services and the Report Case Timeline's list. */
 .ss-ohead thead th { background: var(--p-orange); color: #2B1A00; border-color: transparent; }
@@ -694,34 +644,26 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-chip:hover { border-color: var(--p-orange); }
 .ss-chip.on { background: var(--p-orange); border-color: transparent; color: #2B1A00; }
 .ss-chip.on b { background: rgba(255,255,255,.55); color: #2B1A00; }
-.ss-bulk, .ss-rqstrip, .ss-rqbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 9px 14px; margin: 0 0 14px; border-radius: 12px; background: #1F2A44; color: #fff; font: 600 13.5px Inter, sans-serif; }
+.ss-bulk, .ss-rqstrip, .ss-rqbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 14px; }
 .ss-bulk[hidden], .ss-rqstrip[hidden], .ss-rqbar[hidden] { display: none; }
-.ss-bulk-go { padding: 6px 14px; border-radius: 8px; border: 0; background: #FF9800; color: #2B1A00; font: 700 13px Inter, sans-serif; text-decoration: none; cursor: pointer; }
-.ss-bulk-clear { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; font: 600 13px Inter, sans-serif; cursor: pointer; }
+
 .ss-cbh, .ss-cbc { width: 42px; padding-right: 0 !important; }
-.ss-people input[type=checkbox] { width: 17px; height: 17px; accent-color: #FF9800; cursor: pointer; }
+
 .ss-people tbody tr.ss-picked td { background: color-mix(in srgb, var(--p-orange) 12%, transparent); }
-/* Squares: the same rows drawn as square cards (a switch, remembered in the browser) */
 
 /* Residents and Personnel as Jira's People page (Ace, 16 Oct), with the same Atlassian values as Administrators: a search box and a status dropdown, then a table with a quiet 2px-ruled header and no row lines, status lozenges in sentence case, ticks, and the locked red row action. The List / Squares switch, the tick bar and the review queue are ours, styled as Atlassian's selected state and banners. */
 .ss-ptop { margin: 0 0 14px; }
 
-
-
-
-
-.ss-people input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--jp-brand); cursor: pointer; }
-
+.ss-people input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
 
 /* the tick bar and the queue, as Atlassian's selected state / information banner */
-.ss-bulk, .ss-rqstrip, .ss-rqbar { background: var(--jp-sel-bg, #E9F2FE); color: var(--jp-text, #292A2E); border-radius: 6px; padding: 8px 12px; font: 400 14px/20px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); box-shadow: inset 3px 0 0 var(--jp-sel-fg, #1868DB); }
+.ss-bulk, .ss-rqstrip, .ss-rqbar { color: var(--jp-text, #292A2E); padding: 8px 12px; font: 400 14px/20px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); }
 .ss-bulk b, .ss-rqstrip b, .ss-rqbar b { font-weight: 653; }
-.ss-bulk-go { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--jp-brand, #1868DB); color: var(--jp-on-brand, #fff); font: 500 14px/32px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); text-decoration: none; cursor: pointer; }
-.ss-bulk-go:hover { background: var(--jp-brand-h, #1558BC); }
-.ss-bulk-clear { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: var(--jp-text, #292A2E); font: 500 14px/32px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); cursor: pointer; }
+.ss-bulk-go { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; font: 500 14px/32px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); text-decoration: none; cursor: pointer; }
+
+.ss-bulk-clear { height: 32px; padding: 0 12px; border-radius: 6px; background: transparent; color: var(--jp-text, #292A2E); font: 500 14px/32px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); cursor: pointer; }
 .ss-bulk-clear:hover { background: var(--jp-hover, #0515240F); }
 [data-theme="dark"] .ss-bulk, [data-theme="dark"] .ss-rqstrip, [data-theme="dark"] .ss-rqbar { --jp-sel-bg: #1C2B42; --jp-sel-fg: #669DF1; --jp-text: #CECFD2; --jp-brand: #669DF1; --jp-brand-h: #8FB8F6; --jp-on-brand: #1F1F21; --jp-hover: #CECED912; }
-/* squares: cards on Atlassian's raised surface */
 
 /* Residents and Personnel fixes (16 Oct, from Ace's screenshots): the locked red row action on these tables again, and the Squares view made into real squares of one size, text kept inside, no panel behind them. */
 .ss-people td .p-btn { background: var(--ss-act); border-color: var(--ss-act-edge); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--ss-act) 32%, transparent); }
@@ -746,9 +688,6 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 }
 /* the table: warm header with the orange rule, contour lines at the top of the card */
 
-
-
-
  
 .ss-people .p-person > span:last-child { font-family: var(--jp-font); }
 
@@ -762,25 +701,16 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-bulk-go { background: #FF9800; color: #2B1A00; font-weight: 700; }
 .ss-bulk-go:hover { background: #F08A00; }
 
-/* rows: a warm hover */
-
-
-/* squares: the same warmth, a status colour edge along the top, a lift on hover */
-
 /* One style for the portal (Ace, 16 Oct: "we can't have different styles"): Residents, Personnel and Administrators take the portal's own components, the same as Case Reports and Report Summary: the orange band holding the search and filter, an orange header row, ruled rows, round soft pills with a dot, the pill-shaped controls, the red row action. The Jira structure (a toolbar over a table, ticks, a People-style row) stays; the Atlassian look does not. */
 /* Administrators: the same table language (orange header, ruled rows, round pills, pill controls) */
 
  
-
-
-
 
   
 
  
 .jp-add { height: 38px; padding: 0 16px; border-radius: 10px; font: 700 14px Inter, sans-serif; box-shadow: 0 4px 12px rgba(255,152,0,.3); }
  
-
 
 .ss-bulk, .ss-rqstrip, .ss-rqbar { border-radius: 12px; background: var(--jp-sel-bg); font-family: Inter, system-ui, sans-serif; }
 .ss-bulk-go, .ss-bulk-clear { border-radius: 10px; height: 34px; line-height: 34px; font-family: Inter, system-ui, sans-serif; }
@@ -791,7 +721,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-cases-t { min-width: 0; }
 .ss-cases-t th:nth-child(1) { width: 13%; } .ss-cases-t th:nth-child(2) { width: 10%; } .ss-cases-t th:nth-child(3) { width: 14%; }
 .ss-cases-t th:nth-child(4) { width: 15%; } .ss-cases-t th:nth-child(5) { width: 8%; }  .ss-cases-t th:nth-child(6) { width: 10%; }
-.ss-cases-t th:nth-child(7) { width: 13%; } .ss-cases-t th:nth-child(8) { width: 7%; }  .ss-cases-t th:nth-child(9) { width: 10%; }
+   .ss-cases-t th:nth-child(9) { width: 10%; }
 .ss-cases-t td .p-btn { white-space: nowrap; }
 .ss-people table { table-layout: fixed; width: 100%; }
 .ss-people th.ss-cbh, .ss-people td.ss-cbc { width: 44px; }
@@ -801,15 +731,14 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-people table:not(:has(th:nth-child(7))) th:nth-child(4) { width: 25%; }
 .ss-people table:has(th:nth-child(7)) th:nth-child(2) { width: 20%; }
 .ss-people table:has(th:nth-child(7)) th:nth-child(3) { width: 14%; }
-.ss-people table:has(th:nth-child(7)) th:nth-child(4) { width: 13%; }
-.ss-people table:has(th:nth-child(7)) th:nth-child(5) { width: 20%; }
+
 .ss-people td { overflow-wrap: anywhere; }
 .ss-people td.p-right { overflow: visible; }
 .ss-people .p-badges { gap: 6px; }
 /* 2. The select-all tick sat dark on the orange header; a light box there */
-.ss-people thead input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 17px; height: 17px; border-radius: 4px; border: 2px solid #2B1A00; background: #fff; cursor: pointer; display: inline-block; vertical-align: middle; position: relative; }
-.ss-people thead input[type=checkbox]:checked { background: #2B1A00; }
-.ss-people thead input[type=checkbox]:checked::after { content: ""; position: absolute; left: 4px; top: 0; width: 4px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.ss-people thead input[type=checkbox] { appearance: none; -webkit-appearance: none; cursor: pointer; display: inline-block; vertical-align: middle; position: relative; }
+
+.ss-people thead input[type=checkbox]:checked::after { content: ""; position: absolute; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 /* 3. Notifications: its Review is the same red action as every other list */
 .p-notif-card .p-notif .p-n-act .p-btn { background: var(--ss-act); border: 1px solid var(--ss-act-edge); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--ss-act) 32%, transparent); }
 .p-notif-card .p-notif .p-n-act .p-btn:hover { background: var(--ss-act-h); }
@@ -836,10 +765,10 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-ohead thead th:first-child, .ss-cases-t thead th:first-child { border-top-left-radius: 14px; padding-left: 18px; }
 .ss-ohead thead th:last-child, .ss-cases-t thead th:last-child { border-top-right-radius: 14px; }
 .ss-ohead thead th .p-th-sort, .ss-cases-t thead th .p-th-sort { color: #2B1A00; }
-.ss-people thead input[type=checkbox] { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #5A2E00; background: #FFF6E5; box-shadow: 0 1px 2px rgba(90,40,0,.25); transition: transform .12s, background-color .12s; }
+.ss-people thead input[type=checkbox] { border-radius: 6px; border: 2px solid #5A2E00; background: #FFF6E5; box-shadow: 0 1px 2px rgba(90,40,0,.25); transition: transform .12s, background-color .12s; }
 .ss-people thead input[type=checkbox]:hover { transform: scale(1.08); background: #fff; }
 .ss-people thead input[type=checkbox]:checked { background: #2B1A00; border-color: #2B1A00; }
-.ss-people thead input[type=checkbox]:checked::after { left: 5px; top: 1px; width: 5px; height: 10px; }
+
 .ss-people tbody input[type=checkbox] { width: 18px; height: 18px; border-radius: 5px; }
 .ss-people .ss-cbh { padding-left: 18px; }
 .ss-ohead thead th, .ss-cases-t thead th { font-size: 13.5px; }
@@ -849,20 +778,15 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-people thead input[type=checkbox]:checked::after { left: 4px; top: 0; width: 5px; height: 9px; }
 
 /* The orange bands, as big bars, in the same finished look as the header row (Ace, 16 Oct): portal type, a soft light-to-deep orange with a fine light edge and a warm lift, a larger title, and bigger controls inside. Every page that has a band. */
-.p-band { padding: 20px 24px; gap: 14px 16px; min-height: 88px; border-radius: 18px; align-items: center;
-  background: linear-gradient(180deg, #FFA824 0%, #FF9800 58%, #F28F00 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.38), 0 10px 26px rgba(255,152,0,.22); }
+.p-band { align-items: center; background: linear-gradient(180deg, #FFA824 0%, #FF9800 58%, #F28F00 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.38), 0 10px 26px rgba(255,152,0,.22); }
 .p-band h2 { font: 800 22px/1.15 Inter Tight, sans-serif; letter-spacing: -.01em; color: #2B1A00; gap: 10px; }
-.p-band .p-search { height: 48px; border-radius: 12px; padding: 0 16px; font-size: 15px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
+.p-band .p-search { border-radius: 12px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
 .p-band .p-search input { font: 500 15px Inter, sans-serif; }
-.p-band .p-pill-select { height: 48px; border-radius: 12px; padding: 0 16px; font-size: 14.5px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
-.p-band .p-chip-band { height: 44px; padding: 0 16px; font-size: 14px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
-.p-band .p-badge-n { height: 28px; min-width: 28px; font-size: 13px; }
-.p-band .p-btn { height: 44px; }
-@media (max-width: 700px) { .p-band { padding: 16px; } .p-band h2 { font-size: 19px; } }
+.p-band .p-pill-select { border-radius: 12px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
+.p-band .p-chip-band { box-shadow: 0 2px 6px rgba(120,60,0,.14); }
 
 /* the bands, toned back to a comfortable size (the big-bar pass was too much) */
-.p-band { padding: 12px 20px; gap: 10px 14px; min-height: 64px; border-radius: 16px; }
+.p-band { padding: 12px 20px; gap: 10px 14px; min-height: 64px; }
 .p-band h2 { font-size: 19px; }
 .p-band .p-search { height: 42px; padding: 0 14px; font-size: 14.5px; }
 .p-band .p-search input { font-size: 14.5px; }
@@ -872,7 +796,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .p-band .p-btn { height: 40px; }
 
 /* Report Summary, refined (16 Oct): tiles of one shape with a hint line and a coloured top edge, an "On this page" bar that stays in view with a count per section, empty sections folded to one slim line instead of an empty table, and sections that land clear of the bar. */
-.ss-sumkpis .p-kpi { display: flex; flex-direction: column; gap: 4px; border-top: 3px solid var(--kc, var(--p-line-2)); min-height: 124px; }
+.ss-sumkpis .p-kpi { display: flex; flex-direction: column; gap: 4px; min-height: 124px; }
 .ss-sumkpis .ss-k-total { --kc: #356CF9; } .ss-sumkpis .ss-k-res { --kc: #34C759; } .ss-sumkpis .ss-k-att { --kc: #FF9800; } .ss-sumkpis .ss-k-avg { --kc: #A592FF; }
 .ss-sumkpis .p-kpi .p-delta { margin-top: auto; }
 .ss-jump { position: sticky; top: 8px; z-index: 12; display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; margin: 0 0 16px; width: fit-content; max-width: 100%; border-radius: 14px; background: color-mix(in srgb, var(--p-surface) 82%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); border: 1px solid var(--p-line); box-shadow: var(--p-shadow); }
@@ -902,7 +826,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
   --bd-shadow: 0 6px 18px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .06);
   font-family: Inter, system-ui, sans-serif;
 }
-:root:not([data-theme="dark"]) .bd-cols { --bd-sunk: rgba(255, 255, 255, .6); --bd-card: #fff; --bd-card-h: #FFF8EC; --bd-over: rgba(255, 152, 0, .14); --bd-sub: #4A4F63; --bd-text: #141B34; --bd-shadow: 0 4px 14px rgba(20, 27, 52, .12); }
+:root:not([data-theme="dark"]) .bd-cols { --bd-sub: #4A4F63; --bd-text: #141B34; }
 .bd-cols { grid-auto-columns: 272px; gap: 16px; padding: 4px 4px 14px; }
 .bd-col { padding: 8px; gap: 8px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, .1); background: var(--bd-sunk); -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .08), 0 10px 28px rgba(0, 0, 0, .25); transition: background .2s, border-color .2s, box-shadow .2s; }
 :root:not([data-theme="dark"]) .bd-col { border-color: rgba(20, 27, 52, .08); }
@@ -953,17 +877,11 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 /* Administrators, all the way into the portal's look (Ace: it still read as Atlassian): controls that are always visible as the portal's own pills, no see-through inline selects, round bordered "..." button, the online state as a pill, the two cards below as SmartSumbong cards with an orange edge and a proper heading, and the committee boxes wide enough to read. */
 [data-pane="admins"] .ss-cmap-row .p-input-plain { height: 40px; min-width: 0; width: 100%; max-width: 220px; padding: 0 34px 0 14px; border: 1px solid var(--p-line-2); border-radius: 10px; background-color: var(--p-surface-2); color: var(--p-ink); font: 600 13.5px Inter, sans-serif; cursor: pointer; }
 
-
 [data-pane="admins"] .ss-cmap-row .p-input-plain:focus-visible { border-color: var(--p-orange); box-shadow: 0 0 0 3px rgba(255,152,0,.25); outline: none; }
 .ss-adm .ss-online { white-space: nowrap; }
 .ss-adm .ss-online { display: table-cell; }
-.ss-adm td.ss-online { font: 600 12.5px Inter, sans-serif; }
+
 .ss-adm td.ss-online::before { content: none; }
-
-
-
-
-
 
 .ss-posinfo, .ss-addadmin { border-left: 4px solid var(--p-orange); }
 .ss-posinfo .p-eyebrow, .ss-addadmin .p-eyebrow { font: 800 15px Inter, sans-serif; letter-spacing: 0; text-transform: none; color: var(--p-ink); margin-bottom: 4px; }
@@ -1097,8 +1015,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 /* The case map in full screen gets a details sidebar (Ace, 16 Oct): the Spatial Distribution case sheet's frosted glass, trimmed to context for a case you are only viewing, with a street snapshot that opens street view when pressed. */
 .ss-mapside { display: none; }
 .p-minimap.p-full .ss-mapside, .p-minimap:fullscreen .ss-mapside { display: grid; }
-.ss-mapside { --lv: #FF9800; position: absolute; z-index: 6; left: 16px; top: 52px; bottom: 16px; width: 360px; max-width: calc(100% - 32px); overflow-y: auto; align-content: start; gap: 14px; padding: 18px; border-radius: 22px; color: #F3F3F3;
-  background: linear-gradient(152deg, rgba(255,255,255,.14), rgba(255,255,255,.03)), rgba(20, 26, 50, .62); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 1px 1px 0 rgba(255,255,255,.14), 0 24px 60px rgba(0,0,0,.5); scrollbar-width: thin; }
+.ss-mapside { --lv: #FF9800; position: absolute; z-index: 6; left: 16px; top: 52px; width: 360px; max-width: calc(100% - 32px); overflow-y: auto; align-content: start; gap: 14px; padding: 18px; border-radius: 22px; color: #F3F3F3; background: linear-gradient(152deg, rgba(255,255,255,.14), rgba(255,255,255,.03)), rgba(20, 26, 50, .62); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 1px 1px 0 rgba(255,255,255,.14), 0 24px 60px rgba(0,0,0,.5); scrollbar-width: thin; }
 .ss-mapside.ss-lv-urgent { --lv: #EF4444; } .ss-mapside.ss-lv-high { --lv: #FF9800; } .ss-mapside.ss-lv-normal { --lv: #356CF9; } .ss-mapside.ss-lv-low { --lv: #34C759; }
 .ss-mapside::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--lv); box-shadow: 0 0 18px var(--lv); }
 .ss-mapside header { display: grid; gap: 6px; }
@@ -1127,7 +1044,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-street #case-street-view { position: absolute; inset: 0; }
 .ss-street-x { position: absolute; right: 16px; top: 16px; z-index: 3; font-size: 24px; line-height: 1; }
 .ss-street-tag { position: absolute; left: 16px; top: 16px; z-index: 3; padding: 7px 14px; border-radius: 99px; background: rgba(8,12,30,.7); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; font: 700 12.5px Inter, sans-serif; }
-@media (max-width: 760px) { .ss-mapside { width: auto; right: 16px; bottom: auto; max-height: 52%; } }
+@media (max-width: 760px) { .ss-mapside { width: auto; right: 16px; } }
 @media (prefers-reduced-transparency: reduce) { .ss-mapside { -webkit-backdrop-filter: none; backdrop-filter: none; background: #1C2127; } }
 /* the case map sidebar is as tall as its contents, not the whole screen */
 .ss-mapside { bottom: auto; max-height: calc(100% - 68px); }
@@ -1135,17 +1052,11 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-pager span.on { background: #FF9800; border-color: transparent; color: #2B1A00; box-shadow: 0 3px 10px rgba(255,152,0,.3); }
 
 /* Light mode is Material (Ace, 16 Oct: "light mode shouldn't be glass, we do material"): solid surfaces, no blur, depth from elevation shadows (MD3 levels 1 to 3), a flat page, brand-orange main buttons. Dark keeps its frosted glass. */
-:root:not([data-theme="dark"]) .p-body { background-color: #F4F6FB; background-image: none; }
-:root:not([data-theme="dark"]) .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) {
-  background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0;
-  box-shadow: 0 1px 2px rgba(20,27,52,.14), 0 1px 3px 1px rgba(20,27,52,.08);                       /* elevation 1 */
-  transition: box-shadow .2s ease;
-}
-:root:not([data-theme="dark"]) .p-body .p-card.p-click:hover, :root:not([data-theme="dark"]) .p-body a.p-card:hover { box-shadow: 0 1px 2px rgba(20,27,52,.2), 0 2px 6px 2px rgba(20,27,52,.12); }  /* elevation 2 */
-:root:not([data-theme="dark"]) .p-body .p-modal { box-shadow: 0 4px 8px 3px rgba(20,27,52,.14), 0 1px 3px rgba(20,27,52,.22); }                                                              /* elevation 3 */
+
+:root:not([data-theme="dark"]) .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) { -webkit-backdrop-filter: none; backdrop-filter: none; transition: box-shadow .2s ease; }
 :root:not([data-theme="dark"]) .p-sidebar { box-shadow: inset -1px 0 0 rgba(255,255,255,.14), 12px 0 32px rgba(0,30,110,.14); }
 /* the main button in brand orange, as on the graphite (an ink button on an orange band; the red row action stays red) */
-:root:not([data-theme="dark"]) .p-body .p-btn-primary { background: #FF9800; border-color: transparent; color: #2B1A00; box-shadow: 0 4px 14px rgba(255,152,0,.32); }
+:root:not([data-theme="dark"]) .p-body .p-btn-primary { background: #FF9800; border-color: transparent; color: #2B1A00; }
 :root:not([data-theme="dark"]) .p-body .p-btn-primary:hover { background: #F08A00; }
 :root:not([data-theme="dark"]) .p-body .p-band .p-btn-primary { background: #141B34; color: #fff; box-shadow: none; }
 :root:not([data-theme="dark"]) .p-body .p-band .p-btn-primary:hover { background: #1B2548; }
@@ -1179,7 +1090,6 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 :root[data-theme="dark"] .p-btn-danger-solid { background: #D63B3B; border-color: #D63B3B; }
 :root[data-theme="dark"] .ss-num { background: color-mix(in srgb, var(--lc) 66%, #000); }
 :root[data-theme="dark"] .p-badge-n#pending-wrap { background: #D32F32; }
-
 
 /* The engine mark on light backgrounds (Ace asked if it is still visible): a firm dark-navy outline all round so the yellow lettering and the brain read on white and pale cards */
 :root:not([data-theme="dark"]) .ss-engine img, :root:not([data-theme="dark"]) img.ss-engine-img, :root:not([data-theme="dark"]) .ss-head img[src*="smart-engine"] {
@@ -1226,13 +1136,13 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .p-period-band { flex-wrap: wrap; }                                              /* the period, the dates, the chips and the PDF button are one row (Rose, 21 Oct); it wraps only when the screen is too narrow */
 .p-period-band .p-chips-q { flex-wrap: nowrap; }
 .ss-ohead th { white-space: normal; line-height: 1.2; vertical-align: middle; }
-.ss-people td.ss-em { min-width: 230px; overflow-wrap: anywhere; }
+
 .ss-people td.p-right .p-btn { min-width: 72px; justify-content: center; }       /* Review and View are one width */
 .ss-ladder li { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 40px; line-height: 1.2; }
 .p-donut-card .p-legend { align-content: start; }
 .p-body .ss-ohead thead th { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; }
-.ss-people.ss-tanods table th:nth-child(1) { width: 44px; } .ss-people.ss-tanods table th:nth-child(2) { width: 19%; } .ss-people.ss-tanods table th:nth-child(3) { width: 15%; }
-.ss-people.ss-tanods table th:nth-child(4) { width: 14%; } .ss-people.ss-tanods table th:nth-child(5) { width: 22%; }
+.ss-people.ss-tanods table th:nth-child(1) { width: 44px; }  
+ 
 .p-body .ss-cases-t thead th { white-space: normal; line-height: 1.2; overflow: visible; }
 .ss-cases-t td.ss-smart { white-space: nowrap; } .ss-cases-t td.ss-smart .ss-score { margin-left: 4px; }
 
@@ -1286,7 +1196,7 @@ table.ss-cases-t.ss-cases-wide{min-width:980px}
 .ss-words .sw-forms { display: grid; gap: 12px; margin-top: 10px; }
 .ss-words .sw-forms form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ss-words .sw-forms .p-flabel { flex: 1 0 100%; margin: 0; }
-.ss-two > .ss-wide { grid-column: 1 / -1; }   /* a third table takes the full row rather than leaving a gap beside it */
+   /* a third table takes the full row rather than leaving a gap beside it */
 #smart-words .p-eyebrow em { margin-left: 8px; padding: 1px 8px; border-radius: 99px; background: var(--p-surface-2); font-style: normal; font-weight: 800; }
 .ss-words .sw-forms select { flex: 0 0 220px; width: 220px; }
 .ss-words .sw-forms input.p-input-plain { flex: 1 1 160px; min-width: 0; }
