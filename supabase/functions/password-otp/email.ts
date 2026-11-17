@@ -56,8 +56,13 @@ function words(purpose: Purpose, minutes: number, mobile: string, tanod: boolean
   };
 }
 
-const strip = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-  .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+// The plain-text copy: entities decoded in one pass (so "&amp;lt;" stays "&lt;"), then tags removed until none are left.
+const ENTITY: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" };
+const strip = (html: string) => {
+  let s = html.replace(/&(amp|lt|gt|quot|#39);/g, (_, e: string) => ENTITY[e]);
+  for (let prev = ""; prev !== s;) { prev = s; s = s.replace(/<[^<>]*>?/g, ""); }
+  return s.replace(/[<>]/g, "");
+};
 
 export function compose(purpose: Purpose, code: string, opts: { minutes: number; mobile: string; tanod: boolean }) {
   const w = words(purpose, opts.minutes, opts.mobile, opts.tanod);
