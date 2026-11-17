@@ -117,7 +117,7 @@
         var r = el('input'); r.type = 'radio'; r.name = 'tanod'; r.value = t.id; r.disabled = !t.live; if (t.live && !rec) { r.checked = true; }
         lab.appendChild(r);
         var nm = el('span', 'bd-tn'); nm.appendChild(el('b', '', t.name));
-        nm.appendChild(el('small', '', t.live ? (t.metres != null ? t.metres + ' ' + (T.metresAway || 'm away') : '') : (T.notLive || 'Not reporting') + (t.why ? ' · ' + t.why : '')));
+        nm.appendChild(el('small', '', t.live ? [t.metres != null ? t.metres + ' ' + (T.metresAway || 'm away') : '', t.why || ''].filter(Boolean).join(' · ') : (T.notLive || 'Unavailable') + (t.why ? ' · ' + t.why : '')));
         lab.appendChild(nm);
         if (t.live && !rec) { lab.appendChild(el('span', 'bd-rec', T.recommended || 'Recommended')); rec = true; }
         list.appendChild(lab);

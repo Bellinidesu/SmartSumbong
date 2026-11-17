@@ -480,7 +480,7 @@ function render_account_screen(string $role): void
     </div><?php // #people-list ?>
     <script nonce="<?= csp_nonce() ?>" src="assets/js/people-list.js?v=<?= e(asset_version('../js/people-list.js')) ?>"></script>
 
-    <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
     <script nonce="<?= csp_nonce() ?>">
     // Realtime for the verification queue — explicit ask, 6 Sep 2026: "the
     // entire system needs to work realtime," and this is exactly the
@@ -492,7 +492,7 @@ function render_account_screen(string $role): void
     // poll of the same account_directory() RPC the page already calls is
     // the honest way to still keep this current without asking the team
     // to reopen that privacy decision.
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
       if (!window.supabase) { return; }
       const { createClient } = supabase;
 
@@ -863,7 +863,7 @@ function render_account_screen(string $role): void
       var badge = document.getElementById('live-badge'),
           text  = document.getElementById('live-badge-text');
       text.textContent = T('Live (updates every 20s)', 'Live (nag-a-update kada 20s)');
-    })();
+    });
     </script>
 
     <?php
@@ -1697,7 +1697,7 @@ function render_account_detail(
     })();
     </script>
 
-    <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+    <script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
     <script nonce="<?= csp_nonce() ?>">
     // Same polling idiom as the list view above, and the same reason:
     // public.users carries no realtime push (0046's privacy decision).
@@ -1705,7 +1705,7 @@ function render_account_detail(
     // screen, so a detected change raises the banner above rather than
     // rewriting the account details out from under whatever the admin
     // is mid-typing.
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
       if (!window.supabase) { return; }
       const { createClient } = supabase;
 
@@ -1754,7 +1754,7 @@ function render_account_detail(
         });
       }
       setInterval(poll, 20000);
-    })();
+    });
     </script>
 
     <?php

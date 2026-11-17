@@ -1997,6 +1997,27 @@ test('Spatial Distribution (12 Nov 2026): the SMART panel stays navy by day; the
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Fix A (17 Nov): an on-duty tanod whose last location is old can still be picked and dispatched; the age is said, not punished', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  const r = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000006');
+  const stale = page.locator('input[name="tanod"][value="b0000000-0000-0000-0000-000000000003"]');
+  await expect(stale, 'the stale tanod is not greyed out').toBeEnabled();
+  const row = page.locator('label.p-tanod-opt', { has: stale });
+  await expect(row.locator('.p-status-dot')).toHaveText(/ON DUTY/);
+  await expect(row.locator('.p-status-dot')).toHaveClass(/p-busy-c/);
+  await expect(row).toContainText('last seen a while ago');
+  await expect(row).not.toHaveClass(/p-out/);
+  await expect(page.locator('button[name="action"][value="dispatch"]')).toBeEnabled();
+  await page.evaluate(() => { let n = document.querySelector('input[name="tanod"][value="b0000000-0000-0000-0000-000000000003"]'); while (n) { if (n.tagName === 'DETAILS') n.open = true; n = n.parentElement; } });
+  await stale.check({ force: true });
+  await page.locator('textarea[name="note"]').first().fill('Check the canal by the school.');
+  await page.locator('button[name="action"][value="dispatch"]').click();
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page.locator('.p-flash--error, [role="alert"].p-flash'), 'no refusal for an old location').toHaveCount(0);
+  await expect(page.locator('.p-flash').first(), 'the dispatch went through').toContainText(/Dispatched|Na-dispatch/);
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
 test('Case page (16 Nov): a chat button beside the brain does what the handler chose in its menu, the chat head or the Inbox', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.addInitScript(() => { try { localStorage.removeItem('ss-case-chat-mode'); } catch (e) {} });

@@ -922,7 +922,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   dlg.addEventListener('htmx:afterRequest', function (e) { if (e.detail && e.detail.successful) dlg.close(); });
 })();
 </script>
-<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>">
 // Realtime for the case list + notifications panel — explicit ask, 6 Sep
 // 2026: "the entire system needs to work realtime." reports, dispatches,
@@ -933,7 +933,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 // query the initial page load used, never a payload to trust or patch in
 // directly (0046's own stated reasoning — default replica identity, RLS
 // still enforced through Realtime).
-(function () {
+document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
   if (!window.supabase) { return; }
   const { createClient } = supabase;
 
@@ -1400,7 +1400,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
         badge.classList.add('p-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
       }
     });
-})();
+});
 </script>
 
 <?php layout_foot(); ?>

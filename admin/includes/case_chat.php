@@ -75,8 +75,10 @@ function case_chat_conversations(array $report, array $dispatches, array $thread
             'action' => 'resident_reply', 'dispatch' => '', 'max' => 1000,
             'ph' => t('Message the resident', 'Mag-message sa residente')];
     }
+    $viewOnly = function_exists('is_captain') && is_captain();   // a Captain account reads the chats; it does not send (17 Nov 2026)
     foreach ($convs as &$c) {
         $c['last'] = $c['items'] ? (string) end($c['items'])['ts'] : '';
+        if ($viewOnly) { $c['open'] = false; $c['closed'] = t('View only: messages cannot be sent from this account.', 'Tingin lamang: hindi makapagpapadala ng mensahe mula sa account na ito.'); }
     }
     unset($c);
     usort($convs, static fn ($a, $b) => strcmp($b['last'], $a['last']));

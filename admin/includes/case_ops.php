@@ -6,21 +6,22 @@
  */
 declare(strict_types=1);
 
-/** Dispatch a tanod: on duty AND reporting now, instructions and a target date required (0071). */
+/** Dispatch a tanod: on duty (assignable), instructions and a target date required (0071). */
 function op_dispatch(Supabase $db, string $id, array $in): string
 {
     $tanod = trim((string) ($in['tanod'] ?? ''));
     if ($tanod === '') {
         throw new SupabaseError(t('Choose a tanod before dispatching.', 'Pumili muna ng tanod bago mag-dispatch.'));
     }
-    // Rose (2 Oct 2026): only a tanod who is on duty AND whose app is reporting right now.
+    // Fix A (Ace, 17 Nov 2026): on duty is enough. Rose's 2 Oct rule also asked for a fresh location, but the app sends one only at
+    // key moments (going on duty, opening the app, each step) to save the battery, so an on-duty tanod in a pocket was refused.
     $live = null;
     foreach ((array) $db->rpc('tanod_roster', ['p_report' => $id]) as $t) {
         if (($t['tanod_id'] ?? null) === $tanod) { $live = $t; break; }
     }
-    if (!$live || empty($live['assignable']) || empty($live['location_fresh'])) {
-        throw new SupabaseError(t('That tanod is on duty, but their app is not sending a location right now. Ask them to open the app with location on, or choose a tanod shown as ONLINE.',
-                                  'Naka-duty ang tanod na iyan, pero hindi nagpapadala ng lokasyon ang kanilang app ngayon. Sabihan silang buksan ang app na naka-on ang lokasyon, o pumili ng tanod na ONLINE.'));
+    if (!$live || empty($live['assignable'])) {
+        throw new SupabaseError(t('That tanod cannot take a dispatch right now: they are off duty, suspended or already at their limit. Choose a tanod shown as on duty.',
+                                  'Hindi makakatanggap ng dispatch ang tanod na iyan ngayon: wala sa duty, suspendido o puno na ang hawak. Pumili ng tanod na naka-duty.'));
     }
     $target = trim((string) ($in['target'] ?? ''));
     if ($target === '') {

@@ -77,7 +77,7 @@ function render_board(array $queue, array $meta, array $admin, string $scope, bo
     'you' => t('you', 'ikaw'), 'nobody' => t('Nobody yet', 'Wala pa'), 'why' => t('Why the engine ranks it here', 'Bakit ito ang ranggo ng engine'),
     'closed' => t('This case is finished.', 'Tapos na ang kasong ito.'), 'heldBy' => t('Only %s can act on this case while they handle it. You can read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo ang lahat.'),
     'reviewHint' => t('Open the case to validate or reject it.', 'Buksan ang kaso para pagtibayin o tanggihan.'), 'passUp' => t('Pass it up', 'Ipasa pataas'), 'assign' => t('Assign a tanod', 'Magtalaga ng tanod'),
-    'chooseTanod' => t('Choose a tanod', 'Pumili ng tanod'), 'metresAway' => t('m away', 'm ang layo'), 'notLive' => t('Not reporting', 'Hindi nag-uulat'), 'recommended' => t('Recommended', 'Inirerekomenda'),
+    'chooseTanod' => t('Choose a tanod', 'Pumili ng tanod'), 'metresAway' => t('m away', 'm ang layo'), 'notLive' => t('Unavailable', 'Hindi available'), 'recommended' => t('Recommended', 'Inirerekomenda'),
     'noTanods' => t('No tanod accounts yet.', 'Wala pang account ng tanod.'), 'notePh' => t('What to check, who to talk to, what to bring back.', 'Ano ang titingnan, sino ang kakausapin, ano ang iuulat.'),
     'instructions' => t('Instructions for the tanod', 'Mga tagubilin para sa tanod'), 'target' => t('Target date of resolution', 'Target na petsa ng paglutas'),
     'womenFamily' => t('Women and Family', 'Kababaihan at Pamilya'), 'sensitive' => t('sensitive', 'sensitibo'), 'usualCommittee' => t('The usual one for this complaint', 'Ang karaniwan para sa reklamong ito'),

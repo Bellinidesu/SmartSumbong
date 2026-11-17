@@ -120,6 +120,8 @@ function require_page_access(): void
 {
     $page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? $_SERVER['PHP_SELF'] ?? ''));
     if ($page !== '' && !page_allowed($page)) {
+        // say why the person landed somewhere else, once, on the page they land on (17 Nov 2026: the redirect was silent)
+        $_SESSION['page_note'] = t('That page is for the super admins, so you were brought here.', 'Para sa mga super admin ang pahinang iyon, kaya dito ka dinala.');
         header('Location: ' . landing_page(), true, 302);
         exit;
     }

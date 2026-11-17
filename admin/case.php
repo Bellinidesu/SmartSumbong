@@ -400,6 +400,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <article class="p-report">
     <div class="ss-case-actions">
     <?php // 16 Nov 2026 (Ace): the case's chat beside the brain. The button does what this handler chose in its menu: float the chat head (on every page) or open the case chat in the Inbox; the choice is kept in this browser. ?>
+    <?php if (!is_captain()): // a Captain account reads the case; the chat button is for those who answer (17 Nov 2026) ?>
     <div class="ss-chatsplit" id="cc-chat" data-case="<?= e((string) $report['id']) ?>">
       <a class="p-sr" href="inbox.php?app=chats&amp;c=<?= e(urlencode((string) $report['id'])) ?>&amp;k=r" data-cc-inbox tabindex="-1" hx-boost="false"><?= e(t('Open this case\'s chat in the Inbox', 'Buksan ang chat ng kasong ito sa Inbox')) ?></a>
       <button type="button" class="ss-chatbtn" data-cc-chat aria-label="<?= e(t('Case chat', 'Chat ng kaso')) ?>" title="<?= e(t('Case chat', 'Chat ng kaso')) ?>"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.5 1.3 4.7 3.4 6.2-.2 1.3-.8 2.6-1.7 3.6a.5.5 0 0 0 .5.8c2-.3 3.7-1.1 4.9-2A11.7 11.7 0 0 0 12 20c5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/></svg><b class="ss-chatn" hidden>0</b></button><button type="button" class="ss-chatcar" data-cc-chat-menu aria-haspopup="menu" aria-expanded="false" aria-label="<?= e(t('Choose how the chat opens', 'Piliin kung paano bubukas ang chat')) ?>" title="<?= e(t('Choose how the chat opens', 'Piliin kung paano bubukas ang chat')) ?>"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -408,6 +409,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <button type="button" role="menuitemradio" aria-checked="false" data-cc-mode="page"><b><?= e(t('Case chat', 'Chat ng kaso')) ?></b><small><?= e(t('Opens this case\'s chat in the Inbox, no bubble', 'Bubuksan ang chat ng kasong ito sa Inbox, walang bubble')) ?></small></button>
       </div>
     </div>
+    <?php endif; ?>
     <?php if (!empty($smart) && ($smart['score'] ?? null) !== null): // 16 Nov 2026 (Ace): the brain button of THIS case, in the card's header corner, opens "Why this level"
         $sbLv = (string) ($smart['effective_level'] ?? 'low');
         $sbName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')][$sbLv] ?? $sbLv; ?>
@@ -1163,6 +1165,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           usort($roster, fn($a, $b) => [empty($b['assignable']) ? 0 : 1, empty($b['in_committee']) ? 0 : 1] <=> [empty($a['assignable']) ? 0 : 1, empty($a['in_committee']) ? 0 : 1]);
           if ($rankOf) {
               foreach ($roster as $r0) { if (!empty($r0['assignable']) && !empty($r0['location_fresh']) && isset($rankOf[$r0['tanod_id']])) { $recId = $r0['tanod_id']; break; } }
+              // Fix A (17 Nov 2026): no fresh location anywhere? SMART still names the best tanod who can take it
+              if ($recId === null) { foreach ($roster as $r0) { if (!empty($r0['assignable']) && isset($rankOf[$r0['tanod_id']])) { $recId = $r0['tanod_id']; break; } } }
           }
           $rosterCom = (string) ($report['case_committee'] ?? $report['committee'] ?? '');
           $rosterComName = $rosterCom !== '' ? (string) (committees_all()[$rosterCom]['short_en'] ?? '') : '';
@@ -1172,7 +1176,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?php endif; ?>
         <div class="p-roster">
           <?php foreach ($roster as $i => $t): ?>
-            <?php $ok = !empty($t['assignable']) && !empty($t['location_fresh']); $idle = !empty($t['assignable']) && empty($t['location_fresh']); ?>
+            <?php // Fix A (Ace, 17 Nov 2026): the app sends a location only at key moments (to save the battery), so an on-duty tanod is assignable however old the last fix is
+                  $ok = !empty($t['assignable']); $idle = $ok && empty($t['location_fresh']); ?>
             <label class="p-tanod-opt<?= $ok ? '' : ' p-out' ?>">
               <input type="radio" name="tanod" value="<?= e($t['tanod_id']) ?>"
                      <?= $ok ? '' : 'disabled' ?>>
@@ -1192,10 +1197,12 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                     <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php
                       if (empty($t['location_fresh'])) echo e(t(', last seen a while ago', ', matagal nang huling nakita')); ?>
                   </small>
+                <?php elseif ($idle && $t['metres'] === null): ?>
+                  <small class="p-stale"><?= e(t('location may be old', 'maaaring luma ang lokasyon')) ?></small>
                 <?php endif; ?>
               </span>
-              <span class="p-status-dot <?= $ok ? 'p-on-c' : ($idle ? 'p-busy-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty, but their app is not sending a location right now. Ask them to open the app with location on; they show ONLINE as soon as it reports.', 'Naka-duty, pero hindi nagpapadala ng lokasyon ang app nila ngayon. Sabihan silang buksan ang app na naka-on ang lokasyon; lalabas silang ONLINE kapag nag-ulat na.')) . '"' : '' ?>>
-                <?= $ok ? 'ONLINE' : ($idle ? e(t('ON DUTY · NO SIGNAL', 'NAKA-DUTY · WALANG SIGNAL')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
+              <span class="p-status-dot <?= $idle ? 'p-busy-c' : ($ok ? 'p-on-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty. Their last location is old: the app sends it when they go on duty, open the app or take a step on a job. The dispatch alert still reaches their phone.', 'Naka-duty. Luma na ang huling lokasyon nila: ipinapadala ito ng app kapag nag-duty, binuksan ang app o may hakbang sa trabaho. Darating pa rin sa telepono nila ang alerto ng dispatch.')) . '"' : '' ?>>
+                <?= $idle ? e(t('ON DUTY', 'NAKA-DUTY')) : ($ok ? 'ONLINE' : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
               </span>
               <span class="p-pick"><?= $ok ? e(t('Assign', 'I-assign')) : '&mdash;' ?></span>
             </label>
@@ -1239,12 +1246,12 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
         </details>
 
-        <?php $anyActive = (bool) array_filter($roster, fn($t) => !empty($t['assignable']) && !empty($t['location_fresh'])); ?>
+        <?php $anyActive = (bool) array_filter($roster, fn($t) => !empty($t['assignable']));   // Fix A: on duty is enough ?>
         <?php $nSilent = count(array_filter($roster, fn($t) => !empty($t['assignable']) && empty($t['location_fresh']))); ?>
         <?php if (!$anyActive): ?>
-          <p class="p-clock p-late" style="margin:0"><?= $nSilent > 0
-              ? e(sprintf(t('%d tanod(s) are on duty, but their apps are not sending a location. Ask them to open the app with location on; they become assignable as soon as it reports.', '%d tanod ang naka-duty, pero hindi nagpapadala ng lokasyon ang kanilang app. Sabihan silang buksan ang app na naka-on ang lokasyon; maa-assign na sila kapag nag-ulat na.'), $nSilent))
-              : e(t('No tanod is active right now. Dispatch opens when a tanod is on duty with their app open.', 'Walang aktibong tanod ngayon. Mabubuksan ang dispatch kapag may tanod na naka-duty at bukas ang app.')) ?></p>
+          <p class="p-clock p-late" style="margin:0"><?= e(t('No tanod is on duty right now. Dispatch opens when a tanod goes on duty.', 'Walang naka-duty na tanod ngayon. Mabubuksan ang dispatch kapag may tanod na nag-duty.')) ?></p>
+        <?php elseif ($nSilent > 0): ?>
+          <p class="p-hint" style="margin:0"><?= e(sprintf(t('%d of them last sent a location a while ago. The app sends it when a tanod goes on duty, opens the app or takes a step, so the distance may be old; the alert still reaches their phone.', '%d sa kanila ang matagal nang huling nagpadala ng lokasyon. Ipinapadala ito ng app kapag nag-duty, binuksan ang app o may hakbang, kaya maaaring luma ang layo; darating pa rin ang alerto sa telepono nila.'), $nSilent)) ?></p>
         <?php endif; ?>
         <button class="p-btn p-btn-orange p-btn-block" type="submit" name="action" value="dispatch"<?= $anyActive ? '' : ' disabled' ?>><?= e(t('Dispatch', 'I-dispatch')) ?></button>
       </form>
@@ -1323,19 +1330,23 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               </label>
               <?php foreach ($roster as $t): ?>
                 <?php if (($t['tanod_id'] ?? null) === ($active['tanod']['id'] ?? null)) continue; ?>
-                <?php $ok = !empty($t['assignable']) && !empty($t['location_fresh']); $idle = !empty($t['assignable']) && empty($t['location_fresh']); ?>
+                <?php // Fix A (Ace, 17 Nov 2026): the app sends a location only at key moments (to save the battery), so an on-duty tanod is assignable however old the last fix is
+                  $ok = !empty($t['assignable']); $idle = $ok && empty($t['location_fresh']); ?>
                 <label class="p-tanod-opt<?= $ok ? '' : ' p-out' ?>">
                   <input type="radio" name="to" value="<?= e($t['tanod_id']) ?>" <?= $ok ? '' : 'disabled' ?>>
                   <span class="p-who">
                     <?= e(formal_name($t['full_name'])) ?>
                     <?php if ($ok && $t['metres'] !== null): ?>
                       <small class="<?= empty($t['location_fresh']) ? 'p-stale' : '' ?>">
-                        <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?>
+                        <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php
+                          if (empty($t['location_fresh'])) echo e(t(', last seen a while ago', ', matagal nang huling nakita')); ?>
                       </small>
+                    <?php elseif ($idle): ?>
+                      <small class="p-stale"><?= e(t('location may be old', 'maaaring luma ang lokasyon')) ?></small>
                     <?php endif; ?>
                   </span>
-                  <span class="p-status-dot <?= $ok ? 'p-on-c' : ($idle ? 'p-busy-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty, but their app is not sending a location right now. Ask them to open the app with location on; they show ONLINE as soon as it reports.', 'Naka-duty, pero hindi nagpapadala ng lokasyon ang app nila ngayon. Sabihan silang buksan ang app na naka-on ang lokasyon; lalabas silang ONLINE kapag nag-ulat na.')) . '"' : '' ?>>
-                    <?= $ok ? 'ONLINE' : ($idle ? e(t('ON DUTY · NO SIGNAL', 'NAKA-DUTY · WALANG SIGNAL')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
+                  <span class="p-status-dot <?= $idle ? 'p-busy-c' : ($ok ? 'p-on-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty. Their last location is old: the app sends it when they go on duty, open the app or take a step on a job. The dispatch alert still reaches their phone.', 'Naka-duty. Luma na ang huling lokasyon nila: ipinapadala ito ng app kapag nag-duty, binuksan ang app o may hakbang sa trabaho. Darating pa rin sa telepono nila ang alerto ng dispatch.')) . '"' : '' ?>>
+                    <?= $idle ? e(t('ON DUTY', 'NAKA-DUTY')) : ($ok ? 'ONLINE' : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
                   </span>
                   <span class="p-pick"><?= $ok ? e(t('Move', 'Ilipat')) : '&mdash;' ?></span>
                 </label>
@@ -1687,8 +1698,9 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 });
 </script>
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css?v=<?= e(vendor_version('maplibre-gl')) ?>">
-<script nonce="<?= csp_nonce() ?>" src="assets/vendor/maplibre/maplibre-gl.js?v=<?= e(vendor_version('maplibre-gl')) ?>"></script>
-<script nonce="<?= csp_nonce() ?>" src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
+<?php // speed sweep, 17 Nov 2026: MapLibre (1.1 MB) and the map theme no longer stop the page from being read; the map below is drawn once they have run ?>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/maplibre/maplibre-gl.js?v=<?= e(vendor_version('maplibre-gl')) ?>" defer></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/case-smart.js?v=<?= e(asset_version('../js/case-smart.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/case-chat-button.js?v=<?= e(asset_version('../js/case-chat-button.js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>" src="assets/js/case-tabs.js?v=<?= e(asset_version('../js/case-tabs.js')) ?>" defer></script>
@@ -1771,6 +1783,8 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
   // small. The full interactive map is Spatial Distribution; expanding
   // this one to full screen (below) briefly turns those back on, since a
   // fixed, uninteractive view stops making sense once it fills the screen.
+  // speed sweep, 17 Nov 2026: MapLibre and map-theme.js are deferred, so the map is drawn once the page has been read (they run just before that)
+  function caseMap() {
   var el = document.getElementById('case-map');
   if (el && window.maplibregl) {
     var lat = <?= json_encode((float) $report['latitude']) ?>,
@@ -1900,11 +1914,13 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
       });
     }
   }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', caseMap); } else { caseMap(); }
 })();
 </script>
 
 <?= case_chat_head(case_chat_conversations($report, $dispatches, $thread, $threadMedia, $messages, $status), $id, (string) $report['tracking_id']) ?>
-<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>"></script>
+<script nonce="<?= csp_nonce() ?>" src="assets/vendor/supabase/supabase.js?v=<?= e(vendor_version('supabase-js')) ?>" defer></script>
 <script nonce="<?= csp_nonce() ?>">
 // Realtime, added 6 Sep 2026 — explicit ask: "the entire system needs to
 // work realtime." This is the one page in the portal with live form
@@ -1912,7 +1928,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 // it (a deny reason mid-type, a dispatch note, a target date), so unlike
 // cases.php/dashboard.php it never rewrites the DOM itself — it only
 // raises the .update-banner above and leaves reloading to the admin.
-(function () {
+document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
   if (!window.supabase) { return; }
   const { createClient } = supabase;
 
@@ -1975,7 +1991,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
     }
   }
   setInterval(pollUnpublished, 25000);
-})();
+});
 </script>
 
 <?php layout_foot(); ?>

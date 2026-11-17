@@ -9,6 +9,24 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Dispatch any tanod on duty (17 Nov, Fix A)**
+
+- The app sends a tanod's location only at key moments (going on duty, opening the app, each step of a job) to save the battery, so the portal no longer refuses an on-duty tanod whose last location is old. The tanod reads ON DUTY in amber with "last seen a while ago" or "location may be old", the Dispatch button opens for anyone on duty, and a note says how many locations are old. SMART still recommends a fresh location first and falls back to the best tanod who can take it. The work board and the dispatch check follow the same rule; a tanod who cannot take a job is "Unavailable" (off duty, suspended or at the limit).
+
+
+**After the sweep (17 Nov): pages read sooner, and what the role walk-through found**
+
+- supabase.js, MapLibre on the case page, the Control Room editor and the portal pickers load with `defer`; the code that needs them runs once the page is read (Spatial unchanged).
+- smart.css: 251 declarations that could never win removed (a later rule with the same selector sets them).
+- Notifications on a phone: "Pick a tanod" / "Review" no longer wrap into a circle; the button sits under the text.
+- The "filed as … renamed since" note on a case is readable in dark mode.
+- A Captain account (view only): no case chat button, its chats say "View only", and anything it posts is refused with that reason.
+- Storm mode's Manage link only for super admins (a Kagawad or staff member landed on a page without it).
+- Settings > Appearance: the cards flow into two balanced columns at their own height (no card stretched with empty air), for every role.
+- Dashboard: an empty Resolution efficiency chart collapses and says what to try next.
+- A page a person may not open now says why on the page they land on.
+- Settings tabs wrap on a phone instead of hiding the last one.
+
 **The Opus sweep (17 Nov): security, speed, declutter, and the audits clean**
 
 - Security: the CSP nonce is written into every `<script>` by the template that writes it; the finished page is no longer stamped (stamping would also have blessed a script that slipped into the page). Settings' health and usage doors are super admin only; Workspace writes need the Workspace page's tier.
