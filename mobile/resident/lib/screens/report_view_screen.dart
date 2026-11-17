@@ -377,6 +377,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // handed to. Separate and optional, so an older database (or a
       // failure here) never blanks the report.
       Future<void> barangay() async {
+        // the two reads run together (17 Nov 2026: one wait, as the portal does)
+        await Future.wait([() async {
         try {
           final ev = await client
               .from('report_evidence')
@@ -389,6 +391,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                 ]);
           }
         } catch (_) {}
+        }(), () async {
         try {
           final o = await client
               .from('reports')
@@ -402,6 +405,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             });
           }
         } catch (_) {}
+        }()]);
       }
 
       // Panel ask 3b (7 Sep 2026): the resident sees each concern's own status. Separate and
