@@ -768,7 +768,7 @@ class TanodStrings {
       'Mapupunta sa barangay ang iyong huling ulat para aprubahan. Kapag '
       'naaprubahan, sasabihan ang residente na nalutas na ang kaso.');
   String get windowComposerHint =>
-      _t('Send an update\u2026', 'Magpadala ng update\u2026');
+      _t('Message the barangay\u2026', 'Mag-message sa barangay\u2026');   // 17 Nov 2026: "Send an update" is Rose's field-report form now
   String get windowEmpty => _t(
       'Updates you send show here. The barangay sees them; the resident '
       'only sees your steps.',
