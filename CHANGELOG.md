@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Dispatch any tanod on duty (17 Nov, Fix A)**
+
+- The app sends a tanod's location only at key moments (going on duty, opening the app, each step of a job) to save the battery, so the portal no longer refuses an on-duty tanod whose last location is old. The tanod reads ON DUTY in amber with "last seen a while ago" or "location may be old", the Dispatch button opens for anyone on duty, and a note says how many locations are old. SMART still recommends a fresh location first and falls back to the best tanod who can take it. The work board and the dispatch check follow the same rule; a tanod who cannot take a job is "Unavailable" (off duty, suspended or at the limit).
+
+
 **After the sweep (17 Nov): pages read sooner, and what the role walk-through found**
 
 - supabase.js, MapLibre on the case page, the Control Room editor and the portal pickers load with `defer`; the code that needs them runs once the page is read (Spatial unchanged).

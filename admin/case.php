@@ -1165,6 +1165,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           usort($roster, fn($a, $b) => [empty($b['assignable']) ? 0 : 1, empty($b['in_committee']) ? 0 : 1] <=> [empty($a['assignable']) ? 0 : 1, empty($a['in_committee']) ? 0 : 1]);
           if ($rankOf) {
               foreach ($roster as $r0) { if (!empty($r0['assignable']) && !empty($r0['location_fresh']) && isset($rankOf[$r0['tanod_id']])) { $recId = $r0['tanod_id']; break; } }
+              // Fix A (17 Nov 2026): no fresh location anywhere? SMART still names the best tanod who can take it
+              if ($recId === null) { foreach ($roster as $r0) { if (!empty($r0['assignable']) && isset($rankOf[$r0['tanod_id']])) { $recId = $r0['tanod_id']; break; } } }
           }
           $rosterCom = (string) ($report['case_committee'] ?? $report['committee'] ?? '');
           $rosterComName = $rosterCom !== '' ? (string) (committees_all()[$rosterCom]['short_en'] ?? '') : '';
@@ -1174,7 +1176,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?php endif; ?>
         <div class="p-roster">
           <?php foreach ($roster as $i => $t): ?>
-            <?php $ok = !empty($t['assignable']) && !empty($t['location_fresh']); $idle = !empty($t['assignable']) && empty($t['location_fresh']); ?>
+            <?php // Fix A (Ace, 17 Nov 2026): the app sends a location only at key moments (to save the battery), so an on-duty tanod is assignable however old the last fix is
+                  $ok = !empty($t['assignable']); $idle = $ok && empty($t['location_fresh']); ?>
             <label class="p-tanod-opt<?= $ok ? '' : ' p-out' ?>">
               <input type="radio" name="tanod" value="<?= e($t['tanod_id']) ?>"
                      <?= $ok ? '' : 'disabled' ?>>
@@ -1194,10 +1197,12 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                     <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php
                       if (empty($t['location_fresh'])) echo e(t(', last seen a while ago', ', matagal nang huling nakita')); ?>
                   </small>
+                <?php elseif ($idle && $t['metres'] === null): ?>
+                  <small class="p-stale"><?= e(t('location may be old', 'maaaring luma ang lokasyon')) ?></small>
                 <?php endif; ?>
               </span>
-              <span class="p-status-dot <?= $ok ? 'p-on-c' : ($idle ? 'p-busy-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty, but their app is not sending a location right now. Ask them to open the app with location on; they show ONLINE as soon as it reports.', 'Naka-duty, pero hindi nagpapadala ng lokasyon ang app nila ngayon. Sabihan silang buksan ang app na naka-on ang lokasyon; lalabas silang ONLINE kapag nag-ulat na.')) . '"' : '' ?>>
-                <?= $ok ? 'ONLINE' : ($idle ? e(t('ON DUTY · NO SIGNAL', 'NAKA-DUTY · WALANG SIGNAL')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
+              <span class="p-status-dot <?= $idle ? 'p-busy-c' : ($ok ? 'p-on-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty. Their last location is old: the app sends it when they go on duty, open the app or take a step on a job. The dispatch alert still reaches their phone.', 'Naka-duty. Luma na ang huling lokasyon nila: ipinapadala ito ng app kapag nag-duty, binuksan ang app o may hakbang sa trabaho. Darating pa rin sa telepono nila ang alerto ng dispatch.')) . '"' : '' ?>>
+                <?= $idle ? e(t('ON DUTY', 'NAKA-DUTY')) : ($ok ? 'ONLINE' : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
               </span>
               <span class="p-pick"><?= $ok ? e(t('Assign', 'I-assign')) : '&mdash;' ?></span>
             </label>
@@ -1241,12 +1246,12 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
         </details>
 
-        <?php $anyActive = (bool) array_filter($roster, fn($t) => !empty($t['assignable']) && !empty($t['location_fresh'])); ?>
+        <?php $anyActive = (bool) array_filter($roster, fn($t) => !empty($t['assignable']));   // Fix A: on duty is enough ?>
         <?php $nSilent = count(array_filter($roster, fn($t) => !empty($t['assignable']) && empty($t['location_fresh']))); ?>
         <?php if (!$anyActive): ?>
-          <p class="p-clock p-late" style="margin:0"><?= $nSilent > 0
-              ? e(sprintf(t('%d tanod(s) are on duty, but their apps are not sending a location. Ask them to open the app with location on; they become assignable as soon as it reports.', '%d tanod ang naka-duty, pero hindi nagpapadala ng lokasyon ang kanilang app. Sabihan silang buksan ang app na naka-on ang lokasyon; maa-assign na sila kapag nag-ulat na.'), $nSilent))
-              : e(t('No tanod is active right now. Dispatch opens when a tanod is on duty with their app open.', 'Walang aktibong tanod ngayon. Mabubuksan ang dispatch kapag may tanod na naka-duty at bukas ang app.')) ?></p>
+          <p class="p-clock p-late" style="margin:0"><?= e(t('No tanod is on duty right now. Dispatch opens when a tanod goes on duty.', 'Walang naka-duty na tanod ngayon. Mabubuksan ang dispatch kapag may tanod na nag-duty.')) ?></p>
+        <?php elseif ($nSilent > 0): ?>
+          <p class="p-hint" style="margin:0"><?= e(sprintf(t('%d of them last sent a location a while ago. The app sends it when a tanod goes on duty, opens the app or takes a step, so the distance may be old; the alert still reaches their phone.', '%d sa kanila ang matagal nang huling nagpadala ng lokasyon. Ipinapadala ito ng app kapag nag-duty, binuksan ang app o may hakbang, kaya maaaring luma ang layo; darating pa rin ang alerto sa telepono nila.'), $nSilent)) ?></p>
         <?php endif; ?>
         <button class="p-btn p-btn-orange p-btn-block" type="submit" name="action" value="dispatch"<?= $anyActive ? '' : ' disabled' ?>><?= e(t('Dispatch', 'I-dispatch')) ?></button>
       </form>
@@ -1325,19 +1330,23 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               </label>
               <?php foreach ($roster as $t): ?>
                 <?php if (($t['tanod_id'] ?? null) === ($active['tanod']['id'] ?? null)) continue; ?>
-                <?php $ok = !empty($t['assignable']) && !empty($t['location_fresh']); $idle = !empty($t['assignable']) && empty($t['location_fresh']); ?>
+                <?php // Fix A (Ace, 17 Nov 2026): the app sends a location only at key moments (to save the battery), so an on-duty tanod is assignable however old the last fix is
+                  $ok = !empty($t['assignable']); $idle = $ok && empty($t['location_fresh']); ?>
                 <label class="p-tanod-opt<?= $ok ? '' : ' p-out' ?>">
                   <input type="radio" name="to" value="<?= e($t['tanod_id']) ?>" <?= $ok ? '' : 'disabled' ?>>
                   <span class="p-who">
                     <?= e(formal_name($t['full_name'])) ?>
                     <?php if ($ok && $t['metres'] !== null): ?>
                       <small class="<?= empty($t['location_fresh']) ? 'p-stale' : '' ?>">
-                        <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?>
+                        <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php
+                          if (empty($t['location_fresh'])) echo e(t(', last seen a while ago', ', matagal nang huling nakita')); ?>
                       </small>
+                    <?php elseif ($idle): ?>
+                      <small class="p-stale"><?= e(t('location may be old', 'maaaring luma ang lokasyon')) ?></small>
                     <?php endif; ?>
                   </span>
-                  <span class="p-status-dot <?= $ok ? 'p-on-c' : ($idle ? 'p-busy-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty, but their app is not sending a location right now. Ask them to open the app with location on; they show ONLINE as soon as it reports.', 'Naka-duty, pero hindi nagpapadala ng lokasyon ang app nila ngayon. Sabihan silang buksan ang app na naka-on ang lokasyon; lalabas silang ONLINE kapag nag-ulat na.')) . '"' : '' ?>>
-                    <?= $ok ? 'ONLINE' : ($idle ? e(t('ON DUTY · NO SIGNAL', 'NAKA-DUTY · WALANG SIGNAL')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
+                  <span class="p-status-dot <?= $idle ? 'p-busy-c' : ($ok ? 'p-on-c' : 'p-off-c') ?>"<?= $idle ? ' title="' . e(t('On duty. Their last location is old: the app sends it when they go on duty, open the app or take a step on a job. The dispatch alert still reaches their phone.', 'Naka-duty. Luma na ang huling lokasyon nila: ipinapadala ito ng app kapag nag-duty, binuksan ang app o may hakbang sa trabaho. Darating pa rin sa telepono nila ang alerto ng dispatch.')) . '"' : '' ?>>
+                    <?= $idle ? e(t('ON DUTY', 'NAKA-DUTY')) : ($ok ? 'ONLINE' : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
                   </span>
                   <span class="p-pick"><?= $ok ? e(t('Move', 'Ilipat')) : '&mdash;' ?></span>
                 </label>
