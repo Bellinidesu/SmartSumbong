@@ -24,6 +24,14 @@
 // Password is Supabase's own updateUser, which needs the current
 // session and nothing else.
 //
+// CONFIRMING THE EMAIL (0174, 17 Nov 2026). Forgot password now sends
+// its code to this email, so the address has to be one the person
+// reads: under it the row says Confirmed or Not confirmed, and "Confirm
+// it" emails a 6-digit code (password-otp, email_send) that is typed
+// back here (email_verify). Saving a different address clears the mark
+// in the database and asks for its code straight away. Only the
+// function can set the mark; this screen only reads it.
+//
 // ADDRESS AND AVATAR — added during the Figma parity pass (27 Aug
 // 2026). Both are ordinary resident-editable fields (0038), the same
 // shape as email: neither is identity evidence an admin checked
@@ -73,6 +81,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _uploadingAvatar = false;
   String? _banner;
   String? _emailError;
+  /// 0174: the saved email is confirmed. [_confirmKnown] is false on a database without 0174, where the row shows no mark.
+  bool _emailConfirmed = false;
+  bool _confirmKnown = true;
 
   bool get _dirty =>
       _email.text.trim() != _originalEmail ||
@@ -106,20 +117,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final uid = client.auth.currentUser?.id;
     if (uid == null) return;
     try {
-      final row = await client
-          .from('users')
-          .select('full_name, mobile_number, email, address, avatar_url')
-          .eq('id', uid)
-          .maybeSingle();
+      Map<String, dynamic>? row;
+      try {
+        row = await client
+            .from('users')
+            .select('full_name, mobile_number, email, email_confirmed_at, address, avatar_url')
+            .eq('id', uid)
+            .maybeSingle();
+      } on PostgrestException {
+        // Before 0174 is applied the column is not there; the screen works as before, without the mark.
+        _confirmKnown = false;
+        row = await client
+            .from('users')
+            .select('full_name, mobile_number, email, address, avatar_url')
+            .eq('id', uid)
+            .maybeSingle();
+      }
       if (!mounted || row == null) return;
+      final r = row;
       setState(() {
-        _name = row['full_name'] as String?;
-        _mobile = row['mobile_number'] as String?;
-        _originalEmail = (row['email'] as String?) ?? '';
+        _emailConfirmed = r['email_confirmed_at'] != null;
+        _name = r['full_name'] as String?;
+        _mobile = r['mobile_number'] as String?;
+        _originalEmail = (r['email'] as String?) ?? '';
         _email.text = _originalEmail;
-        _originalAddress = (row['address'] as String?) ?? '';
+        _originalAddress = (r['address'] as String?) ?? '';
         _address.text = _originalAddress;
-        _avatarUrl = row['avatar_url'] as String?;
+        _avatarUrl = r['avatar_url'] as String?;
         _loading = false;
       });
     } catch (_) {
@@ -212,7 +236,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }).eq('id', uid);
 
       if (!mounted) return;
+      // 0174: a different address (not a change of case) is no longer confirmed.
+      final emailChanged = email.toLowerCase() != _originalEmail.trim().toLowerCase();
       setState(() {
+        if (emailChanged) _emailConfirmed = false;
         _originalEmail = email;
         _originalAddress = _address.text.trim();
         if (avatarUrl != null) {
@@ -232,6 +259,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
       if (!mounted) return;
+      // A new address is confirmed right away (0174): the page stays so its mark and any message show.
+      if (emailChanged && email.isNotEmpty && _confirmKnown) {
+        setState(() => _saving = false);
+        await _confirmEmail();
+        return;
+      }
       Navigator.of(context).pop();
     } on PostgrestException catch (e) {
       if (!mounted) return;
@@ -415,6 +448,86 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  /// 0174: a code to the saved email; the right one marks it confirmed, so reset codes can go there.
+  Future<void> _confirmEmail() async {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _banner = null;
+      _saving = true;
+    });
+    final sent = await _otp({'action': 'email_send'});
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (sent['ok'] != true) {
+      setState(() => _banner = sent['message'] as String?);
+      return;
+    }
+    if (sent['already'] == true) {
+      setState(() => _emailConfirmed = true);
+      return;
+    }
+    final to = (sent['to'] as String?) ?? _originalEmail;
+    final code = await showFigmaDialog<String>(
+      context,
+      builder: (_) => _RequestDialog(
+        title: context.tr('Confirm your email', 'Kumpirmahin ang email'),
+        prompt: context.tr('We sent a 6-digit code to $to. Enter it here. It expires in 10 minutes.',
+            'Nagpadala kami ng 6-digit na code sa $to. Ilagay ito rito. Mag-e-expire ito sa loob ng 10 minuto.'),
+        hint: '123456',
+        keyboardType: TextInputType.number,
+        primary: context.tr('Confirm', 'Kumpirmahin'),
+      ),
+    );
+    if (code == null || code.trim().isEmpty || !mounted) return;
+    setState(() => _saving = true);
+    final done = await _otp({'action': 'email_verify', 'code': code.trim()});
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (done['ok'] != true) {
+      setState(() => _banner = done['message'] as String?);
+      return;
+    }
+    setState(() => _emailConfirmed = true);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(context.tr('Your email is confirmed. Password reset codes will come here.',
+          'Kumpirmado na ang iyong email. Dito na darating ang code kapag nag-reset ng password.')),
+      backgroundColor: context.colors.navy,
+    ));
+  }
+
+  /// Under the email: Confirmed, or Not confirmed with "Confirm it" (0174). Nothing while there is no email or no 0174.
+  Widget? _emailStatus() {
+    final d = context.d;
+    final typed = _email.text.trim();
+    if (!_confirmKnown || typed.isEmpty) return null;
+    if (typed.toLowerCase() != _originalEmail.trim().toLowerCase()) {
+      return Text(context.tr('Save, then confirm this email with the code we send to it.', 'I-save, saka kumpirmahin ang email na ito gamit ang code na ipapadala namin.'),
+          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 12, height: 1.4, color: d.muted));
+    }
+    if (_emailConfirmed) {
+      return Row(children: [
+        DStatusPill(context.tr('Confirmed', 'Kumpirmado'), DStatusPill.done),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(context.tr('Reset codes come here.', 'Dito darating ang reset code.'),
+              style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 12, color: d.muted)),
+        ),
+      ]);
+    }
+    return Row(children: [
+      DStatusPill(context.tr('Not confirmed', 'Hindi pa kumpirmado'), DStatusPill.pending),
+      const SizedBox(width: 10),
+      GestureDetector(
+        onTap: _saving ? null : _confirmEmail,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(context.tr('Confirm it', 'Kumpirmahin'), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 13, color: d.link)),
+        ),
+      ),
+    ]);
+  }
+
   /// 0104: a code to the new number, then the number moves (sign-in too).
   Future<void> _changeMobileBySms(String mobile) async {
     setState(() {
@@ -436,6 +549,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         prompt: sent['message'] as String? ?? '',
         hint: '123456',
         keyboardType: TextInputType.number,
+        primary: context.tr('Confirm', 'Kumpirmahin'),
       ),
     );
     if (code == null || code.trim().isEmpty || !mounted) return;
@@ -598,6 +712,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         error: _emailError,
                         enabled: !_saving,
                         keyboardType: TextInputType.emailAddress,
+                        status: _emailStatus(),
                       ),
                       _LockedField(label: s.editProfilePhoneLabel, value: _localPhone(_mobile), note: s.editProfilePhoneNote, onTap: () => _requestChange('mobile_number', s.editProfilePhoneWord)),
                       _EditableField(
@@ -698,6 +813,7 @@ class _EditableField extends StatelessWidget {
     this.error,
     this.enabled = true,
     this.keyboardType,
+    this.status,
   });
 
   final String label;
@@ -707,6 +823,8 @@ class _EditableField extends StatelessWidget {
   final String? error;
   final bool enabled;
   final TextInputType? keyboardType;
+  /// A line under the field (the email's Confirmed mark, 0174).
+  final Widget? status;
 
   @override
   Widget build(BuildContext context) {
@@ -731,7 +849,12 @@ class _EditableField extends StatelessWidget {
           disabledBorder: InputBorder.none,
         ),
       ),
-      below: error == null ? null : Padding(padding: const EdgeInsets.only(top: 4), child: Text(error!, style: TextStyle(fontFamily: 'Inter', fontSize: 11.5, fontWeight: FontWeight.w700, color: d.dark ? const Color(0xFFFF8A8A) : DColors.red))),
+      below: (error == null && status == null)
+          ? null
+          : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (error != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(error!, style: TextStyle(fontFamily: 'Inter', fontSize: 11.5, fontWeight: FontWeight.w700, color: d.dark ? const Color(0xFFFF8A8A) : DColors.red))),
+              if (status != null) Padding(padding: const EdgeInsets.only(top: 8), child: status),
+            ]),
     );
   }
 }
@@ -822,12 +945,15 @@ class _RequestDialog extends StatefulWidget {
     required this.prompt,
     required this.hint,
     required this.keyboardType,
+    this.primary,
   });
 
   final String title;
   final String prompt;
   final String hint;
   final TextInputType keyboardType;
+  /// The button's word; "Send request" when not given.
+  final String? primary;
 
   @override
   State<_RequestDialog> createState() => _RequestDialogState();
@@ -855,11 +981,13 @@ class _RequestDialogState extends State<_RequestDialog> {
         keyboardType: widget.keyboardType,
         inputFormatters: widget.keyboardType == TextInputType.phone
             ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]'))]
-            : null,
+            : widget.keyboardType == TextInputType.number
+                ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)]
+                : null,
       ),
       secondaryLabel: context.s.editProfileCancel,
       onSecondary: () => Navigator.of(context).pop(),
-      primaryLabel: context.s.editProfileSendRequest,
+      primaryLabel: widget.primary ?? context.s.editProfileSendRequest,
       onPrimary: () => Navigator.of(context).pop(_controller.text),
     );
   }

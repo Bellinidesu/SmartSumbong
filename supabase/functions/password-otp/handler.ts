@@ -1,11 +1,16 @@
-// SmartSumbong — forgot password by SMS code (0085).
+// SmartSumbong — forgot password by a 6-digit code (0085), by email since 0174.
 //
-// POST { action: "send",   mobile }                  -> texts a 6-digit code
+// POST { action: "send",   mobile }                  -> emails a code to the account's confirmed email (texts it instead when
+//                                                       there is none and SMS is set up)
 // POST { action: "verify", mobile, code, password }  -> sets the new password
 //
 // Signed in (Authorization: Bearer <the user's token>), 0104:
 // POST { action: "mobile_send",   mobile }  -> texts a code to the NEW number
 // POST { action: "mobile_verify", code }    -> moves the account to it
+//
+// Signed in, 0174:
+// POST { action: "email_send" }         -> emails a code to the email on the profile
+// POST { action: "email_verify", code } -> marks that email confirmed (users.email_confirmed_at)
 //
 // The caller is signed out (that is the point), so this function runs with
 // verify_jwt off and does its own checks. Sending always answers the same
@@ -16,25 +21,63 @@
 // counted in the database (otp_attempt, 0114), so parallel tries cannot
 // share a count; a reset by code signs the account out everywhere.
 //
-// Secrets: SEMAPHORE_API_KEY (set with `supabase secrets set`), plus the
-// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets. Optional:
-// SEMAPHORE_SENDER_NAME, a sender name Semaphore has approved for the account
-// (without it the text comes from Semaphore's default name).
+// Which accounts exist (17 Nov 2026): signing up already says a number is taken, so the answer to "send" names where the code
+// went, masked (a•••@gmail.com), and a number with no confirmed email (or no account) hears the same "No email on this
+// account". Only an account with a confirmed email is told apart, and only by its first letter and domain.
+//
+// Secrets (set with `supabase secrets set`, DEPLOY.md): SMTP_USER (the Gmail address codes come from), SMTP_PASS (a Gmail app
+// password, never the account password), SMTP_FROM_NAME (optional, the sender's name; "SmartSumbong · Barangay 183"), plus the
+// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets. SMS, the fallback: SEMAPHORE_API_KEY, and optionally
+// SEMAPHORE_SENDER_NAME, a sender name Semaphore has approved for the account. Read on each request, so a secret set later
+// needs no redeploy.
 
 import { logError } from "../_shared/log.ts";
 import { timedFetch } from "../_shared/fetch.ts";
+import { compose, maskEmail, type Purpose } from "./email.ts";
+import { type Connect, plainAddress, sendMail } from "./smtp.ts";
 // every outside call gives up after 10 seconds (_shared/fetch.ts, 11 Nov 2026)
 const fetch = timedFetch(10_000);
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SEMAPHORE_API_KEY = Deno.env.get("SEMAPHORE_API_KEY") ?? "";
-const SEMAPHORE_SENDER_NAME = (Deno.env.get("SEMAPHORE_SENDER_NAME") ?? "").trim();
+const env = (k: string) => (Deno.env.get(k) ?? "").trim();
 
 const CODE_MINUTES = 10;
 const MAX_TRIES = 5;
 const MAX_PER_HOUR = 3;
 const SENT = "If that number has an account, a code is on its way. It expires in 10 minutes.";
+const NO_EMAIL = "No email on this account. Add one in Edit Profile, or ask the barangay hall to reset it.";
+
+// Gmail over implicit TLS (smtp.ts). The tests swap the connection for a pretend server.
+let connect: Connect = (o) => Deno.connectTls(o);
+export function useSmtpConnection(c: Connect) {
+  connect = c;
+}
+
+/** The Gmail sender, or null while its secrets are not set. An app password is shown with spaces; they are not part of it. */
+function smtp() {
+  const user = env("SMTP_USER"), pass = env("SMTP_PASS").replace(/\s+/g, "");
+  if (!user || !pass) return null;
+  return { host: "smtp.gmail.com", port: 465, user, pass, fromName: env("SMTP_FROM_NAME") || "SmartSumbong · Barangay 183" };
+}
+
+/** One code by email. False (and logged) when it could not go. */
+async function emailCode(to: string, purpose: Purpose, code: string, mobile: string, tanod: boolean): Promise<boolean> {
+  const cfg = smtp();
+  if (!cfg) return false;
+  const m = compose(purpose, code, { minutes: CODE_MINUTES, mobile, tanod });
+  try {
+    await sendMail(cfg, { to, subject: m.subject, text: m.text, html: m.html }, connect);
+    return true;
+  } catch (e) {
+    console.error("email not sent:", e instanceof Error ? e.message : e);
+    await logError("password-otp", e);
+    return false;
+  }
+}
+
+const sameEmail = (a: string | null | undefined, b: string | null | undefined) =>
+  (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -96,7 +139,7 @@ export function sixDigits(): string {
  * counts a wrong one under a row lock, so guesses sent in parallel cannot
  * share a try the way a read-then-write from here could.
  */
-async function attempt(userId: string, purpose: "password" | "mobile", hash: string) {
+async function attempt(userId: string, purpose: "password" | "mobile" | "email", hash: string) {
   const res = await rest("rpc/otp_attempt", {
     method: "POST",
     body: JSON.stringify({ p_user: userId, p_purpose: purpose, p_hash: hash, p_max: MAX_TRIES }),
@@ -115,21 +158,35 @@ function wrongTry(left: number): Response {
   return json({ ok: false, message: left > 0 ? `That code is not right. ${left} ${left === 1 ? "try" : "tries"} left.` : "Too many wrong tries. Ask for a new code." }, 400);
 }
 
-/** The account a resident or tanod signs in with, or null. Admins reset by email. */
+type Account = { id: string; role: string; email: string | null; email_confirmed_at: string | null };
+
+/** The account a resident or tanod signs in with, or null. Admins reset through Supabase's own email. */
 async function findAccount(mobile: string) {
   const res = await rest(
     `users?mobile_number=eq.${encodeURIComponent(mobile)}&role=in.(resident,tanod)` +
-      `&select=id,is_suspended,is_retired&limit=1`);
+      `&select=id,role,email,email_confirmed_at,is_suspended,is_retired&limit=1`);
   if (!res.ok) throw new Error(`lookup failed: ${res.status}`);
   const rows = await res.json();
   const u = rows[0];
   if (!u || u.is_suspended || u.is_retired) return null;
-  return u as { id: string };
+  return u as Account;
+}
+
+/** Where a reset code for this account goes: its confirmed email, else SMS when that is set up, else nowhere. */
+function channel(user: Account | null): "email" | "sms" | null {
+  if (user?.email && user.email_confirmed_at && plainAddress(user.email.trim()) && smtp()) return "email";
+  if (env("SEMAPHORE_API_KEY")) return "sms";
+  return null;
 }
 
 async function send(mobile: string): Promise<Response> {
   const user = await findAccount(mobile);
-  if (!user) return json({ ok: true, message: SENT });
+  const via = channel(user);
+  // A confirmed email the function cannot write to is the barangay's to fix: said in Recent errors.
+  if (user?.email_confirmed_at && !smtp()) await logError("password-otp", "a reset code could not be emailed: SMTP_USER / SMTP_PASS are not set");
+  // No account, or no way to reach it: the same answer either way.
+  if (!via) return json({ ok: false, code: "no_email", message: NO_EMAIL });
+  if (!user) return json({ ok: true, channel: "sms", message: SENT });
 
   const since = new Date(Date.now() - 3600_000).toISOString();
   const recent = await rest(
@@ -156,15 +213,21 @@ async function send(mobile: string): Promise<Response> {
   if (!ins.ok) throw new Error(`could not store the code: ${ins.status}`);
   const row = (await ins.json())[0];
 
-  if (!await textCode(mobile, code)) {
+  const to = (user.email ?? "").trim();
+  const sent = via === "email"
+    ? await emailCode(to, "reset", code, mobile, user.role === "tanod")
+    : await textCode(mobile, code);
+  if (!sent) {
     await rest(`password_otps?id=eq.${row.id}`, { method: "DELETE" });
     return json({ ok: false, message: "We couldn't send the code right now. Try again in a few minutes, or visit the barangay hall." }, 502);
   }
-  return json({ ok: true, message: SENT });
+  if (via === "sms") return json({ ok: true, channel: "sms", message: SENT });
+  const masked = maskEmail(to);
+  return json({ ok: true, channel: "email", to: masked, message: `We sent a code to the email on your account: ${masked}. It expires in ${CODE_MINUTES} minutes.` });
 }
 
 async function verify(mobile: string, code: string, password: string): Promise<Response> {
-  if (!/^\d{6}$/.test(code)) return json({ ok: false, message: "Enter the 6-digit code from the text." }, 400);
+  if (!/^\d{6}$/.test(code)) return json({ ok: false, message: "Enter the 6-digit code we sent you." }, 400);
   if (password.length < 8) return json({ ok: false, message: "Use at least 8 characters for the new password." }, 400);
 
   const user = await findAccount(mobile);
@@ -193,7 +256,7 @@ async function verify(mobile: string, code: string, password: string): Promise<R
   if (!out.ok) console.error("could not end old sessions:", out.status, (await out.text()).slice(0, 200));
   await rest("account_audit", {
     method: "POST",
-    body: JSON.stringify({ subject_id: user.id, actor_id: user.id, action: "password_reset", detail: "Password reset with an SMS code" }),
+    body: JSON.stringify({ subject_id: user.id, actor_id: user.id, action: "password_reset", detail: "Password reset with a one-time code" }),
   });
   return json({ ok: true, message: "Your password has been changed. Sign in with the new one." });
 }
@@ -204,12 +267,12 @@ async function verify(mobile: string, code: string, password: string): Promise<R
 // The route and its fields as in pravennn08/semaphore-sdk (MIT).
 async function textCode(mobile: string, code: string): Promise<boolean> {
   const form = new URLSearchParams({
-    apikey: SEMAPHORE_API_KEY,
+    apikey: env("SEMAPHORE_API_KEY"),
     number: "0" + mobile.slice(3),
     message: `Your SmartSumbong code is {otp}. It expires in ${CODE_MINUTES} minutes. Do not share it with anyone.`,
     code,
   });
-  if (SEMAPHORE_SENDER_NAME) form.set("sendername", SEMAPHORE_SENDER_NAME);
+  if (env("SEMAPHORE_SENDER_NAME")) form.set("sendername", env("SEMAPHORE_SENDER_NAME"));
   const sms = await fetch("https://api.semaphore.co/api/v4/otp", { method: "POST", body: form });
   const body = await sms.text();
   try {
@@ -241,10 +304,11 @@ async function caller(req: Request) {
   if (!who.ok) return null;
   const id = (await who.json()).id as string | undefined;
   if (!id) return null;
-  const res = await rest(`users?id=eq.${id}&role=in.(resident,tanod)&select=id,mobile_number,is_suspended,is_retired&limit=1`);
+  const res = await rest(
+    `users?id=eq.${id}&role=in.(resident,tanod)&select=id,role,mobile_number,email,email_confirmed_at,is_suspended,is_retired&limit=1`);
   const u = (await res.json())[0];
   if (!u || u.is_suspended || u.is_retired) return null;
-  return u as { id: string; mobile_number: string };
+  return u as Account & { mobile_number: string };
 }
 
 /** 0104: a code to the number the account is moving to. */
@@ -319,12 +383,92 @@ async function mobileVerify(req: Request, code: string): Promise<Response> {
   return json({ ok: true, mobile, message: "Your number has been changed. Sign in with it from now on." });
 }
 
+/** 0174: a code to the email on the profile, so the person shows they read it. */
+async function emailSend(req: Request): Promise<Response> {
+  const user = await caller(req);
+  if (!user) return json({ ok: false, message: "Sign in again, then try." }, 401);
+  const to = (user.email ?? "").trim();
+  if (!to) return json({ ok: false, message: "Add your email and save it first." }, 400);
+  if (!plainAddress(to)) return json({ ok: false, message: "That email does not look right. Fix it and save it first." }, 400);
+  if (user.email_confirmed_at) return json({ ok: true, already: true, message: "Your email is already confirmed." });
+  if (!smtp()) {
+    await logError("password-otp", "an email could not be confirmed: SMTP_USER / SMTP_PASS are not set");
+    return json({ ok: false, message: "Email is not set up yet. Try again later." }, 503);
+  }
+
+  const since = new Date(Date.now() - 3600_000).toISOString();
+  const recent = await rest(`password_otps?user_id=eq.${user.id}&purpose=eq.email&created_at=gte.${encodeURIComponent(since)}&select=id`);
+  if ((await recent.json()).length >= MAX_PER_HOUR) {
+    return json({ ok: false, message: "Too many codes. Try again in an hour." }, 429);
+  }
+  await rest(`password_otps?user_id=eq.${user.id}&purpose=eq.email&used_at=is.null`, {
+    method: "PATCH",
+    body: JSON.stringify({ used_at: new Date().toISOString() }),
+  });
+  const code = sixDigits();
+  const ins = await rest("password_otps", {
+    method: "POST",
+    body: JSON.stringify({
+      user_id: user.id,
+      purpose: "email",
+      new_email: to,
+      code_hash: await hmac(`${user.id}:${to.toLowerCase()}:${code}`),
+      expires_at: new Date(Date.now() + CODE_MINUTES * 60_000).toISOString(),
+    }),
+  });
+  if (!ins.ok) throw new Error(`could not store the code: ${ins.status}`);
+  const row = (await ins.json())[0];
+  if (!await emailCode(to, "confirm", code, user.mobile_number, user.role === "tanod")) {
+    await rest(`password_otps?id=eq.${row.id}`, { method: "DELETE" });
+    return json({ ok: false, message: "We couldn't send the email right now. Check the address, or try again in a few minutes." }, 502);
+  }
+  const masked = maskEmail(to);
+  return json({ ok: true, to: masked, message: `We sent a code to ${masked}. It expires in ${CODE_MINUTES} minutes.` });
+}
+
+/** 0174: the right code marks the email confirmed, as long as it is still the address the code went to. */
+async function emailVerify(req: Request, code: string): Promise<Response> {
+  if (!/^\d{6}$/.test(code)) return json({ ok: false, message: "Enter the 6-digit code from the email." }, 400);
+  const user = await caller(req);
+  if (!user) return json({ ok: false, message: "Sign in again, then try." }, 401);
+  const wrong = json({ ok: false, message: "That code is wrong or has expired. Ask for a new one." }, 400);
+  const res = await rest(
+    `password_otps?user_id=eq.${user.id}&purpose=eq.email&used_at=is.null&order=created_at.desc&limit=1&select=new_email`);
+  const pending = (await res.json())[0];
+  if (!pending?.new_email) return wrong;
+  const otp = await attempt(user.id, "email", await hmac(`${user.id}:${String(pending.new_email).trim().toLowerCase()}:${code}`));
+  if (otp.outcome === "wrong") return wrongTry(otp.attempts_left);
+  if (otp.outcome !== "ok") return wrong;
+  const done = () =>
+    rest(`password_otps?id=eq.${otp.otp_id}`, { method: "PATCH", body: JSON.stringify({ used_at: new Date().toISOString() }) });
+  const changed = json({ ok: false, message: "Your email changed after the code was sent. Ask for a new code." }, 409);
+  if (!user.email || !sameEmail(user.email, pending.new_email)) {
+    await done();
+    return changed;
+  }
+  // Only while the email is still the one the code went to (a save in between clears the mark anyway, 0174).
+  const upd = await rest(`users?id=eq.${user.id}&email=eq.${encodeURIComponent(user.email)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ email_confirmed_at: new Date().toISOString() }),
+  });
+  if (!upd.ok) throw new Error(`could not confirm the email: ${upd.status}`);
+  await done();
+  if (!(await upd.json()).length) return changed;
+  await rest("account_audit", {
+    method: "POST",
+    body: JSON.stringify({ subject_id: user.id, actor_id: user.id, action: "email_confirmed", detail: "Email confirmed with a one-time code" }),
+  });
+  return json({ ok: true, message: "Your email is confirmed. Password reset codes will come here." });
+}
+
 export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "POST") return json({ ok: false, message: "POST only" }, 405);
   try {
     const body = await req.json().catch(() => ({}));
     if (body.action === "mobile_verify") return await mobileVerify(req, String(body.code ?? ""));
+    if (body.action === "email_send") return await emailSend(req);
+    if (body.action === "email_verify") return await emailVerify(req, String(body.code ?? ""));
     const mobile = normalise(body.mobile);
     if (!mobile) return json({ ok: false, message: "Enter your mobile number as 09XXXXXXXXX." }, 400);
     if (body.action === "send") return await send(mobile);

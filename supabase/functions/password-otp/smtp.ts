@@ -95,7 +95,7 @@ export async function sendMail(cfg: Smtp, mail: Mail, connect: Connect, timeoutM
   if (!plainAddress(mail.to)) throw new Error("smtp: not a plain address");
   if (!plainAddress(cfg.user)) throw new Error("smtp: SMTP_USER is not an address");
   let conn: Conn | null = null;
-  let timer: number | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const talk = async () => {
     conn = await connect({ hostname: cfg.host, port: cfg.port });
     const c = conn;

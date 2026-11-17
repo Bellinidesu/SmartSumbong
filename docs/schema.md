@@ -85,7 +85,7 @@ How the database fits the rest of the system is in
 | `profile_requests` | A resident's or tanod's name change or new ID photo, and the admin's decision | 0086 |
 | `login_attempts` | Lockout after repeated failures | 0031 |
 | `login_failure_sources` | Failed sign-ins per network address, 15-minute window; past 20 they stop counting toward a lockout | 0114 |
-| `password_otps` | SMS codes for password reset and number change, hashed (0085, 0104) | 0085 |
+| `password_otps` | One-time codes, hashed: password reset (by email since 0174, SMS as the fallback), number change (0104), confirming the profile email (0174, `new_email`). `users.email_confirmed_at` (0174) marks a confirmed email; only the service role sets it | 0085 |
 
 ### The barangay and its settings
 
