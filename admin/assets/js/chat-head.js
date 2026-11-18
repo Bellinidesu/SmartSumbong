@@ -1,7 +1,9 @@
 /* The chat head (12 Nov 2026), loaded on every portal page.
    - On a case page it runs the Messages-style panel the server rendered (includes/case_chat.php).
-   - A case whose chat is "floated" (right-click the bubble, or the ... button) gets its own draggable bubble on every other page,
-     with a notification ball and, if wanted, a sound, fed by chat-feed.php every 15 seconds.
+   - The cases whose chat is "floated" (right-click the bubble, or the ... button) share ONE draggable bubble on every other page
+     (19 Nov 2026, Rose: one bubble per case stacked up into several chat heads at once). Its panel has a row of the floated
+     cases to switch between; its ball counts the conversations with something unread across all of them, fed by chat-feed.php
+     every 15 seconds, and it plays the sound when wanted. A case page shows only that case's own head.
    - Choices live in this browser (localStorage): ss-chat-prefs (master switches), ss-chat-cases (per case: pin, sound, side, y),
      ss-chat-seen-<case> (what was last looked at). Since 0173 what was read and what is muted are also kept per person in the database
      (chat_state, through chat-feed.php): the browser stays the quick copy, the database is what another browser starts from.
@@ -150,6 +152,8 @@
     var cur = null, drafts = {}, sending = 0, loaded = main || inline;
     var api = { root: root, report: report, tracking: root.getAttribute('data-tracking') || '', defY: null };
     var feedBadge = !main && !inline;       // a floating head's ball comes from the feed; the case page's from its own conversations
+    // 19 Nov 2026 (Rose): the one floating head keeps its own place ('_float'), whichever floated case it shows; a case page's head keeps the case's
+    var posKey = feedBadge ? '_float' : report;
 
     function convs() { return [].slice.call(body.querySelectorAll('.ch-conv')); }
     function lastOf(sel, c) { var n = c.querySelectorAll(sel); return n.length ? n[n.length - 1] : null; }
@@ -158,15 +162,15 @@
       if (!since) { var o = lastOf('.ch-out', c); since = o ? ts(o.getAttribute('data-ts')) : 0; }
       var n = 0; [].forEach.call(c.querySelectorAll('.ch-b[data-in]'), function (b) { if (ts(b.getAttribute('data-ts')) > since) { n++; } }); return n;
     }
+    // the ball counts conversations with something unread (19 Nov 2026, Rose), the way a phone counts chats, not single messages
     api.setBadge = function (n) { badge.textContent = n > 9 ? '9+' : String(n); badge.hidden = !(n > 0 && store.prefs().ball); fab.classList.toggle('ch-has', n > 0); };
     function paintUnread() {
-      if (feedBadge) { return; }
-      var seen = store.seen(report), total = 0;
+      var seen = store.seen(report), total = 0;   // the floating head lights its rows too; only its ball comes from the feed
       convs().forEach(function (c) {
-        var n = (cur === c.getAttribute('data-conv') && !panel.hidden) ? 0 : unreadIn(c, seen); total += n;
+        var n = (cur === c.getAttribute('data-conv') && !panel.hidden) ? 0 : unreadIn(c, seen); total += n > 0 ? 1 : 0;
         var row = body.querySelector('.ch-row[data-conv="' + c.getAttribute('data-conv') + '"]'); if (row) { row.classList.toggle('ch-unread', n > 0); }
       });
-      api.setBadge(total);
+      if (!feedBadge) { api.setBadge(total); }
     }
     function markSeen(id) {
       var c = body.querySelector('.ch-conv[data-conv="' + id + '"]'); if (!c) { return; }
@@ -212,6 +216,20 @@
       panel.hidden = true; fab.setAttribute('aria-expanded', 'false'); root.classList.remove('ch-open'); paintUnread();
     }
     api.open = open; api.close = close; api.isOpen = function () { return !panel.hidden; };
+    /* the one floating head shows another floated case: its conversations are fetched afresh, its place on screen stays */
+    api.setCase = function (id, tracking) {
+      if (tracking) { api.tracking = tracking; root.setAttribute('data-tracking', tracking); }
+      if (id === report) { return; }
+      if (cur && !panel.hidden) { markSeen(cur); }
+      report = id; api.report = id; url = 'case.php?id=' + encodeURIComponent(id) + '&chat=1';
+      root.setAttribute('data-report', id); root.setAttribute('data-url', url);
+      cur = null; drafts = {}; loaded = false; body.textContent = '';
+      if (!panel.hidden) {
+        body.appendChild(el('p', 'ch-empty', tr('Loading…', 'Naglo-load…')));
+        refresh().then(function () { loaded = true; var all = convs(); show(all.length === 1 ? all[0].getAttribute('data-conv') : null); });
+      }
+    };
+    api.current = function () { return panel.hidden ? null : cur; };
 
     /* the live refresh: the conversations again, keeping the open one, the draft, the scroll and any unsent bubble */
     function refresh() {
@@ -296,7 +314,7 @@
       root.style.right = 'auto'; root.style.bottom = 'auto';
     }
     function applyPos() {
-      var c = store.cases()[report] || {}, y = c.y != null ? Number(c.y) : api.defY;
+      var c = store.cases()[posKey] || {}, y = c.y != null ? Number(c.y) : api.defY;
       if (y != null && isFinite(y)) { place(xFor(c.side === 'l' ? 'l' : 'r'), clampY(y)); }
       else if (main) { root.classList.remove('ch-placed'); root.style.top = root.style.left = root.style.right = root.style.bottom = ''; }
       orient();
@@ -333,7 +351,7 @@
       if (near && !main) {                                   // dropped on the X: it shrinks into it and stops floating
         var tb = trash.getBoundingClientRect();
         root.classList.add('ch-snap', 'ch-gone'); root.style.left = (tb.left + tb.width / 2 - SZ / 2) + 'px'; root.style.top = (tb.top + tb.height / 2 - SZ / 2) + 'px';
-        setTimeout(function () { store.patch(report, { pin: false }); }, 200);
+        setTimeout(function () { if (api.onTrash) { api.onTrash(); } else { store.patch(report, { pin: false }); } }, 200);
         return;
       }
       var r = root.getBoundingClientRect(), mid = r.left + r.width / 2;
@@ -341,17 +359,18 @@
       var y = Math.round(clampY(r.top));
       root.classList.add('ch-snap'); root.style.left = xFor(side) + 'px'; root.style.top = y + 'px';
       setTimeout(function () { root.classList.remove('ch-snap'); }, 400);
-      store.patch(report, { side: side, y: y, t: api.tracking || (store.cases()[report] || {}).t || '' });
+      store.patch(posKey, posKey === report ? { side: side, y: y, t: api.tracking || (store.cases()[report] || {}).t || '' } : { side: side, y: y });
     }
     fab.addEventListener('pointerup', endDrag); fab.addEventListener('pointercancel', endDrag); fab.addEventListener('lostpointercapture', endDrag);
     fab.addEventListener('click', function () { if (suppress) { return; } if (panel.hidden) { open(); } else { close(); } });
     window.addEventListener('resize', applyPos);
 
     /* a new message while the panel is shut: the bubble shakes and a small preview sits next to it for a few seconds */
-    api.pulse = function (who, text) {
+    api.pulse = function (who, text, caseId) {
       fab.classList.remove('ch-pulse'); void fab.offsetWidth; fab.classList.add('ch-pulse');
       var pk = root.querySelector('.ch-peek');
-      if (!pk) { pk = el('button', 'ch-peek'); pk.type = 'button'; pk.setAttribute('role', 'status'); pk.addEventListener('click', function () { open(); }); root.appendChild(pk); }
+      if (!pk) { pk = el('button', 'ch-peek'); pk.type = 'button'; pk.setAttribute('role', 'status'); pk.addEventListener('click', function () { if (pk._case && api.onCase) { api.onCase(pk._case); } open(); }); root.appendChild(pk); }
+      pk._case = caseId || null;
       pk.textContent = ''; pk.appendChild(el('b', '', who)); pk.appendChild(document.createTextNode(' ' + text)); pk.hidden = false;
       clearTimeout(pk._t); pk._t = setTimeout(function () { pk.hidden = true; }, 7000);
     };
@@ -363,6 +382,7 @@
       else if (a === 'open') { show(x.getAttribute('data-conv')); }
       else if (a === 'back') { show(null); var r = body.querySelector('.ch-row'); if (r) { r.focus(); } }
       else if (a === 'menu') { var br = x.getBoundingClientRect(); showMenu(br.left, br.bottom + 4, menuItems(), x); }
+      else if (a === 'case' && api.onCase) { api.onCase(x.getAttribute('data-case')); }
       else if (a === 'retry') {
         var bb = x.closest('.ch-b'), c = x.closest('.ch-conv'), t = c.querySelector('textarea');
         if (t) { t.value = x.getAttribute('data-text') || ''; grow(t); c.querySelector('.ch-input').classList.add('has-text'); t.focus(); }
@@ -390,69 +410,114 @@
     return api;
   }
 
-  /* ---------- floating heads for the cases whose chat is floated, on the pages that are not that case ---------- */
-  var floaters = {}, lastIn = {}, lastFeed = {}, pollT = null;
+  /* ---------- ONE floating head for the cases whose chat is floated, on the pages that are not a case page ----------
+     19 Nov 2026 (Rose): each floated case used to get its own bubble, so a handler who floated a few cases had several chat heads
+     on every page. Now there is exactly one: it shows one floated case at a time (a row of the cases in its panel switches between
+     them), and its ball counts the conversations with something unread across every floated case. A case page has its own head
+     and no floating one. */
+  var stack = null, stackIds = [], stackCur = null, lastIn = {}, lastFeed = {}, pollT = null;
   var lastAct = Date.now();
   ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) { window.addEventListener(ev, function () { lastAct = Date.now(); }, { passive: true }); });
-  var mainEl = document.getElementById('chat-head'), here = mainEl ? mainEl.getAttribute('data-report') : '';
+  var mainEl = document.getElementById('chat-head');
 
-  function unreadOf(id, d) {
-    var seen = store.seen(id), n = 0;
+  /* how many conversations of a floated case have something unread: what came in since this person last looked, or since the barangay last wrote */
+  function unreadConvs(id, d) {
+    if (!d) { return 0; }
+    var seen = store.seen(id), on = {};
     (d.in || []).forEach(function (m) {
       var since = seen[m.c] ? ts(seen[m.c]) : (d.out && d.out[m.c] ? ts(d.out[m.c]) : 0);
-      if (ts(m.ts) > since) { n++; }
+      if (ts(m.ts) > since) { on[m.c] = true; }
     });
-    return n;
+    if (stack && id === stackCur) { var reading = stack.current(); if (reading) { delete on[reading]; } }   // the conversation open on screen is not waiting
+    return Object.keys(on).length;
+  }
+  function trackOf(id) { var c = store.cases()[id] || {}; return (lastFeed[id] && lastFeed[id].t) || c.t || ''; }
+  function paintStack() {
+    if (!stack) { return; }
+    var total = 0, n = stackIds.length, t = trackOf(stackCur);
+    stackIds.forEach(function (id) { total += unreadConvs(id, lastFeed[id]); });
+    stack.setBadge(total);
+    stack.root.querySelector('.ch-tag').textContent = short(t) + (n > 1 ? ' +' + (n - 1) : '');
+    stack.fab.setAttribute('aria-label', (n > 1 ? tr('Messages for ', 'Mga mensahe para sa ') + n + tr(' floating cases', ' lumulutang na kaso') : tr('Messages for case ', 'Mga mensahe para sa kaso ') + t)
+      + (total > 0 ? ', ' + total + tr(' unread', ' hindi pa nababasa') : '') + tr('. Right-click for options.', '. I-right-click para sa mga opsyon.'));
+    var strip = stack.strip, key = stackIds.join(',');
+    strip.hidden = n < 2;
+    if (strip.getAttribute('data-ids') !== key) {
+      strip.setAttribute('data-ids', key); strip.textContent = '';
+      stackIds.forEach(function (id) {
+        var b = el('button', 'ch-case'); b.type = 'button'; b.setAttribute('data-ch', 'case'); b.setAttribute('data-case', id);
+        var dot = el('i', 'ch-case-dot'); dot.setAttribute('aria-hidden', 'true'); b.appendChild(dot); b.appendChild(el('span', 'ch-case-t', ''));
+        strip.appendChild(b);
+      });
+    }
+    [].forEach.call(strip.querySelectorAll('.ch-case'), function (b) {
+      var id = b.getAttribute('data-case'), on = id === stackCur, u = unreadConvs(id, lastFeed[id]) > 0, tk = trackOf(id);
+      b.classList.toggle('ch-case-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.classList.toggle('ch-case-new', u);
+      b.querySelector('.ch-case-t').textContent = short(tk) || id.slice(0, 4);
+      b.setAttribute('aria-label', tr('Case ', 'Kaso ') + (tk || id.slice(0, 8)) + (u ? tr(', unread messages', ', may hindi pa nababasa') : ''));
+    });
   }
   function applyFeed(id, d) {
-    var f = floaters[id]; if (!f) { return; }
-    if (d.t && f.tracking !== d.t) { f.tracking = d.t; f.root.querySelector('.ch-tag').textContent = short(d.t); f.root.setAttribute('data-tracking', d.t); }
-    var n = unreadOf(id, d); f.setBadge(n);
+    lastFeed[id] = d;
     var newest = null;
     (d.in || []).forEach(function (m) { if (!newest || ts(m.ts) > ts(newest.ts)) { newest = m; } });
     var t = newest ? ts(newest.ts) : 0;
     if (lastIn[id] === undefined) { lastIn[id] = t; return; }          // the first look only learns what is already there
-    if (t > lastIn[id]) {
+    if (t > lastIn[id] && stack) {
       lastIn[id] = t;
-      if (f.isOpen()) { f.refresh(); }
-      else if (n > 0) { f.pulse(newest.c === 'r' ? tr('Resident:', 'Residente:') : tr('Tanod:', 'Tanod:'), newest.x || ''); if (soundFor(id)) { ding(); } }
+      if (stack.isOpen() && id === stackCur) { stack.refresh(); }
+      else if (unreadConvs(id, d) > 0) {
+        stack.pulse((stackIds.length > 1 ? short(d.t || trackOf(id)) + ' · ' : '') + (newest.c === 'r' ? tr('Resident:', 'Residente:') : tr('Tanod:', 'Tanod:')), newest.x || '', id);
+        if (soundFor(id)) { ding(); }
+      }
     }
   }
   function poll() {
-    var ids = Object.keys(floaters); if (!ids.length) { return; }
-    fetch('chat-feed.php?ids=' + ids.map(encodeURIComponent).join(','), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+    var ids = stackIds.slice(); if (!ids.length) { return Promise.resolve(); }
+    return fetch('chat-feed.php?ids=' + ids.map(encodeURIComponent).join(','), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (!j || !j.ok) { return; } ids.forEach(function (id) { if (j.cases[id]) { merge(id, j.cases[id].st); lastFeed[id] = j.cases[id]; applyFeed(id, j.cases[id]); } }); })
+      .then(function (j) { if (!j || !j.ok) { return; } ids.forEach(function (id) { if (j.cases[id]) { merge(id, j.cases[id].st); applyFeed(id, j.cases[id]); } }); paintStack(); })
       .catch(function () { /* offline or signed out: the next poll tries again */ });
   }
   window.ssChatPoll = poll;
-  function makeFloater(id, c, i) {
-    var root = el('div', 'ch ch-float'); root.setAttribute('data-report', id); root.setAttribute('data-tracking', c.t || '');
-    root.setAttribute('data-url', 'case.php?id=' + encodeURIComponent(id) + '&chat=1');
-    var panel = el('section', 'ch-panel'); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', tr('Messages', 'Mga Mensahe')); panel.hidden = true; panel.appendChild(el('div', 'ch-body'));
+  function makeStack() {
+    var root = el('div', 'ch ch-float');
+    var panel = el('section', 'ch-panel'); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', tr('Messages', 'Mga Mensahe')); panel.hidden = true;
+    var strip = el('div', 'ch-cases'); strip.setAttribute('role', 'group'); strip.setAttribute('aria-label', tr('Floating cases', 'Mga lumulutang na kaso')); strip.hidden = true;
+    panel.appendChild(strip); panel.appendChild(el('div', 'ch-body'));
     var fab = el('button', 'ch-fab'); fab.type = 'button'; fab.setAttribute('aria-haspopup', 'menu'); fab.setAttribute('aria-expanded', 'false');
-    fab.setAttribute('aria-label', tr('Messages for case ', 'Mga mensahe para sa kaso ') + (c.t || '') + tr('. Right-click for options.', '. I-right-click para sa mga opsyon.'));
     fab.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.5 1.3 4.7 3.4 6.2-.2 1.3-.8 2.6-1.7 3.6a.5.5 0 0 0 .5.8c2-.3 3.7-1.1 4.9-2A11.7 11.7 0 0 0 12 20c5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/></svg>';
     var badge = el('span', 'ch-badge', '0'); badge.hidden = true; fab.appendChild(badge);
-    root.appendChild(panel); root.appendChild(fab); root.appendChild(el('span', 'ch-tag', short(c.t || '')));
+    root.setAttribute('data-report', stackCur || ''); root.setAttribute('data-tracking', trackOf(stackCur));
+    root.setAttribute('data-url', 'case.php?id=' + encodeURIComponent(stackCur || '') + '&chat=1');
+    root.appendChild(panel); root.appendChild(fab); root.appendChild(el('span', 'ch-tag', ''));
     document.body.appendChild(root);
-    var api = mount(root); api.defY = window.innerHeight - 90 - i * 78; api.applyPos();
-    api.onSeen = function () { if (lastFeed[id]) { applyFeed(id, lastFeed[id]); } };
+    var api = mount(root); api.fab = fab; api.strip = strip; api.defY = window.innerHeight - 90; api.applyPos();
+    api.onSeen = paintStack;
+    api.onCase = function (id) { if (stackIds.indexOf(id) < 0) { return; } stackCur = id; api.setCase(id, trackOf(id)); paintStack(); };
+    // dropped on the round X: none of the floated cases floats any more
+    api.onTrash = function () { var c = rd(CK, {}); stackIds.forEach(function (id) { if (c[id]) { c[id].pin = false; } }); wr(CK, c); changed(); };
     return api;
   }
   function sync() {
     var pr = store.prefs(), cs = store.cases();
-    var want = pr.floats ? Object.keys(cs).filter(function (id) { return cs[id].pin && id !== here; }).slice(0, 8) : [];
-    Object.keys(floaters).forEach(function (id) { if (want.indexOf(id) < 0) { floaters[id].destroy(); delete floaters[id]; delete lastIn[id]; delete lastFeed[id]; } });
-    want.forEach(function (id, i) { if (!floaters[id]) { floaters[id] = makeFloater(id, cs[id], i); } });
-    Object.keys(floaters).forEach(function (id) { var f = floaters[id]; if (lastFeed[id]) { f.setBadge(unreadOf(id, lastFeed[id])); } });
-    var any = Object.keys(floaters).length > 0;
-    // every 15 s while someone is at the page; once nobody has touched it for two minutes, every minute (speed sweep, 16 Nov 2026:
-    // each floating head asks the server, and a pinned case follows the person to every page)
-    if (any && !pollT) { var tickN = 0; poll(); pollT = setInterval(function () { tickN++; if (document.hidden) { return; } if (Date.now() - lastAct > 120000 && tickN % 4) { return; } poll(); }, 15000); }
-    if (!any && pollT) { clearInterval(pollT); pollT = null; }
+    var want = pr.floats && !mainEl ? Object.keys(cs).filter(function (id) { return id !== '_float' && cs[id] && cs[id].pin; }).slice(-8) : [];
+    Object.keys(lastFeed).forEach(function (id) { if (want.indexOf(id) < 0) { delete lastIn[id]; delete lastFeed[id]; } });
+    stackIds = want;
+    if (!want.length) { if (stack) { stack.destroy(); stack = null; } stackCur = null; }
+    else {
+      if (want.indexOf(stackCur) < 0) { stackCur = want[want.length - 1]; }   // the case floated last, until another is picked
+      if (!stack) { stack = makeStack(); }
+      stack.setCase(stackCur, trackOf(stackCur));
+      paintStack();
+    }
+    // every 15 s while someone is at the page; once nobody has touched it for two minutes, every minute (speed sweep, 16 Nov 2026)
+    if (want.length && !pollT) { var tickN = 0; poll(); pollT = setInterval(function () { tickN++; if (document.hidden) { return; } if (Date.now() - lastAct > 120000 && tickN % 4) { return; } poll(); }, 15000); }
+    else if (want.length && pollT && Object.keys(lastFeed).length < want.length) { poll(); }   // a case just floated: learn its state now
+    if (!want.length && pollT) { clearInterval(pollT); pollT = null; }
   }
   document.addEventListener('visibilitychange', function () { if (!document.hidden && pollT) { poll(); } });
+  document.addEventListener('ss-chat-seen', paintStack);
 
   /* ---------- Settings: the "Chat heads" card (settings.php, Appearance) ---------- */
   function wireSettings() {
@@ -465,7 +530,7 @@
         [].forEach.call(g.querySelectorAll('button'), function (b) { var v = b.getAttribute('data-v') === '1'; b.classList.toggle('p-on', v === on); b.setAttribute('aria-pressed', v === on ? 'true' : 'false'); });
       });
       var ul = card.querySelector('#chp-list'); ul.textContent = '';
-      var cs = store.cases(), ids = Object.keys(cs).filter(function (id) { return cs[id].pin; });
+      var cs = store.cases(), ids = Object.keys(cs).filter(function (id) { return id !== '_float' && cs[id].pin; });
       card.querySelector('#chp-count').textContent = String(ids.length); card.querySelector('#chp-none').hidden = ids.length > 0;
       ids.forEach(function (id) {
         var li = el('li', 'chp-item'), a = el('a', '', cs[id].t || id.slice(0, 8)); a.href = 'case.php?id=' + encodeURIComponent(id);

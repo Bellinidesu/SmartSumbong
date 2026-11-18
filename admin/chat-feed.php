@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 session_write_close();
 
-// ?unread=1: how many messages are waiting in all of this person's case chats, for the Inbox's pill in the sidebar (chat-head.js asks once a minute)
+// ?unread=1: how many of this person's case conversations have something waiting, for the Inbox's pill in the sidebar (chat-head.js asks once a minute)
 if (isset($_GET['unread'])) {
     try {
         $rows = case_chat_list_rows(db()->selectMany(case_chat_list_reads(300)), (string) $admin['id']);
@@ -80,7 +80,8 @@ if (isset($_GET['unread'])) {
     foreach ($rows as $r) {
         $s = (string) ($r['feed']['st'][$r['conv']]['s'] ?? '');
         $since = strtotime($s !== '' ? $s : (string) ($r['feed']['out'][$r['conv']] ?? '')) ?: 0;
-        foreach ($r['feed']['in'] as $m) { if ((strtotime((string) $m['ts']) ?: 0) > $since) $n++; }
+        // 19 Nov 2026 (Rose): a conversation with something unread counts once, like the chat head's ball, not once per message
+        foreach ($r['feed']['in'] as $m) { if ((strtotime((string) $m['ts']) ?: 0) > $since) { $n++; break; } }
     }
     echo json_encode(['ok' => true, 'n' => $n]);
     exit;
