@@ -138,7 +138,15 @@ class ComplaintCategory {
 
 /// What the picker hands to the details screen.
 class CategoryChoice {
-  const CategoryChoice({required this.category, this.issue, this.issueFil, this.optionId});
+  const CategoryChoice({required this.category, this.issue, this.issueFil, this.optionId, this.extras = const []});
+
+  /// The other concerns picked with it on the first page (0163), all under [category]: a report keeps to one
+  /// category (Rose, 18 Nov 2026; 0176 refuses a concern from a second one).
+  final List<ExtraConcern> extras;
+
+  /// The same choice with these other concerns.
+  CategoryChoice withExtras(List<ExtraConcern> extras) =>
+      CategoryChoice(category: category, issue: issue, issueFil: issueFil, optionId: optionId, extras: List.unmodifiable(extras));
 
   /// The option's id (0163), sent with the report so the case keeps it whatever it is renamed to later.
   final int? optionId;
@@ -163,4 +171,28 @@ class CategoryChoice {
   /// Opens the description so the specific issue survives even though it
   /// is not a column. The resident types after the dash.
   String get descriptionPrefill => issue == null ? '' : '$issue — ';
+}
+
+/// Whether the database refused a concern from a second category (0176: a report keeps to one category). The
+/// exact wording is the migration's; any message naming one/the same/a second/another category counts.
+bool isOneCategoryRefusal(String message) {
+  final m = message.toLowerCase();
+  return m.contains('one category') ||
+      m.contains('single category') ||
+      m.contains('same category') ||
+      m.contains('second category') ||
+      m.contains('another category') ||
+      m.contains('different category');
+}
+
+/// One more concern in the same report (0163): a category and, when it has them, one of its options.
+class ExtraConcern {
+  const ExtraConcern(this.category, this.option);
+
+  final ComplaintCategory category;
+  final ComplaintOption? option;
+
+  Map<String, dynamic> toJson() => {'category': category.wire, if (option?.id != null) 'option': option!.id};
+
+  bool same(String wire, int? optionId) => category.wire == wire && option?.id == optionId;
 }

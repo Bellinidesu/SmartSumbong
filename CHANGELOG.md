@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Filing a report: concerns on the first page, one category, a draft note that goes away (Rose, 18 Nov)**
+
+- The "Restored your unfinished report" note could not be put away, so residents tapped Discard to get rid of it and lost their report. A snackbar with an action stays until the action is tapped (Flutter's `SnackBar.persist` default), and it had no close button. It now goes by itself after six seconds, has a close button, and Discard asks first ("Discard your unfinished report?" with **Keep editing** on top); Keep editing, a tap outside or Back leaves the form as it was.
+- "Is there more than one problem?" moved from under the description on the second page to the first page, inside the chosen category's card under its pills. The second page shows the other concerns under the heading; Back changes them.
+- One category per report (0176): the concern picker offers only the chosen category's options. Picking another category with concerns added asks "Change the category?" (Change category / Keep ...); changing clears them. If the server refuses a concern from a second category, the form (and a queued report on Reports) says "A report can have only one category ..." instead of the generic failure.
+- A draft that only holds the issue's prefill ("Illegal Parking —") is no longer saved or offered back. Drafts no longer keep the other concerns (they are picked on the first page).
+- Tests: `test/report_form_test.dart` (concerns on page 1, second category not offered, change-category ask, the note's close button, Keep editing, Back on the dialog, confirmed Discard). `BrgyMap.nativeView` lets widget tests open screens with a map.
+
 **Forgot password by email (17 Nov, 0174)**
 
 - Residents and tanods get their reset code by email: "Forgot password?" asks for the number and sends the 6-digit code to the confirmed email on that account ("We sent a code to the email on your account: a•••@gmail.com"). With no confirmed email it says "No email on this account. Add one in Edit Profile, or ask the barangay hall to reset it." SMS stays as the fallback when Semaphore is set up; the hall's counter reset still works.
