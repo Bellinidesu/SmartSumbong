@@ -1915,7 +1915,7 @@ test('Chat heads float (12 Nov 2026): right-click the bubble for a menu; Float o
   const b = await head.locator('.ch-fab').boundingBox();
   await page.mouse.move(b.x + 29, b.y + 29); await page.mouse.down(); await page.mouse.move(300, 300, { steps: 6 }); await page.mouse.up();
   await expect(head.locator('.ch-panel')).toBeHidden();
-  expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].side)).toBe('l');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ss-chat-cases'))._float.side), 'the one floating head keeps its own place (19 Nov 2026)').toBe('l');
   // Settings: the card lists it and its switches are kept
   await page.goto('settings.php', { waitUntil: 'domcontentloaded' });
   await page.locator('.st-tabs [data-st="look"]').click();
@@ -1944,7 +1944,7 @@ test('Chat heads drag like a phone\'s (12 Nov 2026): the panel shuts when the bu
   await expect(head.locator('.ch-panel')).toBeHidden();                     // picked up: the chat shuts
   await page.mouse.up();
   await expect.poll(async () => Math.round((await head.locator('.ch-fab').boundingBox()).x)).toBeLessThan(30);   // and it settles on the left edge
-  expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].side)).toBe('l');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ss-chat-cases'))._float.side)).toBe('l');
   const c = await head.locator('.ch-fab').boundingBox();
   await page.mouse.move(c.x + 29, c.y + 29); await page.mouse.down();
   await page.mouse.move(700, 600, { steps: 6 });
@@ -1953,7 +1953,123 @@ test('Chat heads drag like a phone\'s (12 Nov 2026): the panel shuts when the bu
   await expect(page.locator('.ch-trash')).toHaveClass(/ch-hot/);
   await page.mouse.up();
   await expect(page.locator('.ch-float')).toHaveCount(0);
-  expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('ss-chat-cases')))[0].pin)).toBe(false);
+  expect(await page.evaluate(id => JSON.parse(localStorage.getItem('ss-chat-cases'))[id].pin, CASE)).toBe(false);
+});
+
+test('Rose, 19 Nov: exactly one chat head on a page, whatever is floated; its ball counts the conversations with something unread', async ({ page }) => {
+  const CASE2 = 'c0000000-0000-0000-0000-000000000002';
+  const r = await open(page, `case.php?id=${CASE}`);
+  await page.evaluate(() => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_reset_chat_state', { method: 'POST', body: '{}' }));
+  // two cases floated, and everything in the first case read just now
+  await page.evaluate(([a, b]) => {
+    const now = new Date(Date.now() + 1000).toISOString();
+    localStorage.removeItem('ss-chat-prefs');
+    localStorage.setItem('ss-chat-cases', JSON.stringify({ [a]: { pin: true, t: 'SS-2610-1001' }, [b]: { pin: true, t: 'SS-2610-1002' } }));
+    localStorage.setItem('ss-chat-seen-' + a, JSON.stringify({ r: now, 'd-d1': now, 'd-d2': now }));
+  }, [CASE, CASE2]);
+  await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(600);
+  await expect(page.locator('.ch'), "a case page: only the case's own head, no floating ones").toHaveCount(1);
+  await expect(page.locator('#chat-head')).toHaveCount(1);
+  await page.goto('cases.php', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(600);
+  await expect(page.locator('.ch'), 'another page: one head for both floated cases').toHaveCount(1);
+  const head = page.locator('.ch-float');
+  await expect(head.locator('.ch-tag'), 'the case it shows, and how many more it carries').toHaveText('1002 +1');
+  await page.evaluate(() => window.ssChatPoll());
+  await expect(head.locator('.ch-badge')).toBeHidden();
+  await page.waitForTimeout(1100);
+  // two new messages from the resident of the first case: one conversation waits, so the ball says 1, not 2
+  for (const body of ['Kuya, may balita na po ba?', 'Hello po?']) await page.evaluate(b => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_incoming', { method: 'POST', body: JSON.stringify({ body: b }) }), body);
+  await page.evaluate(() => window.ssChatPoll());
+  await expect(head.locator('.ch-badge')).toBeVisible();
+  await expect(head.locator('.ch-badge')).toHaveText('1');
+  // the panel switches between the floated cases; the one with the unread conversation carries the dot
+  await head.locator('.ch-fab').click();
+  const strip = head.locator('.ch-cases');
+  await expect(strip).toBeVisible();
+  await expect(strip.locator('.ch-case')).toHaveCount(2);
+  await expect(strip.locator('.ch-case.ch-case-on')).toHaveText('1002');
+  await expect(strip.locator('.ch-case', { hasText: '1001' })).toHaveClass(/ch-case-new/);
+  await strip.locator('.ch-case', { hasText: '1001' }).click();
+  await expect(strip.locator('.ch-case.ch-case-on')).toHaveText('1001');
+  await expect(head.locator('.ch-row')).toHaveCount(2);
+  await head.locator('.ch-panel').evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)));
+  expect(await axe(page), 'axe with the one floating head open').toEqual([]);
+  if (process.env.CAPTURE) {
+    for (const [w, h] of [[2048, 1100], [390, 844]]) for (const theme of ['light', 'dark']) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.evaluate(t => { document.documentElement.setAttribute('data-theme', t); }, theme);
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: `${process.env.CAPTURE}/chathead-${theme}-${w}.png` });
+    }
+    await page.setViewportSize({ width: 1280, height: 720 });
+  }
+  await page.keyboard.press('Escape');
+  await page.goto('dashboard.php', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(600);
+  await expect(page.locator('.ch'), 'still one after another page load').toHaveCount(1);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Rose, 19 Nov: each concern is a row with its own status and progress, and updating one changes only that row, in place', async ({ page }) => {
+  const C12 = 'c0000000-0000-0000-0000-000000000012';
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, `case.php?id=${C12}`);
+  await page.evaluate(() => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_reset_concerns', { method: 'POST', body: '{}' }));
+  await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(600);
+  const card = page.locator('#cn-card'), rows = card.locator('.ss-concern-list > li');
+  await expect(rows).toHaveCount(3);
+  const pills = async () => rows.evaluateAll(ls => ls.map(l => l.querySelector('.cn-top .p-badge').textContent.trim()));
+  expect(await pills(), 'each concern its own status').toEqual(['Resolved', 'Being handled', 'Being handled']);
+  await expect(card.locator('.cn-count')).toHaveText('1 of 3 resolved');
+  await expect(card.locator('.cn-case .p-badge'), "the case's own status beside it").toHaveCount(1);
+  expect(await rows.nth(1).locator('.cn-steps .now').textContent()).toBe('Being handled');
+  // the add form offers only this case's category
+  await card.locator('details.p-fix > summary').click();
+  const vals = await card.locator('#ac-cat option').evaluateAll(os => os.map(o => o.value));
+  expect(vals.length, 'something can still be added').toBeGreaterThan(0);
+  expect(vals.every(v => v.startsWith('street_obstruction|')), "only the case's own category: " + vals.join(', ')).toBe(true);
+  // update the second concern: only it changes, and the page does not reload
+  await page.evaluate(() => { window.__still = 1; });
+  await rows.nth(1).locator('input[name="remark"]').fill('Na-tow na ang sasakyan');
+  const sent = page.waitForResponse(x => x.request().method() === 'POST' && x.url().includes('case.php'));
+  await rows.nth(1).getByRole('button', { name: /Mark concern 2 resolved/ }).click();
+  await sent;
+  await expect(card.locator('.cn-count')).toHaveText('2 of 3 resolved');
+  expect(await pills(), 'only the second row changed').toEqual(['Resolved', 'Resolved', 'Being handled']);
+  await expect(rows.nth(1).locator('.p-quote')).toHaveText('Na-tow na ang sasakyan');
+  expect(await page.evaluate(() => window.__still), 'updated in place, no reload').toBe(1);
+  if (process.env.CAPTURE) {
+    for (const [w, h] of [[2048, 1100], [390, 844]]) for (const theme of ['light', 'dark']) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.evaluate(t => { document.documentElement.setAttribute('data-theme', t); }, theme);
+      await card.scrollIntoViewIfNeeded(); await page.waitForTimeout(400);
+      await card.screenshot({ path: `${process.env.CAPTURE}/concerns-${theme}-${w}.png` });
+    }
+    await page.setViewportSize({ width: 2048, height: 1100 });
+    await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+  }
+  // and back: reopening it changes only that row again
+  await rows.nth(1).getByRole('button', { name: /Reopen concern 2/ }).click();
+  await expect(card.locator('.cn-count')).toHaveText('1 of 3 resolved');
+  expect(await pills()).toEqual(['Resolved', 'Being handled', 'Being handled']);
+  expect(await axe(page), 'axe on the case with the concern rows').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Rose, 19 Nov: the barangay seal on every exported document keeps its shape, on screen and in print', async ({ page }) => {
+  for (const path of [`complaint-print.php?id=${CASE}`, `complaint-summary.php?id=${CASE}`, `certificate.php?id=${CASE}`]) {
+    for (const media of ['screen', 'print']) {
+      await page.emulateMedia({ media });
+      const r = await open(page, path);
+      const seal = page.locator('.letterhead img.seal');
+      await expect(seal, path).toHaveCount(1);
+      const m = await seal.evaluate(i => { const b = i.getBoundingClientRect(); return { w: b.width, h: b.height, nw: i.naturalWidth, nh: i.naturalHeight }; });
+      expect(m.nw, 'the seal loaded').toBeGreaterThan(0);
+      expect(Math.abs(m.w / m.h - m.nw / m.nh), `${path} (${media}): drawn ${m.w}x${m.h} for a ${m.nw}x${m.nh} seal`).toBeLessThan(0.02);
+      if (process.env.CAPTURE && path.startsWith('complaint-print')) await page.screenshot({ path: `${process.env.CAPTURE}/export-${media}.png` });
+      expect(r.errors, 'console errors').toEqual([]);
+    }
+  }
+  await page.emulateMedia({ media: 'screen' });
 });
 
 test('Spatial Distribution (12 Nov 2026): the SMART panel stays navy by day; the buttons move (a grip, the nearer side, remembered, put back) and never cover an open panel', async ({ page }) => {
@@ -2264,13 +2380,13 @@ test('Rose, 15 Nov: where the case is shows the Councilor when a Kagawad handles
 test('Rose, 15 Nov: a report with several requests has a Request in focus bar over the controls; picking one lights it in the list and Next request moves on', async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000001');
-  const n = await page.locator('.ss-concern-list li').count();
+  const n = await page.locator('.ss-concern-list > li').count();
   expect(n, 'the case has several requests').toBeGreaterThan(1);
   await expect(page.locator('#cf .cf-chip')).toHaveCount(n);
   await expect(page.locator('#cf .cf-chip.on')).toHaveCount(1);
   await page.locator('#cf .cf-chip').nth(1).click();
   await expect(page.locator('#cf .cf-chip').nth(1)).toHaveClass(/on/);
-  await expect(page.locator('.ss-concern-list li').nth(1)).toHaveClass(/is-focus/);
+  await expect(page.locator('.ss-concern-list > li').nth(1)).toHaveClass(/is-focus/);
   await expect(page.locator('.ss-concern-list li.is-focus')).toHaveCount(1);
   await page.locator('#cf [data-cf="next"]').click();
   await expect(page.locator('#cf .cf-chip.on')).toHaveCount(1);

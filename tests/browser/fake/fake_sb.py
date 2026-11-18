@@ -380,6 +380,30 @@ RPC['post_report_message'] = lambda b: TABLES['report_messages'].append({'id': '
 RPC['fake_incoming'] = lambda b: TABLES['report_messages'].append({'id': 'm' + str(len(TABLES['report_messages']) + 1), 'report_id': _CASE1, 'from_barangay': False, 'body': b.get('body') or 'Kuya, may bago po akong tanong.', 'created_at': _now(), 'report': _CHREP}) or {}   # the tests play the resident writing
 RPC['post_dispatch_update'] = lambda b: TABLES['dispatch_updates'].append({'id': 'du' + str(len(TABLES['dispatch_updates']) + 1), 'dispatch_id': b.get('p_dispatch'), 'author_id': ADMIN['id'], 'kind': 'message', 'step': None, 'body': b.get('p_body'), 'created_at': _now(), 'd': {'report_id': _CASE1, 'tanod_id': 'u2', 'tanod': {'full_name': 'Lediac, Ace'}, 'report': _CHREP}}) or {}
 
+# 19 Nov 2026 (Rose): a case the demo administrator handles, with three concerns of its one category, and stand-ins for the two concern
+# functions, so a test can update one concern in place and see only that row change (0176: a second category is refused, as the database does)
+_CASE12 = REPORTS[11]['id']
+TABLES['report_concerns'] += [
+    {'id': 'e12a', 'report_id': _CASE12, 'category': 'street_obstruction', 'option_id': 1, 'filed_category_en': 'Street Obstruction', 'filed_category_fil': 'Sagabal sa Kalsada', 'filed_option_en': 'Obstructed Sidewalks', 'filed_option_fil': 'Nakaharang sa bangketa', 'note': 'Sa tapat ng botika', 'status': 'resolved', 'resolved_at': ago(1), 'remark': 'Inalis ng tanod ang mga paninda', 'created_at': ago(40)},
+    {'id': 'e12b', 'report_id': _CASE12, 'category': 'street_obstruction', 'option_id': 2, 'filed_category_en': 'Street Obstruction', 'filed_category_fil': 'Sagabal sa Kalsada', 'filed_option_en': 'Illegal Parking', 'filed_option_fil': 'Ilegal na paradahan', 'note': None, 'status': 'open', 'resolved_at': None, 'remark': None, 'created_at': ago(39)},
+    {'id': 'e12c', 'report_id': _CASE12, 'category': 'street_obstruction', 'option_id': 3, 'filed_category_en': 'Street Obstruction', 'filed_category_fil': 'Sagabal sa Kalsada', 'filed_option_en': 'Vendor Blocking Sidewalks', 'filed_option_fil': 'Nagtitinda sa bangketa', 'note': 'Gabi-gabi', 'status': 'open', 'resolved_at': None, 'remark': None, 'created_at': ago(38)}]
+_CONCERN_SEED = [dict(c) for c in TABLES['report_concerns']]
+def _set_concern(b):
+    for c in TABLES['report_concerns']:
+        if c['id'] == b.get('p_concern'):
+            done = bool(b.get('p_resolved'))
+            c.update(status='resolved' if done else 'open', resolved_at=_now() if done else None, remark=b.get('p_remark'))
+    return {}
+def _add_concern(b):
+    r = next((x for x in REPORTS if x['id'] == b.get('p_report')), None)
+    if r is None or b.get('p_category') != r['category']:
+        raise ValueError('one_category')
+    TABLES['report_concerns'].append({'id': 'e' + str(len(TABLES['report_concerns']) + 100), 'report_id': r['id'], 'category': b.get('p_category'), 'option_id': b.get('p_option'), 'note': b.get('p_note'), 'status': 'open', 'resolved_at': None, 'remark': None, 'created_at': _now()})
+    return 'e-new'
+RPC['set_concern_status'] = _set_concern
+RPC['add_report_concern'] = _add_concern
+RPC['fake_reset_concerns'] = lambda b: (TABLES['report_concerns'].clear(), TABLES['report_concerns'].extend(dict(c) for c in _CONCERN_SEED)) and {}
+
 # 12 Nov 2026: BarangayMail as a Gmail-style page. Real batch ids (the door only takes uuids), a thread id and a role on every message, a few more
 # messages (a thread with a reply, a copy, a message I sent), the new state tables, and stand-ins for the 0173 functions that keep them.
 def _bid(n): return 'b0000000-0000-4000-8000-%012d' % n
