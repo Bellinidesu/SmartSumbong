@@ -683,58 +683,88 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
     <?php if (!$evidence && !$resolved && !$dispatches): ?><div class="p-sec" data-cc-tab="evidence" hidden><p class="p-none-line"><?= e(t('No field report or barangay photos yet. A tanod\'s photos and notes appear here after the visit.', 'Wala pang ulat mula sa lugar o larawan ng barangay. Lalabas dito ang mga larawan at tala ng tanod pagkatapos ng pagbisita.')) ?></p></div><?php endif; ?>
   <!-- ---------- the concerns in this report (0130) ---------- -->
-  <?php if (count($concerns) > 0): $openN = count(array_filter($concerns, fn($c) => $c['status'] === 'open')); $cfIx = 0; ?>
-  <section class="p-card p-card-pad ss-concerns" data-cc-tab="report" aria-labelledby="concerns-h">
-    <p class="p-eyebrow" id="concerns-h"><?= e(t('Concerns in this report', 'Mga alalahanin sa ulat na ito')) ?>
-      <span class="p-badge-n p-badge-n--quiet"><?= count($concerns) ?></span></p>
-    <ul class="ss-concern-list">
-      <?php foreach ($concerns as $cn): $done = $cn['status'] === 'resolved'; ?>
-        <li class="<?= $done ? 'is-done' : '' ?>" data-cf-i="<?= (int) $cfIx++ ?>">
-          <?php [$cnName, $cnWas] = concern_names($cn); ?>
-          <div><b><?= e($cnName) ?></b>
-            <span class="p-badge p-b-<?= $done ? 'done' : 'pending' ?>"><?= e($done ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) ?></span>
+  <?php if (count($concerns) > 0):
+      // 19 Nov 2026 (Rose): updating several concerns was messy. Each concern is now one row: its own status pill, its own three-step progress
+      // (filed, being handled, resolved) and one button that updates only that concern, in place (press_save: only this card is swapped).
+      // The case's own status sits beside the count of resolved concerns, so the two are never confused.
+      $openN = count(array_filter($concerns, fn($c) => $c['status'] === 'open')); $cnN = count($concerns); $doneN = $cnN - $openN; $cfIx = 0;
+      $cnShut = in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true);
+      $cnWorked = in_array($status, ['validated', 'assigned', 'in_progress', 'offline_investigation', 'resolved', 'closed', 'archived'], true);
+      $cnCat = (string) ($report['category'] ?? '');
+      $cnMixed = count(array_unique(array_map(fn ($x) => (string) $x['category'], $concerns))) > 1;   // a case from before 0176 ?>
+  <section class="p-card p-card-pad ss-concerns" id="cn-card" data-cc-tab="report" aria-labelledby="concerns-h" data-announce="<?= e(t('Concerns updated', 'Na-update ang mga alalahanin')) ?>">
+    <div class="cn-head">
+      <p class="p-eyebrow" id="concerns-h"><?= e(t('Concerns in this report', 'Mga alalahanin sa ulat na ito')) ?>
+        <span class="p-badge-n p-badge-n--quiet"><?= $cnN ?></span></p>
+      <div class="cn-sum">
+        <span class="cn-bar" role="progressbar" aria-valuemin="0" aria-valuemax="<?= $cnN ?>" aria-valuenow="<?= $doneN ?>" aria-label="<?= e(t('Concerns resolved', 'Mga alalahaning nalutas')) ?>"><i style="width:<?= (int) round($doneN / max(1, $cnN) * 100) ?>%"></i></span>
+        <b class="cn-count"><?= e(sprintf(t('%d of %d resolved', '%d sa %d ang nalutas'), $doneN, $cnN)) ?></b>
+        <span class="cn-case"><?= e(t('Case', 'Kaso')) ?> <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span></span>
+      </div>
+    </div>
+    <p class="cn-cat"><?= e(t('One category per case:', 'Iisang kategorya bawat kaso:')) ?> <b><?= e(category_label($cnCat)) ?></b><?php if ($cnMixed): ?> <span class="cn-mixed"><?= e(t('This case was filed with concerns from more than one category, before the rule; they stay as filed.', 'Naisampa ang kasong ito na may alalahanin mula sa higit sa isang kategorya, bago ang tuntunin; mananatili ang mga ito gaya ng pagkakasampa.')) ?></span><?php endif; ?></p>
+    <ol class="ss-concern-list">
+      <?php foreach ($concerns as $cn): $done = $cn['status'] === 'resolved'; [$cnName, $cnWas] = concern_names($cn);
+            $cnStep = $done ? 3 : ($cnWorked ? 2 : 1); ?>
+        <li class="cn-row <?= $done ? 'is-done' : 'is-open' ?>" data-cf-i="<?= (int) $cfIx ?>">
+          <span class="cn-n" aria-hidden="true"><?= (int) ++$cfIx ?></span>
+          <div class="cn-main">
+            <div class="cn-top"><b class="cn-name"><?= e($cnName) ?></b>
+              <span class="p-badge p-b-<?= $done ? 'done' : ($cnStep === 2 ? 'progress' : 'pending') ?>"><?= e($done ? t('Resolved', 'Nalutas') : ($cnStep === 2 ? t('Being handled', 'Inaasikaso') : t('Open', 'Bukás'))) ?></span></div>
             <?php if ($cnWas !== null): ?><div class="cn-was" title="<?= e(t('Changed in the Control Room after this was filed', 'Binago sa Control Room matapos itong isampa')) ?>"><?= e($cnWas) ?></div><?php endif; ?>
             <?php if (!empty($cn['note'])): ?><div class="p-sub"><?= e($cn['note']) ?></div><?php endif; ?>
-            <?php if (!empty($cn['remark'])): ?><div class="p-quote"><?= e($cn['remark']) ?></div><?php endif; ?></div>
+            <?php $cnSteps = [1 => t('Filed', 'Naisampa'), 2 => t('Being handled', 'Inaasikaso'), 3 => t('Resolved', 'Nalutas')]; ?>
+            <div class="cn-steps" role="img" aria-label="<?= e(sprintf(t('Progress of concern %d: step %d of 3, %s', 'Pag-usad ng alalahanin %d: hakbang %d sa 3, %s'), $cfIx, $cnStep, $cnSteps[$cnStep])) ?>">
+              <?php foreach ($cnSteps as $k => $lab): ?><?php if ($k > 1): ?><i class="<?= $k <= $cnStep ? 'on' : '' ?>"></i><?php endif; ?><span class="<?= $k < $cnStep ? 'past' : ($k === $cnStep ? 'now' : '') ?>"><b></b><?= e($lab) ?></span><?php endforeach; ?>
+            </div>
+            <p class="cn-meta"><?= $done
+                ? e(t('Resolved', 'Nalutas') . ' ' . (!empty($cn['resolved_at']) ? long_datetime((string) $cn['resolved_at']) : ''))
+                : e(t('Raised', 'Itinaas') . ' ' . (!empty($cn['created_at']) ? long_datetime((string) $cn['created_at']) : '')) ?></p>
+            <?php if (!empty($cn['remark'])): ?><div class="p-quote"><?= e($cn['remark']) ?></div><?php endif; ?>
+          </div>
           <?php if ($mine ?? false): ?>
-            <form method="post" class="ss-concern-act" data-keep>
+            <form method="post" class="ss-concern-act"<?= press_save('cn-card') ?>>
               <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
               <input type="hidden" name="action" value="concern_status">
               <input type="hidden" name="concern" value="<?= e($cn['id']) ?>">
               <input type="hidden" name="to" value="<?= $done ? 'open' : 'resolved' ?>">
               <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
-              <?php if (!$done): ?><input class="p-input-plain" name="remark" maxlength="300" aria-label="<?= e(t('Remark', 'Puna')) ?>" placeholder="<?= e(t('What was done', 'Ano ang ginawa')) ?>"><?php endif; ?>
-              <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e($done ? t('Reopen', 'Buksan muli') : t('Mark resolved', 'Markahang nalutas')) ?></button>
+              <?php if (!$done): ?><input class="p-input-plain" name="remark" maxlength="300" aria-label="<?= e(sprintf(t('What was done for concern %d (optional)', 'Ano ang ginawa para sa alalahanin %d (opsyonal)'), $cfIx)) ?>" placeholder="<?= e(t('What was done (optional)', 'Ano ang ginawa (opsyonal)')) ?>"><?php endif; ?>
+              <button class="p-btn <?= $done ? 'p-btn-ghost' : 'p-btn-primary' ?> p-btn-sm" type="submit" aria-label="<?= e(sprintf($done ? t('Reopen concern %d', 'Buksan muli ang alalahanin %d') : t('Mark concern %d resolved', 'Markahang nalutas ang alalahanin %d'), $cfIx)) ?>"><?= e($done ? t('Reopen', 'Buksan muli') : t('Mark resolved', 'Markahang nalutas')) ?></button>
             </form>
           <?php endif; ?>
         </li>
       <?php endforeach; ?>
-    </ul>
-    <?php if ($openN === 0 && !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
+    </ol>
+    <?php if ($openN === 0 && !$cnShut): ?>
       <p class="p-hint"><?= e(t('Every concern is resolved. You can mark the whole case resolved.', 'Nalutas na ang lahat ng alalahanin. Maaari mo nang markahang nalutas ang buong kaso.')) ?></p>
+    <?php elseif (!($mine ?? false) && !$cnShut): ?>
+      <p class="p-hint"><?= e(t('Only the admin handling this case updates its concerns.', 'Ang admin lamang na may hawak ng kasong ito ang nag-a-update ng mga alalahanin nito.')) ?></p>
     <?php endif; ?>
-    <?php if (($mine ?? false) && !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
+    <?php if (($mine ?? false) && !$cnShut):
+        // 0176: a case keeps to one category, so only its own category and that category's options are offered
+        $have = array_map(fn ($x) => $x['category'] . '|' . (int) ($x['option_id'] ?? 0), $concerns);
+        $acOpts = [];
+        if ($cnCat !== '' && !in_array($cnCat . '|0', $have, true)) { $acOpts[$cnCat . '|'] = category_label($cnCat); }
+        foreach (category_options()[$cnCat] ?? [] as $oid => $o) { if ($o['active'] && !in_array($cnCat . '|' . $oid, $have, true)) { $acOpts[$cnCat . '|' . $oid] = category_label($cnCat) . ': ' . t($o['en'], $o['fil']); } } ?>
       <details class="p-fix">
         <summary><?= e(t('Add a concern', 'Magdagdag ng alalahanin')) ?></summary>
-        <form method="post" class="p-ctl-stack" data-keep>
+        <?php if ($acOpts): ?>
+        <form method="post" class="p-ctl-stack"<?= press_save('cn-card') ?>>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="add_concern">
-          <div class="p-cfield"><label class="p-flabel" for="ac-cat"><?= e(t('Kind of concern', 'Uri ng alalahanin')) ?></label>
+          <div class="p-cfield"><label class="p-flabel" for="ac-cat"><?= e(sprintf(t('Kind of concern, under %s', 'Uri ng alalahanin, sa ilalim ng %s'), category_label($cnCat))) ?></label>
             <select class="p-input-plain" id="ac-cat" name="category">
-              <?php $have = array_map(fn ($x) => $x['category'] . '|' . (int) ($x['option_id'] ?? 0), $concerns);
-                    foreach (category_keys(true) as $c0): ?>
-                <optgroup label="<?= e(category_label($c0)) ?>">
-                  <?php if (!in_array($c0 . '|0', $have, true)): ?><option value="<?= e($c0) ?>|"><?= e(category_label($c0)) ?></option><?php endif; ?>
-                  <?php foreach (category_options()[$c0] ?? [] as $oid => $o): if (!$o['active'] || in_array($c0 . '|' . $oid, $have, true)) continue; ?>
-                    <option value="<?= e($c0 . '|' . $oid) ?>"><?= e(category_label($c0) . ': ' . t($o['en'], $o['fil'])) ?></option>
-                  <?php endforeach; ?>
-                </optgroup>
-              <?php endforeach; ?>
+              <?php foreach ($acOpts as $v => $lab): ?><option value="<?= e($v) ?>"><?= e($lab) ?></option><?php endforeach; ?>
             </select></div>
           <div class="p-cfield"><label class="p-flabel" for="ac-note"><?= e(t('Note (optional)', 'Tala (opsyonal)')) ?></label>
             <input class="p-input-plain" id="ac-note" name="note" maxlength="300"></div>
+          <p class="p-ctl-note"><?= e(t('A concern from another category is its own case: ask the resident to report it separately.', 'Ang alalahanin mula sa ibang kategorya ay hiwalay na kaso: hilingin sa residente na isumbong ito nang hiwalay.')) ?></p>
           <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Add', 'Idagdag')) ?></button>
         </form>
+        <?php else: ?>
+          <p class="p-hint"><?= e(t('Every option of this category is already a concern here. A concern from another category is its own case.', 'Nasa kasong ito na ang lahat ng opsyon ng kategoryang ito. Ang alalahanin mula sa ibang kategorya ay hiwalay na kaso.')) ?></p>
+        <?php endif; ?>
       </details>
     <?php endif; ?>
   </section>
@@ -1081,7 +1111,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
 
     <?php if (count($concerns) > 1): // 15 Nov 2026 (Rose): a report with several requests: pick the one being handled; it is lit in the list of concerns and answered here ?>
-      <div class="cf" id="cf" role="group" aria-label="<?= e(t('Request in focus', 'Hinaharap na hiling')) ?>">
+      <div class="cf" id="cf" role="group" data-press-sync aria-label="<?= e(t('Request in focus', 'Hinaharap na hiling')) ?>"><?php // data-press-sync: a concern updated in place relights these chips too (19 Nov 2026, Rose) ?>
         <p class="p-flabel ss-zl"><?= e(t('Request in focus', 'Hinaharap na hiling')) ?></p>
         <div class="cf-chips">
           <?php foreach ($concerns as $ci => $cn): $cdone = $cn['status'] === 'resolved'; [$cfName] = concern_names($cn); ?>

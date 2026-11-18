@@ -937,3 +937,47 @@ td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: 
 :root .pf-presets > .ib-person { justify-content: center; text-align: center; white-space: normal; height: auto; min-height: 38px; padding: 6px 12px; line-height: 1.25; }
 /* the sweep: on a narrow laptop (1024 px) the Spatial Distribution filters wrapped four and a lone one; three to a row ends them three and two */
 @media (max-width: 1100px) { #s-spatial .p-map-search .p-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } }
+
+/* 19 Nov 2026 (Rose): the concerns of a case, one row each: a number, the name and its own status pill, its three steps (filed, being handled,
+   resolved), when it was raised or resolved, and one button that updates only that concern in place. The head carries how many are resolved
+   and the case's own status beside it, so the two are not confused. The row's colour follows its step: amber open, blue being handled, green resolved. */
+.ss-concerns { container-type: inline-size; }
+.ss-concerns .cn-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.ss-concerns .cn-head .p-eyebrow { margin: 0; }
+.cn-sum { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.cn-bar { position: relative; width: 112px; height: 8px; border-radius: 999px; background: var(--p-grey-bg); overflow: hidden; }
+.cn-bar i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--p-green); }
+.cn-count { font: 800 13px Inter, sans-serif; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.cn-case { display: inline-flex; align-items: center; gap: 6px; padding-left: 10px; border-left: 1px solid var(--p-line); font: 700 12px Inter, sans-serif; color: var(--p-muted); }
+.cn-cat { margin: 10px 0 2px; font-size: 13px; color: var(--p-muted); }
+.cn-cat b { color: var(--p-ink); }
+.cn-mixed { display: block; margin-top: 2px; font-size: 12px; }
+:root:root .ss-concern-list li.cn-row { --cn: var(--p-amber); display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: start; gap: 10px 14px; padding: 12px 14px; opacity: 1; }
+:root:root .ss-concern-list li.cn-row:has(.cn-steps span.now:nth-child(3)) { --cn: var(--p-sky); }   /* the second step (an <i> line sits between) */
+:root:root .ss-concern-list li.cn-row.is-done { --cn: var(--p-green); background: color-mix(in srgb, var(--p-green) 6%, var(--p-surface-2)); }
+.cn-n { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--cn); color: var(--p-ink); font: 800 13px Inter, sans-serif; box-sizing: border-box; }
+.cn-row.is-done .cn-n { background: var(--cn); color: var(--p-surface); }
+.cn-main { min-width: 0; }
+.cn-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.cn-name { font-size: 14.5px; color: var(--p-ink); overflow-wrap: anywhere; }
+.cn-steps { display: flex; align-items: center; gap: 6px; max-width: 440px; margin: 10px 0 0; }
+.cn-steps span { display: inline-flex; align-items: center; gap: 6px; flex: none; font: 700 11.5px Inter, sans-serif; color: var(--p-muted); white-space: nowrap; }
+.cn-steps b { width: 12px; height: 12px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--p-line-2); background: var(--p-surface); }
+.cn-steps i { flex: 1 1 auto; min-width: 8px; height: 2px; border-radius: 2px; background: var(--p-line-2); }
+.cn-steps span.past, .cn-steps span.now { color: var(--p-ink); }
+.cn-steps .past b, .cn-steps .now b { border-color: var(--cn); background: var(--cn); }
+.cn-steps .now b { box-shadow: 0 0 0 3px color-mix(in srgb, var(--cn) 26%, transparent); }
+.cn-steps i.on { background: var(--cn); }
+.cn-meta { margin: 8px 0 0; font-size: 12px; color: var(--p-muted); }
+.cn-row .p-quote { margin-top: 6px; }
+.cn-row .ss-concern-act { align-self: center; display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.cn-row .ss-concern-act .p-input-plain { flex: none; width: 220px; }
+.cn-row .ss-concern-act .p-btn { flex: none; min-width: 124px; justify-content: center; }
+@container (max-width: 720px) {
+  :root:root .ss-concern-list li.cn-row { grid-template-columns: 28px minmax(0, 1fr); }
+  .cn-row .ss-concern-act { grid-column: 2; flex-wrap: wrap; justify-content: flex-start; }
+  .cn-row .ss-concern-act .p-input-plain { flex: 1 1 180px; width: auto; }
+  .cn-case { padding-left: 0; border-left: 0; }
+  .cn-steps { gap: 4px; }
+  .cn-steps span { gap: 4px; font-size: 10.5px; }
+}
