@@ -1,7 +1,9 @@
 # Supabase CLI settings (0114). Only what deploys need is set here; the
-# CLI fills in its defaults for the rest. Do not run `supabase config push`
-# from this file: it would overwrite the live project's Auth settings
-# (redirect URLs, rate limits) with those defaults.
+# CLI fills in its defaults for the rest. Since CLI 2.121 `supabase config
+# push` sends only what this file declares (checked 19 Nov 2026 with
+# `supabase config diff`: undeclared Auth settings such as redirect URLs and
+# rate limits show as "remote_only" and are left alone). Always run
+# `supabase config diff` first; older CLIs pushed their defaults.
 project_id = "vmtzyyyxcmhtqgeeorhg"
 
 # Whether Supabase checks the caller's JWT before the function runs.
@@ -36,3 +38,20 @@ verify_jwt = true
 [functions.level-switch]
 # 0162: the caller is identified from their own token inside the function
 verify_jwt = true
+
+# 19 Nov 2026: Auth's own emails (admin password resets) go through Ace's Gmail, the same sender as the residents' codes
+# (password-otp, 0174). The address and app password never sit in this public file: `supabase config push` reads them
+# from the SMTP_USER / SMTP_PASS environment variables of the terminal it runs in. The CLI (2.121+) pushes only what is
+# declared here; run `supabase config diff` first and check it touches nothing but these two blocks.
+[auth.email.smtp]
+enabled = true
+host = "smtp.gmail.com"
+port = 465
+user = "env(SMTP_USER)"
+pass = "env(SMTP_PASS)"
+admin_email = "env(SMTP_USER)"
+sender_name = "SmartSumbong · Barangay 183"
+
+[auth.email.template.recovery]
+subject = "Reset your SmartSumbong password"
+content_path = "./docs/email/reset-password.html"
