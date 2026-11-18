@@ -80,8 +80,9 @@ begin
     if (select status from public.report_concerns where id = c_old) <> 'resolved' then raise exception 'the old concern could not be resolved'; end if;
     perform public.set_concern_status(c_old, false, null);
     perform public.add_report_concern(r_old, 'environmental_waste_hazard', 'Kanal', o_x);
-    begin perform public.add_report_concern(r_old, 'animal_welfare', 'Pusa', null); raise exception 'a mixed case took another concern of its second category';
-    exception when check_violation then null; end;
+    begin perform public.add_report_concern(r_old, 'animal_welfare', 'Pusa', (select o.id from public.complaint_options o where o.category = 'animal_welfare' order by o.id limit 1));
+          raise exception 'a mixed case took another concern of its second category';
+    exception when check_violation then if sqlerrm not like 'A report can have concerns from one category only%' then raise; end if; end;
     select count(*) into n from public.report_concerns where report_id = r_old;
     if n <> 3 then raise exception '% concerns on the old case, not 3', n; end if;
     v_log := v_log || E'\n' || 'ok  a case that already mixes categories keeps them and can be worked; only its own category can be added';
