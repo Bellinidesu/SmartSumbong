@@ -6,7 +6,7 @@
  *   super      every page                      (at 183: Sir Kiko, Chairperson Zuniga, the development team)
  *   captain    the overview pages, read-only    (no Dashboard, no Settings)
  *   committee  the case pages, its categories   (no Dashboard, no residents); Personnel: its tanods and staff; its own Settings
- *   moderator  the case pages, its categories   as a Kagawad, but Personnel is view only (0164); its own Settings
+ *   moderator  the case pages, the cases assigned to it (0175: not every case of the committee); no Personnel; its own Settings
  *
  * The tier, the developer mark and the committee are read at sign-in and again every two minutes, so a change a super
  * admin makes reaches the person's next page without signing them out.
@@ -25,7 +25,7 @@ const PAGE_TIERS = [
     'certificate.php'         => ['super', 'committee', 'moderator'],   // the referral certificate: whoever may refer a case prints it (7 Nov 2026); row level security keeps it to the cases they see
     'workspace.php'           => ['super'],
     'residents.php'           => ['super'],
-    'personnel.php'           => ['super', 'committee', 'moderator'],   // a Kagawad: their tanods, their staff, their tanods' retirement requests; staff: the same tanods and staff, view only (0164)
+    'personnel.php'           => ['super', 'committee'],   // a Kagawad: their tanods, their staff, their tanods' retirement requests. 19 Nov 2026 (Rose): not staff, who need not watch their fellow staff
     'activity.php'            => ['super'],
     'summary.php'             => ['super', 'captain', 'committee'],   // not staff (Rose, 15 Nov)
     'spatial.php'             => ['super', 'captain', 'committee', 'moderator'],

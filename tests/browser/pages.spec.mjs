@@ -1386,7 +1386,7 @@ test('0145 access: a captain reads a case but its controls are view only', async
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('0164 each rung: the seal alone for everyone, a Kagawad and a staff member see their committee as the lettering and the glow under it, Personnel view only for staff', async ({ page, context }) => {
+test('0164 each rung: the seal alone for everyone, a Kagawad and a staff member see their committee as the lettering and the glow under it, no Personnel for staff', async ({ page, context }) => {
   const r = await open(page, 'notifications.php');
   await expect(page.locator('.p-side-top .p-brand-img')).toHaveCount(1);   // the barangay seal
   await expect(page.locator('.p-side-top .p-brand-com')).toHaveCount(0);
@@ -1400,18 +1400,12 @@ test('0164 each rung: the seal alone for everyone, a Kagawad and a staff member 
   expect(await page.locator('.p-sidebar').evaluate(e => getComputedStyle(e).backgroundImage), 'the committee colour glows from the top').toContain('radial-gradient');
   expect(await page.evaluate(() => getComputedStyle(document.querySelector('.p-sidebar'), '::before').backgroundImage), 'the committee logo, faded, instead of the pattern').toContain('url(');
   await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
-  const m = await open(page, 'personnel.php');
+  // 19 Nov 2026 (Rose): staff have no Personnel; the page sends them to their landing page
+  const m = await open(page, 'notifications.php');
   await expect(page.locator('.p-side-com')).toContainText('Peace and Order');
-  await expect(page.locator('.p-sidebar a[href="personnel.php"]').first()).toBeVisible();
-  await expect(page.locator('.tc-tabs a')).toHaveText(['Tanods', 'Committee staff']);
-  await expect(page.locator('#tc-propose, #ss-bulk-tc, .quick-verify-form, .ss-requests')).toHaveCount(0);
-  await expect(page.locator('#overdue-banner')).toBeHidden();
-  await expect(page.locator('#ss-people a.p-btn-primary')).toHaveCount(0);   // nothing to review: only a super admin verifies
-  await open(page, 'personnel.php?view=staff');
-  await expect(page.locator('.p-main form')).toHaveCount(0);
-  await open(page, 'personnel.php?id=u2');
-  await expect(page.locator('.p-main form')).toHaveCount(0);
-  expect(await axe(page), 'tanod page, staff').toEqual([]);
+  await expect(page.locator('.p-sidebar a[href="personnel.php"]')).toHaveCount(0);
+  await page.goto('personnel.php');
+  await expect(page).toHaveURL(/notifications\.php/);
   for (const href of ['residents.php', 'administrative-services.php', 'control-room.php', 'dashboard.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
@@ -2249,16 +2243,111 @@ test('Rose, 15 Nov: declining a retirement is a level full-width row, a Kagawad 
   expect(r.errors.concat(k.errors, m.errors), 'console errors').toEqual([]);
 });
 
-test('Rose, 15 Nov: where the case is shows the Councilor when a Kagawad handles it, and a Kagawad is not offered a Kagawad to hand it to', async ({ page, context }) => {
-  // a case a super admin handles at the first rung: Staff and tanods
-  const a = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000003');
+// 19 Nov 2026 (Rose, 0175): the case hierarchy. The fake answers each rung as row level security does (fake_sb.py as_tier):
+// staff read the cases assigned to them or handled by them; /__hier_reset puts back the cases a test assigns or answers.
+const FAKE = 'http://127.0.0.1:54399';
+const ASSIGNED_TO_ME = 'c0000000-0000-0000-0000-000000000007';   // the Kagawad assigned it to the demo administrator, as staff
+const MINE = 'c0000000-0000-0000-0000-000000000003';             // the demo administrator holds it
+const as = (tier, committee) => [{ name: 'ss_tier', value: tier, url: 'http://127.0.0.1:8013' }].concat(committee ? [{ name: 'ss_committee', value: committee, url: 'http://127.0.0.1:8013' }] : []);
+
+test('Rose, 19 Nov (0175): staff see only the cases assigned to them or handled by them, and have no Personnel and no Take over', async ({ page, context }) => {
+  await page.request.get(FAKE + '/__hier_reset');
+  await context.addCookies(as('moderator', 'peace_order'));
+  const r = await open(page, 'cases.php');
+  const ids = await page.locator('#reports-tbody .p-mono-id').allTextContents();
+  expect(ids, 'a case of their committee nobody assigned to them').not.toContain('SS-2610-1002');
+  expect(ids, 'the case assigned to them').toContain('SS-2610-1007');
+  expect(ids, 'a case they handled before').toContain('SS-2610-1001');
+  await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000002');
+  await expect(page.locator('.p-main')).toContainText('could not be found');
+  await expect(page.locator('.p-controls')).toHaveCount(0);
+  const n = await open(page, 'notifications.php');
+  await expect(page.locator('#notif-list')).not.toContainText('SS-2610-1004');   // a notice about a case that is not theirs
+  await expect(page.locator('.p-sidebar a[href="personnel.php"]')).toHaveCount(0);
+  // a case they handled before, held by their Kagawad now: they read it, and nobody offers them Take over or Assign
+  const c = await open(page, `case.php?id=${CASE}`);
+  await expect(page.locator('.p-controls .ss-handler').first()).toContainText('Dela Cruz, Ramon');
+  await expect(page.locator('input[name="action"][value="take_over"]')).toHaveCount(0);
+  await expect(page.locator('details[data-assign]')).toHaveCount(0);
+  expect(r.errors.concat(n.errors, c.errors), 'console errors').toEqual([]);
+});
+
+test('Rose, 19 Nov (0175): a Kagawad assigns a case to their own staff; the staff member accepts it, or declines it with a reason', async ({ page, context }) => {
+  await page.request.get(FAKE + '/__hier_reset');
+  await context.addCookies(as('committee', 'peace_order'));
+  const k = await open(page, 'case.php?id=' + MINE);
+  const asg = page.locator('details[data-assign]');
+  await asg.locator('summary').click();
+  expect(await asg.locator('select[name="to"] option:not([disabled])').allTextContents(), 'a Kagawad picks among their own staff only').toEqual(['Santos, Ben', 'Aquino, Lorna']);
+  await asg.locator('select[name="to"]').selectOption('a0000000-0000-0000-0000-000000000009');
+  await asg.locator('textarea[name="note"]').fill('Ikaw na po ang bahala');
+  await asg.locator('button[type="submit"]').click();
+  await expect(page.locator('.ss-asg-wait')).toContainText('Assigned to Ben Santos, waiting for them to accept it');
   await expect(page.locator('.ss-ladder li.now')).toHaveAttribute('data-r', 'staff');
-  // the same kind of case, but its handler is a Kagawad: the Councilor is where it is, whatever rung is stored
-  await page.route('**/rest/v1/reports*', async route => route.continue());
-  const b = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000001');
-  const now = await page.locator('.ss-ladder li.now').getAttribute('data-r');
-  expect(['kagawad', 'chair'], 'a Kagawad handles it, so it is not with staff and tanods').toContain(now);
-  expect(a.errors.concat(b.errors), 'console errors').toEqual([]);
+  await expect(page.locator('.ss-ladder li.now')).toHaveClass(/wait/);
+  await expect(page.locator('.ss-asg-wait button', { hasText: 'Take it back' })).toHaveCount(1);
+  expect(await axe(page), 'assigned, light').toEqual([]);
+
+  // the staff member: the case waits for them; nothing else is offered until they answer
+  await context.addCookies(as('moderator', 'peace_order'));
+  const s = await open(page, 'case.php?id=' + ASSIGNED_TO_ME);
+  const card = page.locator('.ss-assigned');
+  await expect(card).toContainText('Ramon Dela Cruz assigned this case to you');
+  await expect(card).toContainText('Pakiasikaso po ito bukas ng umaga');
+  await expect(page.locator('.ss-ladder li.now')).toHaveClass(/wait/);
+  await expect(page.locator('input[name="action"][value="take_over"]')).toHaveCount(0);
+  expect(await axe(page), 'assigned to me, light').toEqual([]);
+  await card.locator('button', { hasText: 'Accept the case' }).click();
+  await expect(page.locator('.ss-assigned')).toHaveCount(0);
+  await expect(page.locator('.p-controls .ss-handler').first()).toContainText('You are handling this case');
+  await expect(page.locator('.ss-ladder li.now')).toHaveAttribute('data-r', 'staff');
+  await expect(page.locator('.ss-ladder li.now')).not.toHaveClass(/wait/);
+
+  // declining needs a reason, and the case leaves their list
+  await page.request.get(FAKE + '/__hier_reset');
+  await open(page, 'case.php?id=' + ASSIGNED_TO_ME);
+  await card.locator('details summary', { hasText: 'Decline' }).click();
+  await expect(card.locator('textarea[name="reason"]')).toHaveAttribute('required', '');
+  await card.locator('textarea[name="reason"]').fill('Naka-leave po ako bukas');
+  await card.locator('button', { hasText: 'Decline the case' }).click();
+  await expect(page).toHaveURL(/cases\.php/);
+  await expect(page.locator('.p-main')).toContainText('Declined. The case went back to whoever assigned it');
+  await page.request.get(FAKE + '/__hier_reset');
+  expect(k.errors.concat(s.errors), 'console errors').toEqual([]);
+});
+
+test('Rose, 19 Nov (0175): where the case is reads Chairman, Councilor, Staff and marks who holds it; a tanod shows when one is on it; Take over by rung', async ({ page, context }) => {
+  await page.request.get(FAKE + '/__hier_reset');
+  const a = await open(page, `case.php?id=${CASE}`);   // a Kagawad holds it and a tanod is on it
+  await expect(page.locator('.ss-ladder li:not(.tan)')).toHaveText(['Chairman', 'Councilor', 'Staff']);
+  await expect(page.locator('.ss-ladder li.now')).toHaveAttribute('data-r', 'kagawad');
+  await expect(page.locator('.ss-ladder li.now')).not.toHaveClass(/wait/);
+  await expect(page.locator('.ss-ladder li.tan')).toHaveCount(1);
+  await expect(page.locator('.ss-ladder-who')).toContainText('With Ramon Dela Cruz (Councilor) · Tanod Ace Lediac is on it');
+  await expect(page.locator('input[name="action"][value="take_over"]'), 'a super admin takes over from a Kagawad').toHaveCount(1);
+  for (const [id, rung, wait, says] of [
+    [MINE, 'chair', false, 'With you (Chairman)'],
+    ['c0000000-0000-0000-0000-000000000004', 'chair', true, 'With the super admins, to place with a committee'],
+    ['c0000000-0000-0000-0000-000000000002', 'kagawad', true, 'waiting for its Kagawad to accept it'],
+    [ASSIGNED_TO_ME, 'staff', true, 'Assigned to you, waiting for you to accept it'],
+  ]) {
+    await open(page, 'case.php?id=' + id);
+    await expect(page.locator('.ss-ladder li.now'), id).toHaveAttribute('data-r', rung);
+    if (wait) await expect(page.locator('.ss-ladder li.now'), id).toHaveClass(/wait/); else await expect(page.locator('.ss-ladder li.now'), id).not.toHaveClass(/wait/);
+    await expect(page.locator('.ss-ladder-who'), id).toContainText(says);
+  }
+  // the super admin's pick list: councilors and staff of every committee, councilors first
+  await open(page, 'case.php?id=' + MINE);
+  const groups = await page.locator('details[data-assign] optgroup').evaluateAll(g => g.map(x => x.label));
+  expect(groups, 'councilors first, then staff').toEqual(['Councilors · Peace and Order', 'Councilors · Environment and Disaster Risk', 'Staff · Peace and Order', 'Staff · Environment and Disaster Risk']);
+  // a Kagawad does not take over from another Kagawad
+  await context.addCookies(as('committee', 'peace_order'));
+  await open(page, `case.php?id=${CASE}`);
+  await expect(page.locator('input[name="action"][value="take_over"]')).toHaveCount(0);
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  await page.waitForTimeout(300);
+  expect(await axe(page), 'the ladder, dark').toEqual([]);
+  expect(a.errors, 'console errors').toEqual([]);
 });
 
 test('Rose, 15 Nov: a report with several requests has a Request in focus bar over the controls; picking one lights it in the list and Next request moves on', async ({ page }) => {
