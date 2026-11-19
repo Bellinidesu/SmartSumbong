@@ -1991,15 +1991,17 @@ test('Spatial Distribution (12 Nov 2026): the SMART panel stays navy by day; the
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('Fix A (17 Nov): an on-duty tanod whose last location is old can still be picked and dispatched; the age is said, not punished', async ({ page }) => {
+test('Duty only (Ace, 19 Nov): every on-duty tanod is ON DUTY in green and can be dispatched, whatever the age of their last location; no location wording', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   const r = await open(page, 'case.php?id=c0000000-0000-0000-0000-000000000006');
   const stale = page.locator('input[name="tanod"][value="b0000000-0000-0000-0000-000000000003"]');
   await expect(stale, 'the stale tanod is not greyed out').toBeEnabled();
   const row = page.locator('label.p-tanod-opt', { has: stale });
   await expect(row.locator('.p-status-dot')).toHaveText(/ON DUTY/);
-  await expect(row.locator('.p-status-dot')).toHaveClass(/p-busy-c/);
-  await expect(row).toContainText('last seen a while ago');
+  await expect(row.locator('.p-status-dot')).toHaveClass(/p-on-c/);
+  await expect(row).not.toContainText('a while ago');
+  await expect(page.locator('#assign-form')).not.toContainText(/location (is fresh|may be old)|a while ago/);
+  for (const dot of await page.locator('#assign-form label.p-tanod-opt:not(.p-out) .p-status-dot').all()) await expect(dot).toHaveText(/ON DUTY/);
   await expect(row).not.toHaveClass(/p-out/);
   await expect(page.locator('button[name="action"][value="dispatch"]')).toBeEnabled();
   await page.evaluate(() => { let n = document.querySelector('input[name="tanod"][value="b0000000-0000-0000-0000-000000000003"]'); while (n) { if (n.tagName === 'DETAILS') n.open = true; n = n.parentElement; } });

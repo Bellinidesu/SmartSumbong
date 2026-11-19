@@ -38,6 +38,9 @@ begin
 
   -- 1. mail runs along the ladder; only the sender and the recipient read it; a case attached must be one the sender sees
   begin
+    -- 0175: staff see (and attach) a case once their Kagawad has assigned it to them
+    perform set_config('request.jwt.claim.sub', v_kpo::text, true);
+    perform public.assign_case(r1, v_stf, null);
     perform set_config('request.jwt.claim.sub', v_stf::text, true);
     b := public.send_mail(array[v_kpo], 'Tungkol sa kaso', 'Pakitingnan po ito.', r1, null);
     begin perform public.send_mail(array[v_kenv], 'Hi', 'Hello', null, null); raise exception 'staff wrote to another Kagawad';
