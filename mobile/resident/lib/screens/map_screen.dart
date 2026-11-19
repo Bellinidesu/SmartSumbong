@@ -165,10 +165,8 @@ class _MapScreenState extends State<MapScreen> {
         _loading = false;
       });
 
-      // Frame them, so a resident with one report far from the centre is
-      // not left staring at an empty map.
-      final mine = pins.where((p) => p.mine).toList();
-      if (mine.isNotEmpty) _fitTo(mine);
+      // The map opens, and the Frame button returns, on the portal's residential centre at zoom 16 (Ace, 20 Nov:
+      // never a fit to the pins, never the OSM centroid): the barangay is the frame, whatever the resident filed.
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -177,14 +175,6 @@ class _MapScreenState extends State<MapScreen> {
       });
     }
   }
-
-  // Only the pins the map can pan to: one filed from outside the
-  // barangay would drag the frame off the grid, and the camera cannot
-  // follow it there anyway.
-  void _fitTo(List<_Pin> pins) => _map.fit([
-        for (final p in pins)
-          if (withinBrgyBounds(p.point)) p.point,
-      ], top: MediaQuery.paddingOf(context).top + 150, bottom: _cardHeight + 60);
 
   /// The pin whose card is open, drawn larger on the map.
   String? _selected;
@@ -287,6 +277,8 @@ class _MapScreenState extends State<MapScreen> {
           child: BrgyMap(
             use: BrgyMapUse.browse,
             controller: _map,
+            initialCenter: brgyCentre,
+            initialZoom: 16,
             controlsPadding: EdgeInsets.only(bottom: _cardHeight + 14),
             selectedPinId: _selected,
             pins: [
