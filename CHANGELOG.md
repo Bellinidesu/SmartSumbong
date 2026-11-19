@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Concerns are picked from the list, no "add another" step (19 Nov, Rose)**
+
+- Filing a report: the category's own pills are now a multi-select. Tap up to three, tap again to put one down; the first one tapped is the main concern, the others ride with it, and a tick marks each picked pill. "Is there more than one problem?", the Add another concern chip and its sheet are gone, and so is the remove cross. A counter under the pills says "2 of 3 picked"; at three the others fade. A single pick still moves freely between categories; two or more ask before a category change clears them; Others stands alone. Built-in options with no row id (before the barangay's list has been read) stay single. Pills answer a 48 px touch.
+
 **Tanods: on duty is enough (19 Nov, Ace)**
 
 - On duty means assignable, off duty means not; the database already decided it that way (`sync_dispatchable`). The tanod app stops saying otherwise: the "Send my location now" card on Home and the duty sheet's location notes are gone, the sheet closes at once, and the location fix goes quietly in the background instead of holding up going on duty. It still sorts nearer tanods first on the portal and feeds turn-by-turn. The portal's half (the tanod picker) came with the hierarchy (0175).

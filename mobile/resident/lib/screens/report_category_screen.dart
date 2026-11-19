@@ -21,20 +21,32 @@ class ReportCategoryScreen extends StatefulWidget {
   State<ReportCategoryScreen> createState() => _ReportCategoryScreenState();
 }
 
-/// "Others" has no issue of its own, so it is keyed apart from the
-/// category it files under.
-const _othersKey = 'others';
-
-String _keyOf(CategoryChoice c) => '${c.category.wire}|${c.issue}';
-
 class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
-  // Tapping a pill picks it; Continue (per the frame) advances with it.
-  CategoryChoice? _choice;
-  String? _choiceKey;
+  /// A report keeps to one category (0176) and to three concerns (the database takes four; the form keeps to three).
+  /// The concerns are the category's own pills, tapped in any number: the first one tapped is the main concern, the
+  /// rest ride with it (Rose, 19 Nov 2026: no "add another" step when they can just be picked from the list).
+  static const _maxConcerns = 3;
 
-  /// The other concerns, picked here under the chosen category (Rose, 18 Nov 2026: on the first page, not under
-  /// the description on the second; and one category per report, which 0176 enforces).
-  final List<ExtraConcern> _extras = [];
+  ComplaintCategory? _category;
+  final List<ComplaintOption> _picked = [];
+
+  /// Others has no pills of its own, so it is picked apart from them.
+  bool get _othersPicked => _category == ComplaintCategory.other && _picked.isEmpty;
+
+  /// What Continue carries to the second page.
+  CategoryChoice? get _choice {
+    final c = _category;
+    if (c == null) return null;
+    if (_picked.isEmpty) return CategoryChoice(category: c);
+    final main = _picked.first;
+    return CategoryChoice(
+      category: c,
+      issue: main.en,
+      issueFil: main.fil,
+      optionId: main.id,
+      extras: [for (final o in _picked.skip(1)) ExtraConcern(c, o)],
+    );
+  }
 
   @override
   void initState() {
@@ -45,48 +57,67 @@ class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
     });
   }
 
-  Future<void> _pick(String key, CategoryChoice choice) async {
-    final was = _choice;
-    // Another category: the other concerns cannot come along, so ask before they go.
-    if (was != null && was.category != choice.category && _extras.isNotEmpty) {
-      final from = context.tr(was.category.label, was.category.labelFil);
-      final change = await showDDialog(
-        context,
-        title: context.tr('Change the category?', 'Palitan ang kategorya?'),
-        body: context.tr('A report keeps to one category, so the other concerns you added under $from will be removed.',
-            'Iisang kategorya lang ang bawat ulat, kaya aalisin ang iba pang concern na idinagdag mo sa ilalim ng $from.'),
-        primary: context.tr('Change category', 'Palitan ang kategorya'),
-        secondary: context.tr('Keep $from', 'Manatili sa $from'),
-        icon: Icons.category_rounded,
-      );
-      if (change != true || !mounted) return;
+  /// Another category: the concerns picked here cannot come along, so ask before they go (only when there is more
+  /// than one to lose).
+  Future<bool> _leaveCategory(ComplaintCategory to) async {
+    final from = _category;
+    if (from == null || from == to || _picked.length < 2) return true;
+    final name = context.tr(from.label, from.labelFil);
+    final change = await showDDialog(
+      context,
+      title: context.tr('Change the category?', 'Palitan ang kategorya?'),
+      body: context.tr('A report keeps to one category, so the other concerns you picked under $name will be cleared.',
+          'Iisang kategorya lang ang bawat ulat, kaya aalisin ang iba pang concern na pinili mo sa ilalim ng $name.'),
+      primary: context.tr('Change category', 'Palitan ang kategorya'),
+      secondary: context.tr('Keep $name', 'Manatili sa $name'),
+      icon: Icons.category_rounded,
+    );
+    return change == true && mounted;
+  }
+
+  Future<void> _toggle(ComplaintCategory category, ComplaintOption o) async {
+    if (_category != category) {
+      if (!await _leaveCategory(category)) return;
+      setState(() {
+        _category = category;
+        _picked
+          ..clear()
+          ..add(o);
+      });
+      return;
     }
     setState(() {
-      if (was?.category != choice.category) _extras.clear();
-      // The one now picked as the main concern is no longer one of the others.
-      _extras.removeWhere((x) => x.option != null && x.option!.en == choice.issue);
-      _choiceKey = key;
-      _choice = choice;
+      final at = _picked.indexWhere((p) => p.en == o.en);
+      if (at >= 0) {
+        _picked.removeAt(at);
+        if (_picked.isEmpty) _category = null;
+      } else if (o.id == null || _picked.any((p) => p.id == null)) {
+        // The built-in list (before the barangay's has been read) has no ids to send other concerns by: one only.
+        _picked
+          ..clear()
+          ..add(o);
+      } else if (_picked.length < _maxConcerns) {
+        _picked.add(o);
+      }
+    });
+  }
+
+  Future<void> _pickOthers() async {
+    if (_othersPicked || !await _leaveCategory(ComplaintCategory.other)) return;
+    setState(() {
+      _category = ComplaintCategory.other;
+      _picked.clear();
     });
   }
 
   // Branch D: the preview's category picker — the question and the scope
   // note, then one white card per category with its colour, the issues
-  // as pills (the picked one fills with the category's colour), and Back
+  // as pills (each picked one fills with the category's colour and shows a tick; up to three), and Back
   // / Continue pinned at the bottom.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final d = context.d;
-    // Only under the chosen category, and only when it has another option to add (Others has none).
-    Widget? more(ComplaintCategory c) => _choice?.category == c && (_extras.isNotEmpty || _MoreConcerns.left(_choice!, _extras).isNotEmpty)
-        ? _MoreConcerns(
-            main: _choice!,
-            extras: _extras,
-            onAdd: (x) => setState(() => _extras.add(x)),
-            onRemove: (x) => setState(() => _extras.remove(x)),
-          )
-        : null;
     return DPage(
       child: Column(children: [
         Expanded(
@@ -96,6 +127,12 @@ class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
               const Align(alignment: Alignment.centerLeft, child: DBack()),
               const SizedBox(height: 12),
               DHeading(s.reportCategoryHeading, lead: s.reportCategorySubtitle),
+              const SizedBox(height: 6),
+              Text(
+                context.tr('Pick every concern that applies, up to $_maxConcerns, from one category.',
+                    'Piliin ang lahat ng concern na naaangkop, hanggang $_maxConcerns, mula sa iisang kategorya.'),
+                style: DType.body(d.muted, size: 13).copyWith(height: 1.4),
+              ),
               const SizedBox(height: 10),
               // Straight from the design, and worth keeping verbatim: it
               // keeps this system inside its scope. Katarungang
@@ -115,11 +152,16 @@ class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
               ),
               const SizedBox(height: 16),
               for (final c in ComplaintCategory.values.where((c) => c != ComplaintCategory.other)) ...[
-                _CategoryCard(category: c, selectedKey: _choiceKey, onPick: _pick, more: more(c)),
+                _CategoryCard(
+                  category: c,
+                  picked: _category == c ? _picked : const [],
+                  max: _maxConcerns,
+                  onToggle: (o) => _toggle(c, o),
+                ),
                 const SizedBox(height: 12),
               ],
               // Others stays last, unless the barangay switched it off.
-              if (ComplaintCategory.values.contains(ComplaintCategory.other)) _OthersCard(selected: _choiceKey == _othersKey, onPick: _pick),
+              if (ComplaintCategory.values.contains(ComplaintCategory.other)) _OthersCard(selected: _othersPicked, onPick: _pickOthers),
             ],
           ),
         ),
@@ -129,7 +171,7 @@ class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
           child: Row(children: [
             Expanded(child: DButton(s.reportCategoryBack, kind: DButtonKind.ghost, expand: true, onTap: () => Navigator.of(context).pop())),
             const SizedBox(width: 10),
-            Expanded(child: DButton(s.reportCategoryContinue, expand: true, onTap: _choice == null ? null : () => _choose(context, _choice!.withExtras(_extras)))),
+            Expanded(child: DButton(s.reportCategoryContinue, expand: true, onTap: _choice == null ? null : () => _choose(context, _choice!))),
           ]),
         ),
       ]),
@@ -137,35 +179,51 @@ class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
   }
 }
 
-/// One category: its colour, its name, its issues as pills.
+/// One category: its colour, its name, its issues as pills (tap any number, up to [max]).
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.category, required this.selectedKey, required this.onPick, this.more});
+  const _CategoryCard({required this.category, required this.picked, required this.max, required this.onToggle});
 
   final ComplaintCategory category;
-  final String? selectedKey;
-  final void Function(String key, CategoryChoice choice) onPick;
 
-  /// The other concerns, under the chosen category's own pills.
-  final Widget? more;
+  /// What is picked under this category (empty when another category, or none, is the chosen one).
+  final List<ComplaintOption> picked;
+  final int max;
+  final void Function(ComplaintOption) onToggle;
 
   @override
   Widget build(BuildContext context) {
     final col = categoryColour(category);
+    final full = picked.length >= max;
+    // Each pill answers a 48 px tall touch though it is drawn 30 tall: the slop reaches into the gaps around it.
+    const slop = EdgeInsets.symmetric(vertical: _HitSlop.chip);
     return _Shell(
       colour: col,
       title: context.tr(category.label, category.labelFil),
-      reachBelow: more != null,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Wrap(spacing: 6, runSpacing: 6, children: [
-          for (final o in category.options)
-            Builder(builder: (context) {
-              final choice = CategoryChoice(category: category, issue: o.en, issueFil: o.fil, optionId: o.id);
-              final key = _keyOf(choice);
-              return _IssuePill(label: context.tr(o.en, o.fil), colour: col, selected: selectedKey == key, onTap: () => onPick(key, choice));
-            }),
+      reachBelow: true,
+      // The first row's touch also reaches up into the gap under the card's title, so the column takes it too.
+      child: _HitSlop(
+        slop: const EdgeInsets.only(top: _HitSlop.chip),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _HitSlop(
+            slop: slop,
+            child: Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final o in category.options)
+                _HitSlop(
+                  slop: slop,
+                  child: Builder(builder: (context) {
+                    final on = picked.any((p) => p.en == o.en);
+                    return _IssuePill(label: context.tr(o.en, o.fil), colour: col, selected: on, onTap: full && !on ? null : () => onToggle(o));
+                  }),
+                ),
+            ]),
+          ),
+          if (picked.isNotEmpty && category.options.where((o) => o.id != null).length > 1) ...[
+            const SizedBox(height: 10),
+            Text(context.tr('${picked.length} of $max picked', '${picked.length} sa $max ang napili'),
+                style: DType.body(context.d.muted, size: 12.5, w: FontWeight.w600)),
+          ],
         ]),
-        ?more,
-      ]),
+      ),
     );
   }
 }
@@ -174,7 +232,7 @@ class _OthersCard extends StatelessWidget {
   const _OthersCard({required this.selected, required this.onPick});
 
   final bool selected;
-  final void Function(String key, CategoryChoice choice) onPick;
+  final VoidCallback onPick;
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +245,7 @@ class _OthersCard extends StatelessWidget {
         colour: col,
         selected: selected,
         // Its own category since 0076.
-        onTap: () => onPick(_othersKey, CategoryChoice(category: ComplaintCategory.parse('other'))),
+        onTap: onPick,
       ),
     );
   }
@@ -200,7 +258,7 @@ class _Shell extends StatelessWidget {
   final String title;
   final Widget child;
 
-  /// Lets a tap in the card's bottom padding reach the last row (the concern chips' 48 px targets).
+  /// Lets a tap in the card's bottom padding reach the last row (the pills' 48 px targets).
   final bool reachBelow;
 
   @override
@@ -235,12 +293,14 @@ class _Shell extends StatelessWidget {
   }
 }
 
+/// A concern as a pill: tap to pick it, tap again to put it down. Picked, it fills with the category's colour and
+/// shows a tick (so it reads as one of several, not as the only one). Out of picks, the unpicked ones fade ([onTap] null).
 class _IssuePill extends StatelessWidget {
   const _IssuePill({required this.label, required this.colour, required this.onTap, this.selected = false});
 
   final String label;
   final Color colour;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool selected;
 
   @override
@@ -248,28 +308,37 @@ class _IssuePill extends StatelessWidget {
     final d = context.d;
     return Semantics(
       selected: selected,
-      inMutuallyExclusiveGroup: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(99),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          // The preview's compact chip (Ace, 7 Oct 2026): 30 tall, 12 in,
-          // 12.5 text, the edge tinted with the category's colour.
-          constraints: const BoxConstraints(minHeight: 30),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: selected ? colour : d.field,
-            borderRadius: BorderRadius.circular(99),
-            border: Border.all(color: selected ? colour : Color.lerp(d.line, colour, .45)!),
-            boxShadow: selected ? [BoxShadow(color: colour.withValues(alpha: .35), blurRadius: 10, offset: const Offset(0, 4))] : null,
+      button: true,
+      enabled: onTap != null,
+      child: Opacity(
+        opacity: onTap == null ? .45 : 1,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(99),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            // The preview's compact chip (Ace, 7 Oct 2026): 30 tall, 12 in,
+            // 12.5 text, the edge tinted with the category's colour.
+            constraints: const BoxConstraints(minHeight: 30),
+            padding: EdgeInsets.fromLTRB(selected ? 9 : 12, 6, 12, 6),
+            decoration: BoxDecoration(
+              color: selected ? colour : d.field,
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: selected ? colour : Color.lerp(d.line, colour, .45)!),
+              boxShadow: selected ? [BoxShadow(color: colour.withValues(alpha: .35), blurRadius: 10, offset: const Offset(0, 4))] : null,
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              if (selected) ...[const Icon(Icons.check_rounded, size: 14, color: Colors.white), const SizedBox(width: 4)],
+              Flexible(
+                child: Text(label,
+                    style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 12.5,
+                        color: selected ? Colors.white : d.ink)),
+              ),
+            ]),
           ),
-          child: Text(label,
-              style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  fontSize: 12.5,
-                  color: selected ? Colors.white : d.ink)),
         ),
       ),
     );
@@ -278,186 +347,6 @@ class _IssuePill extends StatelessWidget {
 
 void _choose(BuildContext context, CategoryChoice choice) {
   Navigator.of(context).pushNamed('/submit-report/details', arguments: choice);
-}
-
-/// "Is there more than one problem?" (0163), under the chosen category's pills: the other concerns as chips, and a
-/// sheet to add one. Only this category's options are offered; a report keeps to one category (0176).
-class _MoreConcerns extends StatelessWidget {
-  const _MoreConcerns({required this.main, required this.extras, required this.onAdd, required this.onRemove});
-
-  /// The database takes four concerns; the form keeps to three (the main one and two more).
-  static const max = 2;
-
-  final CategoryChoice main;
-  final List<ExtraConcern> extras;
-  final void Function(ExtraConcern) onAdd;
-  final void Function(ExtraConcern) onRemove;
-
-  /// What can still be added: the category's options with a row id (a concern points at it), less the main one
-  /// and those already added.
-  static List<ComplaintOption> left(CategoryChoice main, List<ExtraConcern> extras) => [
-        for (final o in main.category.options)
-          if (o.id != null && o.en != main.issue && !extras.any((x) => x.option?.id == o.id)) o,
-      ];
-
-  Future<void> _pick(BuildContext context) async {
-    final d = context.d;
-    final col = categoryColour(main.category);
-    final picked = await showModalBottomSheet<ExtraConcern>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: d.card,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * .75),
-          child: ListView(padding: const EdgeInsets.fromLTRB(18, 16, 18, 18), shrinkWrap: true, children: [
-            Text(ctx.tr('Add another concern', 'Magdagdag ng isa pang concern'), style: DType.body(d.ink, size: 16, w: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(ctx.tr('Pick what else is wrong. Each one is looked at, and resolved, on its own. A report keeps to one category.',
-                    'Piliin kung ano pa ang problema. Bawat isa ay titingnan, at aayusin, nang hiwalay. Iisang kategorya lang ang bawat ulat.'),
-                style: DType.body(d.muted, size: 12.5)),
-            const SizedBox(height: 12),
-            Row(children: [
-              Container(width: 9, height: 9, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
-              const SizedBox(width: 7),
-              Expanded(child: Text(ctx.tr(main.category.label, main.category.labelFil).toUpperCase(), style: DType.label(d.muted))),
-            ]),
-            const SizedBox(height: 8),
-            Wrap(spacing: 6, runSpacing: 6, children: [
-              for (final o in left(main, extras))
-                _ConcernPill(label: ctx.tr(o.en, o.fil), colour: col, onTap: () => Navigator.of(ctx).pop(ExtraConcern(main.category, o))),
-            ]),
-          ]),
-        ),
-      ),
-    );
-    if (picked != null) onAdd(picked);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final d = context.d;
-    final col = categoryColour(main.category);
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SizedBox(height: 14),
-      Divider(height: 1, thickness: 1, color: d.line),
-      const SizedBox(height: 12),
-      Text(context.tr('Is there more than one problem? (optional)', 'May iba pa bang problema? (opsyonal)'), style: DType.body(d.ink, size: 13.5, w: FontWeight.w800)),
-      const SizedBox(height: 6),
-      // Each chip answers a 48 px tall touch though it is drawn 30 tall: the slop reaches into the gaps around it.
-      _HitSlop(
-        slop: const EdgeInsets.symmetric(vertical: _HitSlop.chip),
-        child: Wrap(spacing: 6, runSpacing: 6, children: [
-          for (final x in extras)
-            _HitSlop(
-              slop: const EdgeInsets.symmetric(vertical: _HitSlop.chip),
-              child: _ExtraChip(label: context.tr(x.option!.en, x.option!.fil), colour: col, onRemove: () => onRemove(x)),
-            ),
-          if (extras.length < max && left(main, extras).isNotEmpty)
-            _HitSlop(slop: const EdgeInsets.symmetric(vertical: _HitSlop.chip), child: _AddChip(colour: col, onTap: () => _pick(context))),
-        ]),
-      ),
-    ]);
-  }
-}
-
-class _ConcernPill extends StatelessWidget {
-  const _ConcernPill({required this.label, required this.colour, required this.onTap});
-
-  final String label;
-  final Color colour;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: colour.withValues(alpha: .12),
-        shape: StadiumBorder(side: BorderSide(color: colour.withValues(alpha: .6))),
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: onTap,
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text(label, style: DType.body(context.d.ink, size: 13, w: FontWeight.w700))),
-        ),
-      );
-}
-
-/// Another concern, picked: the issue pill's size, tinted with the category's colour, with a remove cross.
-class _ExtraChip extends StatelessWidget {
-  const _ExtraChip({required this.label, required this.colour, required this.onRemove});
-
-  final String label;
-  final Color colour;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final d = context.d;
-    return Container(
-      constraints: const BoxConstraints(minHeight: 30),
-      padding: const EdgeInsets.only(left: 12),
-      decoration: BoxDecoration(
-        color: colour.withValues(alpha: d.dark ? .22 : .12),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: colour.withValues(alpha: .6)),
-      ),
-      // The border insets the row by 1 px; the slop lets a tap on the border itself reach the row.
-      child: _HitSlop(
-        slop: const EdgeInsets.all(1),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Flexible(child: Text(label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 12.5).copyWith(color: d.ink))),
-          const SizedBox(width: 2),
-          // The cross is drawn 26 wide; its touch is 48 x 48: 18 over the end of the name, the pill's 4 px end, and
-          // (with the chip's own slop) 9 above and below the pill.
-          _HitSlop(
-            slop: const EdgeInsets.fromLTRB(18, _HitSlop.chip, 4, _HitSlop.chip),
-            child: Tooltip(
-              message: '${context.tr('Remove', 'Alisin')} $label',
-              child: InkResponse(
-                onTap: onRemove,
-                radius: 16,
-                child: SizedBox(width: 26, height: 28, child: Icon(Icons.close_rounded, size: 16, color: d.muted)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-        ]),
-      ),
-    );
-  }
-}
-
-/// "+ Add another concern": an outlined pill in the category's colour.
-class _AddChip extends StatelessWidget {
-  const _AddChip({required this.colour, required this.onTap});
-
-  final Color colour;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final d = context.d;
-    return Semantics(
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(99),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 30),
-          padding: const EdgeInsets.only(left: 8, right: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(99),
-            border: Border.all(color: Color.lerp(d.line, colour, .45)!),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.add_rounded, size: 18, color: colour),
-            const SizedBox(width: 4),
-            Text(context.tr('Add another concern', 'Magdagdag ng isa pang concern'),
-                style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 12.5).copyWith(color: d.ink)),
-          ]),
-        ),
-      ),
-    );
-  }
 }
 
 /// Takes taps up to [slop] outside its child and hands them to the child at its nearest edge, so a small target answers
