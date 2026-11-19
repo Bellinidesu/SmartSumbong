@@ -66,7 +66,6 @@ import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 import '../preview/demo.dart';
 import '../i18n.dart';
-import '../models/complaint_catalogue.dart';
 import '../models/complaint_category.dart';
 import '../outbox.dart';
 import '../theme.dart';
@@ -116,8 +115,8 @@ class ReportDetailsScreen extends StatefulWidget {
 }
 
 class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
-  /// 0163: the other concerns in this report, two at most (four with the main one is the database's limit).
-  final List<ExtraConcern> _extras = [];
+  /// 0163: the other concerns, picked on the first page under the same category (Rose, 18 Nov 2026).
+  List<ExtraConcern> get _extras => widget.choice.extras;
   final _map = BrgyMapController();
   late final TextEditingController _description;
 
@@ -556,8 +555,11 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       final prefs = await SharedPreferences.getInstance();
       final description = _description.text.trim();
       // An empty, untouched form is nothing worth remembering — drop any
-      // previously-saved draft instead of writing a blank one back.
-      if (description.isEmpty && _photos.isEmpty && _video == null && _extras.isEmpty) {
+      // previously-saved draft instead of writing a blank one back. Only
+      // the issue's own prefill ("Potholes —") is untouched too.
+      final typed = description.isNotEmpty && description != widget.choice.descriptionPrefill.trim();
+      // The other concerns are not kept: they are picked on the first page, which a draft does not reopen.
+      if (!typed && _photos.isEmpty && _video == null) {
         await prefs.remove(_draftPrefsKey);
         return;
       }
@@ -569,7 +571,6 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           'photoPaths': _photos.map((f) => f.path).toList(),
           'videoPath': _video?.path,
           'anonymous': _anonymous,
-          'concerns': [for (final x in _extras) x.toJson()],
         }),
       );
     } catch (_) {
@@ -605,23 +606,15 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       if (videoPath != null && await File(videoPath).exists()) {
         restoredVideo = File(videoPath);
       }
-      final restoredDescription = (draft['description'] as String?) ?? '';
-      // 0163: the other concerns, as long as the barangay still offers them
-      final restoredExtras = <ExtraConcern>[];
-      for (final c in (draft['concerns'] as List? ?? const [])) {
-        if (c is! Map) continue;
-        final cat = ComplaintCatalogue.current.where((x) => x.wire == c['category']).firstOrNull;
-        if (cat == null) continue;
-        final id = (c['option'] as num?)?.toInt();
-        final opt = id == null ? null : cat.options.where((o) => o.id == id).firstOrNull;
-        if (id != null && opt == null) continue;
-        restoredExtras.add(ExtraConcern(cat, opt));
-      }
+      final saved = (draft['description'] as String?) ?? '';
+      // A draft that only ever held the issue's prefill (saved before that counted as untouched) is nothing to restore.
+      final restoredDescription = saved.trim() == widget.choice.descriptionPrefill.trim() ? '' : saved;
+      // An older draft's 'concerns' are left alone: the other concerns are picked on the first page now (Rose,
+      // 18 Nov 2026), and what was picked there a moment ago is what this report files with.
 
       final restoredSomething = restoredPhotos.isNotEmpty ||
           restoredVideo != null ||
-          restoredDescription.isNotEmpty ||
-          restoredExtras.isNotEmpty;
+          restoredDescription.isNotEmpty;
       if (!restoredSomething || !mounted) return;
 
       _restoringDraft = true;
@@ -632,31 +625,23 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         _photos.addAll(restoredPhotos);
         _video = restoredVideo;
         _anonymous = (draft['anonymous'] as bool?) ?? _anonymous;
-        _extras
-          ..clear()
-          ..addAll(restoredExtras.take(_MoreConcerns.max));
       });
       _restoringDraft = false;
 
+      // Rose (18 Nov 2026): this note could not be put away, so people tapped Discard to be rid of it. A snackbar
+      // with an action stays until the action is tapped (SnackBar.persist defaults to true when there is one), and
+      // it had no close button, so Discard was the only way out, and it sat over Back / Submit. Now it goes by
+      // itself after six seconds, has a close button, and Discard asks first.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(context.s.reportDetailsDraftRestored),
-            action: SnackBarAction(
-              label: context.s.reportDetailsDraftDiscard,
-              onPressed: () {
-                setState(() {
-                  _description.clear();
-                  _photos.clear();
-                  _extras.clear();
-                  _uploaded.clear();
-                  _video = null;
-                  _uploadedVideo = null;
-                });
-                _clearDraft();
-              },
-            ),
+            persist: false,
+            showCloseIcon: true,
+            actionOverflowThreshold: 1, // one line: the note, Discard, the cross
+            closeIconColor: context.colors.bg,
+            action: SnackBarAction(label: context.s.reportDetailsDraftDiscard, onPressed: _confirmDiscardDraft),
             duration: const Duration(seconds: 6),
           ),
         );
@@ -665,6 +650,31 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       // A corrupt or unreadable draft is treated the same as no draft —
       // the form just starts blank, same as before this existed.
     }
+  }
+
+  /// Discard, from the draft-restored note: asked first, and anything but Discard (Keep editing, a tap outside,
+  /// Back) leaves the form as it is.
+  Future<void> _confirmDiscardDraft() async {
+    final keep = await showDDialog(
+      context,
+      title: context.tr('Discard your unfinished report?', 'Itapon ang hindi pa natatapos na ulat?'),
+      body: context.tr('The description, photos and video you added will be removed from this form.',
+          'Aalisin sa form na ito ang paglalarawan, mga larawan at video na idinagdag mo.'),
+      primary: context.tr('Keep editing', 'Ituloy ang pag-edit'),
+      secondary: context.s.reportDetailsDraftDiscard,
+      secondaryKind: DButtonKind.danger,
+      icon: Icons.delete_outline_rounded,
+      iconColor: const Color(0xFFC62828),
+    );
+    if (keep != false || !mounted) return;
+    setState(() {
+      _description.text = widget.choice.descriptionPrefill;
+      _photos.clear();
+      _uploaded.clear();
+      _video = null;
+      _uploadedVideo = null;
+    });
+    unawaited(_clearDraft());
   }
 
   Future<void> _clearDraft() async {
@@ -847,6 +857,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     if (m.contains('row-level security') || m.contains('policy')) {
       return s.reportDetailsAccountNotAllowed;
     }
+    if (isOneCategoryRefusal(raw)) {
+      return s.reportDetailsOneCategory;
+    }
     return s.reportDetailsSubmitFailed;
   }
 
@@ -897,6 +910,23 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                 ]),
                 const SizedBox(height: 6),
                 DHeading(widget.choice.issue == null ? context.tr(widget.choice.category.label, widget.choice.category.labelFil) : context.tr(widget.choice.issue!, widget.choice.issueFil ?? widget.choice.issue!), lead: s.reportDetailsCompleteBelow),
+                // The other concerns picked on the first page; Back changes them.
+                if (_extras.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 6, runSpacing: 6, children: [
+                    for (final x in _extras)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: col.withValues(alpha: d.dark ? .22 : .12),
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(color: col.withValues(alpha: .6)),
+                        ),
+                        child: Text('+ ${context.tr(x.option?.en ?? x.category.label, x.option?.fil ?? x.category.labelFil)}',
+                            style: DType.body(d.ink, size: 12.5, w: FontWeight.w700)),
+                      ),
+                  ]),
+                ],
                 const SizedBox(height: 14),
                 if (_banner != null) ...[
                   _Banner(_banner!),
@@ -949,20 +979,6 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                 const SizedBox(height: 12),
                 section(2, s.reportDetailsStep2, [
                   _DescriptionBox(controller: _description, error: _errors['description'], enabled: !_busy),
-                  const SizedBox(height: 12),
-                  _MoreConcerns(
-                    main: widget.choice,
-                    extras: _extras,
-                    enabled: !_busy,
-                    onAdd: (x) {
-                      setState(() => _extras.add(x));
-                      _scheduleDraftSave();
-                    },
-                    onRemove: (x) {
-                      setState(() => _extras.remove(x));
-                      _scheduleDraftSave();
-                    },
-                  ),
                 ]),
                 const SizedBox(height: 12),
                 section(3, s.reportDetailsStep3, [
@@ -1690,122 +1706,4 @@ class _Suggestions extends StatelessWidget {
       ]),
     );
   }
-}
-
-/// One more concern in the same report (0163): a category and, when it has them, one of its options.
-class ExtraConcern {
-  const ExtraConcern(this.category, this.option);
-
-  final ComplaintCategory category;
-  final ComplaintOption? option;
-
-  Map<String, dynamic> toJson() => {'category': category.wire, if (option?.id != null) 'option': option!.id};
-
-  bool same(String wire, int? optionId) => category.wire == wire && option?.id == optionId;
-}
-
-/// "Is there more than one problem?": the other concerns as chips, and a sheet to add one (category, then option).
-class _MoreConcerns extends StatelessWidget {
-  const _MoreConcerns({required this.main, required this.extras, required this.enabled, required this.onAdd, required this.onRemove});
-
-  static const max = 2;
-
-  final CategoryChoice main;
-  final List<ExtraConcern> extras;
-  final bool enabled;
-  final void Function(ExtraConcern) onAdd;
-  final void Function(ExtraConcern) onRemove;
-
-  bool _taken(String wire, int? optionId) =>
-      (main.category.wire == wire && main.optionId == optionId) || extras.any((x) => x.same(wire, optionId));
-
-  Future<void> _pick(BuildContext context) async {
-    final d = context.d;
-    final picked = await showModalBottomSheet<ExtraConcern>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: d.card,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * .75),
-          child: ListView(padding: const EdgeInsets.fromLTRB(18, 16, 18, 18), shrinkWrap: true, children: [
-            Text(ctx.tr('Add another concern', 'Magdagdag ng isa pang concern'), style: DType.body(d.ink, size: 16, w: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(ctx.tr('Pick what else is wrong. Each one is looked at, and resolved, on its own.',
-                    'Piliin kung ano pa ang problema. Bawat isa ay titingnan, at aayusin, nang hiwalay.'),
-                style: DType.body(d.muted, size: 12.5)),
-            const SizedBox(height: 10),
-            for (final c in ComplaintCatalogue.current)
-              Builder(builder: (ctx) {
-                final col = categoryColour(c);
-                final picks = <Widget>[
-                  if (c.options.isEmpty && !_taken(c.wire, null))
-                    _ConcernPill(label: ctx.tr(c.label, c.labelFil), colour: col, onTap: () => Navigator.of(ctx).pop(ExtraConcern(c, null))),
-                  for (final o in c.options)
-                    if (!_taken(c.wire, o.id))
-                      _ConcernPill(label: ctx.tr(o.en, o.fil), colour: col, onTap: () => Navigator.of(ctx).pop(ExtraConcern(c, o))),
-                ];
-                if (picks.isEmpty) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Container(width: 9, height: 9, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
-                      const SizedBox(width: 7),
-                      Text(ctx.tr(c.label, c.labelFil).toUpperCase(), style: DType.label(d.muted)),
-                    ]),
-                    const SizedBox(height: 6),
-                    Wrap(spacing: 6, runSpacing: 6, children: picks),
-                  ]),
-                );
-              }),
-          ]),
-        ),
-      ),
-    );
-    if (picked != null) onAdd(picked);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final d = context.d;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(context.tr('Is there more than one problem? (optional)', 'May iba pa bang problema? (opsyonal)'), style: DType.body(d.ink, size: 13.5, w: FontWeight.w800)),
-      const SizedBox(height: 6),
-      Wrap(spacing: 6, runSpacing: 6, children: [
-        for (final x in extras)
-          InputChip(
-            label: Text(x.option == null ? context.tr(x.category.label, x.category.labelFil) : '${context.tr(x.category.label, x.category.labelFil)}: ${context.tr(x.option!.en, x.option!.fil)}'),
-            onDeleted: enabled ? () => onRemove(x) : null,
-            deleteButtonTooltipMessage: context.tr('Remove', 'Alisin'),
-          ),
-        if (extras.length < max)
-          ActionChip(
-            avatar: const Icon(Icons.add_rounded, size: 18),
-            label: Text(context.tr('Add another concern', 'Magdagdag ng isa pang concern')),
-            onPressed: enabled ? () => _pick(context) : null,
-          ),
-      ]),
-    ]);
-  }
-}
-
-class _ConcernPill extends StatelessWidget {
-  const _ConcernPill({required this.label, required this.colour, required this.onTap});
-
-  final String label;
-  final Color colour;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: colour.withValues(alpha: .12),
-        shape: StadiumBorder(side: BorderSide(color: colour.withValues(alpha: .6))),
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: onTap,
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text(label, style: DType.body(context.d.ink, size: 13, w: FontWeight.w700))),
-        ),
-      );
 }

@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resident/models/complaint_catalogue.dart';
 import 'package:resident/models/complaint_category.dart';
 import 'package:resident/outbox.dart';
-import 'package:resident/screens/report_details_screen.dart' show ExtraConcern;
 import 'package:resident/screens/report_view_screen.dart' show concernFiledAs, concernTitle;
 
 void main() {

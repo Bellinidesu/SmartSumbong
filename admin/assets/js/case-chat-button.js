@@ -23,6 +23,7 @@
     if (mode === 'page') { if (go) { go.click(); } return; }
     var core = window.ssChatCore;
     if (core && core.store) { core.store.patch(id, { pin: true }); }   // it floats on every other page too
+    if (window.ssChat && window.ssChat.onCase && window.ssChat.report !== id) { window.ssChat.onCase(id); }   // 19 Nov 2026: the head may be showing another floated case; this button is for this one
     var head = document.getElementById('chat-head'), panel = document.getElementById('ch-panel'), fab = document.getElementById('ch-fab');
     if (panel && fab && panel.hidden) { fab.click(); } else if (head && panel && !panel.hidden) { fab.click(); }
   });

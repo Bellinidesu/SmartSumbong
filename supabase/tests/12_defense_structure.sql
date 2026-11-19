@@ -172,8 +172,9 @@ begin
     if n <> 1 then raise exception 'main concern %', n; end if;
     perform set_config('request.jwt.claim.sub', v_res::text, true);
     execute 'set local role authenticated';
-    c_extra := public.add_report_concern(r_multi, 'peace_order_nuisance', 'Duty negligence');
-    begin perform public.add_report_concern(r_multi, 'peace_order_nuisance'); raise exception 'twice'; exception when others then
+    -- 0176: a second concern is under the report's own category (another of its options)
+    c_extra := public.add_report_concern(r_multi, 'barangay_service', 'Duty negligence', (select o.id from public.complaint_options o where o.category = 'barangay_service' and o.active order by o.sort, o.id limit 1));
+    begin perform public.add_report_concern(r_multi, 'barangay_service', null, (select o.id from public.complaint_options o where o.category = 'barangay_service' and o.active order by o.sort, o.id limit 1)); raise exception 'twice'; exception when others then
       if sqlerrm not like '%already has that concern%' then raise; end if; end;
     select count(*) into n from public.report_concerns where report_id = r_multi;
     execute 'reset role';

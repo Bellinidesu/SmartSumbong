@@ -95,6 +95,7 @@ function notif_look(string $kind, string $message = ''): array
         'sla_warning'      => ['warn', 'i-clock'],
         'status_change'    => ['act', 'i-doc'],
         'retirement'       => ['act', 'i-user'],
+        'case_assigned'    => ['high', 'i-user'],   // 19 Nov 2026 (Rose): a case waiting for this person to accept it
         'case_forwarded'   => ['act', 'i-send'],
         'forward_flag'     => ['act', 'i-flag'],
         'reroute'          => ['info', 'i-route'],
@@ -1144,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', function () {   // supabase.js is 
     }).join('');
   }
 
-  const NOTIF_LOOK = <?= json_encode(array_combine($k = ['escalation', 'reroute_question', 'sla_warning', 'status_change', 'retirement', 'case_forwarded', 'forward_flag', 'reroute', 'other'], array_map('notif_look', $k))) ?>;   // the same edge colour and icon the server draws
+  const NOTIF_LOOK = <?= json_encode(array_combine($k = ['escalation', 'reroute_question', 'sla_warning', 'status_change', 'retirement', 'case_assigned', 'case_forwarded', 'forward_flag', 'reroute', 'other'], array_map('notif_look', $k))) ?>;   // the same edge colour and icon the server draws
   const BRAIN_SVG = <?= json_encode(smart_brain(20)) ?>;
   const SENSITIVE_BADGE = <?= json_encode(sensitive_badge(['is_sensitive' => true])) ?>;   // the same pill the server draws
   // Today / Yesterday / "Oct 12", in Manila, to group the list like a timeline.

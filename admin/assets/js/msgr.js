@@ -51,7 +51,7 @@
   function paint() {
     var total = 0, q = (qIn.value || '').trim().toLowerCase(), shown = 0;
     rows().forEach(function (r) {
-      var n = r.classList.contains('mg-sel') ? 0 : unreadN(r); total += n;
+      var n = r.classList.contains('mg-sel') ? 0 : unreadN(r); total += n > 0 ? 1 : 0;   // the sidebar pill counts conversations, as the chat head does (19 Nov 2026, Rose)
       r.classList.toggle('mg-unread', n > 0); r.querySelector('.mg-udot').hidden = n === 0; r.querySelector('.mg-usr').hidden = n === 0;
       var ok = (!q || (r.getAttribute('data-search') || '').indexOf(q) >= 0) && (filter !== 'unread' || n > 0) && (filter !== 'mine' || r.getAttribute('data-mine') === '1');
       r.hidden = !ok; if (ok) { shown++; }

@@ -328,6 +328,10 @@ class BrgyMap extends StatefulWidget {
   final double cornerRadius;
   final Color? cornerColour;
 
+  /// Off in widget tests, where the native map view (a platform view) cannot be made: the map's place is kept, blank.
+  @visibleForTesting
+  static bool nativeView = true;
+
   @override
   State<BrgyMap> createState() => _BrgyMapState();
 }
@@ -929,7 +933,7 @@ class _BrgyMapState extends State<BrgyMap> {
   Widget _mapView(BuildContext context) {
     final style = _style;
     final bg = context.colors.bg;
-    if (style == null) return ColoredBox(color: bg);
+    if (style == null || !BrgyMap.nativeView) return ColoredBox(color: bg);
     final use = widget.use;
     final i = use.interactive;
     final pad = widget.controlsPadding;

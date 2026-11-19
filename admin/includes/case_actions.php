@@ -79,6 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 case 'add_concern':
                     [$acCat, $acOpt] = array_pad(explode('|', (string) ($_POST['category'] ?? ''), 2), 2, '');   // "category|option id" (0163)
+                    // 19 Nov 2026 (Rose), 0176: one category per case; the database refuses another too, this says it in the portal's words
+                    $acOwn = (string) ($db->select('reports', ['select' => 'category', 'id' => 'eq.' . $id, 'limit' => '1'])[0]['category'] ?? '');
+                    if ($acOwn !== '' && $acCat !== $acOwn) {
+                        $flash = sprintf(t('A case keeps to one category (%s). A concern from another category is its own case: ask the resident to report it separately.',
+                                           'Iisang kategorya lamang ang bawat kaso (%s). Ang alalahanin mula sa ibang kategorya ay hiwalay na kaso: hilingin sa residente na isumbong ito nang hiwalay.'), category_label($acOwn));
+                        $level = 'error';
+                        break;
+                    }
                     $db->rpc('add_report_concern', ['p_report' => $id, 'p_category' => $acCat, 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null,
                                                     'p_option' => ctype_digit($acOpt) ? (int) $acOpt : null]);
                     $flash = t('Concern added.', 'Naidagdag ang alalahanin.');
@@ -109,6 +117,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 case 'take_over':
                     $db->rpc('take_over_case', ['p_report' => $id, 'p_reason' => trim((string) ($_POST['reason'] ?? ''))]);
                     $flash = t('You took over this case. The previous handler has been told.', 'Kinuha mo na ang kasong ito. Nasabihan na ang dating humahawak.');
+                    break;
+
+                // 19 Nov 2026 (Rose, 0175): a super admin assigns to a councilor or staff, a Kagawad to their staff; the assignee
+                // accepts or declines with a reason; an empty "to" takes a waiting assignment back. Taking a case nobody holds is one press.
+                case 'assign':
+                    $to = (string) ($_POST['to'] ?? '');
+                    $db->rpc('assign_case', ['p_report' => $id, 'p_to' => preg_match('/^[0-9a-f-]{36}$/i', $to) ? $to : null,
+                        'p_note' => trim((string) ($_POST['assign_note'] ?? '')) ?: null]);
+                    $flash = $to === '' ? t('Taken back. The case is no longer waiting for them.', 'Nabawi. Hindi na ito naghihintay sa kanila.')
+                                        : t('Assigned. They are told, and the case stays with you until they accept it.', 'Naitalaga. Nasabihan sila, at nasa iyo ang kaso hanggang tanggapin nila.');
+                    break;
+
+                case 'answer_assign':
+                    $yes = ($_POST['answer'] ?? '') === 'accept';
+                    $db->rpc('answer_case_assignment', ['p_report' => $id, 'p_accept' => $yes, 'p_reason' => $yes ? null : trim((string) ($_POST['reason'] ?? ''))]);
+                    $flash = $yes ? t('You accepted the case. It is yours now.', 'Tinanggap mo ang kaso. Sa iyo na ito.')
+                                  : t('Declined. The case went back to whoever assigned it, and they were told why.', 'Tinanggihan. Bumalik ang kaso sa nagtalaga, at nasabihan sila kung bakit.');
+                    break;
+
+                case 'take':
+                    $db->rpc('take_case', ['p_report' => $id]);
+                    $flash = t('You accepted the case. It is yours now.', 'Tinanggap mo ang kaso. Sa iyo na ito.');
                     break;
 
                 case 'accept':
@@ -355,6 +385,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // 19 Nov 2026 (Rose): staff who declined a case no longer see it, so they land on their list, with the answer
+    if ($level !== 'error' && is_moderator() && ($_POST['action'] ?? '') === 'answer_assign' && ($_POST['answer'] ?? '') !== 'accept') {
+        $_SESSION['cases_flash'] = ['text' => $flash, 'level' => $level];
+        header('Location: cases.php');
+        exit;
+    }
     $_SESSION['flash'] = ['text' => $flash, 'level' => $level];
     header('Location: case.php?id=' . urlencode($id));
     exit;

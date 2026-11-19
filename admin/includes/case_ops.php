@@ -13,8 +13,7 @@ function op_dispatch(Supabase $db, string $id, array $in): string
     if ($tanod === '') {
         throw new SupabaseError(t('Choose a tanod before dispatching.', 'Pumili muna ng tanod bago mag-dispatch.'));
     }
-    // Fix A (Ace, 17 Nov 2026): on duty is enough. Rose's 2 Oct rule also asked for a fresh location, but the app sends one only at
-    // key moments (going on duty, opening the app, each step) to save the battery, so an on-duty tanod in a pocket was refused.
+    // 19 Nov 2026 (Ace): duty only. On duty is assignable (the database: duty and the job cap), off duty is not; a location's age never refuses one
     $live = null;
     foreach ((array) $db->rpc('tanod_roster', ['p_report' => $id]) as $t) {
         if (($t['tanod_id'] ?? null) === $tanod) { $live = $t; break; }

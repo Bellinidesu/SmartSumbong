@@ -441,6 +441,14 @@ class Strings {
       'the barangay.',
       'Hindi pa maaaring mag-file ng ulat ang iyong account. Pakitanong '
       'sa barangay.');
+  /// 0176 refused a concern from a second category (Rose, 18 Nov 2026).
+  String get reportDetailsOneCategory => _t(
+      'A report can have only one category. Go back and keep the other '
+      'concerns under the same category, or file a separate report for '
+      'the other one.',
+      'Iisang kategorya lang ang maaari sa bawat ulat. Bumalik at '
+      'panatilihin ang iba pang concern sa iisang kategorya, o gumawa ng '
+      'hiwalay na ulat para sa isa pa.');
   String get reportDetailsSubmitFailed => _t(
       'Could not submit your report. Please try again.',
       'Hindi maisumite ang iyong ulat. Subukan ulit.');

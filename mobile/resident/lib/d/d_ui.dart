@@ -851,6 +851,7 @@ Future<bool?> showDDialog(
   required String primary,
   String? secondary,
   DButtonKind primaryKind = DButtonKind.orange,
+  DButtonKind secondaryKind = DButtonKind.ghost,
   IconData? icon,
   Color? iconColor,
   Widget? preview,
@@ -891,7 +892,7 @@ Future<bool?> showDDialog(
             DButton(primary, kind: primaryKind, expand: true, onTap: () => Navigator.of(ctx).pop(true)),
             if (secondary != null) ...[
               const SizedBox(height: 8),
-              DButton(secondary, kind: DButtonKind.ghost, expand: true, onTap: () => Navigator.of(ctx).pop(false)),
+              DButton(secondary, kind: secondaryKind, expand: true, onTap: () => Navigator.of(ctx).pop(false)),
             ],
           ]),
         ),
