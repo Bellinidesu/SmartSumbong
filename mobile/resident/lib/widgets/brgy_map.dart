@@ -81,7 +81,7 @@ bool withinBrgyBounds(ll.LatLng p) =>
 
 /// What a map is for. The screen gives the data; this decides the look,
 /// the framing and the controls.
-enum BrgyMapMode { browse, report, pick, job, navigate }
+enum BrgyMapMode { browse, report, pick, job, navigate, tab }
 
 @immutable
 class BrgyMapUse {
@@ -94,12 +94,18 @@ class BrgyMapUse {
     this.layers = false,
     this.legend = false,
     this.scale = false,
+    this.panOnTap = true,
   });
 
   /// The resident's Map tab: pinned to the barangay like the portal, the
   /// whole dock, layers and legend.
   static const browse = BrgyMapUse._(BrgyMapMode.browse,
       interactive: true, bounded: true, zoomButtons: true, fitButton: true, layers: true, legend: true, scale: true);
+
+  /// The resident's Map tab, as a phone map works (20 Nov 2026, the Map tab artifact): pinch and double-tap to zoom, no
+  /// buttons of the map's own. The screen draws what sits over it (the Frame 183 button, Layers, the filter chips, the
+  /// pin's card) and decides what a tap on a pin does, so the map neither pans on a tap nor draws a dock.
+  static const tab = BrgyMapUse._(BrgyMapMode.tab, interactive: true, bounded: true, panOnTap: false);
 
   /// A picture of a place (View Report): no gestures, no controls.
   static const report = BrgyMapUse._(BrgyMapMode.report, interactive: false, bounded: false);
@@ -136,6 +142,10 @@ class BrgyMapUse {
   final bool legend;
 
   final bool scale;
+
+  /// A tap on a pin eases the camera to it, with the pin in the upper part of the map (the portal's way). Off where the
+  /// screen pans the map itself, knowing what it covers.
+  final bool panOnTap;
 
   /// Any control drawn over the map.
   bool get hasControls => zoomButtons || fitButton || layers || legend || scale;
@@ -220,8 +230,34 @@ class BrgyMapController {
 
   void move(ll.LatLng p, double zoom) {
     lastMove = (p, zoom);
+    camera.value = (p, zoom);
     _apply(ml.CameraUpdate.newLatLngZoom(_ml(p), _mlZoom(zoom)));
   }
+
+  /// The map's size on screen, given by the map once it is laid out.
+  Size? Function()? _sizeOf;
+
+  /// Pans the map, without zooming, so that [p] sits in the middle of what a screen leaves uncovered: [coveredTop]
+  /// logical pixels under a bar at the top, [coveredBottom] under a card at the bottom. This is how a card that rises
+  /// over the map keeps its pin in view (the Map tab artifact: "the map pans so the pin stays clear above the card").
+  void reveal(ll.LatLng p, {double coveredTop = 0, double coveredBottom = 0}) {
+    final size = _sizeOf?.call();
+    if (size == null || size.height <= 0) return;
+    final z = _map?.cameraPosition?.zoom ?? _mlZoom(camera.value?.$2 ?? lastMove?.$2 ?? 16);
+    final want = coveredTop + (size.height - coveredTop - coveredBottom) / 2;
+    // the camera's centre sits (h/2 - want) pixels south of the pin; a pin wanted above the middle has the centre below it
+    final centre = ll.LatLng(
+      p.latitude - _BrgyMapState._metresPerPixel(p.latitude, z) * (size.height / 2 - want) / 110574,
+      p.longitude,
+    );
+    lastMove = (centre, z + 1);
+    camera.value = (centre, z + 1);
+    _apply(ml.CameraUpdate.newLatLngZoom(_ml(centre), z));
+  }
+
+  /// Where the camera was last put (the API's zoom), for the stand-in a local capture draws.
+  @visibleForTesting
+  final camera = ValueNotifier<(ll.LatLng, double)?>(null);
 
   /// The last place [move] was asked for, for tests.
   @visibleForTesting
@@ -296,7 +332,18 @@ class BrgyMap extends StatefulWidget {
     this.controlsPadding = EdgeInsets.zero,
     this.cornerRadius = 0,
     this.cornerColour,
+    this.dimOutside,
+    this.showPlaces,
+    this.onMapTap,
   });
+
+  /// The Layers the screen controls itself (the Map tab's sheet): the fog outside the barangay, and the places to steer
+  /// by. Null leaves the map's own switches (the portal's Layers tile) in charge.
+  final bool? dimOutside;
+  final bool? showPlaces;
+
+  /// A tap on the map where there is no pin.
+  final VoidCallback? onMapTap;
 
   final BrgyMapUse use;
   final BrgyMapController? controller;
@@ -343,6 +390,10 @@ class BrgyMap extends StatefulWidget {
   @visibleForTesting
   static WidgetBuilder? stand;
 
+  /// Like [stand], with the map's own settings in hand, so a capture can draw its pins and where the camera was put.
+  @visibleForTesting
+  static Widget Function(BuildContext context, BrgyMap map)? standMap;
+
   @override
   State<BrgyMap> createState() => _BrgyMapState();
 }
@@ -362,8 +413,8 @@ class _BrgyMapState extends State<BrgyMap> {
 
   // the overlay's state: which card is open, which layers are on, the scale
   BrgyMapPanel _panel = BrgyMapPanel.none;
-  bool _dim = true;
-  bool _places = true;
+  late bool _dim = widget.dimOutside ?? true;
+  late bool _places = widget.showPlaces ?? true;
   final _scale = ValueNotifier<double?>(null);
 
   Future<String> _loadStyle(bool dark) =>
@@ -382,8 +433,23 @@ class _BrgyMapState extends State<BrgyMap> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _ctl._sizeOf = () => mounted ? context.size : null;
+  }
+
+  @override
   void didUpdateWidget(BrgyMap old) {
     super.didUpdateWidget(old);
+    final dim = widget.dimOutside, places = widget.showPlaces;
+    if (dim != null && dim != _dim) {
+      _dim = dim;
+      unawaited(_layersVisible(['brgy-fog', for (var k = 1; k <= 6; k++) 'fog-s$k'], dim));
+    }
+    if (places != null && places != _places) {
+      _places = places;
+      unawaited(_layersVisible(['landmarks-badge', 'landmarks-label'], places));
+    }
     if (!_styleReady) return;
     if (!listEquals(old.pins, widget.pins) || old.selectedPinId != widget.selectedPinId) unawaited(_setPins());
     if (!listEquals(old.route, widget.route)) unawaited(_setRoute());
@@ -415,7 +481,7 @@ class _BrgyMapState extends State<BrgyMap> {
     // enough to read the street, with the pin in the upper part of the
     // map so the card that rises from the bottom does not cover it.
     for (final p in widget.pins) {
-      if (p.id != id) continue;
+      if (p.id != id || !widget.use.panOnTap) continue;
       final map = _map;
       final cam = map?.cameraPosition;
       if (map != null && cam != null) {
@@ -477,26 +543,24 @@ class _BrgyMapState extends State<BrgyMap> {
 
   void _togglePanel(BrgyMapPanel p) => setState(() => _panel = _panel == p ? BrgyMapPanel.none : p);
 
-  Future<void> _setDim(bool on) async {
-    setState(() => _dim = on);
+  Future<void> _layersVisible(List<String> ids, bool on) async {
     final map = _map;
     if (map == null || !_styleReady) return;
-    for (final id in ['brgy-fog', for (var k = 1; k <= 6; k++) 'fog-s$k']) {
+    for (final id in ids) {
       try {
         await map.setLayerVisibility(id, on);
       } catch (_) {}
     }
   }
 
+  Future<void> _setDim(bool on) async {
+    setState(() => _dim = on);
+    await _layersVisible(['brgy-fog', for (var k = 1; k <= 6; k++) 'fog-s$k'], on);
+  }
+
   Future<void> _setPlaces(bool on) async {
     setState(() => _places = on);
-    final map = _map;
-    if (map == null || !_styleReady) return;
-    for (final id in ['landmarks-badge', 'landmarks-label']) {
-      try {
-        await map.setLayerVisibility(id, on);
-      } catch (_) {}
-    }
+    await _layersVisible(['landmarks-badge', 'landmarks-label'], on);
   }
 
   // ---------- layers -------------------------------------------
@@ -951,7 +1015,9 @@ class _BrgyMapState extends State<BrgyMap> {
   Widget _mapView(BuildContext context) {
     final style = _style;
     final bg = context.colors.bg;
-    if (style == null || !BrgyMap.nativeView) return BrgyMap.stand?.call(context) ?? ColoredBox(color: bg);
+    if (style == null || !BrgyMap.nativeView) {
+      return BrgyMap.standMap?.call(context, widget) ?? BrgyMap.stand?.call(context) ?? ColoredBox(color: bg);
+    }
     final use = widget.use;
     final i = use.interactive;
     final pad = widget.controlsPadding;
@@ -968,6 +1034,7 @@ class _BrgyMapState extends State<BrgyMap> {
       onCameraIdle: _idle,
       onMapClick: (_, _) {
         if (_panel != BrgyMapPanel.none) setState(() => _panel = BrgyMapPanel.none);
+        widget.onMapTap?.call();
       },
       trackCameraPosition: true,
       cameraTargetBounds: use.bounded
