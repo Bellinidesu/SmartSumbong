@@ -35,9 +35,13 @@ begin
     if (select count(*) from public.complaint_categories where active) = 0 then raise exception 'signed out: no active complaint categories'; end if;
     if (select count(*) from public.complaint_options where active) = 0 then raise exception 'signed out: no active complaint options'; end if;
     if (select count(*) from public.barangay_profile) = 0 then raise exception 'signed out: no barangay profile'; end if;
-    if (select count(*) from public.reports) <> 0 then raise exception 'signed out: reports are readable'; end if;
-    if (select count(*) from public.users) <> 0 then raise exception 'signed out: users are readable'; end if;
-    if (select count(*) from public.status_logs) <> 0 then raise exception 'signed out: case history is readable'; end if;
+    -- since 0181 the signed-out role holds no right on these tables at all: a refusal is as good as an empty answer
+    begin if (select count(*) from public.reports) <> 0 then raise exception 'signed out: reports are readable'; end if;
+    exception when insufficient_privilege then null; end;
+    begin if (select count(*) from public.users) <> 0 then raise exception 'signed out: users are readable'; end if;
+    exception when insufficient_privilege then null; end;
+    begin if (select count(*) from public.status_logs) <> 0 then raise exception 'signed out: case history is readable'; end if;
+    exception when insufficient_privilege then null; end;
     execute 'reset role';
     v_log := v_log || E'\n' || 'ok  signed out: complaint types and the barangay profile still read; reports, users and history do not';
   exception when others then
