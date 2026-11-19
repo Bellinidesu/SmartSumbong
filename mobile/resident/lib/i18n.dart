@@ -1618,12 +1618,6 @@ class Strings {
 
   // ---------- map ----------
   String get mapTitle => _t('${BarangayProfile.name} Map', 'Mapa ng ${BarangayProfile.name}');
-  String get mapHazardToggle => _t('Flood hazard', 'Panganib ng baha');
-  String get mapHazardLow => _t('Low', 'Mababa');
-  String get mapHazardMedium => _t('Medium', 'Katamtaman');
-  String get mapHazardHigh => _t('High', 'Mataas');
-  String get mapHazardSource =>
-      _t('100-year flood · Project NOAH', '100-taóng baha · Project NOAH');
   String get mapViewReport => _t('View report', 'Tingnan ang ulat');
   String get mapReportsSpotted =>
       _t('Reports spotted!', 'Nakita ang mga ulat!');
