@@ -11,6 +11,20 @@ import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 import '../models/complaint_category.dart';
 
+/// The fill of a picked pill: the category's colour, darkened (same hue and saturation, lightness stepped down) just
+/// until white lettering on it reaches 4.5:1, the WCAG AA ratio for text. A colour that already does is unchanged;
+/// the barangay's own colour stays what the dots, the bars and the map pins draw, and the unpicked tint is untouched.
+Color concernFill(Color colour) {
+  final hsl = HSLColor.fromColor(colour);
+  var l = hsl.lightness;
+  Color at(double l) => hsl.withLightness(l).toColor();
+  // (1 + .05) / (luminance + .05) >= 4.5  <=>  luminance <= .1833
+  while (l > 0 && at(l).computeLuminance() > 0.1833) {
+    l -= .005;
+  }
+  return at(l < 0 ? 0 : l);
+}
+
 /// A report keeps to one category (0176) and to three concerns (the database takes four; the form keeps to three).
 const maxConcerns = 3;
 
@@ -139,10 +153,10 @@ class ConcernPill extends StatelessWidget {
             constraints: const BoxConstraints(minHeight: 30),
             padding: EdgeInsets.fromLTRB(selected ? 9 : 12, 6, 12, 6),
             decoration: BoxDecoration(
-              color: selected ? colour : d.field,
+              color: selected ? concernFill(colour) : d.field,
               borderRadius: BorderRadius.circular(99),
-              border: Border.all(color: selected ? colour : Color.lerp(d.line, colour, .45)!),
-              boxShadow: selected ? [BoxShadow(color: colour.withValues(alpha: .35), blurRadius: 10, offset: const Offset(0, 4))] : null,
+              border: Border.all(color: selected ? concernFill(colour) : Color.lerp(d.line, colour, .45)!),
+              boxShadow: selected ? [BoxShadow(color: concernFill(colour).withValues(alpha: .35), blurRadius: 10, offset: const Offset(0, 4))] : null,
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               if (selected) ...[const Icon(Icons.check_rounded, size: 14, color: Colors.white), const SizedBox(width: 4)],
