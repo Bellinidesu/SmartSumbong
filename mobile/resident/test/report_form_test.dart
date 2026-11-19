@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resident/main.dart' show navigatorKey;
 import 'package:resident/models/complaint_catalogue.dart';
 import 'package:resident/models/complaint_category.dart';
+import 'package:resident/screens/where_screen.dart';
 import 'package:resident/widgets/brgy_map.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -94,8 +95,11 @@ void main() {
     await tester.tap(_inSheet('Unreasonable Neighborhood Noise'));
     await settle(tester);
 
-    // The second page shows them, and has no picker of its own.
+    // The second step is where it is; the third shows them, and has no picker of its own.
     await tester.tap(find.text('Continue'));
+    await settle(tester);
+    expect(find.text('Confirm this spot'), findsOneWidget);
+    await tester.tap(find.text('Confirm this spot'));
     await settle(tester);
     expect(find.text('+ Unreasonable Neighborhood Noise'), findsOneWidget);
     expect(find.text(more), findsNothing);
@@ -176,7 +180,7 @@ void main() {
         await prefs.setString('report_draft_v1',
             jsonEncode({'category': 'street_obstruction', 'description': typed, 'photoPaths': <String>[], 'videoPath': null, 'anonymous': false}));
       });
-      await _open(tester, '/submit-report/details', choice);
+      await _open(tester, '/submit-report/details', DetailsArgs(choice, const WhereResult(pin: brgyCentre)));
       expect(find.text('Restored your unfinished report.'), findsOneWidget);
       expect(find.text(typed), findsOneWidget);
     }
