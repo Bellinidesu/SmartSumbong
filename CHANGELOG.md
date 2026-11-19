@@ -24,6 +24,10 @@ Changes on `main` not yet deployed belong here.
 - Includes PR 433 (three picks per category, page one multi-select).
 - Tests: `test/where_screen_test.dart` (the strip with +N, Confirm on inside and off outside, Take me back, typing and picking a place, the words from the reverse lookup and the fallback, the details row and Change, the safety net, Tagalog); `report_form_test.dart` goes through the new step. `BrgyMap.stand` lets a local screen capture draw a map where none is made.
 
+**App 1.0.8.5B (build 10, 19 Nov, Ace's own build)**
+
+- The signed build that carries the three-picks form below. The version inside the app is 1.0.8 (build 10); "5B" is the label of the file. Not uploaded to App updates: it is for Ace's phone only
+
 **Concerns are picked from the list, no "add another" step (19 Nov, Rose)**
 
 - Filing a report: the category's own pills are now a multi-select. Tap up to three, tap again to put one down; the first one tapped is the main concern, the others ride with it, and a tick marks each picked pill. "Is there more than one problem?", the Add another concern chip and its sheet are gone, and so is the remove cross. A counter under the pills says "2 of 3 picked"; at three the others fade. A single pick still moves freely between categories; two or more ask before a category change clears them; Others stands alone. Built-in options with no row id (before the barangay's list has been read) stay single. Pills answer a 48 px touch.
