@@ -407,20 +407,6 @@ class TanodStrings {
   String get homeStatusUpdateFailed => _t(
       'Could not update your status. Please try again.',
       'Hindi ma-update ang iyong status. Pakisubukan muli.');
-  String get homeLocationSharing =>
-      _t('Sharing your location…', 'Ibinabahagi ang iyong lokasyon…');
-  String get homeLocationOff => _t(
-      'Location is off. You are on duty but cannot be sent nearby '
-      'complaints until you turn it on.',
-      'Nakapatay ang location. Nasa tungkulin ka na pero hindi ka '
-      'maipapadala sa malapit na reklamo hangga\'t hindi ito naka-on.');
-  String get homeLocationShared => _t(
-      'Location shared. You can be sent nearby complaints.',
-      'Naibahagi ang lokasyon. Maipapadala ka na sa malapit na reklamo.');
-  String get homeLocationShareFailed => _t(
-      'Could not share your location. Submit On Duty again to retry.',
-      'Hindi naibahagi ang lokasyon. I-submit ulit ang On Duty para '
-      'subukan muli.');
   // ---------- bottom navigation ----------
   String get navHome => _t('Home', 'Tahanan');
   String get navReports => _t('Reports', 'Mga Ulat');

@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Tanods: on duty is enough (19 Nov, Ace)**
+
+- On duty means assignable, off duty means not; the database already decided it that way (`sync_dispatchable`). The tanod app stops saying otherwise: the "Send my location now" card on Home and the duty sheet's location notes are gone, the sheet closes at once, and the location fix goes quietly in the background instead of holding up going on duty. It still sorts nearer tanods first on the portal and feeds turn-by-turn. The portal's half (the tanod picker) came with the hierarchy (0175).
+
 **The app's map is the portal's map (19 Nov)**
 
 - Every map in the app (the resident's Map tab, the report pages, the report form's pin picker, the tanod's dispatch order and window, turn-by-turn) is one rebuilt widget, `widgets/brgy_map.dart`, in the look of Spatial Distribution: the portal's map styles (light and dark, for residents and tanods alike), its pins (a disc in the complaint type's colour with the type's own symbol from the portal's icon family, a white edge, two shadows, sized with the zoom as the portal sizes them), the soft fog outside Barangay 183 and the large faint place names, and its framing (the residential grid, the portal's zoom range).
