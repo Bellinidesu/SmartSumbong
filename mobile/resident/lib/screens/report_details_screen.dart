@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LengthLimitingTextInputFormatter;
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +30,8 @@ import '../models/complaint_category.dart';
 import '../outbox.dart';
 import '../theme.dart';
 import '../widgets/brgy_map.dart';
+import '../widgets/complaints_strip.dart';
+import '../widgets/d_form.dart';
 import '../widgets/figma_ui.dart';
 import '../location_lookup.dart';
 import '../models/barangay_profile.dart';
@@ -58,6 +61,7 @@ class ReportDetailsScreen extends StatefulWidget {
     required this.choice,
     required this.uploader,
     this.where,
+    this.picks,
   });
 
   final CategoryChoice choice;
@@ -67,13 +71,23 @@ class ReportDetailsScreen extends StatefulWidget {
   /// barangay centre, which Change then moves.
   final WhereResult? where;
 
+  /// The picks shared with the first page and the Where screen (see [WhereArgs.picks]).
+  final ValueNotifier<CategoryChoice>? picks;
+
   @override
   State<ReportDetailsScreen> createState() => _ReportDetailsScreenState();
 }
 
 class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
+  /// What was picked on the first page (the main concern and the others, 0163). "Your complaints" changes it here
+  /// and on the Where screen; the first page shows the same picks if the resident goes back to it.
+  late CategoryChoice _choice = widget.choice;
+
   /// 0163: the other concerns, picked on the first page under the same category (Rose, 18 Nov 2026).
-  List<ExtraConcern> get _extras => widget.choice.extras;
+  List<ExtraConcern> get _extras => _choice.extras;
+
+  /// How the description opens: the main concern the form was opened with ("Illegal Parking — ").
+  late final String _prefill = widget.choice.descriptionPrefill;
   late final TextEditingController _description;
 
   /// The spot chosen on the Where screen (step 2); Change replaces it.
@@ -105,9 +119,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _description =
-        TextEditingController(text: widget.choice.descriptionPrefill);
+    _description = TextEditingController(text: _prefill);
     _description.addListener(_scheduleDraftSave);
+    widget.picks?.addListener(_picksChanged);
     brgyBoundary().then((r) {
       if (mounted) setState(() => _rings = r);
     });
@@ -116,10 +130,27 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   @override
   void dispose() {
+    widget.picks?.removeListener(_picksChanged);
     _draftDebounce?.cancel();
     _description.dispose();
     super.dispose();
   }
+
+  // ---------- the complaints -------------------------------------
+
+  void _picksChanged() {
+    final v = widget.picks?.value;
+    if (v != null && mounted) setState(() => _choice = v);
+  }
+
+  void _setChoice(CategoryChoice c) {
+    setState(() => _choice = c);
+    widget.picks?.value = c;
+    _scheduleDraftSave();
+  }
+
+  /// See all categories: back to the first page, which has the same picks.
+  void _seeAll() => Navigator.of(context).popUntil((r) => r.settings.name == '/submit-report' || r.isFirst);
 
   // ---------- location ---------------------------------------
 
@@ -127,7 +158,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   Future<void> _changeLocation() async {
     final res = await Navigator.of(context).pushNamed<WhereResult>(
       '/submit-report/where',
-      arguments: WhereArgs(widget.choice, current: _where, returnResult: true),
+      arguments: WhereArgs(_choice, current: _where, returnResult: true, picks: widget.picks),
     );
     if (res == null || !mounted) return;
     setState(() {
@@ -153,13 +184,14 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       );
 
 
-  Future<void> _addPhoto() async {
+  /// Take photo and Gallery are two tiles now, so the source is known: the camera or the gallery, with the same
+  /// permission asks as when one sheet offered both.
+  Future<void> _addPhoto(ImageSource source) async {
     if (_photos.length >= _maxPhotos) {
       setState(() => _banner = context.s.reportDetailsPhotoLimit(_maxPhotos));
       return;
     }
-    final source = await _chooseSource(context);
-    if (source == null || !mounted) return;
+    if (!mounted) return;
     final s = context.s;
     final granted = await PermissionGate.ensure(
       context,
@@ -258,7 +290,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       // An empty, untouched form is nothing worth remembering — drop any
       // previously-saved draft instead of writing a blank one back. Only
       // the issue's own prefill ("Potholes —") is untouched too.
-      final typed = description.isNotEmpty && description != widget.choice.descriptionPrefill.trim();
+      final typed = description.isNotEmpty && description != _prefill.trim();
       // The other concerns are not kept: they are picked on the first page, which a draft does not reopen.
       if (!typed && _photos.isEmpty && _video == null) {
         await prefs.remove(_draftPrefsKey);
@@ -267,7 +299,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       await prefs.setString(
         _draftPrefsKey,
         jsonEncode({
-          'category': widget.choice.category.wire,
+          'category': _choice.category.wire,
           'description': description,
           'photoPaths': _photos.map((f) => f.path).toList(),
           'videoPath': _video?.path,
@@ -290,7 +322,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       // Only ever restores into the same category it was saved from —
       // a mismatch (resident backed out and picked a different category)
       // leaves the old draft alone rather than guessing where it belongs.
-      if (draft['category'] != widget.choice.category.wire) return;
+      if (draft['category'] != _choice.category.wire) return;
 
       // Picked files can live in a cache directory the OS is free to
       // clear between launches. Each path is checked before it's trusted
@@ -309,7 +341,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       }
       final saved = (draft['description'] as String?) ?? '';
       // A draft that only ever held the issue's prefill (saved before that counted as untouched) is nothing to restore.
-      final restoredDescription = saved.trim() == widget.choice.descriptionPrefill.trim() ? '' : saved;
+      final restoredDescription = saved.trim() == _prefill.trim() ? '' : saved;
       // An older draft's 'concerns' are left alone: the other concerns are picked on the first page now (Rose,
       // 18 Nov 2026), and what was picked there a moment ago is what this report files with.
 
@@ -369,7 +401,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     );
     if (keep != false || !mounted) return;
     setState(() {
-      _description.text = widget.choice.descriptionPrefill;
+      _description.text = _prefill;
       _photos.clear();
       _uploaded.clear();
       _video = null;
@@ -416,8 +448,8 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   Future<void> _queue() async {
     await Outbox.instance.enqueue(
       id: _clientRef,
-      category: widget.choice.category.wire,
-      subject: widget.choice.subject,
+      category: _choice.category.wire,
+      subject: _choice.subject,
       description: _description.text.trim(),
       latitude: _pin.latitude,
       longitude: _pin.longitude,
@@ -429,7 +461,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           for (final m in _uploaded) m.toJson(),
       ],
       uploadedVideo: _uploadedVideo?.toJson(),
-      optionId: widget.choice.optionId,
+      optionId: _choice.optionId,
       concerns: [for (final x in _extras) x.toJson()],
     );
     unawaited(_clearDraft());
@@ -497,9 +529,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       final row = await Supabase.instance.client.rpc(
         'file_report',
         params: {
-          ...concernParams(widget.choice.optionId, [for (final x in _extras) x.toJson()]),
-          'p_category': widget.choice.category.wire,
-          'p_subject': widget.choice.subject,
+          ...concernParams(_choice.optionId, [for (final x in _extras) x.toJson()]),
+          'p_category': _choice.category.wire,
+          'p_subject': _choice.subject,
           'p_description': _description.text.trim(),
           'p_latitude': _pin.latitude,
           'p_longitude': _pin.longitude,
@@ -565,156 +597,181 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   }
 
   // ---------- build ------------------------------------------
+  // The report form, as the approved artifact draws it (FinalTop, D1, D2): Back and "Step 3 of 3", the category as
+  // the title, "Complete the details below.", the complaints strip in one row, the spot as one row with Change, then
+  // 1 Describe what happened (a preview that opens the big pop-up), 2 Attach your photo (and the optional video),
+  // the anonymous card, the acknowledgement, and Back / Submit pinned at the bottom.
 
-  // Branch D: the report form in the preview's look — back, the issue in
-  // its category colour, then the three steps as numbered white cards
-  // (where, what happened, photos and video), the anonymous switch and
-  // the acknowledgement, and Back / Submit pinned at the bottom.
+  /// The big pop-up for the description (DP): the text is the form's own, so Done and the cross both keep it.
+  Future<void> _openDescribe() async {
+    FocusScope.of(context).unfocus();
+    _description.selection = TextSelection.collapsed(offset: _description.text.length);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.d.bg,
+      barrierColor: Colors.black.withValues(alpha: context.d.dark ? .55 : .40),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (_) => _DescribeSheet(controller: _description, choice: _choice),
+    );
+    if (mounted) setState(() => _errors.remove('description'));
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final d = context.d;
-    final col = categoryColour(widget.choice.category);
-    Widget section(int n, String title, List<Widget> body) => Container(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-          decoration: d.cardBox(18),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: col),
-                child: Center(child: Text('$n', style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 13, color: Colors.white))),
-              ),
-              const SizedBox(width: 10),
-              Expanded(child: Text(title, style: DType.body(d.ink, size: 15, w: FontWeight.w800))),
-            ]),
-            const SizedBox(height: 12),
-            ...body,
-          ]),
-        );
+    final col = categoryColour(_choice.category);
+    final catName = context.tr(_choice.category.label, _choice.category.labelFil);
 
     return DPage(
+      bottomBar: DFormBar(
+        backLabel: s.reportDetailsBack,
+        onBack: _busy ? null : () => Navigator.of(context).pop(),
+        okLabel: s.reportDetailsSubmit,
+        onOk: _busy ? null : _submit,
+        busy: _busy,
+      ),
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
-        child: Column(children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
-              children: [
-                Row(children: [
-                  DBack(onTap: _busy ? () {} : null),
-                  const Spacer(),
-                  // page one is step 1, Where is it? step 2
-                  Container(
-                    height: 28,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: d.line)),
-                    child: Text(context.tr('Step 3 of 3', 'Hakbang 3 ng 3'), style: DType.body(d.ink2, size: 12, w: FontWeight.w800).copyWith(height: 1)),
-                  ),
-                ]),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
-                  const SizedBox(width: 8),
-                  Text(context.tr(widget.choice.category.label, widget.choice.category.labelFil).toUpperCase(), style: DType.label(d.muted)),
-                ]),
-                const SizedBox(height: 6),
-                DHeading(widget.choice.issue == null ? context.tr(widget.choice.category.label, widget.choice.category.labelFil) : context.tr(widget.choice.issue!, widget.choice.issueFil ?? widget.choice.issue!), lead: s.reportDetailsCompleteBelow),
-                // The other concerns picked on the first page; Back changes them.
-                if (_extras.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(spacing: 6, runSpacing: 6, children: [
-                    for (final x in _extras)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: col.withValues(alpha: d.dark ? .22 : .12),
-                          borderRadius: BorderRadius.circular(99),
-                          border: Border.all(color: col.withValues(alpha: .6)),
-                        ),
-                        child: Text('+ ${context.tr(x.option?.en ?? x.category.label, x.option?.fil ?? x.category.labelFil)}',
-                            style: DType.body(d.ink, size: 12.5, w: FontWeight.w700)),
-                      ),
-                  ]),
-                ],
-                const SizedBox(height: 14),
-                if (_banner != null) ...[
-                  _Banner(_banner!),
-                  const SizedBox(height: 14),
-                ],
-                _LocationRow(
-                  colour: col,
-                  near: whereNearLine(context, _where.near),
-                  zone: whereZoneLine(),
-                  error: _errors['location'],
-                  enabled: !_busy,
-                  onChange: _changeLocation,
-                ),
-                const SizedBox(height: 12),
-                section(1, s.reportDetailsStep2, [
-                  _DescriptionBox(controller: _description, error: _errors['description'], enabled: !_busy),
-                ]),
-                const SizedBox(height: 12),
-                section(2, s.reportDetailsStep3, [
-                  _PhotoStrip(photos: _photos, max: _maxPhotos, enabled: !_busy, onAdd: _addPhoto, onRemove: _removePhoto),
-                  const SizedBox(height: 12),
-                  _VideoAttach(video: _video, enabled: !_busy, onAdd: _addVideo, onRemove: _removeVideo),
-                ]),
-                const SizedBox(height: 12),
-                DSheet(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(s.reportDetailsAnonymousQuestion, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
-                    const SizedBox(height: 6),
-                    Row(children: [
-                      DToggle(
-                        on: _anonymous,
-                        label: s.reportDetailsAnonymousQuestion,
-                        onTap: _busy
-                            ? null
-                            : () {
-                                setState(() => _anonymous = !_anonymous);
-                                _scheduleDraftSave();
-                              },
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(_anonymous ? s.reportDetailsHiddenNote : s.reportDetailsShownNote, style: DType.body(d.muted, size: 12))),
-                    ]),
-                  ]),
-                ),
-                const SizedBox(height: 12),
-                _Acknowledgement(
-                  value: _acknowledged,
-                  error: _errors['ack'],
-                  enabled: !_busy,
-                  onChanged: (v) => setState(() {
-                    _acknowledged = v ?? false;
-                    _errors.remove('ack');
-                  }),
-                ),
-              ],
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+          children: [
+            Row(children: [
+              DFormBack(onTap: _busy ? () {} : null),
+              const Spacer(),
+              // page one is step 1, Where is it? step 2
+              DStepChip(context.tr('Step 3 of 3', 'Hakbang 3 ng 3')),
+            ]),
+            const SizedBox(height: 16),
+            Row(children: [
+              Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
+              const SizedBox(width: 10),
+              Expanded(child: Text(catName, style: DType.h1(d.ink).copyWith(fontSize: 28, height: 34 / 28, letterSpacing: -.28))),
+            ]),
+            const SizedBox(height: 4),
+            Text(s.reportDetailsCompleteBelow, style: DType.body(d.ink2, size: 14).copyWith(height: 20 / 14)),
+            const SizedBox(height: 8),
+            // The picks in one row; tapping them opens "Your complaints". Back / See all categories change them there.
+            Align(alignment: Alignment.centerLeft, child: ComplaintsStrip(choice: _choice, onChanged: _setChoice, onSeeAll: _seeAll)),
+            const SizedBox(height: 22),
+            if (_banner != null) ...[
+              _Banner(_banner!),
+              const SizedBox(height: 14),
+            ],
+            _LocationRow(
+              colour: col,
+              near: whereNearLine(context, _where.near),
+              zone: whereZoneLine(),
+              error: _errors['location'],
+              enabled: !_busy,
+              onChange: _changeLocation,
             ),
-          ),
-          Container(
-            decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-            child: SafeArea(
-              top: false,
-              child: Row(children: [
-                Expanded(child: DButton(s.reportDetailsBack, kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
-                const SizedBox(width: 10),
-                Expanded(child: DButton(s.reportDetailsSubmit, expand: true, busy: _busy, onTap: _busy ? null : _submit)),
+            const SizedBox(height: 12),
+            _Section(1, s.reportDetailsStep2, col, [
+              _DescribePreview(controller: _description, error: _errors['description'], enabled: !_busy, onTap: _openDescribe),
+            ]),
+            const SizedBox(height: 12),
+            _Section(2, s.reportDetailsStep3, col, [
+              _PhotoStrip(
+                photos: _photos,
+                max: _maxPhotos,
+                enabled: !_busy,
+                onCamera: () => _addPhoto(ImageSource.camera),
+                onGallery: () => _addPhoto(ImageSource.gallery),
+                onRemove: _removePhoto,
+              ),
+              const _Divider(),
+              _VideoRow(video: _video, enabled: !_busy, onAdd: _addVideo, onRemove: _removeVideo),
+            ]),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: _cardDeco(d, 24),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(s.reportDetailsAnonymousQuestion, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800).copyWith(height: 20 / 14.5)),
+                const SizedBox(height: 10),
+                Row(children: [
+                  _Switch(
+                    on: _anonymous,
+                    label: s.reportDetailsAnonymousQuestion,
+                    onTap: _busy
+                        ? null
+                        : () {
+                            setState(() => _anonymous = !_anonymous);
+                            _scheduleDraftSave();
+                          },
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(_anonymous ? s.reportDetailsHiddenNote : s.reportDetailsShownNote, style: DType.body(d.muted, size: 12.5).copyWith(height: 17 / 12.5))),
+                ]),
               ]),
             ),
-          ),
-        ]),
+            const SizedBox(height: 12),
+            _Acknowledgement(
+              value: _acknowledged,
+              error: _errors['ack'],
+              enabled: !_busy,
+              onChanged: (v) => setState(() {
+                _acknowledged = v ?? false;
+                _errors.remove('ack');
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 // ---------- pieces -------------------------------------------
+
+/// The artifact's card: the card colour, a hairline, a soft shadow.
+BoxDecoration _cardDeco(DColors d, double radius) => BoxDecoration(
+      color: d.card,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: d.line),
+      boxShadow: [BoxShadow(color: d.dark ? const Color(0x73000000) : const Color(0x23141B34), blurRadius: 10, offset: const Offset(0, 2))],
+    );
+
+/// A numbered card: the step's number in the category's colour, its title, and what it holds.
+class _Section extends StatelessWidget {
+  const _Section(this.n, this.title, this.colour, this.body);
+
+  final int n;
+  final String title;
+  final Color colour;
+  final List<Widget> body;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDeco(d, 24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: colour),
+            child: Center(child: Text('$n', style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 13, height: 1, color: Colors.white))),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(title, style: DType.body(d.ink, size: 16, w: FontWeight.w800).copyWith(height: 1.2))),
+        ]),
+        ...body,
+      ]),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Container(height: 1, color: context.d.line));
+}
 
 /// The spot chosen on the Where screen, as one row: the pin in the category's colour, "Near X" and the zone, and
 /// Change, which opens that screen again.
@@ -734,8 +791,8 @@ class _LocationRow extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Container(
         constraints: const BoxConstraints(minHeight: 72),
-        padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
-        decoration: d.cardBox(20),
+        padding: const EdgeInsets.fromLTRB(14, 10, 12, 5),
+        decoration: _cardDeco(d, 20),
         child: Row(children: [
           Container(
             width: 40,
@@ -745,18 +802,18 @@ class _LocationRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              Text(near, maxLines: 2, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 15, w: FontWeight.w800).copyWith(height: 20 / 15)),
-              Text(zone, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.muted, size: 12.5).copyWith(height: 17 / 12.5)),
-            ]),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text(near, maxLines: 2, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 15, w: FontWeight.w800).copyWith(height: 20 / 15)),
+                Text(zone, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.muted, size: 12.5).copyWith(height: 17 / 12.5)),
+              ]),
+            ),
           ),
           const SizedBox(width: 8),
-          Semantics(
-            label: context.tr('Change the location', 'Baguhin ang lokasyon'),
-            button: true,
-            excludeSemantics: true,
-            onTap: enabled ? onChange : null,
-            child: DButton(context.tr('Change', 'Baguhin'), kind: DButtonKind.ghost, small: true, onTap: enabled ? onChange : null),
+          Align(
+            alignment: Alignment.topCenter,
+            child: DFormButton(context.tr('Change', 'Baguhin'), kind: DFormKind.ghost, small: true, fit: true, onTap: enabled ? onChange : null),
           ),
         ]),
       ),
@@ -769,196 +826,296 @@ class _LocationRow extends StatelessWidget {
   }
 }
 
-class _DescriptionBox extends StatelessWidget {
-  const _DescriptionBox({
-    required this.controller,
-    this.error,
-    this.enabled = true,
-  });
+/// "1 Describe what happened": the text so far (three lines at most) in the form's field look, "Tap to write more"
+/// at its corner; a tap opens the big pop-up.
+class _DescribePreview extends StatelessWidget {
+  const _DescribePreview({required this.controller, required this.error, required this.enabled, required this.onTap});
 
   final TextEditingController controller;
   final String? error;
   final bool enabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 128,
-          decoration: BoxDecoration(
-            color: context.colors.field,
-            border: Border.all(color: error == null ? context.colors.navy : context.colors.hint),
-            borderRadius: BorderRadius.circular(25),
-          ),
-          padding: const EdgeInsets.fromLTRB(17, 11, 17, 6),
-          child: Column(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  enabled: enabled,
-                  maxLines: null,
-                  expands: true,
-                  maxLength: _maxDescription,
-                  textAlignVertical: TextAlignVertical.top,
-                  style: TextStyle(fontSize: 12, color: context.colors.navy),
-                  decoration: InputDecoration(
-                    hintText: context.s.reportDetailsDescribeHint,
-                    hintStyle: TextStyle(fontSize: 12, color: context.colors.muted),
-                    // The Container above draws the box. Clearing
-                    // `border` alone is not enough: the global
-                    // InputDecorationTheme sets enabledBorder and
-                    // focusedBorder too, and those take precedence, so
-                    // the theme's pill was being drawn inside the box.
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    disabledBorder: InputBorder.none,
-                    errorBorder: InputBorder.none,
-                    focusedErrorBorder: InputBorder.none,
-                    filled: false,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                    counterText: '',
+    final d = context.d;
+    final red = d.dark ? const Color(0xFFFF8A8A) : DColors.red;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            final text = value.text.trim();
+            return Semantics(
+              button: true,
+              enabled: enabled,
+              label: '${context.s.reportDetailsStep2}. ${text.isEmpty ? context.s.reportDetailsDescribeHint : text}',
+              hint: text.isEmpty ? context.tr('Tap to write', 'I-tap para magsulat') : context.tr('Tap to write more', 'I-tap para dagdagan'),
+              excludeSemantics: true,
+              child: Material(
+                color: d.field,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: error == null ? d.line : red, width: 1.5)),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: enabled ? onTap : null,
+                  child: SizedBox(
+                    height: 104,
+                    child: Stack(children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                        child: Text(
+                          text.isEmpty ? context.s.reportDetailsDescribeHint : text,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: DType.body(text.isEmpty ? d.muted : d.ink, size: 14).copyWith(height: 1.45),
+                        ),
+                      ),
+                      Positioned(
+                        right: 14,
+                        bottom: 10,
+                        child: Text(text.isEmpty ? context.tr('Tap to write', 'I-tap para magsulat') : context.tr('Tap to write more', 'I-tap para dagdagan'),
+                            style: DType.body(d.muted, size: 12, w: FontWeight.w700).copyWith(height: 1)),
+                      ),
+                    ]),
                   ),
                 ),
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: controller,
-                  builder: (_, value, _) => Text(
-                    context.s.reportDetailsCounter(
-                        value.text.characters.length, _maxDescription),
-                    style: TextStyle(fontSize: 10, color: context.colors.navy),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
         if (error != null)
           Padding(
-            padding: const EdgeInsets.only(left: 17, top: 4),
-            child: Text(error!,
-                style: TextStyle(color: context.colors.hint, fontSize: 11)),
+            padding: const EdgeInsets.only(left: 4, top: 6),
+            child: Text(error!, style: DType.body(red, size: 12.5, w: FontWeight.w600)),
           ),
-      ],
+      ]),
     );
   }
 }
 
+/// The big pop-up for the description (DP): the title and a 44 px close, every picked concern as context, a large
+/// text area with an orange border and the count, one line of help, and Done above the keyboard.
+class _DescribeSheet extends StatelessWidget {
+  const _DescribeSheet({required this.controller, required this.choice});
+
+  final TextEditingController controller;
+  final CategoryChoice choice;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final size = MediaQuery.sizeOf(context);
+    final kb = MediaQuery.viewInsetsOf(context).bottom;
+    final top = MediaQuery.paddingOf(context).top;
+    final bottom = kb > 0 ? 0.0 : MediaQuery.paddingOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: kb),
+      child: SizedBox(
+        height: size.height - top - kb,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(18, 12, 18, 9 + bottom),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Expanded(
+                  child: Text(context.s.reportDetailsStep2,
+                      style: DType.h2(d.ink).copyWith(fontSize: 21, height: 28 / 21, letterSpacing: -.21))),
+              Semantics(
+                button: true,
+                label: context.tr('Close', 'Isara'),
+                excludeSemantics: true,
+                child: Material(
+                  color: d.card,
+                  shape: CircleBorder(side: BorderSide(color: d.line)),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.of(context).pop(),
+                    child: SizedBox(width: 44, height: 44, child: Icon(Icons.close_rounded, size: 20, color: d.ink)),
+                  ),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 4),
+            Align(alignment: Alignment.centerLeft, child: ComplaintsStrip(choice: choice, all: true)),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: DColors.orange, width: 2)),
+                child: Stack(children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
+                    child: TextField(
+                      controller: controller,
+                      autofocus: true,
+                      maxLines: null,
+                      expands: true,
+                      keyboardType: TextInputType.multiline,
+                      textCapitalization: TextCapitalization.sentences,
+                      textAlignVertical: TextAlignVertical.top,
+                      inputFormatters: [LengthLimitingTextInputFormatter(_maxDescription)],
+                      cursorColor: DColors.orange,
+                      style: DType.body(d.ink, size: 15).copyWith(height: 1.5),
+                      decoration: InputDecoration(
+                        isCollapsed: true,
+                        hintText: context.s.reportDetailsDescribeHint,
+                        hintStyle: DType.body(d.muted, size: 15).copyWith(height: 1.5),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: false,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 14,
+                    bottom: 10,
+                    child: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: controller,
+                      builder: (context, v, _) {
+                        final n = v.text.characters.length;
+                        return Text(
+                          // the count, and the limit once it is near
+                          n >= _maxDescription - 50
+                              ? context.tr('$n / $_maxDescription characters', '$n / $_maxDescription na character')
+                              : context.tr('$n characters', '$n na character'),
+                          style: DType.body(d.muted, size: 12, w: FontWeight.w700).copyWith(height: 1),
+                        );
+                      },
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+                context.tr('Helpful to add: when it started, who or what is involved, a landmark nearby.',
+                    'Makakatulong idagdag: kailan ito nagsimula, sino o ano ang sangkot, at kalapit na landmark.'),
+                style: DType.body(d.muted, size: 12.5).copyWith(height: 18 / 12.5)),
+            const SizedBox(height: 8),
+            DFormButton(context.tr('Done', 'Tapos na'), onTap: () => Navigator.of(context).pop()),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// The photos as 96 x 72 thumbnails with a remove cross, then the dashed Take photo and Gallery tiles, and the
+/// count under them.
 class _PhotoStrip extends StatelessWidget {
-  const _PhotoStrip({
-    required this.photos,
-    required this.max,
-    required this.enabled,
-    required this.onAdd,
-    required this.onRemove,
-  });
+  const _PhotoStrip({required this.photos, required this.max, required this.enabled, required this.onCamera, required this.onGallery, required this.onRemove});
 
   final List<File> photos;
   final int max;
   final bool enabled;
-  final VoidCallback onAdd;
+  final VoidCallback onCamera;
+  final VoidCallback onGallery;
   final ValueChanged<int> onRemove;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
+    final d = context.d;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const SizedBox(height: 12),
+      Wrap(spacing: 10, runSpacing: 10, children: [
         for (var i = 0; i < photos.length; i++)
           SizedBox(
-            width: 100,
-            height: 100,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
+            width: 96,
+            height: 72,
+            child: Stack(clipBehavior: Clip.none, children: [
+              Positioned.fill(
+                child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Image.file(photos[i], fit: BoxFit.cover),
+                  child: Image.file(photos[i], fit: BoxFit.cover, errorBuilder: (_, _, _) => ColoredBox(color: d.field)),
                 ),
-                Positioned(
-                  top: -6,
-                  right: -6,
-                  child: IconButton(
-                    icon: Icon(Icons.cancel, color: context.colors.navy),
-                    onPressed: enabled ? () => onRemove(i) : null,
+              ),
+              // a 44 px touch round a 22 px cross, over the thumbnail's corner
+              Positioned(
+                top: -14,
+                right: -14,
+                child: Semantics(
+                  button: true,
+                  label: context.tr('Remove photo ${i + 1}', 'Alisin ang larawan ${i + 1}'),
+                  excludeSemantics: true,
+                  child: InkResponse(
+                    onTap: enabled ? () => onRemove(i) : null,
+                    radius: 22,
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: d.card, border: Border.all(color: d.line), boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 3)]),
+                          child: Icon(Icons.close_rounded, size: 14, color: d.ink),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-        if (photos.length < max)
-          InkWell(
-            onTap: enabled ? onAdd : null,
-            borderRadius: BorderRadius.circular(25),
-            child: Container(
-              // Full width, like the video tile below, until there are
-              // photos to sit beside.
-              width: photos.isEmpty ? double.infinity : 174,
-              height: photos.isEmpty ? 96 : 128,
-              decoration: BoxDecoration(
-                color: context.colors.field,
-                borderRadius: BorderRadius.circular(25),
               ),
-              child: CustomPaint(
-                painter: _DashedBorder(color: context.colors.navy),
-                // The frame's tile: its own 20x20 icon, 8 left of the
-                // two lines, the pair centred in the 174x128 tile.
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('assets/images/icon-attach.png',
-                        width: 20, height: 20, color: context.colors.navy),
-                    const SizedBox(width: 8),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(context.s.reportDetailsAttachMedia,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                              height: 14 / 12,
-                              color: context.colors.navy,
-                            )),
-                        Text(context.s.reportDetailsMaxPhotoSize,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w400,
-                              fontSize: 10,
-                              height: 1,
-                              fontStyle: FontStyle.italic,
-                              color: context.colors.navy,
-                            )),
-                      ],
-                    ),
-                  ],
-                ),
+            ]),
+          ),
+        _Tile(icon: Icons.photo_camera_outlined, label: context.tr('Take photo', 'Kumuha ng larawan'), onTap: enabled ? onCamera : null),
+        _Tile(icon: Icons.image_outlined, label: context.tr('Gallery', 'Gallery'), onTap: enabled ? onGallery : null),
+      ]),
+      const SizedBox(height: 8),
+      Text(context.tr('${photos.length} of $max photos', '${photos.length} sa $max larawan'), style: DType.body(d.muted, size: 12.5).copyWith(height: 18 / 12.5)),
+    ]);
+  }
+}
+
+class _Tile extends StatelessWidget {
+  const _Tile({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: label,
+      excludeSemantics: true,
+      child: Opacity(
+        opacity: onTap == null ? .5 : 1,
+        child: Material(
+          color: d.field,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: CustomPaint(
+              painter: _DashedBorder(color: d.dark ? const Color(0xFF3C414A) : const Color(0xFFC3CBDD)),
+              child: SizedBox(
+                width: 96,
+                height: 72,
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(icon, size: 22, color: d.ink),
+                  const SizedBox(height: 4),
+                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 12.5, w: FontWeight.w700).copyWith(height: 1)),
+                ]),
               ),
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 }
 
-/// One optional video, styled to match [_PhotoStrip]'s "Attach Media"
-/// tile. Deliberately singular — file_report()/report_media has no
-/// notion of "several videos" the way photos do.
-class _VideoAttach extends StatelessWidget {
-  const _VideoAttach({
-    required this.video,
-    required this.enabled,
-    required this.onAdd,
-    required this.onRemove,
-  });
+/// The optional video: a round video icon, the two lines, and a small outlined Add (or, once one is attached, the
+/// note and Remove). One video per report: file_report()/report_media has no notion of several.
+class _VideoRow extends StatelessWidget {
+  const _VideoRow({required this.video, required this.enabled, required this.onAdd, required this.onRemove});
 
   final File? video;
   final bool enabled;
@@ -967,74 +1124,33 @@ class _VideoAttach extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (video != null) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: context.colors.field,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.videocam, color: context.colors.navy),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                context.s.reportDetailsVideoAttachedNote,
-                style: TextStyle(fontSize: 12, color: context.colors.navy),
-              ),
-            ),
-            IconButton(
-              icon: Icon(Icons.cancel, color: context.colors.navy),
-              onPressed: enabled ? onRemove : null,
-            ),
-          ],
-        ),
-      );
-    }
-    return InkWell(
-      onTap: enabled ? onAdd : null,
-      borderRadius: BorderRadius.circular(25),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: context.colors.field,
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: CustomPaint(
-          painter: _DashedBorder(color: context.colors.navy),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.videocam_outlined, color: context.colors.navy, size: 22),
-              const SizedBox(height: 6),
-              Text(context.s.reportDetailsAttachVideoOptional,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                    color: context.colors.navy,
-                  )),
-              Text(context.s.reportDetailsMaxVideoSize,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontStyle: FontStyle.italic,
-                    color: context.colors.navy,
-                  )),
-            ],
-          ),
-        ),
+    final d = context.d;
+    final s = context.s;
+    final has = video != null;
+    return Row(children: [
+      Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: d.field),
+        child: Icon(Icons.videocam_outlined, size: 20, color: d.ink),
       ),
-    );
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          Text(has ? s.reportDetailsVideoAttachedNote : s.reportDetailsAttachVideoOptional, style: DType.body(d.ink, size: 14, w: FontWeight.w800).copyWith(height: 19 / 14)),
+          if (!has) Text(s.reportDetailsMaxVideoSize, style: DType.body(d.muted, size: 12.5).copyWith(height: 17 / 12.5)),
+        ]),
+      ),
+      const SizedBox(width: 12),
+      has
+          ? DFormButton(context.tr('Remove', 'Alisin'), kind: DFormKind.ghost, small: true, fit: true, onTap: enabled ? onRemove : null)
+          : DFormButton(context.tr('Add', 'Idagdag'), kind: DFormKind.ghost, small: true, fit: true, icon: Icons.add_rounded, onTap: enabled ? onAdd : null),
+    ]);
   }
 }
 
 class _DashedBorder extends CustomPainter {
-  // A CustomPainter has no BuildContext of its own, so the theme-aware
-  // colour has to be resolved by the widget building it (which does
-  // have one) and passed in here — the same reason ReportStatus.
-  // labelColour became a method rather than a getter.
+  // A CustomPainter has no BuildContext of its own, so the theme-aware colour is resolved by the widget building it.
   const _DashedBorder({required this.color});
 
   final Color color;
@@ -1044,97 +1160,132 @@ class _DashedBorder extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      const Radius.circular(25),
-    );
-    final path = Path()..addRRect(rrect);
-
+      ..strokeWidth = 1.5;
+    final path = Path()..addRRect(RRect.fromRectAndRadius((Offset.zero & size).deflate(.75), const Radius.circular(16)));
     const dash = 6.0;
     const gap = 4.0;
     for (final metric in path.computeMetrics()) {
-      var d = 0.0;
-      while (d < metric.length) {
-        canvas.drawPath(
-          metric.extractPath(d, (d + dash).clamp(0, metric.length)),
-          paint,
-        );
-        d += dash + gap;
+      var at = 0.0;
+      while (at < metric.length) {
+        canvas.drawPath(metric.extractPath(at, (at + dash).clamp(0, metric.length)), paint);
+        at += dash + gap;
       }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _DashedBorder oldDelegate) =>
-      oldDelegate.color != color;
+  bool shouldRepaint(covariant _DashedBorder old) => old.color != color;
 }
 
+/// The artifact's switch: 52 x 32, a 24 px knob. Drawn 32 high, touched 44 high.
+class _Switch extends StatelessWidget {
+  const _Switch({required this.on, required this.onTap, required this.label});
+
+  final bool on;
+  final VoidCallback? onTap;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Semantics(
+      toggled: on,
+      label: label,
+      enabled: onTap != null,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Opacity(
+          opacity: onTap == null ? .5 : 1,
+          child: SizedBox(
+            width: 52,
+            height: 44,
+            child: Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 52,
+                height: 32,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: on ? const Color(0xFF1F8A45) : (d.dark ? const Color(0xFF3C414A) : const Color(0xFFC3CBDD)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white, boxShadow: [BoxShadow(color: Color(0x59000000), blurRadius: 3, offset: Offset(0, 1))]),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The acknowledgement: a 22 px navy box with a tick, and the sentence, which takes the tap too.
 class _Acknowledgement extends StatelessWidget {
-  const _Acknowledgement({
-    required this.value,
-    required this.onChanged,
-    this.error,
-    this.enabled = true,
-  });
+  const _Acknowledgement({required this.value, required this.onChanged, this.error, this.enabled = true});
 
   final bool value;
   final ValueChanged<bool?> onChanged;
   final String? error;
   final bool enabled;
 
-  // Phone run (7 Oct 2026): the 12 px box was too small to see or hit.
-  // Now a 22 px box, and the whole sentence takes the tap.
   @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: enabled ? () => onChanged(!value) : null,
-            borderRadius: BorderRadius.circular(10),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                SizedBox(
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final navy = d.dark ? const Color(0xFF8FADFF) : const Color(0xFF00308F);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Semantics(
+        checked: value,
+        enabled: enabled,
+        label: context.s.reportDetailsAcknowledgement,
+        excludeSemantics: true,
+        onTap: enabled ? () => onChanged(!value) : null,
+        child: InkWell(
+          onTap: enabled ? () => onChanged(!value) : null,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Container(
                   width: 22,
                   height: 22,
-                  child: IgnorePointer(
-                    child: Checkbox(
-                      value: value,
-                      onChanged: enabled ? onChanged : null,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide(color: context.colors.navy, width: 1.6),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                    ),
+                  decoration: BoxDecoration(
+                    color: value ? navy : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    border: value ? null : Border.all(color: navy, width: 2),
                   ),
+                  child: value ? Icon(Icons.check_rounded, size: 16, color: d.dark ? const Color(0xFF101215) : Colors.white) : null,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    context.s.reportDetailsAcknowledgement,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13,
-                      height: 1.45,
-                      color: context.colors.navy,
-                    ),
-                  ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.s.reportDetailsAcknowledgement,
+                  style: DType.body(navy, size: 13).copyWith(height: 1.45),
                 ),
-              ]),
-            ),
+              ),
+            ]),
           ),
-          if (error != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 32, top: 2),
-              child: Text(error!,
-                  style: TextStyle(color: context.colors.hint, fontSize: 12)),
-            ),
-        ],
-      );
+        ),
+      ),
+      if (error != null)
+        Padding(
+          padding: const EdgeInsets.only(left: 36, top: 4),
+          child: Text(error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w600)),
+        ),
+    ]);
+  }
 }
+
 
 class _Banner extends StatelessWidget {
   const _Banner(this.message);

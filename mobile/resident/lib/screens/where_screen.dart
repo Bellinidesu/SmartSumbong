@@ -47,6 +47,7 @@ import '../place_search.dart';
 import '../preview/demo.dart';
 import '../widgets/brgy_map.dart';
 import '../widgets/complaints_strip.dart';
+import '../widgets/d_form.dart';
 
 /// What the resident chose: the pin, how sure the phone was of it (null once the pin is moved by hand), and the
 /// few words for it ("8th Street"; null when none could be found, shown as "Near your pin").
@@ -62,19 +63,26 @@ class WhereResult {
 /// What the details screen opens with.
 @immutable
 class DetailsArgs {
-  const DetailsArgs(this.choice, this.where);
+  const DetailsArgs(this.choice, this.where, {this.picks});
 
   final CategoryChoice choice;
   final WhereResult where;
+
+  /// The picks shared with the first page (see [WhereArgs.picks]).
+  final ValueNotifier<CategoryChoice>? picks;
 }
 
 /// What this screen opens with. [current] is a pin already chosen (the details screen's Change); with
 /// [returnResult] Confirm hands the new [WhereResult] back instead of going on to the details.
 @immutable
 class WhereArgs {
-  const WhereArgs(this.choice, {this.current, this.returnResult = false});
+  const WhereArgs(this.choice, {this.current, this.returnResult = false, this.picks});
 
   final CategoryChoice choice;
+
+  /// The picks, shared with the first page and the details: "Your complaints" changes them here and there, and the
+  /// first page shows the same ones when See all categories brings the resident back to it. Null: not shared.
+  final ValueNotifier<CategoryChoice>? picks;
   final WhereResult? current;
   final bool returnResult;
 }
@@ -107,6 +115,7 @@ class WhereScreen extends StatefulWidget {
 
 class _WhereScreenState extends State<WhereScreen> {
   final _map = BrgyMapController();
+  late CategoryChoice _choice = widget.args.choice;
   final _field = TextEditingController();
   final _focus = FocusNode();
 
@@ -143,6 +152,7 @@ class _WhereScreenState extends State<WhereScreen> {
     brgyBoundary().then((r) {
       if (mounted) setState(() => _rings = r);
     });
+    widget.args.picks?.addListener(_picksChanged);
     _field.addListener(_onTyped);
     _focus.addListener(() => setState(() {}));
     if (cur != null) {
@@ -158,12 +168,30 @@ class _WhereScreenState extends State<WhereScreen> {
 
   @override
   void dispose() {
+    widget.args.picks?.removeListener(_picksChanged);
     _suggestDebounce?.cancel();
     _nearTimer?.cancel();
     _field.dispose();
     _focus.dispose();
     super.dispose();
   }
+
+  // ---------- the complaints ---------------------------------------
+
+  /// Picked again elsewhere (the details screen over this one).
+  void _picksChanged() {
+    final v = widget.args.picks?.value;
+    if (v != null && mounted) setState(() => _choice = v);
+  }
+
+  /// Changed in the "Your complaints" sheet here.
+  void _setChoice(CategoryChoice c) {
+    setState(() => _choice = c);
+    widget.args.picks?.value = c;
+  }
+
+  /// See all categories: back to the first page, with the picks it already has.
+  void _seeAll() => Navigator.of(context).popUntil((r) => r.settings.name == '/submit-report' || r.isFirst);
 
   // ---------- where the pin is ----------------------------------
 
@@ -283,7 +311,7 @@ class _WhereScreenState extends State<WhereScreen> {
       _farAway = farAway;
     });
     _setPin(brgyCentre);
-    _map.move(brgyCentre, 15);
+    _map.move(brgyCentre, 16);
   }
 
   /// "Take me back to 183": the pin back inside, at the barangay's centre.
@@ -396,7 +424,7 @@ class _WhereScreenState extends State<WhereScreen> {
     if (widget.args.returnResult) {
       Navigator.of(context).pop(res);
     } else {
-      Navigator.of(context).pushNamed('/submit-report/details', arguments: DetailsArgs(widget.args.choice, res));
+      Navigator.of(context).pushNamed('/submit-report/details', arguments: DetailsArgs(_choice, res, picks: widget.args.picks));
     }
   }
 
@@ -405,7 +433,7 @@ class _WhereScreenState extends State<WhereScreen> {
   @override
   Widget build(BuildContext context) {
     final d = context.d;
-    final choice = widget.args.choice;
+    final choice = _choice;
     final col = categoryColour(choice.category);
     final size = MediaQuery.sizeOf(context);
     final pad = MediaQuery.paddingOf(context);
@@ -517,7 +545,7 @@ class _WhereScreenState extends State<WhereScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 16, bottom: 16),
+                    padding: const EdgeInsets.only(right: 16, bottom: 12),
                     child: _RoundButton(
                       label: context.tr('Use my location', 'Gamitin ang aking lokasyon'),
                       size: 48,
@@ -535,7 +563,7 @@ class _WhereScreenState extends State<WhereScreen> {
                   Text(context.tr('Step 2 of 3 · Where is it?', 'Hakbang 2 ng 3 · Saan ito?').toUpperCase(),
                       style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: .96, height: 1, color: d.muted)),
                   const SizedBox(height: 2),
-                  Align(alignment: Alignment.centerLeft, child: ComplaintsStrip(choice: choice)),
+                  Align(alignment: Alignment.centerLeft, child: ComplaintsStrip(choice: choice, onChanged: _setChoice, onSeeAll: _seeAll)),
                   if (outside) ..._outsideBody(d) else ..._insideBody(d, typing),
                 ]),
               ),
@@ -577,7 +605,7 @@ class _WhereScreenState extends State<WhereScreen> {
         Expanded(child: Text(note, style: DType.body(d.muted, size: 13).copyWith(height: 18 / 13))),
       ]),
       const SizedBox(height: 16),
-      DButton(context.tr('Confirm this spot', 'Kumpirmahin ang lugar na ito'), expand: true, height: 50, onTap: _locating ? null : _confirm),
+      DFormButton(context.tr('Confirm this spot', 'Kumpirmahin ang lugar na ito'), onTap: _locating ? null : _confirm),
     ];
   }
 
@@ -617,10 +645,10 @@ class _WhereScreenState extends State<WhereScreen> {
         ]),
       ),
       const SizedBox(height: 16),
-      DButton(context.tr('Take me back to ${BarangayProfile.name}', 'Ibalik ako sa ${BarangayProfile.name}'),
-          kind: DButtonKind.ghost, icon: Icons.my_location_rounded, expand: true, height: 50, onTap: _backInside),
-      const SizedBox(height: 8),
-      DButton(context.tr('Confirm this spot', 'Kumpirmahin ang lugar na ito'), expand: true, height: 50, onTap: null),
+      DFormButton(context.tr('Take me back to ${BarangayProfile.name}', 'Ibalik ako sa ${BarangayProfile.name}'),
+          kind: DFormKind.ghost, icon: Icons.my_location_rounded, onTap: _backInside),
+      const SizedBox(height: 3),
+      DFormButton(context.tr('Confirm this spot', 'Kumpirmahin ang lugar na ito'), onTap: null),
     ];
   }
 }
@@ -765,8 +793,8 @@ class _SearchBar extends StatelessWidget {
                 height: 40,
                 child: Center(
                   child: Container(
-                    width: 32,
-                    height: 32,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(shape: BoxShape.circle, color: d.field),
                     child: Icon(Icons.close_rounded, size: 16, color: d.ink2),
                   ),
