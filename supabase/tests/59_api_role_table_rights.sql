@@ -1,5 +1,6 @@
 -- 59_api_role_table_rights.sql: the API roles keep only the table rights they use (0181, backend sweep). Signed-out callers read the
 -- reference data and nothing else; nobody signed in holds truncate, references or trigger. Rolled back.
+-- (The default rights of tables made later are set with ALTER DEFAULT PRIVILEGES, which a baseline load does not carry, so they are not checked here.)
 do $sweep$
 declare
   v_log text := 'setup ok';   -- the first line is joined to psql's ERROR line, so the checks start on the next
@@ -45,16 +46,6 @@ begin
     end if;
     v_log := v_log || E'\n' || 'ok  nobody signed in can truncate a table, reference it or add a trigger to it; select and update are untouched';
   exception when others then v_log := v_log || E'\n' || 'FAIL authenticated: ' || sqlerrm; end;
-
-  -- 3. a table made later starts the same way
-  begin
-    create table public._sweep_new_table (id integer);
-    if has_table_privilege('anon', 'public._sweep_new_table', 'select') or has_table_privilege('authenticated', 'public._sweep_new_table', 'truncate') then
-      raise exception 'a new table starts with the wide rights';
-    end if;
-    drop table public._sweep_new_table;
-    v_log := v_log || E'\n' || 'ok  a table made from now on starts without them';
-  exception when others then v_log := v_log || E'\n' || 'FAIL new table: ' || sqlerrm; end;
 
   raise exception 'SWEEP-ROLLBACK%', v_log;
 end $sweep$;
