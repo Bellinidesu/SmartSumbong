@@ -654,7 +654,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     if (showFix) blocks.add(_FixCheckCard(reportId: widget.reportId, onDone: _load));
 
     // the portal's track, only while the report is moving
-    if (ongoing) blocks.add(Container(padding: const EdgeInsets.all(14), decoration: caseCardBox(t), child: CaseTrack(done: _stepsDone(status))));
+    if (ongoing) blocks.add(Container(padding: const EdgeInsets.all(14), decoration: caseCardBox(t), child: CaseTrack(done: caseStepsDone(status.wire))));
 
     if (multi) {
       blocks.add(CaseConcernsCard(concerns: _concernRows(context, status, fil), dot: categoryColour(cat)));
@@ -906,17 +906,11 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     }
     if (_concerns.length > 1 && newest != null && (entryAt == null || newestAt!.isAfter(entryAt))) {
       final remark = (newest['remark'] as String?)?.trim() ?? '';
-      return (context.tr('${concernTitle(newest, filipino: fil)} resolved', '${concernTitle(newest, filipino: fil)} ay nalutas'), remark.isEmpty ? context.tr('Resolved.', 'Nalutas na.') : remark);
+      return (context.tr('${concernOptionName(newest, filipino: fil)} resolved', '${concernOptionName(newest, filipino: fil)} ay nalutas'), remark.isEmpty ? context.tr('Resolved.', 'Nalutas na.') : remark);
     }
     if (remarkText == null) return null;
     return (context.tr('Latest update', 'Pinakabagong update'), remarkText);
   }
-
-  static int _stepsDone(ReportStatus s) => switch (s) {
-        ReportStatus.pendingReview => 1,
-        ReportStatus.validated || ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => 2,
-        _ => 4,
-      };
 
   /// Each concern with its own state. The database knows open and resolved; an open concern is Being handled once a tanod is on the report.
   List<CaseConcern> _concernRows(BuildContext context, ReportStatus status, bool fil) {
@@ -938,7 +932,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             CaseConcernState.handled => [context.tr('A tanod is handling it', 'May tanod na umaasikaso'), if (note.isNotEmpty) note].join(' · '),
             CaseConcernState.open => [context.tr('Waiting its turn', 'Naghihintay ng turn'), if (note.isNotEmpty) note].join(' · '),
           };
-          return CaseConcern(name: concernTitle(c, filipino: fil), sub: sub, state: state, filedAs: concernFiledAs(c, filipino: fil));
+          return CaseConcern(name: concernOptionName(c, filipino: fil), sub: sub, state: state, filedAs: concernFiledAs(c, filipino: fil));
         }(),
     ];
   }
@@ -1022,7 +1016,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       items.add((
         ce.$1,
         CaseEvent(
-          title: context.tr('${concernTitle(ce.$2, filipino: fil)} resolved', '${concernTitle(ce.$2, filipino: fil)} ay nalutas'),
+          title: context.tr('${concernOptionName(ce.$2, filipino: fil)} resolved', '${concernOptionName(ce.$2, filipino: fil)} ay nalutas'),
           time: when(ce.$1),
           body: remark.isEmpty ? null : remark,
           thumbs: carriesProof ? barangay : const [],
@@ -1772,4 +1766,14 @@ String? concernFiledAs(Map<String, dynamic> c, {required bool filipino}) {
   return filipino
       ? 'Isinampa bilang "$was" (${off ? 'hindi na inaalok' : 'pinalitan ang pangalan mula noon'})'
       : 'Filed as "$was" (${off ? 'no longer offered' : 'renamed since'})';
+}
+
+/// A concern's name inside its own report: the option alone ("Illegal Parking"), since the report's title already says the category
+/// (one category per report, 0176). The category's name stands in when the concern has no option.
+String concernOptionName(Map<String, dynamic> c, {required bool filipino}) {
+  final cat = ComplaintCategory.parse(c['category'] as String?);
+  final id = (c['option_id'] as num?)?.toInt();
+  final opt = id == null ? null : cat.options.where((o) => o.id == id).firstOrNull;
+  final name = opt != null ? (filipino ? opt.fil : opt.en) : ((filipino ? c['filed_option_fil'] : c['filed_option_en']) as String?);
+  return name == null || name.isEmpty ? (filipino ? cat.labelFil : cat.label) : name;
 }

@@ -337,7 +337,7 @@ class CaseTrack extends StatelessWidget {
       child: ExcludeSemantics(
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           for (var i = 0; i < 4; i++) ...[
-            if (i > 0) const SizedBox(width: 6),
+            if (i > 0) const SizedBox(width: 4),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Container(
@@ -349,7 +349,7 @@ class CaseTrack extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                  if (i < now) Padding(padding: const EdgeInsets.only(top: 1, right: 3), child: Icon(Icons.check_rounded, size: 12, color: t.green)),
+                  if (i < now) Padding(padding: const EdgeInsets.only(top: 1, right: 2), child: Icon(Icons.check_rounded, size: 12, color: t.green)),
                   Flexible(
                     child: Text(names[i],
                         style: caseInter(i < now ? t.green : (i == now ? t.ink : t.muted), 11.5, i == now ? FontWeight.w800 : (i < now ? FontWeight.w700 : FontWeight.w600), 14)),
@@ -1258,5 +1258,48 @@ class _ReasonBodyState extends State<_ReasonBody> {
       ),
       CaseButton(label: context.tr('Not now', 'Huwag muna'), kind: CaseButtonKind.ghost, onTap: () => Navigator.of(context).pop()),
     ]);
+  }
+}
+
+/// How many of the four steps are done for a status (the case page's track and the list's bars agree). Under Review is at
+/// Validated; once the barangay has accepted it, a tanod is "now"; a finished report is all four.
+int caseStepsDone(String wire) => switch (wire) {
+      'pending_review' || 'rejected' || 'cancelled' => 1,
+      'validated' || 'assigned' || 'in_progress' || 'offline_investigation' => 2,
+      _ => 4,
+    };
+
+/// The list card's progress: four bars in the case page's colours, green done and orange now. A report that stopped (rejected,
+/// cancelled) draws its stop colour on the first bar and nothing after.
+class CaseSegments extends StatelessWidget {
+  const CaseSegments({super.key, required this.done, this.stop});
+
+  final int done;
+  final Color? stop;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = CaseTokens.of(context);
+    return Semantics(
+      label: stop != null
+          ? context.tr('Stopped', 'Huminto')
+          : context.tr('Progress: $done of 4 steps done', 'Progreso: $done sa 4 na hakbang ang tapos'),
+      child: ExcludeSemantics(
+        child: Row(children: [
+          for (var i = 0; i < 4; i++) ...[
+            if (i > 0) const SizedBox(width: 6),
+            Expanded(
+              child: Container(
+                height: 6,
+                decoration: BoxDecoration(
+                  color: stop != null ? (i == 0 ? stop : t.edge) : (i < done ? CaseTokens.doneFill : (i == done ? CaseTokens.orange : t.edge)),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ],
+        ]),
+      ),
+    );
   }
 }
