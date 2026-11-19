@@ -390,7 +390,7 @@ class _LayerTile extends StatelessWidget {
               width: 68,
               height: 68,
               decoration: BoxDecoration(
-                color: on ? (d.dark ? const Color(0x2E8FADFF) : const Color(0x1400308F)) : d.field,
+                color: on ? (d.dark ? const Color(0x2E8FADFF) : const Color(0x1400308F)) : (d.dark ? d.field : const Color(0xFFF4F6FB)),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: on ? d.link : Colors.transparent, width: 2),
               ),
@@ -442,38 +442,45 @@ class MapTrack extends StatelessWidget {
     final line = d.dark ? const Color(0xFF34383E) : const Color(0xFFD6DCEA);
     final stopBar = spec.stopRed ? const Color(0xFFC4172A) : const Color(0xFF8A90A0);
     final stopInk = spec.stopRed ? (d.dark ? const Color(0xFFFF8A8A) : const Color(0xFFC4172A)) : d.muted;
+    Color bar(int i) => spec.stop == i
+        ? stopBar
+        : i < spec.done
+            ? const Color(0xFF087F31)
+            : spec.now == i
+                ? const Color(0xFFFF9800)
+                : line;
+    Color ink(int i) => spec.stop == i ? stopInk : spec.now == i ? d.ink : (i < spec.done ? green : d.muted);
+    FontWeight weight(int i) => spec.stop == i || spec.now == i ? FontWeight.w800 : (i < spec.done ? FontWeight.w700 : FontWeight.w600);
+    String text(int i) => spec.stop == i ? (spec.stopLabel ?? '') : names[i];
+    bool tick(int i) => spec.stop != i && i < spec.done;
+    TextStyle style(int i) => TextStyle(fontFamily: 'Inter', fontWeight: weight(i), fontSize: 11.5, height: 14 / 11.5, color: ink(i));
+
+    // At a large text size four names do not fit side by side: the steps go one under another, each with its own bar.
+    if (labels && MediaQuery.textScalerOf(context).scale(10) >= 13) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (var i = 0; i < 4; i++)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              Container(width: 6, height: 24, decoration: BoxDecoration(borderRadius: BorderRadius.circular(3), color: bar(i))),
+              const SizedBox(width: 12),
+              if (tick(i)) ...[MapGlyphIcon(MapTabIcons.check, size: 14, colour: green, stroke: 2.4), const SizedBox(width: 4)],
+              Expanded(child: Text(text(i), style: style(i))),
+            ]),
+          ),
+      ]);
+    }
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       for (var i = 0; i < 4; i++) ...[
         if (i > 0) const SizedBox(width: 6),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              height: 6,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(3),
-                color: spec.stop == i
-                    ? stopBar
-                    : i < spec.done
-                        ? const Color(0xFF087F31)
-                        : spec.now == i
-                            ? const Color(0xFFFF9800)
-                            : line,
-              ),
-            ),
+            Container(height: 6, decoration: BoxDecoration(borderRadius: BorderRadius.circular(3), color: bar(i))),
             if (labels) ...[
               const SizedBox(height: 8),
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                if (spec.stop != i && i < spec.done) ...[MapGlyphIcon(MapTabIcons.check, size: 12, colour: green, stroke: 2.4), const SizedBox(width: 3)],
-                Expanded(
-                  child: Text(spec.stop == i ? (spec.stopLabel ?? '') : names[i],
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: spec.stop == i || spec.now == i ? FontWeight.w800 : (i < spec.done ? FontWeight.w700 : FontWeight.w600),
-                        fontSize: 11.5,
-                        height: 14 / 11.5,
-                        color: spec.stop == i ? stopInk : spec.now == i ? d.ink : (i < spec.done ? green : d.muted),
-                      )),
-                ),
+                if (tick(i)) ...[MapGlyphIcon(MapTabIcons.check, size: 12, colour: green, stroke: 2.4), const SizedBox(width: 3)],
+                Expanded(child: Text(text(i), style: style(i))),
               ]),
             ],
           ]),
@@ -539,7 +546,6 @@ class _ConcernsTag extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minHeight: 24),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      alignment: Alignment.center,
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0x80788096))),
       child: Text(text, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 12, height: 1.1, color: d.ink2)),
     );
@@ -718,14 +724,17 @@ class MapBigCard extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: open ? onOpen : null,
-        child: Material(
-          color: d.card,
-          elevation: 0,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          clipBehavior: Clip.antiAlias,
-          child: DecoratedBox(
-            decoration: BoxDecoration(boxShadow: [BoxShadow(color: d.dark ? const Color(0x80000000) : const Color(0x33141B34), blurRadius: 30, offset: const Offset(0, -8))]),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: d.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: [BoxShadow(color: d.dark ? const Color(0x80000000) : const Color(0x33141B34), blurRadius: 30, offset: const Offset(0, -8))],
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               // the hero: a drag down hands back the small card
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -733,7 +742,7 @@ class MapBigCard extends StatelessWidget {
                   if ((e.primaryVelocity ?? 0) > 150) onCollapse();
                 },
                 child: Container(
-                  height: 130,
+                  height: 130 + 30 * ((MediaQuery.textScalerOf(context).scale(10) / 10 - 1).clamp(0.0, 1.0)),
                   decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [from, to])),
                   child: Stack(children: [
                     Positioned(
@@ -803,7 +812,7 @@ class MapBigCard extends StatelessWidget {
                     Wrap(spacing: 10, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
                       if (data.ticket != null && data.ticket!.isNotEmpty)
                         Text(data.ticket!, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 14, height: 20 / 14, color: d.link)),
-                      DStatusPill(data.statusLabel, data.statusColour),
+                      Row(mainAxisSize: MainAxisSize.min, children: [DStatusPill(data.statusLabel, data.statusColour)]),
                       if (data.concerns != null) _ConcernsTag(data.concerns!),
                     ]),
                     const SizedBox(height: 10),
@@ -846,6 +855,7 @@ class MapBigCard extends StatelessWidget {
               else
                 SizedBox(height: 16 + MediaQuery.paddingOf(context).bottom),
             ]),
+            ),
           ),
         ),
       ),
