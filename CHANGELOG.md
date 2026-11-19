@@ -17,6 +17,13 @@ Changes on `main` not yet deployed belong here.
 - A draft that only holds the issue's prefill ("Illegal Parking —") is no longer saved or offered back. Drafts no longer keep the other concerns (they are picked on the first page).
 - Tests: `test/report_form_test.dart` (concerns on page 1, second category not offered, change-category ask, the note's close button, Keep editing, Back on the dialog, confirmed Discard). `BrgyMap.nativeView` lets widget tests open screens with a map.
 
+**Rose's web bugs (19 Nov, 0176)**
+
+- Exported documents: the barangay seal on the Complaint, the Complaint Summary and the Certification printed stretched (the letterhead set only the seal's width, so it kept its file's 256 px height). It is a fitted square now, on screen and in print, and a barangay's own seal of any shape keeps its proportions.
+- Chat heads: floating several cases gave a bubble per case on every page. There is now exactly one: it shows one floated case at a time, a row of the floated cases in its panel switches between them, and its ball counts the conversations with something unread (not single messages) across all of them; the Inbox's chats pill counts the same way. A case page shows only that case's own head, which carries the other floated cases in the same row (this case first, their unread dots and the new-message preview too); on a phone it now opens over the top bar.
+- Concerns: each concern of a case is one row with its own status pill (Open, Being handled, Resolved), its three steps and one button that updates only that concern, in place; the card's head says how many are resolved, beside the case's own status. The Request in focus bar follows each update.
+- One category per case: a case's concerns all belong to its own category (several of its options are still several concerns). 0176 refuses a new concern from another category, in the database (trigger) and when filing (`file_report` refuses the report with one message in English and Tagalog instead of quietly leaving the concern out). Cases that already mix categories (2 live, both open, on 19 Nov) are left as filed. The portal's Add a concern offers only the case's category. Checks in `supabase/tests/54_one_category.sql`.
+
 **The case hierarchy (19 Nov, Rose, 0175)**
 
 - Super admin: accepts a case, assigns it to a councilor or a staff member, takes over from councilors and staff, dispatches a tanod. Councilor: accepts what arrives or what a super admin assigns, assigns to their own staff, takes over from their staff, escalates to the super admins. Staff: accept or decline (with a reason) what their councilor assigns, escalate to the councilor, dispatch a tanod.

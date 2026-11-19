@@ -22,7 +22,7 @@ How the database fits the rest of the system is in
 | Table | Purpose | Since |
 |---|---|---|
 | `reports` | Complaints: category, place (`geom`), status, admin-set `due_at`, referral (`referred_to`…), follow-ups, resolution awaiting approval, `is_public`, `version` (stale-page guard), sensitivity | 0001 |
-| `report_concerns` | One row per concern in a report (the main category included), each open or resolved on its own | 0130 |
+| `report_concerns` | One row per concern in a report (the main category included), each open or resolved on its own; since 0176 every new concern is under the report's own category (trigger `one_category_per_case`; older rows that mix are kept) | 0130 |
 | `report_media` | Resident photos and video | 0001 |
 | `report_evidence` | Photos the barangay attaches from the portal: with an update, or when it resolves | 0079 |
 | `status_logs` | Append-only, hash-chained audit trail (0015); one writer per complaint, checked with `verify_report_trail` (0082) | 0001 |
