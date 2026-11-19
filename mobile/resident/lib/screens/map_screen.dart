@@ -333,7 +333,17 @@ class _MapScreenState extends State<MapScreen> {
 
   // ---------- the card ---------------------------------------------------
 
+  DateTime _pickedAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// A tap on the map where there is no pin puts the card away. (A pin's own tap is told apart by the map; the moment
+  /// kept here is only a guard against one tap being heard twice.)
+  void _mapTapped() {
+    if (DateTime.now().difference(_pickedAt) < const Duration(milliseconds: 400)) return;
+    _closeCard();
+  }
+
   void _select(String id) {
+    _pickedAt = DateTime.now();
     setState(() {
       _selected = id;
       _expanded = false;
@@ -563,7 +573,7 @@ class _MapScreenState extends State<MapScreen> {
                 dimOutside: _lDim,
                 showPlaces: _lPlaces,
                 selectedPinId: sel?.id,
-                onMapTap: _closeCard,
+                onMapTap: _mapTapped,
                 pins: [
                   for (final p in visible)
                     BrgyMapPin(
@@ -619,7 +629,7 @@ class _MapScreenState extends State<MapScreen> {
                     ]),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 13),
                 MapFilterChips(chips: _chips(context), onTap: _tapChip),
               ]),
             ),

@@ -384,7 +384,8 @@ class _LayerTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: SizedBox(
-          width: 84,
+          // 84 wide; wider as the text grows, so a name is not broken in the middle of a word
+          width: 84 * (MediaQuery.textScalerOf(context).scale(10) / 10).clamp(1.0, 1.7),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(
               width: 68,

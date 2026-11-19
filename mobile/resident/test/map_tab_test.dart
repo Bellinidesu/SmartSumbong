@@ -210,6 +210,7 @@ void main() {
     expect(t.getBottomLeft(find.byType(MapFab).first).dy, lessThan(cardTop));
     expect(t.getBottomLeft(find.byType(MapFab).last).dy, lessThan(cardTop));
     // a tap on the map elsewhere closes it
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 500)));
     _map(t).onMapTap!();
     await settle(t, rounds: 3);
     expect(find.byType(MapPeekCard), findsNothing);
