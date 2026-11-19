@@ -35,8 +35,10 @@ def report(i, **kw):
 REPORTS = [report(i) for i in range(1, 20)]
 REPORTS[0]['concerns'] = [{'category': REPORTS[0]['category'], 'status': 'open'}, {'category': 'public_safety_infrastructure', 'status': 'resolved'}, {'category': 'barangay_service', 'status': 'open'}]
 for r in REPORTS:
-    if r['handler_id']: r['handler'] = {'id': ADMIN['id'], 'full_name': ADMIN['full_name'], 'official_role': 'secretary', 'committee': None}
-REPORTS[0].update(is_anonymous=True, status='validated', tier=1, handler_id=KAG['id'], handler={'id': KAG['id'], 'full_name': KAG['full_name'], 'official_role': 'kagawad', 'committee': 'peace_order'}, subject='Live wire sparking near the school', is_sensitive=False)
+    if r['handler_id']: r['handler'] = {'id': ADMIN['id'], 'full_name': ADMIN['full_name'], 'official_role': 'secretary', 'committee': None, 'admin_tier': 'super'}
+    # 0175: no case waits on anyone
+    r.update(assigned_to=None, assigned_by=None, assigned_at=None, assign_note=None, assignee=None, assigner=None)
+REPORTS[0].update(is_anonymous=True, status='validated', tier=1, handler_id=KAG['id'], handler={'id': KAG['id'], 'full_name': KAG['full_name'], 'official_role': 'kagawad', 'committee': 'peace_order', 'admin_tier': 'committee'}, subject='Live wire sparking near the school', is_sensitive=False)
 REPORTS[1].update(is_sensitive=True, subject='Husband hits wife, children scared', category='peace_order_nuisance', status='validated')
 # 0152: the committee each case is with; one forwarded from Peace and Order, one handed to the super admins, one with none
 for i, r in enumerate(REPORTS):
@@ -45,7 +47,11 @@ REPORTS[2].update(committee='environment', case_committee='environment',
                   forwards=[{'kind': 'forward', 'from_committee': 'peace_order', 'to_super': False, 'created_at': ago(1)}])
 REPORTS[3].update(case_committee=None, awaiting_placement=True)
 REPORTS[4].update(case_committee=None)
-REPORTS[5].update(resolution_submitted_at=ago(2))   # a tanod's resolution waits for approval (case 6, deadline still ahead); case 8 is in progress and overdue
+REPORTS[5].update(resolution_submitted_at=ago(2))
+REPORTS[6].update(status='validated', handler_id=KAG['id'], handler={'id': KAG['id'], 'full_name': KAG['full_name'], 'official_role': 'kagawad', 'committee': 'peace_order', 'admin_tier': 'committee'},
+                  assigned_to=ADMIN['id'], assigned_by=KAG['id'], assigned_at=ago(0.5), assign_note='Pakiasikaso po ito bukas ng umaga',
+                  assignee={'id': ADMIN['id'], 'full_name': ADMIN['full_name'], 'official_role': 'secretary', 'committee': 'peace_order', 'admin_tier': 'moderator'},
+                  assigner={'id': KAG['id'], 'full_name': KAG['full_name']})   # a tanod's resolution waits for approval (case 6, deadline still ahead); case 8 is in progress and overdue
 
 TABLES = {
     'users': [ADMIN, KAG, CHAIR, tanod(1, 'Bautista, Jose'), tanod(2, 'Mendoza, Liza', True), tanod(3, 'Cruz, Ben')],
@@ -502,6 +508,57 @@ def _chat_state_set(b):
         if b.get(k) is not None: row[f] = bool(b[k])
 RPC['chat_state_set'] = _chat_state_set
 RPC['fake_reset_chat_state'] = lambda b: TABLES['chat_state'].clear() or {}   # the tests start a chat from nothing read, nothing muted
+# 0175 (19 Nov 2026, Rose): the case hierarchy. Who may be assigned a case (by the caller's rung), assigning, accepting or declining,
+# taking a case nobody holds; /__hier_reset puts the cases the tests change back as they were.
+ME = ADMIN['id']
+# the demo administrator, as staff, accepted case 1 once; a Kagawad holds it now
+HANDLED_BEFORE = {REPORTS[0]['id']}
+ASSIGNEES = [
+    {'id': KAG['id'], 'full_name': KAG['full_name'], 'tier': 'committee', 'committee': 'peace_order', 'official_role': 'kagawad', 'in_committee': True, 'is_test': False},
+    {'id': 'a0000000-0000-0000-0000-000000000009', 'full_name': 'Santos, Ben', 'tier': 'moderator', 'committee': 'peace_order', 'official_role': 'secretary', 'in_committee': True, 'is_test': False},
+    {'id': 'a0000000-0000-0000-0000-00000000000a', 'full_name': 'Aquino, Lorna', 'tier': 'moderator', 'committee': 'peace_order', 'official_role': 'secretary', 'in_committee': True, 'is_test': False},
+    {'id': 'a0000000-0000-0000-0000-00000000000b', 'full_name': 'Villanueva, Grace', 'tier': 'committee', 'committee': 'environment', 'official_role': 'kagawad', 'in_committee': False, 'is_test': False},
+    {'id': 'a0000000-0000-0000-0000-00000000000c', 'full_name': 'Ramos, Carlo', 'tier': 'moderator', 'committee': 'environment', 'official_role': 'secretary', 'in_committee': False, 'is_test': False}]
+_HIER_KEEP = {r['id']: json.loads(json.dumps(r)) for r in REPORTS}
+def _rep(b): return next((r for r in REPORTS if r['id'] == b.get('p_report')), None)
+def _me_handler(): return {'id': ME, 'full_name': ADMIN['full_name'], 'official_role': 'secretary', 'committee': None, 'admin_tier': 'super'}
+_NO_ASG = {'assigned_to': None, 'assigned_by': None, 'assigned_at': None, 'assign_note': None, 'assignee': None, 'assigner': None}
+def _assign_case(b):
+    r = _rep(b); to = b.get('p_to')
+    if r is None: return None
+    if not to: r.update(_NO_ASG); return None
+    a = next((x for x in ASSIGNEES if x['id'] == to), None) or {'full_name': '?', 'tier': 'moderator', 'committee': None, 'official_role': None}
+    r.update(handler_id=ME, handler=_me_handler(), assigned_to=to, assigned_by=ME, assigned_at=_now(), assign_note=b.get('p_note'),
+             assignee={'id': to, 'full_name': a['full_name'], 'official_role': a['official_role'], 'committee': a['committee'], 'admin_tier': a['tier']},
+             assigner={'id': ME, 'full_name': ADMIN['full_name']})
+    return None
+def _answer_case(b):
+    r = _rep(b)
+    if r is None or r.get('assigned_to') != ME: return None
+    if b.get('p_accept'): r.update(handler_id=ME, handler=_me_handler(), handled_since=_now())
+    r.update(_NO_ASG); return None
+def _take_case(b):
+    r = _rep(b)
+    if r is not None and not r.get('handler_id'): r.update(handler_id=ME, handler=_me_handler())
+    return None
+RPC['assign_case'] = _assign_case; RPC['answer_case_assignment'] = _answer_case; RPC['take_case'] = _take_case
+TIER_RPC = {'case_assignees': lambda b, tier: [] if tier not in ('super', 'committee') else [a for a in ASSIGNEES if tier == 'super' or (a['tier'] == 'moderator' and a['committee'] == 'peace_order')]}
+def staff_sees(r): return r.get('handler_id') == ME or r.get('assigned_to') == ME or r.get('id') in HANDLED_BEFORE
+def as_tier(rows, t, tier):
+    """What row level security leaves a rung (0175): staff read only the cases assigned to them, handled by them now or before, and the
+    notifications about those; the demo administrator's own handler embed wears the rung the test chose."""
+    if t == 'reports':
+        if tier == 'moderator': rows = [r for r in rows if staff_sees(r)]
+        out = []
+        for r in rows:
+            if r.get('handler_id') == ME:
+                r = dict(r)
+                if r.get('handler'): r['handler'] = dict(r['handler'], admin_tier=tier)
+            out.append(r)
+        return out
+    if tier == 'moderator' and t == 'notifications':
+        return [n for n in rows if not n.get('report_id') or any(staff_sees(r) for r in REPORTS if r['id'] == n['report_id'])]
+    return rows
 RPC['mail_draft_save'] = _draft_save; RPC['mail_draft_delete'] = _draft_delete; RPC['send_mail'] = _send_mail; RPC['mail_batch_people'] = _batch_people
 
 # FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for a distant database;
@@ -529,6 +586,10 @@ class H(BaseHTTPRequestHandler):
     def do_PATCH(self): self.route('PATCH')
     def do_PUT(self): self.route('PUT')
 
+    def tier(self):
+        m = re.search(r'fake-(super|committee|moderator|captain)', self.headers.get('Authorization') or '')
+        return m.group(1) if m else 'super'
+
     def route(self, m):
         u = urlparse(self.path); qs = parse_qs(u.query)
         if RTT and not u.path.startswith('/__'): time.sleep(RTT)
@@ -539,6 +600,10 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {})
         if u.path == '/__cmd_reset':   # the command-center test starts with nothing on
             CMD['active'] = None; return self.send(200, {})
+        if u.path == '/__hier_reset':   # 0175: the cases the hierarchy tests assign, accept and decline, back as they were
+            for r in REPORTS:
+                keep = json.loads(json.dumps(_HIER_KEEP[r['id']])); r.clear(); r.update(keep)
+            return self.send(200, {})
         if u.path == '/functions/v1/level-switch':   # 0162: a test account's session (the fake keeps everyone the demo administrator)
             return self.send(200, {'access_token': 'fake', 'refresh_token': 'fake', 'expires_in': 3600, 'user': {'id': ADMIN['id']}})
         if u.path.startswith('/auth/v1/'):
@@ -547,6 +612,8 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {'id': ADMIN['id'], 'email': ADMIN['email'], 'last_sign_in_at': ago(1)})
         if u.path.startswith('/rest/v1/rpc/'):
             fn = u.path.split('/')[-1]
+            if fn in TIER_RPC:
+                return self.send(200, TIER_RPC[fn](json.loads(body or b'{}'), self.tier()))
             if fn in RPC:
                 v = RPC[fn]
                 return self.send(200, v(json.loads(body or b'{}')) if callable(v) else v)
@@ -559,6 +626,7 @@ class H(BaseHTTPRequestHandler):
             if rows is None:
                 print('TABLE missing', t, file=sys.stderr, flush=True); rows = []
             if m != 'GET': return self.send(200, rows[:1])
+            rows = as_tier(rows, t, self.tier())
             rows = apply_filters(rows, qs)
             total = len(rows)
             extra = {}

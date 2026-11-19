@@ -67,7 +67,7 @@ try {
         $live = !empty($t['assignable']);   // Fix A (17 Nov 2026): on duty is enough; an old location is said below, not a block
         $roster[] = ['id' => $t['tanod_id'], 'name' => formal_name((string) $t['full_name']), 'live' => $live,
                      'metres' => $t['metres'] !== null ? (int) $t['metres'] : null,
-                     'why' => $live ? (empty($t['location_fresh']) ? t('location may be old', 'maaaring luma ang lokasyon') : '') : (string) ($t['unavailable_why'] ?? 'offline'),
+                     'why' => $live ? '' : (string) ($t['unavailable_why'] ?? 'offline'),   // 19 Nov 2026 (Ace): duty only; no location wording
                      'place' => $place[$t['tanod_id']] ?? 99];
     }
     usort($roster, fn($a, $b) => [!$a['live'], $a['place']] <=> [!$b['live'], $b['place']]);
