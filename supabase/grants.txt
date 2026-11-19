@@ -31,6 +31,7 @@ fn _email_confirmation_guard() anon=- authenticated=-
 fn _flag_sensitive() anon=call authenticated=call
 fn _guard_admin_access() anon=- authenticated=-
 fn _guard_case_committee() anon=call authenticated=call
+fn _guard_case_hands() anon=- authenticated=-
 fn _guard_official_fields() anon=call authenticated=call
 fn _id_reading_save(p_user uuid, p_type id_document_type, p_name text, p_number text) anon=- authenticated=-
 fn _inbox_alert() anon=- authenticated=call
@@ -40,6 +41,7 @@ fn _kagawad_of_staff(p_user uuid) anon=- authenticated=call
 fn _kagawad_of_tanod(p_tanod uuid) anon=- authenticated=call
 fn _mail_may_send(p_from uuid, p_to uuid) anon=- authenticated=-
 fn _main_concern() anon=call authenticated=call
+fn _may_take_over(p_me uuid, p_handler uuid) anon=- authenticated=-
 fn _notifications_scope() anon=- authenticated=-
 fn _notify_admins(p_message text, p_subject uuid) anon=- authenticated=-
 fn _notify_committee_heads(p_committee text, p_report uuid, p_kind text, p_message text) anon=- authenticated=call
@@ -131,6 +133,7 @@ fn admin_sees_report(p_report uuid) anon=- authenticated=call
 fn admin_set_status(p_report uuid, p_status text, p_remark text, p_media jsonb) anon=- authenticated=call
 fn admin_tier() anon=- authenticated=call
 fn admin_update_user(p_user uuid, p_full_name text, p_email text) anon=- authenticated=call
+fn answer_case_assignment(p_report uuid, p_accept boolean, p_reason text) anon=- authenticated=call
 fn answer_reroute_question(p_question bigint, p_tanod uuid) anon=- authenticated=call
 fn app_release_publish(p_version text, p_build integer, p_url text, p_sha256 text, p_notes_en text, p_notes_fil text, p_mandatory boolean) anon=- authenticated=call
 fn app_release_set_active(p_id uuid, p_on boolean) anon=- authenticated=call
@@ -138,6 +141,7 @@ fn appeal_report(p_report uuid, p_remark text) anon=- authenticated=call
 fn approve_escalation(p_request uuid, p_office text, p_note text) anon=- authenticated=call
 fn approve_resolution(p_report uuid) anon=- authenticated=call
 fn assert_not_client(p_what text) anon=- authenticated=call
+fn assign_case(p_report uuid, p_to uuid, p_note text) anon=- authenticated=call
 fn assign_tracking_id() anon=call authenticated=call
 fn assignable_tanods(p_report uuid) anon=- authenticated=call
 fn audit_integrity() anon=- authenticated=call
@@ -145,6 +149,7 @@ fn auth_email_for(p_mobile text) anon=call authenticated=call
 fn auto_dispatch(p_report uuid) anon=- authenticated=-
 fn cancel_admin_handover() anon=- authenticated=call
 fn cancel_report(p_report uuid, p_reason text) anon=- authenticated=call
+fn case_assignees(p_report uuid) anon=- authenticated=call
 fn case_committee(r reports) anon=- authenticated=call
 fn catalogue_fill() anon=- authenticated=call
 fn category_save(p_key text, p_label_en text, p_label_fil text, p_colour text, p_icon text, p_active boolean, p_sort integer) anon=- authenticated=call

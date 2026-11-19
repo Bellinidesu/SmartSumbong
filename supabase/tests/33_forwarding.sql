@@ -66,6 +66,11 @@ begin
     perform set_config('request.jwt.claim.sub', v_stf::text, true);
     begin perform public.forward_case(r2, 'environment', null, null); raise exception 'staff forwarded';
     exception when insufficient_privilege then null; end;
+    -- 0175: staff work (and flag) a case once their Kagawad has assigned it to them and they accepted it
+    perform set_config('request.jwt.claim.sub', v_kpo::text, true);
+    perform public.assign_case(r2, v_stf, null);
+    perform set_config('request.jwt.claim.sub', v_stf::text, true);
+    perform public.answer_case_assignment(r2, true, null);
     begin perform public.flag_case_for_forward(r2, 'no', null); raise exception 'a flag without a reason';
     exception when check_violation then null; end;
     f := public.flag_case_for_forward(r2, 'Hindi ito usapin ng kapayapaan', null);
@@ -91,7 +96,10 @@ begin
   begin
     perform set_config('request.jwt.claim.sub', v_sup::text, true);
     perform public.forward_case(r3, 'peace_order', null, null);
+    perform set_config('request.jwt.claim.sub', v_kpo::text, true);
+    perform public.assign_case(r3, v_stf, null);
     perform set_config('request.jwt.claim.sub', v_stf::text, true);
+    perform public.answer_case_assignment(r3, true, null);
     f := public.flag_case_for_forward(r3, 'Mukhang sa kalusugan ito', 'health_sanitation');
     perform set_config('request.jwt.claim.sub', v_kenv::text, true);
     begin perform public.dismiss_forward_flag(f, null); raise exception 'another committee dismissed the flag';

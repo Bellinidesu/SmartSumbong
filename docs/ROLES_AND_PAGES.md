@@ -16,7 +16,7 @@ admin, so another barangay sets up its own.
 |---|---|---|
 | Chairman (Punong Barangay) | Super admin, automatically | Everything |
 | Kagawad | Admin of a committee | Their committee's categories and cases |
-| Staff (the secretary and others) | Moderator, assigned to a committee | Their committee's cases, without the decisions that change who is accountable |
+| Staff (the secretary and others) | Moderator, assigned to a committee | The cases assigned to them (0175), without taking or taking over |
 | Tanod | User | The app only, no portal |
 
 A super admin can raise someone above their rung: Sir Kiko is staff by rank
@@ -34,6 +34,21 @@ cards, endorsing, forwarding; staff still flag a case for forwarding). Setting a
 position sets the tier that goes with it (Chairman super admin, Kagawad
 committee admin, secretary moderator); someone a super admin has raised to
 super admin stays one.
+
+**The case hierarchy (0175, Rose 19 Nov 2026).** In plain terms:
+
+| Rung | Accepts | Assigns | Takes over from | Escalates | Dispatches a tanod |
+|---|---|---|---|---|---|
+| Super admin | Yes | To a councilor or a staff member | Councilors and staff | Refers out | Yes |
+| Councilor (Kagawad) | What arrives, or what a super admin assigns | To their own staff | Their own staff | To the super admins | Yes |
+| Staff | What their councilor assigns (or declines it, with a reason) | No | Nobody | To their councilor | Yes |
+
+Staff see a complaint only once it is assigned to them: not when it is filed, not when it is forwarded to their committee. A
+case assigned to someone waits for them to accept it; meanwhile whoever assigned it holds it, and a declined case stays with
+them (they are told why). A super admin giving a case to someone of another committee places it with that committee. A
+forward tells only the committee it went to, by name (the super admins too when that committee has no Kagawad account yet).
+The case page's *Where the case is* reads Chairman, Councilor, Staff, lights the rung of whoever holds the case (ringed while
+it waits for someone to accept it), and shows a tanod when one is on it. Staff have no Personnel page.
 
 **The ladder (0166).** An escalation from the first rung goes to the
 Kagawad of the committee the case is with now (forwarded, or its
@@ -85,11 +100,11 @@ The development team's test accounts never receive a real escalation.
 | Home (4 Nov 2026) | No (the Dashboard) | Their landing page: their decisions, their committee right now, the engine's lists | Their landing page: their cases, the ones nobody has taken, the engine's lists |
 | Report Summary | Overall, plus a Committee filter and a By committee tab | Their committee's version | Their committee's version |
 | Spatial Distribution | Yes (plan *open*, discussed later) | Yes | Yes |
-| Case Reports | All, committee chips, forwarding | Their committee's, forwarding | Their committee's, can flag for forwarding |
-| Notifications | All, system alerts included | Their committee's; forwarded and flagged cases pinned on top | Their committee's |
+| Case Reports | All, committee chips, forwarding, assigning | Their committee's, forwarding, assigning to their staff | The cases assigned to them (0175), can flag for forwarding |
+| Notifications | All, system alerts included | Their committee's; forwarded and flagged cases pinned on top | About the cases assigned to them (0175) |
 | Inbox (new) | Yes | Yes | Yes |
 | Residents | Yes | No | No |
-| Personnel | Everyone, by committee | Their staff and their tanods | Their committee's tanods and staff, view only (0164) |
+| Personnel | Everyone, by committee | Their staff and their tanods | No (0175, Rose 19 Nov: they need not watch their fellow staff) |
 | Administrative Services (renamed) | Committees, administrators, retirement requests, tanod-to-committee approvals | Retirement requests: view and review their committee's tanods' and staff's; can endorse them | No (asks to retire from their Profile, 0166) |
 | Control Room (new) | Complaint types, rules, hotlines, wording, the barangay's name and seal, parts of the system | No | No |
 | Settings | System status, plan and usage, SMART, appearance | Their own: appearance, their committee (read only), their SMART module | The same, their module without decisions |
@@ -269,7 +284,7 @@ Every rung's pages are powered by its own module of the engine. `smart_module()`
 |---|---|---|
 | Barangay | Super admin (and captain, without decisions) | Every case; decisions waiting on the super admins: cases to place, tanods proposed, escalations, reroute questions, flags sent to them |
 | Committee | Kagawad | Their committee's cases only; decisions waiting on them: escalations to approve, tanods to pick, cases forwarded to them, their staff's flags |
-| Staff | Staff (moderator) | Their committee's cases only, no decisions: their own cases and the ones nobody has taken |
+| Staff | Staff (moderator) | The cases assigned to them (0175), no decisions: their own cases and the ones waiting for them to accept |
 
 Each module carries the counts (open, urgent with no tanod, overdue, due in 24 hours, nobody has taken, yours), deadline risk,
 quiet cases, spikes and recurring problems (kept to the kinds of complaint the committee sees) and the tanods (free, on a

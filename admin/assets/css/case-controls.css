@@ -241,3 +241,24 @@ dialog.ss-smartcard::backdrop { background: rgba(8, 12, 28, .55); }
 /* a handler who chose the Inbox does not get the bubble on the case page */
 html.cc-chat-page #chat-head .ch-fab { display: none; }
 @media (max-width: 640px) { .p-report .p-case-title { padding-right: 0; margin-top: 52px; } }
+/* 19 Nov 2026 (Rose): the ladder reads Chairman, Councilor, Staff; the holder's rung is lit, a rung that waits for someone to accept
+   is ringed in its colour, and a tanod on the case shows as a fourth chip in tanod green. The colours are the locked rung tokens,
+   which change with the theme (shell.css), so dark mode follows. */
+:root:root .ss-ladder li { display: grid; place-items: center; text-align: center; }
+:root:root .ss-ladder li.now.wait[data-r] { color: color-mix(in srgb, var(--rc) 70%, var(--p-ink)); background: color-mix(in srgb, var(--rc) 12%, var(--p-surface)); box-shadow: inset 0 0 0 2px var(--rc); }
+:root[data-theme="dark"] .ss-ladder li.now.wait[data-r] { color: var(--rc); background: color-mix(in srgb, var(--rc) 16%, var(--p-surface)); }
+:root:root .ss-ladder li.tan[data-r] { flex: 0 1 auto; padding: 7px 12px; color: color-mix(in srgb, var(--rc) 62%, #000); background: color-mix(in srgb, var(--rc) 14%, var(--p-surface)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rc) 60%, transparent); }
+:root[data-theme="dark"] .ss-ladder li.tan[data-r] { color: var(--rc); background: color-mix(in srgb, var(--rc) 18%, var(--p-surface)); }
+:root:root .ss-ladder li.tan::before { content: ""; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--rc); display: inline-block; vertical-align: 1px; }
+:root:root .ss-ladder-who { margin: 2px 4px 0; font-size: 12.5px; color: var(--p-muted); }
+/* a case assigned to you: one card with Accept as the main action and Decline beside it in the panel's own grammar */
+:root:root .ss-assigned { display: grid; gap: 10px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--p-orange, #FF9800) 8%, var(--p-surface)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--p-orange, #FF9800) 55%, transparent); }
+:root:root .ss-assigned .ss-handler { box-shadow: none; background: transparent; padding: 0; }
+:root:root .ss-assigned .p-hint { margin: 0; }
+:root:root .ss-asg-note { margin: 0; padding: 8px 12px; border-radius: 10px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); font-size: 13.5px; }
+/* an assignment waiting for someone else: who, in their rung's colour, and Take it back for whoever holds the case */
+:root:root .ss-asg-wait { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-radius: 14px; background: var(--p-surface); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rc) 55%, transparent); }
+:root:root .ss-asg-wait p { margin: 0; font-size: 13.5px; font-weight: 700; flex: 1 1 200px; min-width: 0; }
+:root:root .ss-asg-wait p i { display: inline-block; width: 9px; height: 9px; margin-right: 8px; border-radius: 50%; background: var(--rc); vertical-align: 1px; }
+:root[data-theme="dark"] .ss-asg-wait p i { box-shadow: 0 0 7px var(--rc); }
+:root:root .ss-asg-wait .p-hint { font-weight: 500; }

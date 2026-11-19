@@ -42,7 +42,11 @@ begin
     perform set_config('request.jwt.claim.sub', v_stf::text, true);
     select * into t from public.escalation_target(r_fwd) limit 1;
     if t.official is distinct from v_kpo or t.to_tier <> 1 or t.why <> 'next' then raise exception 'shown: % % %', t.official, t.to_tier, t.why; end if;
-    perform public.take_case(r_fwd);
+    -- 0175: staff hold a case once their Kagawad assigns it and they accept it (they no longer take one)
+    perform set_config('request.jwt.claim.sub', v_kpo::text, true);
+    perform public.assign_case(r_fwd, v_stf, null);
+    perform set_config('request.jwt.claim.sub', v_stf::text, true);
+    perform public.answer_case_assignment(r_fwd, true, null);
     v_off := public.escalate_in_barangay(r_fwd, 'Hindi kaya ng tanod.');
     if v_off <> v_kpo then raise exception 'went to % (the Environment Kagawad is %)', v_off, v_kenv; end if;
     if (select tier from public.reports where id = r_fwd) <> 1 then raise exception 'tier'; end if;
@@ -65,8 +69,10 @@ begin
 
   -- 3. a sensitive case goes to the Chairman; returned, it comes straight back down to whoever had it
   begin
+    perform set_config('request.jwt.claim.sub', v_kpo::text, true);
+    perform public.assign_case(r_dv, v_stf, null);
     perform set_config('request.jwt.claim.sub', v_stf::text, true);
-    perform public.take_case(r_dv);
+    perform public.answer_case_assignment(r_dv, true, null);
     select * into t from public.escalation_target(r_dv) limit 1;
     if t.why <> 'sensitive' or t.official is distinct from v_chr then raise exception 'shown: % %', t.official, t.why; end if;
     v_off := public.escalate_in_barangay(r_dv, 'Sensitibong kaso.');
