@@ -261,7 +261,10 @@ class _NavScreenState extends State<_NavScreen> {
           child: Stack(children: [
             Positioned.fill(
               child: BrgyMap(
+                use: BrgyMapUse.navigate,
                 controller: _mapCtl,
+                // the job card below overlaps the map's bottom edge
+                controlsPadding: const EdgeInsets.only(bottom: 22),
                 initialCenter: LatLng(widget.start.latitude, widget.start.longitude),
                 initialZoom: 18,
                 pins: [_casePin(widget.to, widget.category)],

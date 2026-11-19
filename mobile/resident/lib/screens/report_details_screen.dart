@@ -1073,6 +1073,7 @@ class _MapCard extends StatelessWidget {
             // than dragging a small target with a thumb that covers it.
             // The accuracy circle is on the ground, around the GPS fix.
             BrgyMap(
+              use: BrgyMapUse.pick,
               controller: controller,
               initialCenter: pin,
               onMoved: onMoved,

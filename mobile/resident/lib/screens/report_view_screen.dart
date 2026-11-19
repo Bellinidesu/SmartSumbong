@@ -87,7 +87,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../d/d_categories.dart';
 import '../d/d_theme.dart';
-import '../d/flood_watch.dart';
 import '../d/d_ui.dart';
 import '../models/complaint_catalogue.dart';
 import '../models/complaint_category.dart';
@@ -814,7 +813,6 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               title: context.tr('Handled by $_official', 'Hawak ni $_official'),
               sub: (_officialNote?.isNotEmpty ?? false) ? _officialNote : context.tr('Handed up by the barangay', 'Ipinasa ng barangay'),
             ),
-          if (lat != null && lng != null) _FloodRow(lat: lat, lng: lng),
           if (status.isOngoing && due != null && !overdue && !referred) DRow(icon: Icons.schedule_rounded, title: s.caseExpectedTitle, sub: dueText(due)),
           if (r['is_anonymous'] == true) DRow(icon: Icons.visibility_off_outlined, title: s.reportViewAnonymous),
         ]),
@@ -1429,8 +1427,8 @@ class _MiniMap extends StatelessWidget {
         child: Stack(
           children: [
             BrgyMap(
+              use: BrgyMapUse.report,
               initialCenter: point,
-              interactive: false,
               cornerRadius: 25,
               // The report card behind it (see _ReportCard).
               cornerColour: context.isDark
@@ -2334,36 +2332,6 @@ class _Drop extends StatelessWidget {
       ]),
     );
   }
-}
-
-/// The Project NOAH flood row: the level at the report's pin.
-class _FloodRow extends StatefulWidget {
-  const _FloodRow({required this.lat, required this.lng});
-
-  final double lat;
-  final double lng;
-
-  @override
-  State<_FloodRow> createState() => _FloodRowState();
-}
-
-class _FloodRowState extends State<_FloodRow> {
-  late final Future<int> _level = FloodHazard.levelAt(widget.lat, widget.lng);
-
-  @override
-  Widget build(BuildContext context) => FutureBuilder<int>(
-        future: _level,
-        builder: (_, snap) {
-          if (!snap.hasData) return const SizedBox.shrink();
-          final title = switch (snap.data!) {
-            3 => context.tr('High flood hazard', 'Mataas na panganib sa baha'),
-            2 => context.tr('Medium flood hazard', 'Katamtamang panganib sa baha'),
-            1 => context.tr('Low flood hazard', 'Mababang panganib sa baha'),
-            _ => context.tr('Outside the flood zones', 'Labas sa mga flood zone'),
-          };
-          return DRow(icon: Icons.waves_rounded, title: title, sub: 'Project NOAH 100-year flood map');
-        },
-      );
 }
 
 /// "How did we do?": stars, a few words, Send feedback — the same insert
