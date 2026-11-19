@@ -1194,12 +1194,17 @@ class BrgyMapOverlay extends StatelessWidget {
     final right = padding.right + 12;
     final left = padding.left + 12;
     final s = scale;
+    // the zoom pair's foot lines up with the Layers tile's, over the scale
+    // bar's row; the attribution sits under it
+    final dock = bottom + 28;
+    // the legend card's foot lines up with its button's
+    final legendFoot = dock + (use.zoomButtons ? 44 + 8 + 44 + 14 : 0);
     return Stack(children: [
       // the dock and the zoom pair
       if (use.fitButton || showLegend || use.zoomButtons)
         Positioned(
           right: right,
-          bottom: bottom + 34,
+          bottom: dock,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             if (use.fitButton)
               BrgyMapButton(glyph: MapIcons.focus, label: context.tr('Frame the map', 'Ipakita ang buong mapa'), onTap: onFit),
@@ -1213,7 +1218,7 @@ class BrgyMapOverlay extends StatelessWidget {
               ),
             ],
             if (use.zoomButtons) ...[
-              const SizedBox(height: 14),
+              if (use.fitButton || showLegend) const SizedBox(height: 14),
               BrgyMapButton(glyph: MapIcons.plus, label: context.tr('Zoom in', 'Lapitan'), onTap: onZoomIn),
               const SizedBox(height: 8),
               BrgyMapButton(glyph: MapIcons.minus, label: context.tr('Zoom out', 'Lumayo'), onTap: onZoomOut),
@@ -1245,8 +1250,8 @@ class BrgyMapOverlay extends StatelessWidget {
       if (showLegend && panel == BrgyMapPanel.legend)
         Positioned(
           right: right + 44 + 10,
-          bottom: bottom + 34,
-          child: BrgyMapLegendCard(entries: legend),
+          bottom: legendFoot,
+          child: BrgyMapLegendCard(entries: legend, maxWidth: MediaQuery.sizeOf(context).width - right - 54 - left),
         ),
     ]);
   }
@@ -1327,7 +1332,7 @@ class BrgyMapLayersTile extends StatelessWidget {
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             MapGlyphIcon(MapIcons.layers, size: 22, colour: on ? BrgyMapSkin.orange : k.ink, stroke: 2.2),
             const SizedBox(height: 3),
-            Text(context.tr('Layers', 'Layers'),
+            Text(context.tr('Layers', 'Mga layer'),
                 maxLines: 1, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, height: 1.1, color: k.ink)),
           ]),
         ),
@@ -1474,9 +1479,10 @@ class _PlacesPainter extends CustomPainter {
 /// map; a type with none is faded. Only a legend (Ace, 9 Oct): pressing a
 /// row does nothing.
 class BrgyMapLegendCard extends StatelessWidget {
-  const BrgyMapLegendCard({super.key, required this.entries});
+  const BrgyMapLegendCard({super.key, required this.entries, this.maxWidth = 270});
 
   final List<BrgyMapLegendEntry> entries;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -1484,7 +1490,7 @@ class BrgyMapLegendCard extends StatelessWidget {
     final total = entries.fold<int>(0, (a, e) => a + e.count);
     final screen = MediaQuery.sizeOf(context);
     return Container(
-      width: math.min(270, screen.width - 100),
+      width: math.min(270, maxWidth),
       constraints: BoxConstraints(maxHeight: screen.height * .5),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
       decoration: BoxDecoration(color: k.surface(2), borderRadius: BorderRadius.circular(16), boxShadow: k.elevation(2)),
