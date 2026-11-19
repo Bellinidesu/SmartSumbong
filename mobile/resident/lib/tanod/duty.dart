@@ -108,7 +108,7 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
       status = DutyState.parse(me['duty_status'] as String?);
       lastFix = DateTime.tryParse((me['last_location_at'] as String?) ?? '')?.toLocal();
       notifyListeners();
-      if (status == DutyState.onDuty) await pushLocation();
+      if (status == DutyState.onDuty) unawaited(pushLocation(quiet: true));   // 19 Nov 2026 (Ace): duty only; the fix is a quiet extra
     } catch (_) {
       // The picker still works; it just shows no current status.
     }
@@ -132,8 +132,10 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
 
       // After the column is written, never before: update_my_location()
       // only matches rows where duty_status is already 'on_duty'.
+      // 19 Nov 2026 (Ace): on duty = assignable, location is not required. The fix still goes quietly in the background (nearer
+      // tanods sort first on the portal, and turn-by-turn needs it), so going on duty never waits on the GPS.
       if (next == DutyState.onDuty) {
-        await pushLocation();
+        unawaited(pushLocation(quiet: true));
       } else {
         note = null;
         notifyListeners();
@@ -152,10 +154,9 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// Being on duty is not the same as being dispatchable.
-  /// nearest_available_tanod() sorts by distance and location_is_fresh()
-  /// discards a stale fix, so a tanod with no position sits in the queue
-  /// invisible to it — said out loud in [note] rather than swallowed.
+  /// 19 Nov 2026 (Ace): being on duty is what makes a tanod assignable; the
+  /// location is never required. A fix only helps the portal sort nearer
+  /// tanods first and feeds turn-by-turn, so it is sent quietly.
   ///
   /// [quiet] is for the key moments: it skips the interim "Sharing your
   /// location…" line under the picker.

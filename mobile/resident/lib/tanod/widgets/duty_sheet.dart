@@ -58,9 +58,8 @@ class _DutySheetState extends State<_DutySheet> {
     final err = await _duty.submit(next);
     if (!mounted) return;
     if (err == null) {
-      // Stay open while the first fix is taken, so "Location shared" or
-      // "Location is off" is seen; close straight away otherwise.
-      if (next != DutyState.onDuty) Navigator.of(context).pop();
+      // 19 Nov 2026 (Ace): duty only, no location note to wait for: close straight away.
+      Navigator.of(context).pop();
       return;
     }
     setState(() => _error = err == DutyError.notTanod
@@ -68,17 +67,8 @@ class _DutySheetState extends State<_DutySheet> {
         : context.ts.homeStatusUpdateFailed);
   }
 
-  String? _noteText(TanodStrings s, LocationNote? n) => switch (n) {
-        LocationNote.sharing => s.homeLocationSharing,
-        LocationNote.shared => s.homeLocationShared,
-        LocationNote.off => s.homeLocationOff,
-        LocationNote.failed => s.homeLocationShareFailed,
-        null => null,
-      };
-
   // Branch D: the question, the statuses as cards each with its colour
-  // (the picked one ringed in it, the current one labelled), the location
-  // note while on duty, and Submit.
+  // (the picked one ringed in it, the current one labelled), and Submit.
   @override
   Widget build(BuildContext context) {
     final s = context.ts;
@@ -86,7 +76,6 @@ class _DutySheetState extends State<_DutySheet> {
     return ListenableBuilder(
       listenable: _duty,
       builder: (context, _) {
-        final note = _duty.status == DutyState.onDuty ? _noteText(s, _duty.note) : null;
         final changed = _picked != null && _picked != _duty.status;
         return SafeArea(
           child: Padding(
@@ -110,10 +99,6 @@ class _DutySheetState extends State<_DutySheet> {
                           }),
                 ),
                 const SizedBox(height: 8),
-              ],
-              if (note != null) ...[
-                const SizedBox(height: 2),
-                Text(note, textAlign: TextAlign.center, style: DType.body(d.muted, size: 12.5)),
               ],
               if (_error != null) ...[
                 const SizedBox(height: 6),
