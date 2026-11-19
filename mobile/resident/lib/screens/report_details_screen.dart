@@ -644,8 +644,12 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
               DStepChip(context.tr('Step 3 of 3', 'Hakbang 3 ng 3')),
             ]),
             const SizedBox(height: 16),
-            Row(children: [
-              Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // the dot sits on the title's first line, however large the text
+              Padding(
+                padding: EdgeInsets.only(top: (MediaQuery.textScalerOf(context).scale(34) - 12) / 2),
+                child: Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
+              ),
               const SizedBox(width: 10),
               Expanded(child: Text(catName, style: DType.h1(d.ink).copyWith(fontSize: 28, height: 34 / 28, letterSpacing: -.28))),
             ]),
@@ -806,7 +810,7 @@ class _LocationRow extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 5),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                 Text(near, maxLines: 2, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 15, w: FontWeight.w800).copyWith(height: 20 / 15)),
-                Text(zone, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.muted, size: 12.5).copyWith(height: 17 / 12.5)),
+                Text(zone, maxLines: 2, overflow: TextOverflow.ellipsis, style: DType.body(d.muted, size: 12.5).copyWith(height: 17 / 12.5)),
               ]),
             ),
           ),
@@ -859,25 +863,30 @@ class _DescribePreview extends StatelessWidget {
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: enabled ? onTap : null,
-                  child: SizedBox(
-                    height: 104,
-                    child: Stack(children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                        child: Text(
-                          text.isEmpty ? context.s.reportDetailsDescribeHint : text,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: DType.body(text.isEmpty ? d.muted : d.ink, size: 14).copyWith(height: 1.45),
-                        ),
+                  // 104 high at least; taller when large text needs it, the caption never over the words
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 104),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 14, 10),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                          Text(
+                            text.isEmpty ? context.s.reportDetailsDescribeHint : text,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: DType.body(text.isEmpty ? d.muted : d.ink, size: 14).copyWith(height: 1.45),
+                          ),
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.bottomRight,
+                              child: Text(text.isEmpty ? context.tr('Tap to write', 'I-tap para magsulat') : context.tr('Tap to write more', 'I-tap para dagdagan'),
+                                  style: DType.body(d.muted, size: 12, w: FontWeight.w700).copyWith(height: 1)),
+                            ),
+                          ),
+                        ]),
                       ),
-                      Positioned(
-                        right: 14,
-                        bottom: 10,
-                        child: Text(text.isEmpty ? context.tr('Tap to write', 'I-tap para magsulat') : context.tr('Tap to write more', 'I-tap para dagdagan'),
-                            style: DType.body(d.muted, size: 12, w: FontWeight.w700).copyWith(height: 1)),
-                      ),
-                    ]),
+                    ),
                   ),
                 ),
               ),
@@ -1098,11 +1107,15 @@ class _Tile extends StatelessWidget {
               child: SizedBox(
                 width: 96,
                 height: 72,
-                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Icon(icon, size: 22, color: d.ink),
                   const SizedBox(height: 4),
-                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 12.5, w: FontWeight.w700).copyWith(height: 1)),
-                ]),
+                  // scaled down, not cut, when the text is large: the tile is 96 wide
+                  FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1, style: DType.body(d.ink, size: 12.5, w: FontWeight.w700).copyWith(height: 1))),
+                  ]),
+                ),
               ),
             ),
           ),
@@ -1209,7 +1222,7 @@ class _Switch extends StatelessWidget {
                 height: 32,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: on ? const Color(0xFF1F8A45) : (d.dark ? const Color(0xFF3C414A) : const Color(0xFFC3CBDD)),
+                  color: on ? const Color(0xFF1F8A45) : (d.dark ? const Color(0xFF6B7280) : const Color(0xFF7F8AA3)),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 alignment: on ? Alignment.centerRight : Alignment.centerLeft,

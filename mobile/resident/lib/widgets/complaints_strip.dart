@@ -53,24 +53,54 @@ class ComplaintsStrip extends StatelessWidget {
     } else {
       final shown = names.take(2).toList();
       final more = names.length - shown.length;
-      pills = Row(mainAxisSize: MainAxisSize.min, children: [
-        for (var i = 0; i < shown.length; i++) ...[
-          if (i > 0) const SizedBox(width: 6),
-          Flexible(child: _Pill(shown[i], col)),
-        ],
-        if (more > 0) ...[
-          const SizedBox(width: 6),
-          Container(
-            height: 30,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: d.dark ? const Color(0xFF4A4F57) : const Color(0xFFC3CBDD)),
+      final plus = more > 0 ? '+$more' : null;
+      pills = LayoutBuilder(builder: (context, box) {
+        // One row, always: each pill is as wide as its name, and when they do not all fit the longest are cut short
+        // (an ellipsis) rather than a pill going to a second line.
+        final scaler = MediaQuery.textScalerOf(context);
+        double width(String t, FontWeight w) {
+          final p = TextPainter(text: TextSpan(text: t, style: DType.body(d.ink, size: 12.5, w: w).copyWith(height: 1)), textDirection: TextDirection.ltr, textScaler: scaler, maxLines: 1)..layout();
+          return p.width;
+        }
+        const pad = 27.0; // 12 either side, the 1 px edge, and a little for rounding
+        final plusW = plus == null ? 0.0 : width(plus, FontWeight.w800) + pad;
+        final gaps = 6.0 * (shown.length - 1 + (plus == null ? 0 : 1));
+        final room = (box.maxWidth.isFinite ? box.maxWidth : 350.0) - plusW - gaps;
+        final want = [for (final n in shown) width(n, FontWeight.w700) + pad];
+        var w = [...want];
+        final shrink = want.fold<double>(0, (a, b) => a + b) > room;
+        if (shrink) {
+          // the shorter takes what it needs if that is under half, the longer the rest
+          final half = room / 2;
+          if (want.length == 1) {
+            w = [room];
+          } else if (want[0] <= half) {
+            w = [want[0], room - want[0]];
+          } else if (want[1] <= half) {
+            w = [room - want[1], want[1]];
+          } else {
+            w = [half, half];
+          }
+        }
+        return Row(mainAxisSize: MainAxisSize.min, children: [
+          for (var i = 0; i < shown.length; i++) ...[
+            if (i > 0) const SizedBox(width: 6),
+            SizedBox(width: shrink ? w[i].floorToDouble() : w[i].ceilToDouble(), child: _Pill(shown[i], col)),
+          ],
+          if (plus != null) ...[
+            const SizedBox(width: 6),
+            Container(
+              height: _pillHeight(context),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: d.dark ? const Color(0xFF4A4F57) : const Color(0xFFC3CBDD)),
+              ),
+              child: Center(widthFactor: 1, child: Text(plus, style: DType.body(d.ink2, size: 12.5, w: FontWeight.w800).copyWith(height: 1))),
             ),
-            child: Center(widthFactor: 1, child: Text('+$more', style: DType.body(d.ink2, size: 12.5, w: FontWeight.w800).copyWith(height: 1))),
-          ),
-        ],
-      ]);
+          ],
+        ]);
+      });
     }
     // 44 high to touch, though the pills are drawn 30
     final body = ConstrainedBox(constraints: BoxConstraints(minHeight: all ? 0 : 44), child: Align(alignment: Alignment.centerLeft, child: pills));
@@ -85,6 +115,9 @@ class ComplaintsStrip extends StatelessWidget {
 }
 
 /// A concern as a pill: the category's colour, lightly filled, the name in ink.
+/// A pill is 30 high, and taller when the text is scaled up, so the name is never cut.
+double _pillHeight(BuildContext context) => (MediaQuery.textScalerOf(context).scale(12.5) + 14).clamp(30.0, 80.0);
+
 class _Pill extends StatelessWidget {
   const _Pill(this.label, this.colour);
 
@@ -95,7 +128,7 @@ class _Pill extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     return Container(
-      height: 30,
+      height: _pillHeight(context),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: colour.withValues(alpha: d.dark ? .22 : .12),
