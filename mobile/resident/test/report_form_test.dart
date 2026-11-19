@@ -1,11 +1,12 @@
-// Filing a report, on the real screens over the preview backend (Rose, 18 Nov 2026): the other concerns are picked
-// on the first page and keep to the chosen category (0176), and the draft-restored note can be put away without
-// discarding anything.
+// Filing a report, on the real screens over the preview backend (Rose, 18-19 Nov 2026): the concerns are the category's
+// own pills, picked in any number on the first page and kept to the chosen category (0176), and the draft-restored
+// note can be put away without discarding anything.
 
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:resident/d/d_ui.dart' show DButton;
 import 'package:resident/main.dart' show navigatorKey;
 import 'package:resident/models/complaint_catalogue.dart';
 import 'package:resident/models/complaint_category.dart';
@@ -21,6 +22,7 @@ void _catalogue() => ComplaintCatalogue.apply([
          {'id': 1, 'en': 'Obstructed Sidewalks', 'active': true},
          {'id': 2, 'en': 'Illegal Parking', 'active': true},
          {'id': 3, 'en': 'Vendor Blocking Sidewalks', 'active': true},
+         {'id': 6, 'en': 'Blocked Driveway', 'active': true},
        ]},
       {'key': 'peace_order_nuisance', 'en': 'Peace, Order, & Nuisance', 'fil': 'Kapayapaan, Kaayusan at Istorbo', 'colour': '#E0609A', 'icon': 'peace_order_nuisance', 'active': true,
        'options': [
@@ -29,8 +31,6 @@ void _catalogue() => ComplaintCatalogue.apply([
        ]},
       {'key': 'other', 'en': 'Others', 'fil': 'Iba pa', 'colour': '#0F9D9A', 'icon': 'other', 'active': true, 'options': []},
     ]);
-
-Finder _inSheet(String text) => find.descendant(of: find.byType(BottomSheet), matching: find.text(text));
 
 Future<void> _open(WidgetTester tester, String route, [Object? arguments]) async {
   navigatorKey.currentState!.pushNamed(route, arguments: arguments);
@@ -47,120 +47,108 @@ Future<void> _tapVisible(WidgetTester tester, Finder f) async {
 void main() {
   setUpAll(() => BrgyMap.nativeView = false);
 
-  testWidgets('the other concerns are on the first page, and only the chosen category\'s are offered', (tester) async {
+  testWidgets('the concerns are the category\'s own pills: pick any number up to three, no "add another" step', (tester) async {
     await bootApp(tester);
     _catalogue();
     await _open(tester, '/submit-report');
-    const more = 'Is there more than one problem? (optional)';
-    expect(find.text(more), findsNothing, reason: 'nothing chosen yet');
+    expect(find.text('Add another concern'), findsNothing);
+    expect(find.text('Is there more than one problem? (optional)'), findsNothing);
+    expect(find.text('1 of 3 picked'), findsNothing, reason: 'nothing chosen yet');
+    expect(tester.widget<DButton>(find.widgetWithText(DButton, 'Continue')).onTap, isNull, reason: 'nothing to continue with');
 
     await _tapVisible(tester, find.text('Illegal Parking'));
-    expect(find.text(more), findsOneWidget);
-    await _tapVisible(tester, find.text('Add another concern'));
-    expect(_inSheet('Obstructed Sidewalks'), findsOneWidget);
-    expect(_inSheet('Vendor Blocking Sidewalks'), findsOneWidget);
-    expect(_inSheet('Illegal Parking'), findsNothing, reason: 'already the main concern');
-    expect(_inSheet('Street Drinking Nuisance'), findsNothing, reason: 'a second category is not offered');
-    expect(_inSheet('Others'), findsNothing);
-    await tester.tap(_inSheet('Obstructed Sidewalks'));
-    await settle(tester);
-    expect(find.byType(BottomSheet), findsNothing);
-    expect(find.byTooltip('Remove Obstructed Sidewalks'), findsOneWidget);
+    expect(find.text('1 of 3 picked'), findsOneWidget);
+    await _tapVisible(tester, find.text('Obstructed Sidewalks'));
+    await _tapVisible(tester, find.text('Vendor Blocking Sidewalks'));
+    expect(find.text('3 of 3 picked'), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsNWidgets(3), reason: 'each picked pill shows a tick');
 
-    // Another category asks first; keeping the old one changes nothing.
-    await _tapVisible(tester, find.text('Street Drinking Nuisance'));
-    expect(find.text('Change the category?'), findsOneWidget);
-    await tester.tap(find.text('Keep Street Obstruction'));
-    await settle(tester);
-    expect(find.text('Change the category?'), findsNothing);
-    expect(find.byTooltip('Remove Obstructed Sidewalks'), findsOneWidget);
+    // Out of picks: the fourth does nothing.
+    await _tapVisible(tester, find.text('Blocked Driveway'));
+    expect(find.text('3 of 3 picked'), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsNWidgets(3));
 
-    // Back on the dialog closes the dialog only.
-    await _tapVisible(tester, find.text('Street Drinking Nuisance'));
-    await tester.binding.handlePopRoute();
-    await settle(tester);
-    expect(find.text('Change the category?'), findsNothing);
-    expect(find.byTooltip('Remove Obstructed Sidewalks'), findsOneWidget);
-    expect(find.text('Continue'), findsOneWidget, reason: 'still on the first page');
-
-    // Changing it clears the other concerns.
-    await _tapVisible(tester, find.text('Street Drinking Nuisance'));
-    await tester.tap(find.text('Change category'));
-    await settle(tester);
-    expect(find.byWidgetPredicate((w) => w is Tooltip && (w.message ?? '').startsWith('Remove ')), findsNothing);
-    await _tapVisible(tester, find.text('Add another concern'));
-    expect(_inSheet('Unreasonable Neighborhood Noise'), findsOneWidget);
-    expect(_inSheet('Obstructed Sidewalks'), findsNothing);
-    await tester.tap(_inSheet('Unreasonable Neighborhood Noise'));
-    await settle(tester);
-
-    // The second page shows them, and has no picker of its own.
+    // Tapping a picked one puts it down; the first one tapped was the main concern, so the next in line takes over.
+    await _tapVisible(tester, find.text('Illegal Parking'));
+    expect(find.text('2 of 3 picked'), findsOneWidget);
     await tester.tap(find.text('Continue'));
     await settle(tester);
-    expect(find.text('+ Unreasonable Neighborhood Noise'), findsOneWidget);
-    expect(find.text(more), findsNothing);
+    expect(find.text('+ Vendor Blocking Sidewalks'), findsOneWidget, reason: 'the second page lists the others');
+    expect(find.text('+ Obstructed Sidewalks'), findsNothing, reason: 'Obstructed Sidewalks is the main concern now');
     expect(find.text('Add another concern'), findsNothing);
     await finish(tester);
   });
 
-  testWidgets('a picked concern becomes the main one when its pill is tapped, and Others has no picker', (tester) async {
+  testWidgets('a report keeps to one category: another one asks first when concerns would go, and Others stands alone', (tester) async {
     await bootApp(tester);
     _catalogue();
     await _open(tester, '/submit-report');
+
+    // One pick moves freely between categories: nothing is lost.
     await _tapVisible(tester, find.text('Illegal Parking'));
-    await _tapVisible(tester, find.text('Add another concern'));
-    await tester.tap(_inSheet('Vendor Blocking Sidewalks'));
+    await _tapVisible(tester, find.text('Street Drinking Nuisance'));
+    expect(find.text('Change the category?'), findsNothing);
+    expect(find.text('1 of 3 picked'), findsOneWidget);
+    await _tapVisible(tester, find.text('Unreasonable Neighborhood Noise'));
+    expect(find.text('2 of 3 picked'), findsOneWidget);
+
+    // Two picks: another category asks first; keeping the old one changes nothing.
+    await _tapVisible(tester, find.text('Obstructed Sidewalks'));
+    expect(find.text('Change the category?'), findsOneWidget);
+    await tester.tap(find.text('Keep Peace, Order, & Nuisance'));
     await settle(tester);
-    // its pill (the chip under the pills carries the same name)
-    await _tapVisible(tester, find.text('Vendor Blocking Sidewalks').first);
-    expect(find.byWidgetPredicate((w) => w is Tooltip && (w.message ?? '').startsWith('Remove ')), findsNothing, reason: 'it is the main concern now, not another one');
+    expect(find.text('Change the category?'), findsNothing);
+    expect(find.text('2 of 3 picked'), findsOneWidget);
+
+    // Back on the dialog closes the dialog only.
+    await _tapVisible(tester, find.text('Obstructed Sidewalks'));
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(find.text('Change the category?'), findsNothing);
+    expect(find.text('2 of 3 picked'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget, reason: 'still on the first page');
+
+    // Changing it clears the others and starts again with the one tapped.
+    await _tapVisible(tester, find.text('Obstructed Sidewalks'));
+    await tester.tap(find.text('Change category'));
+    await settle(tester);
+    expect(find.text('1 of 3 picked'), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+
+    // Others has no pills to add to: it replaces them (asking first, as two were picked).
+    await _tapVisible(tester, find.text('Vendor Blocking Sidewalks'));
+    expect(find.text('2 of 3 picked'), findsOneWidget);
     await _tapVisible(tester, find.text('Others').last);
-    expect(find.text('Is there more than one problem? (optional)'), findsNothing);
+    expect(find.text('Change the category?'), findsOneWidget);
+    await tester.tap(find.text('Change category'));
+    await settle(tester);
+    expect(find.textContaining('picked'), findsNothing);
+    expect(tester.widget<DButton>(find.widgetWithText(DButton, 'Continue')).onTap, isNotNull, reason: 'Others can continue');
     await finish(tester);
   });
 
-  testWidgets('the remove cross answers a 48 x 48 touch around it, and the rest of the name does not', (tester) async {
+  testWidgets('a pill answers a 48 px touch though it is drawn 30 tall, and no further', (tester) async {
     await bootApp(tester);
     _catalogue();
     await _open(tester, '/submit-report');
-    Finder chips() => find.byWidgetPredicate((w) => w is Tooltip && (w.message ?? '').startsWith('Remove '));
-    Future<void> add(String name) async {
-      await _tapVisible(tester, find.text('Add another concern'));
-      await tester.tap(_inSheet(name));
-      await settle(tester);
-    }
+    final pill = find.text('Obstructed Sidewalks');
+    await tester.ensureVisible(pill);
+    await tester.pump();
+    final c = tester.getCenter(pill);
 
-    // Street Obstruction: the main one and two more.
-    await _tapVisible(tester, find.text('Illegal Parking'));
-    await add('Obstructed Sidewalks');
-    await add('Vendor Blocking Sidewalks');
-    expect(chips(), findsNWidgets(2));
-    final cross = tester.getCenter(find.byTooltip('Remove Obstructed Sidewalks'));
-    final pill = tester.getRect(find.ancestor(of: find.byTooltip('Remove Obstructed Sidewalks'), matching: find.byType(Container)).first);
-    expect(pill.height, lessThan(48), reason: 'drawn as before');
-    // far along the name: nothing
-    await tester.tapAt(cross + const Offset(-60, 0));
+    // 20 px above the middle: 5 px past the drawn top, inside the 9 px the touch reaches.
+    await tester.tapAt(c + const Offset(0, -20));
     await settle(tester);
-    expect(chips(), findsNWidgets(2));
-    // over the end of the name and above the pill, 21 px from the cross's middle each way
-    await tester.tapAt(cross + const Offset(-28, -21));
+    expect(find.text('1 of 3 picked'), findsOneWidget);
+    // and the middle, to put it down again
+    await tester.tapAt(c);
     await settle(tester);
-    expect(find.byTooltip('Remove Obstructed Sidewalks'), findsNothing);
-    expect(chips(), findsOneWidget);
-    // past the cross, in the pill's end
-    final cross2 = tester.getCenter(find.byTooltip('Remove Vendor Blocking Sidewalks'));
-    await tester.tapAt(cross2 + const Offset(15, 0));
-    await settle(tester);
-    expect(chips(), findsNothing);
+    expect(find.textContaining('picked'), findsNothing);
 
-    // below the pill, in the card's padding: a category with one option left, so nothing sits under the chip
-    await _tapVisible(tester, find.text('Street Drinking Nuisance'));
-    await add('Unreasonable Neighborhood Noise');
-    expect(chips(), findsOneWidget);
-    final cross3 = tester.getCenter(find.byTooltip('Remove Unreasonable Neighborhood Noise'));
-    await tester.tapAt(cross3 + const Offset(0, 21));
+    // 31 px above the middle is outside it
+    await tester.tapAt(c + const Offset(0, -31));
     await settle(tester);
-    expect(chips(), findsNothing);
+    expect(find.textContaining('picked'), findsNothing);
     await finish(tester);
   });
 
