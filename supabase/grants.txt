@@ -1,4 +1,5 @@
 fn _add_report_evidence(p_report uuid, p_log uuid, p_kind text, p_media jsonb) anon=- authenticated=-
+fn _admin_sees_user(p_user uuid) anon=- authenticated=call
 fn _admin_tier_default() anon=- authenticated=-
 fn _ask_if_fixed() anon=call authenticated=call
 fn _case_committee(p_report uuid) anon=- authenticated=call
@@ -39,6 +40,7 @@ fn _inbox_thread() anon=- authenticated=-
 fn _is_sensitive_text(p_text text) anon=call authenticated=call
 fn _kagawad_of_staff(p_user uuid) anon=- authenticated=call
 fn _kagawad_of_tanod(p_tanod uuid) anon=- authenticated=call
+fn _look_share_notice() anon=- authenticated=-
 fn _mail_may_send(p_from uuid, p_to uuid) anon=- authenticated=-
 fn _main_concern() anon=call authenticated=call
 fn _may_take_over(p_me uuid, p_handler uuid) anon=- authenticated=-
@@ -404,128 +406,128 @@ fn workspace_photos(p_limit integer) anon=- authenticated=call
 fn workspace_risk() anon=- authenticated=call
 fn workspace_save(p_tabs text[], p_tab text, p_feeds text[], p_keywords text[], p_mine jsonb) anon=- authenticated=call
 fn workspace_team() anon=- authenticated=call
-seq admin_punches_id_seq anon=usage,select,update authenticated=usage,select,update
-seq case_forwards_id_seq anon=usage,select,update authenticated=usage,select,update
-seq command_handovers_id_seq anon=usage,select,update authenticated=usage,select,update
-seq complaint_options_id_seq anon=usage,select,update authenticated=usage,select,update
-seq dev_level_switches_id_seq anon=usage,select,update authenticated=usage,select,update
-seq hazard_zones_id_seq anon=usage,select,update authenticated=usage,select,update
-seq inbox_messages_id_seq anon=usage,select,update authenticated=usage,select,update
-seq mail_drafts_id_seq anon=usage,select,update authenticated=usage,select,update
-seq mail_labels_id_seq anon=usage,select,update authenticated=usage,select,update
-seq places_id_seq anon=usage,select,update authenticated=usage,select,update
-seq portal_errors_id_seq anon=usage,select,update authenticated=usage,select,update
-seq portal_outages_id_seq anon=usage,select,update authenticated=usage,select,update
-seq portal_uptime_id_seq anon=usage,select,update authenticated=usage,select,update
-seq report_seq anon=usage,select,update authenticated=usage,select,update
-seq reroute_questions_id_seq anon=usage,select,update authenticated=usage,select,update
-seq smart_events_id_seq anon=usage,select,update authenticated=usage,select,update
-seq smart_rule_versions_version_seq anon=usage,select,update authenticated=usage,select,update
-seq tanod_committee_log_id_seq anon=usage,select,update authenticated=usage,select,update
-seq web_push_subscriptions_id_seq anon=usage,select,update authenticated=usage,select,update
-table account_audit anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table admin_punches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table app_releases anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table attendance anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table barangay_boundary anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table barangay_profile anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table case_forwards anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table case_handler_log anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+seq admin_punches_id_seq anon=- authenticated=usage,select,update
+seq case_forwards_id_seq anon=- authenticated=usage,select,update
+seq command_handovers_id_seq anon=- authenticated=usage,select,update
+seq complaint_options_id_seq anon=- authenticated=usage,select,update
+seq dev_level_switches_id_seq anon=- authenticated=usage,select,update
+seq hazard_zones_id_seq anon=- authenticated=usage,select,update
+seq inbox_messages_id_seq anon=- authenticated=usage,select,update
+seq mail_drafts_id_seq anon=- authenticated=usage,select,update
+seq mail_labels_id_seq anon=- authenticated=usage,select,update
+seq places_id_seq anon=- authenticated=usage,select,update
+seq portal_errors_id_seq anon=- authenticated=usage,select,update
+seq portal_outages_id_seq anon=- authenticated=usage,select,update
+seq portal_uptime_id_seq anon=- authenticated=usage,select,update
+seq report_seq anon=- authenticated=usage,select,update
+seq reroute_questions_id_seq anon=- authenticated=usage,select,update
+seq smart_events_id_seq anon=- authenticated=usage,select,update
+seq smart_rule_versions_version_seq anon=- authenticated=usage,select,update
+seq tanod_committee_log_id_seq anon=- authenticated=usage,select,update
+seq web_push_subscriptions_id_seq anon=- authenticated=usage,select,update
+table account_audit anon=- authenticated=select,insert,update,delete rls=on
+table admin_punches anon=- authenticated=select,insert,update,delete rls=on
+table app_releases anon=- authenticated=select,insert,update,delete rls=on
+table attendance anon=- authenticated=select,insert,update,delete rls=on
+table barangay_boundary anon=select authenticated=select,insert,update,delete rls=on
+table barangay_profile anon=select authenticated=select,insert,update,delete rls=on
+table case_forwards anon=- authenticated=select,insert,update,delete rls=on
+table case_handler_log anon=- authenticated=select,insert,update,delete rls=on
 table chat_state anon=- authenticated=select rls=on
-table checkpoint_scans anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
-table command_checklist anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_checks anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_display_links anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_handovers anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_modes anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_place_checks anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_place_kinds anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_reads anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_sessions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_state anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_tags anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table command_words anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table committee_categories anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table committee_for_category anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table committees anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table complaint_categories anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table complaint_options anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table detail_requests anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table dev_level_switches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table dev_test_accounts anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table device_tokens anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table dispatch_media anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table dispatch_updates anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table dispatches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table duty_roster anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
-table escalation_requests anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table feature_switches anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table feedback anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table game_scores anon=- authenticated=select,truncate,references,trigger rls=on
-table hazard_zones anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table hotline_groups anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table hotline_numbers anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table inbox_messages anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table checkpoint_scans anon=- authenticated=select,insert,delete rls=on
+table command_checklist anon=- authenticated=select,insert,update,delete rls=on
+table command_checks anon=- authenticated=select,insert,update,delete rls=on
+table command_display_links anon=- authenticated=select,insert,update,delete rls=on
+table command_handovers anon=- authenticated=select,insert,update,delete rls=on
+table command_modes anon=- authenticated=select,insert,update,delete rls=on
+table command_place_checks anon=- authenticated=select,insert,update,delete rls=on
+table command_place_kinds anon=- authenticated=select,insert,update,delete rls=on
+table command_reads anon=- authenticated=select,insert,update,delete rls=on
+table command_sessions anon=- authenticated=select,insert,update,delete rls=on
+table command_state anon=- authenticated=select,insert,update,delete rls=on
+table command_tags anon=- authenticated=select,insert,update,delete rls=on
+table command_words anon=- authenticated=select,insert,update,delete rls=on
+table committee_categories anon=- authenticated=select,insert,update,delete rls=on
+table committee_for_category anon=- authenticated=select,insert,update,delete rls=on
+table committees anon=- authenticated=select,insert,update,delete rls=on
+table complaint_categories anon=select authenticated=select,insert,update,delete rls=on
+table complaint_options anon=select authenticated=select,insert,update,delete rls=on
+table detail_requests anon=- authenticated=select,insert,update,delete rls=on
+table dev_level_switches anon=- authenticated=select,insert,update,delete rls=on
+table dev_test_accounts anon=- authenticated=select,insert,update,delete rls=on
+table device_tokens anon=- authenticated=select,insert,update,delete rls=on
+table dispatch_media anon=- authenticated=select,insert,update,delete rls=on
+table dispatch_updates anon=- authenticated=select,insert,update,delete rls=on
+table dispatches anon=- authenticated=select rls=on
+table duty_roster anon=- authenticated=select,insert,delete rls=on
+table escalation_requests anon=- authenticated=select,insert,update,delete rls=on
+table feature_switches anon=- authenticated=select,insert,update,delete rls=on
+table feedback anon=- authenticated=select,insert,update,delete rls=on
+table game_scores anon=- authenticated=select rls=on
+table hazard_zones anon=select authenticated=select,insert,update,delete rls=on
+table hotline_groups anon=select authenticated=select,insert,update,delete rls=on
+table hotline_numbers anon=select authenticated=select,insert,update,delete rls=on
+table inbox_messages anon=- authenticated=select,insert,update,delete rls=on
 table login_attempts anon=- authenticated=- rls=on
-table login_failure_sources anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table look_shares anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,delete,truncate,references,trigger rls=on
+table login_failure_sources anon=- authenticated=select,insert,update,delete rls=on
+table look_shares anon=- authenticated=select,insert rls=on
 table mail_drafts anon=- authenticated=select rls=on
 table mail_label_links anon=- authenticated=select rls=on
 table mail_labels anon=- authenticated=select rls=on
 table mail_state anon=- authenticated=select rls=on
-table media_trash anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table notifications anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table operational_settings anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table media_trash anon=- authenticated=select,insert,update,delete rls=on
+table notifications anon=- authenticated=select,insert,delete rls=on
+table operational_settings anon=- authenticated=select,insert,update,delete rls=on
 table password_otps anon=- authenticated=- rls=on
-table patrol_checkpoints anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table place_kinds anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table places anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table places_refresh anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table poll_votes anon=- authenticated=select,insert,truncate,references,trigger rls=on
-table polls anon=- authenticated=select,insert,truncate,references,trigger rls=on
-table portal_errors anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table portal_outages anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table portal_uptime anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table preview_attempts anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table preview_sessions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table profile_requests anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table rate_limit_hits anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table relief_tally anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
-table report_concerns anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table report_evidence anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table report_media anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table report_messages anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table report_triage anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table reports anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table reroute_questions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table resolution_checks anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table retirement_requests anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table safe_point_notes anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table shift_checkins anon=- authenticated=select,insert,truncate,references,trigger rls=on
-table sla_extensions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table sla_policies anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table smart_events anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table smart_lexicon anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table smart_overrides anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table smart_patterns_seen anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table smart_rule_versions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table smart_rules anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
+table patrol_checkpoints anon=- authenticated=select,insert,update,delete rls=on
+table place_kinds anon=- authenticated=select,insert,update,delete rls=on
+table places anon=- authenticated=select,insert,update,delete rls=on
+table places_refresh anon=- authenticated=select,insert,update,delete rls=on
+table poll_votes anon=- authenticated=select,insert rls=on
+table polls anon=- authenticated=select,insert rls=on
+table portal_errors anon=- authenticated=select,insert,update,delete rls=on
+table portal_outages anon=- authenticated=select,insert,update,delete rls=on
+table portal_uptime anon=- authenticated=select,insert,update,delete rls=on
+table preview_attempts anon=- authenticated=select,insert,update,delete rls=on
+table preview_sessions anon=- authenticated=select,insert,update,delete rls=on
+table profile_requests anon=- authenticated=select,insert,update,delete rls=on
+table rate_limit_hits anon=- authenticated=select,insert,update,delete rls=on
+table relief_tally anon=- authenticated=select,insert,delete rls=on
+table report_concerns anon=- authenticated=select,insert,update,delete rls=on
+table report_evidence anon=- authenticated=select,insert,update,delete rls=on
+table report_media anon=- authenticated=select,insert,update,delete rls=on
+table report_messages anon=- authenticated=select,insert,update,delete rls=on
+table report_triage anon=- authenticated=select,insert,update,delete rls=on
+table reports anon=- authenticated=select,delete rls=on
+table reroute_questions anon=- authenticated=select,insert,update,delete rls=on
+table resolution_checks anon=- authenticated=select,insert,update,delete rls=on
+table retirement_requests anon=- authenticated=select rls=on
+table safe_point_notes anon=- authenticated=select,insert,update,delete rls=on
+table shift_checkins anon=- authenticated=select,insert rls=on
+table sla_extensions anon=- authenticated=select rls=on
+table sla_policies anon=- authenticated=select,insert,update,delete rls=on
+table smart_events anon=- authenticated=select,insert,update,delete rls=on
+table smart_lexicon anon=- authenticated=select,insert,update,delete rls=on
+table smart_overrides anon=- authenticated=select,insert,update,delete rls=on
+table smart_patterns_seen anon=- authenticated=select,insert,update,delete rls=on
+table smart_rule_versions anon=- authenticated=select,insert,update,delete rls=on
+table smart_rules anon=- authenticated=select,insert,update,delete rls=on
 table smart_snapshot anon=- authenticated=- rls=on
 table smart_watch_state anon=- authenticated=- rls=on
-table smart_word_decisions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table smart_work_orders anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table staff_credentials anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table staff_dates anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table staff_leave anon=- authenticated=select,insert,delete,truncate,references,trigger rls=on
-table status_logs anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table system_alerts anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table tanod_committee_log anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table tanod_committees anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table team_post_reads anon=- authenticated=select,insert,truncate,references,trigger rls=on
-table team_posts anon=- authenticated=select,insert,truncate,references,trigger rls=on
-table users anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table web_push_subscriptions anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table wording anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table workspace_prefs anon=- authenticated=select,insert,update,delete,truncate,references,trigger rls=on
-table workspace_settings anon=- authenticated=select,update,truncate,references,trigger rls=on
-view case_forward_flags anon=select,insert,update,delete,truncate,references,trigger authenticated=select,insert,update,delete,truncate,references,trigger rls=off
+table smart_word_decisions anon=- authenticated=select,insert,update,delete rls=on
+table smart_work_orders anon=- authenticated=select,insert,update,delete rls=on
+table staff_credentials anon=- authenticated=select,insert,update,delete rls=on
+table staff_dates anon=- authenticated=select,insert,update,delete rls=on
+table staff_leave anon=- authenticated=select,insert,delete rls=on
+table status_logs anon=- authenticated=select,insert,update,delete rls=on
+table system_alerts anon=- authenticated=select,insert,update,delete rls=on
+table tanod_committee_log anon=- authenticated=select,insert,update,delete rls=on
+table tanod_committees anon=- authenticated=select,insert,update,delete rls=on
+table team_post_reads anon=- authenticated=select,insert rls=on
+table team_posts anon=- authenticated=select,insert rls=on
+table users anon=- authenticated=select,update rls=on
+table web_push_subscriptions anon=- authenticated=select,insert,update,delete rls=on
+table wording anon=select authenticated=select,insert,update,delete rls=on
+table workspace_prefs anon=- authenticated=select,insert,update,delete rls=on
+table workspace_settings anon=- authenticated=select,update rls=on
+view case_forward_flags anon=- authenticated=select,insert,update,delete rls=off
