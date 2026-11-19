@@ -464,8 +464,8 @@ class _WhereScreenState extends State<WhereScreen> {
           Positioned(
             left: 0,
             right: 0,
-            top: pinY - 28,
-            height: 56,
+            top: pinY - 34,
+            height: 68,
             child: IgnorePointer(child: Center(child: _WherePin(choice: choice, colour: col, outside: outside))),
           ),
 
@@ -645,8 +645,8 @@ class _WherePin extends StatelessWidget {
       glyph: choice.category.icon,
     );
     return SizedBox(
-      width: 56,
-      height: 56,
+      width: 68,
+      height: 68,
       child: Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
         // where the spot is, when the pin is lifted off it
         if (outside)
@@ -661,7 +661,7 @@ class _WherePin extends StatelessWidget {
         AnimatedSlide(
           duration: const Duration(milliseconds: 160),
           offset: Offset(0, outside ? -.28 : 0),
-          child: BrgyMapPinPreview(pin, scale: 1),
+          child: BrgyMapPinPreview(pin, scale: 1.2),
         ),
       ]),
     );

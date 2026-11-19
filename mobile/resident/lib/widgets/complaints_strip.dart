@@ -50,12 +50,11 @@ class ComplaintsStrip extends StatelessWidget {
                 Container(
                   height: 30,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
+                            decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(15),
                     border: Border.all(color: d.dark ? const Color(0xFF4A4F57) : const Color(0xFFC3CBDD)),
                   ),
-                  child: Text('+$more', style: DType.body(d.ink2, size: 12.5, w: FontWeight.w800).copyWith(height: 1)),
+                  child: Center(widthFactor: 1, child: Text('+$more', style: DType.body(d.ink2, size: 12.5, w: FontWeight.w800).copyWith(height: 1))),
                 ),
             ]),
           ),
@@ -80,13 +79,12 @@ class _Pill extends StatelessWidget {
       child: Container(
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: colour.withValues(alpha: d.dark ? .22 : .12),
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: colour.withValues(alpha: .6)),
         ),
-        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 12.5, w: FontWeight.w700).copyWith(height: 1)),
+        child: Center(widthFactor: 1, child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 12.5, w: FontWeight.w700).copyWith(height: 1))),
       ),
     );
   }
@@ -154,13 +152,12 @@ Future<void> showComplaintsSheet(BuildContext context, CategoryChoice choice) {
                               Container(
                                 height: 30,
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
+                                                        decoration: BoxDecoration(
                                   color: col,
                                   borderRadius: BorderRadius.circular(15),
                                   boxShadow: [BoxShadow(color: col.withValues(alpha: .35), blurRadius: 10, offset: const Offset(0, 4))],
                                 ),
-                                child: Text(n, style: DType.body(Colors.white, size: 12.5, w: FontWeight.w700).copyWith(height: 1)),
+                                child: Center(widthFactor: 1, child: Text(n, style: DType.body(Colors.white, size: 12.5, w: FontWeight.w700).copyWith(height: 1))),
                               ),
                           ]),
                         ]),

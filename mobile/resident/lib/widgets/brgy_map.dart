@@ -332,6 +332,10 @@ class BrgyMap extends StatefulWidget {
   @visibleForTesting
   static bool nativeView = true;
 
+  /// A drawing to stand in for the map where it is not made (local screen captures); null leaves it blank.
+  @visibleForTesting
+  static WidgetBuilder? stand;
+
   @override
   State<BrgyMap> createState() => _BrgyMapState();
 }
@@ -933,7 +937,7 @@ class _BrgyMapState extends State<BrgyMap> {
   Widget _mapView(BuildContext context) {
     final style = _style;
     final bg = context.colors.bg;
-    if (style == null || !BrgyMap.nativeView) return ColoredBox(color: bg);
+    if (style == null || !BrgyMap.nativeView) return BrgyMap.stand?.call(context) ?? ColoredBox(color: bg);
     final use = widget.use;
     final i = use.interactive;
     final pad = widget.controlsPadding;
