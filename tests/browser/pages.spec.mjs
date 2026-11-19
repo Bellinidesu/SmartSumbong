@@ -1956,7 +1956,7 @@ test('Chat heads drag like a phone\'s (12 Nov 2026): the panel shuts when the bu
   expect(await page.evaluate(id => JSON.parse(localStorage.getItem('ss-chat-cases'))[id].pin, CASE)).toBe(false);
 });
 
-test('Rose, 19 Nov: exactly one chat head on a page, whatever is floated; its ball counts the conversations with something unread', async ({ page }) => {
+test('Rose, 19 Nov: exactly one chat head on a page, whatever is floated; a case page\'s own head carries the other floated cases; its ball counts the conversations with something unread', async ({ page }) => {
   const CASE2 = 'c0000000-0000-0000-0000-000000000002';
   const r = await open(page, `case.php?id=${CASE}`);
   await page.evaluate(() => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_reset_chat_state', { method: 'POST', body: '{}' }));
@@ -1967,27 +1967,51 @@ test('Rose, 19 Nov: exactly one chat head on a page, whatever is floated; its ba
     localStorage.setItem('ss-chat-cases', JSON.stringify({ [a]: { pin: true, t: 'SS-2610-1001' }, [b]: { pin: true, t: 'SS-2610-1002' } }));
     localStorage.setItem('ss-chat-seen-' + a, JSON.stringify({ r: now, 'd-d1': now, 'd-d2': now }));
   }, [CASE, CASE2]);
-  await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(600);
-  await expect(page.locator('.ch'), "a case page: only the case's own head, no floating ones").toHaveCount(1);
+  // the second case's page: one head, its own, which also carries the first case
+  await page.goto(`case.php?id=${CASE2}`, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(800);
+  await expect(page.locator('.ch'), 'a case page: exactly one head').toHaveCount(1);
   await expect(page.locator('#chat-head')).toHaveCount(1);
+  await page.evaluate(() => window.ssChatPoll());
+  await page.waitForTimeout(1100);
+  // two new messages from the resident of the first case: one conversation waits, so the ball says 1, not 2
+  for (const body of ['Kuya, may balita na po ba?', 'Hello po?']) await page.evaluate(b => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_incoming', { method: 'POST', body: JSON.stringify({ body: b }) }), body);
+  await page.evaluate(() => window.ssChatPoll());
+  const main = page.locator('#chat-head');
+  await expect(main.locator('#ch-badge')).toBeVisible();
+  await expect(main.locator('#ch-badge')).toHaveText('1');
+  await main.locator('#ch-fab').click();
+  const row = main.locator('.ch-cases');
+  await expect(row, 'the row of floated cases in the case page\'s own head').toBeVisible();
+  await expect(row.locator('.ch-case')).toHaveCount(2);
+  await expect(row.locator('.ch-case').first(), 'this case first, and on screen').toHaveText('1002');
+  await expect(row.locator('.ch-case').first()).toHaveClass(/ch-case-on/);
+  await expect(row.locator('.ch-case', { hasText: '1001' }), 'the other floated case carries its unread dot').toHaveClass(/ch-case-new/);
+  await main.locator('.ch-panel').evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)));
+  expect(await axe(page), 'axe with the case page head carrying another case').toEqual([]);
+  if (process.env.CAPTURE) {
+    for (const [w, h] of [[2048, 1100], [390, 844]]) for (const theme of ['light', 'dark']) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.evaluate(t => { document.documentElement.setAttribute('data-theme', t); }, theme);
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: `${process.env.CAPTURE}/chathead-casepage-${theme}-${w}.png` });
+    }
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+  }
+  await row.locator('.ch-case', { hasText: '1001' }).click();
+  await expect(row.locator('.ch-case.ch-case-on')).toHaveText('1001');
+  await expect(main.locator('.ch-row')).toHaveCount(2);
+  await page.keyboard.press('Escape');
+  // another page: one floating head for both floated cases
   await page.goto('cases.php', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(600);
   await expect(page.locator('.ch'), 'another page: one head for both floated cases').toHaveCount(1);
   const head = page.locator('.ch-float');
   await expect(head.locator('.ch-tag'), 'the case it shows, and how many more it carries').toHaveText('1002 +1');
   await page.evaluate(() => window.ssChatPoll());
-  await expect(head.locator('.ch-badge')).toBeHidden();
-  await page.waitForTimeout(1100);
-  // two new messages from the resident of the first case: one conversation waits, so the ball says 1, not 2
-  for (const body of ['Kuya, may balita na po ba?', 'Hello po?']) await page.evaluate(b => fetch('http://127.0.0.1:54399/rest/v1/rpc/fake_incoming', { method: 'POST', body: JSON.stringify({ body: b }) }), body);
-  await page.evaluate(() => window.ssChatPoll());
-  await expect(head.locator('.ch-badge')).toBeVisible();
   await expect(head.locator('.ch-badge')).toHaveText('1');
-  // the panel switches between the floated cases; the one with the unread conversation carries the dot
   await head.locator('.ch-fab').click();
   const strip = head.locator('.ch-cases');
-  await expect(strip).toBeVisible();
   await expect(strip.locator('.ch-case')).toHaveCount(2);
-  await expect(strip.locator('.ch-case.ch-case-on')).toHaveText('1002');
   await expect(strip.locator('.ch-case', { hasText: '1001' })).toHaveClass(/ch-case-new/);
   await strip.locator('.ch-case', { hasText: '1001' }).click();
   await expect(strip.locator('.ch-case.ch-case-on')).toHaveText('1001');

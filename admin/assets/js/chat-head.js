@@ -1,6 +1,7 @@
 /* The chat head (12 Nov 2026), loaded on every portal page.
    - On a case page it runs the Messages-style panel the server rendered (includes/case_chat.php).
-   - The cases whose chat is "floated" (right-click the bubble, or the ... button) share ONE draggable bubble on every other page
+   - The cases whose chat is "floated" (right-click the bubble, or the ... button) share ONE draggable bubble on every other page; on a case page
+     the case's own head carries them (the case first), so a page never has more than one head
      (19 Nov 2026, Rose: one bubble per case stacked up into several chat heads at once). Its panel has a row of the floated
      cases to switch between; its ball counts the conversations with something unread across all of them, fed by chat-feed.php
      every 15 seconds, and it plays the sound when wanted. A case page shows only that case's own head.
@@ -150,7 +151,7 @@
     var inline = root.getAttribute('data-inline') === '1';   // the Inbox's reader: no button, the panel is part of the page
     var fab = root.querySelector('.ch-fab') || el('button', 'ch-fab'), panel = root.querySelector('.ch-panel'), body = root.querySelector('.ch-body'), badge = root.querySelector('.ch-badge') || el('span', 'ch-badge');
     var cur = null, drafts = {}, sending = 0, loaded = main || inline;
-    var api = { root: root, report: report, tracking: root.getAttribute('data-tracking') || '', defY: null };
+    var api = { root: root, report: report, home: report, tracking: root.getAttribute('data-tracking') || '', defY: null };
     var feedBadge = !main && !inline;       // a floating head's ball comes from the feed; the case page's from its own conversations
     // 19 Nov 2026 (Rose): the one floating head keeps its own place ('_float'), whichever floated case it shows; a case page's head keeps the case's
     var posKey = feedBadge ? '_float' : report;
@@ -163,6 +164,8 @@
       var n = 0; [].forEach.call(c.querySelectorAll('.ch-b[data-in]'), function (b) { if (ts(b.getAttribute('data-ts')) > since) { n++; } }); return n;
     }
     // the ball counts conversations with something unread (19 Nov 2026, Rose), the way a phone counts chats, not single messages
+    // 19 Nov 2026 (Ace): a case page's head that also carries other floated cases takes its ball from the feed, like the floating head
+    api.setFeedBadge = function (v) { feedBadge = v; paintUnread(); };
     api.setBadge = function (n) { badge.textContent = n > 9 ? '9+' : String(n); badge.hidden = !(n > 0 && store.prefs().ball); fab.classList.toggle('ch-has', n > 0); };
     function paintUnread() {
       var seen = store.seen(report), total = 0;   // the floating head lights its rows too; only its ball comes from the feed
@@ -246,6 +249,7 @@
         if (main && body.querySelectorAll('.ch-b[data-in]').length > before && soundFor(report) && (panel.hidden || !document.hasFocus() || !cur)) { ding(); }
         if (!panel.hidden) { show(was); var c1 = was && body.querySelector('.ch-conv[data-conv="' + was + '"] .ch-msgs'); if (c1 && !stick) { c1.scrollTop = top; } }
         else { cur = was; paintUnread(); }
+        if (api.onRefreshed) { api.onRefreshed(); }
       }).catch(function () { /* the next event or the next poll tries again */ });
     }
     api.refresh = refresh;
@@ -283,7 +287,7 @@
         { label: tr('Float on every page', 'Ilutang sa lahat ng pahina'), check: !!cs.pin, act: function () { store.patch(report, { pin: !cs.pin, t: api.tracking || cs.t || '' }); } },
         { label: tr('Sound for this case', 'Tunog para sa kasong ito'), check: soundFor(report), act: function () { store.patch(report, { sound: !soundFor(report), t: api.tracking || cs.t || '' }); } }
       );
-      if (!main) { items.push({ label: tr('Go to the case', 'Pumunta sa kaso'), href: 'case.php?id=' + encodeURIComponent(report) }); }
+      if (!main || report !== api.home) { items.push({ label: tr('Go to the case', 'Pumunta sa kaso'), href: 'case.php?id=' + encodeURIComponent(report) }); }
       items.push({ sep: true }, { label: tr('Chat head settings', 'Mga setting ng chat head'), href: 'settings.php#look' });
       return items;
     }
@@ -431,13 +435,13 @@
     if (stack && id === stackCur) { var reading = stack.current(); if (reading) { delete on[reading]; } }   // the conversation open on screen is not waiting
     return Object.keys(on).length;
   }
-  function trackOf(id) { var c = store.cases()[id] || {}; return (lastFeed[id] && lastFeed[id].t) || c.t || ''; }
+  function trackOf(id) { var c = store.cases()[id] || {}; return (lastFeed[id] && lastFeed[id].t) || c.t || (mainApi && id === mainApi.home ? mainApi.root.getAttribute('data-home-tracking') || '' : ''); }
   function paintStack() {
     if (!stack) { return; }
     var total = 0, n = stackIds.length, t = trackOf(stackCur);
     stackIds.forEach(function (id) { total += unreadConvs(id, lastFeed[id]); });
     stack.setBadge(total);
-    stack.root.querySelector('.ch-tag').textContent = short(t) + (n > 1 ? ' +' + (n - 1) : '');
+    var tag = stack.root.querySelector('.ch-tag'); if (tag) { tag.textContent = short(t) + (n > 1 ? ' +' + (n - 1) : ''); }
     stack.fab.setAttribute('aria-label', (n > 1 ? tr('Messages for ', 'Mga mensahe para sa ') + n + tr(' floating cases', ' lumulutang na kaso') : tr('Messages for case ', 'Mga mensahe para sa kaso ') + t)
       + (total > 0 ? ', ' + total + tr(' unread', ' hindi pa nababasa') : '') + tr('. Right-click for options.', '. I-right-click para sa mga opsyon.'));
     var strip = stack.strip, key = stackIds.join(',');
@@ -466,6 +470,7 @@
     if (t > lastIn[id] && stack) {
       lastIn[id] = t;
       if (stack.isOpen() && id === stackCur) { stack.refresh(); }
+      else if (mainApi && id === mainApi.home && mainApi.report === mainApi.home) { /* this page's own case on screen: its live refresh already rings and repaints it */ }
       else if (unreadConvs(id, d) > 0) {
         stack.pulse((stackIds.length > 1 ? short(d.t || trackOf(id)) + ' · ' : '') + (newest.c === 'r' ? tr('Resident:', 'Residente:') : tr('Tanod:', 'Tanod:')), newest.x || '', id);
         if (soundFor(id)) { ding(); }
@@ -499,12 +504,37 @@
     api.onTrash = function () { var c = rd(CK, {}); stackIds.forEach(function (id) { if (c[id]) { c[id].pin = false; } }); wr(CK, c); changed(); };
     return api;
   }
+  /* 19 Nov 2026 (Ace): on a case page the case's own head is the one head; when other cases float it carries them too, with the same row
+     (this case first), their unread dots and the preview of a new message, and its ball counts every one of them */
+  var mainApi = null;
+  function carryOnMain(api) {
+    var panel = api.root.querySelector('.ch-panel'), body = api.root.querySelector('.ch-body');
+    var strip = el('div', 'ch-cases'); strip.setAttribute('role', 'group'); strip.setAttribute('aria-label', tr('Floating cases', 'Mga lumulutang na kaso')); strip.hidden = true;
+    panel.insertBefore(strip, body);
+    api.strip = strip; api.fab = api.root.querySelector('.ch-fab');
+    api.root.setAttribute('data-home-tracking', api.tracking);
+    api.onSeen = paintStack;
+    api.onCase = function (id) { if (stackIds.indexOf(id) < 0) { return; } stackCur = id; api.setCase(id, trackOf(id)); paintStack(); };
+    api.onRefreshed = function () { if (stack === api) { poll(); } };
+    return api;
+  }
   function sync() {
     var pr = store.prefs(), cs = store.cases();
-    var want = pr.floats && !mainEl ? Object.keys(cs).filter(function (id) { return id !== '_float' && cs[id] && cs[id].pin; }).slice(-8) : [];
+    var pinned = pr.floats ? Object.keys(cs).filter(function (id) { return id !== '_float' && cs[id] && cs[id].pin && !(mainApi && id === mainApi.home); }) : [];
+    var want = mainApi ? (pinned.length ? [mainApi.home].concat(pinned.slice(-7)) : []) : pinned.slice(-8);
     Object.keys(lastFeed).forEach(function (id) { if (want.indexOf(id) < 0) { delete lastIn[id]; delete lastFeed[id]; } });
     stackIds = want;
-    if (!want.length) { if (stack) { stack.destroy(); stack = null; } stackCur = null; }
+    if (mainApi) {
+      if (!want.length) {
+        if (stack) { if (mainApi.report !== mainApi.home) { mainApi.setCase(mainApi.home, mainApi.root.getAttribute('data-home-tracking')); } mainApi.strip.hidden = true; mainApi.setFeedBadge(false); stack = null; }
+        stackCur = null;
+      } else {
+        if (want.indexOf(stackCur) < 0) { stackCur = mainApi.home; }   // the case of this page, until another is picked
+        if (!stack) { stack = mainApi; mainApi.setFeedBadge(true); }
+        if (mainApi.report !== stackCur) { mainApi.setCase(stackCur, trackOf(stackCur)); }
+        paintStack();
+      }
+    } else if (!want.length) { if (stack) { stack.destroy(); stack = null; } stackCur = null; }
     else {
       if (want.indexOf(stackCur) < 0) { stackCur = want[want.length - 1]; }   // the case floated last, until another is picked
       if (!stack) { stack = makeStack(); }
@@ -547,7 +577,10 @@
     listeners.push(paint); paint();
   }
 
-  if (mainEl) { window.ssChat = mount(mainEl); }
+  // 19 Nov 2026: the case page's head moves out of <main> to the body like the floating one; inside <main>'s own stacking it sat under the
+  // phone's top bar, so the full-screen chat lost its header there
+  if (mainEl && mainEl.parentElement !== document.body) { document.body.appendChild(mainEl); }
+  if (mainEl) { window.ssChat = mainApi = carryOnMain(mount(mainEl)); }
   wireSettings();
   listeners.push(sync); sync();
 })();
