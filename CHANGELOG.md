@@ -9,6 +9,18 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The case screen, 1:1 with the approved canvas (19 Nov, Ace: "case page now"; PR open, not for merge until Ace OKs the preview)**
+
+- A thin header (category, back, share) replaces the tall hero. The status is said once: the portal's solid pill and one sentence ("The barangay is reviewing your report", "A tanod is on it", "Your report is resolved"). The portal's four-step track (green done, orange now) shows only while the report is moving; at large text sizes its labels become a list under the bars instead of breaking words.
+- A report with several concerns shows "Your concerns": each concern with its own pill (Open in the new red-orange `#CF4308`, Being handled, Resolved) and its own line. The database knows open and resolved; an open concern reads Being handled once a tanod is on the report. The title is then the category, as with one concern it stays the concern.
+- One pinned main action with a More menu: Under Review with details requested: Add details; In Progress: Ask the barangay; Rejected: Appeal this decision in its own red (`#D64040`, not the status red); Cancelled: a quiet Ask; Completed: Ask, with Reopen this report behind More (Cancel this report sits behind More while a report is Under Review). After a reopen or an appeal request the action is Open the chat.
+- Reopen is a reason sheet (The problem came back / The proof photo doesn't match / Other, and a line to say more). It makes the same single request the app made before (`request_reopen`: one notice to the admins and one line in the history); the report keeps its status until the barangay decides and shows "Reopen requested" with your reason. The chat (the portal's Case chat on a phone: grey bubbles with a tail on the last of a run, the day in bold, a pill field) opens with the request as its first card and the status in a band. Appeal uses the same sheet and `request_appeal`.
+- Completed reports get a big green Resolved card: the resolution remark or the tanod's field report as written, the proof photo large (tap for the viewer), the process as one line, and a "How it was handled" fold built from the status history. The tanod's own field-step notes are admin and tanod only today and are not read; the slot for them is built and stays hidden until the barangay can share them (later; needs a migration and Ace's apply).
+- Evidence has its own card: your photos and the barangay's proof (green Proof tag), a viewer you can swipe, and under it a caption (your photos carry the report's words, the proof carries the resolution note). A full timeline page lists everything newest first on the portal's rail, with the evidence at the step it belongs to.
+- The details are folded to the place; one fold opens your words, the date and who handled it (and the target date, the official, SMART's reason). The map in the page is gone; the place is the row. Feedback stays at the bottom.
+- The reports list: the three dots are inset with a 44 px target, a card with several concerns says "3 concerns · 1 resolved", the progress bars use the case page's colours, and the pale resident bottom bar at night is now the page's graphite (it was a pale slab on every tab).
+- Reads and writes are the same calls as before; nothing new on the server (no migration, no function change). Strings are in English and Tagalog. Tests: `test/case_screen_test.dart` (every state, More, reopen, the viewer, the timeline, the list tag).
+
 **App 1.0.8.5B (build 10, 19 Nov, Ace's own build)**
 
 - The signed build that carries the three-picks form below. The version inside the app is 1.0.8 (build 10); "5B" is the label of the file. Not uploaded to App updates: it is for Ace's phone only
