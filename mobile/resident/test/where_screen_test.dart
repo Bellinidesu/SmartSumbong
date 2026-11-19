@@ -392,6 +392,16 @@ void main() {
     expect(ctl.lastMove, (brgyCentre, 16.0));
   });
 
+  testWidgets("the Map tab opens on the residential centre at zoom 16, not fitted to the resident's pins", (tester) async {
+    await bootApp(tester);
+    await _open(tester, '/map');
+    final map = tester.widget<BrgyMap>(find.byType(BrgyMap));
+    expect(map.use.bounded, isTrue);
+    expect(map.initialCenter, brgyCentre);
+    expect(map.initialZoom, 16);
+    await finish(tester);
+  });
+
   testWidgets('the details screen still refuses a spot outside the barangay when the report is sent', (tester) async {
     await bootApp(tester);
     _catalogue();
