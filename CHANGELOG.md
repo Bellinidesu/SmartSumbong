@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Filing a report: concerns on the first page, one category, a draft note that goes away (Rose, 18 Nov)**
+
+- The "Restored your unfinished report" note could not be put away, so residents tapped Discard to get rid of it and lost their report. A snackbar with an action stays until the action is tapped (Flutter's `SnackBar.persist` default), and it had no close button. It now goes by itself after six seconds, has a close button, and Discard asks first ("Discard your unfinished report?" with **Keep editing** on top); Keep editing, a tap outside or Back leaves the form as it was.
+- "Is there more than one problem?" moved from under the description on the second page to the first page, inside the chosen category's card under its pills. The second page shows the other concerns under the heading; Back changes them.
+- One category per report (0176): the concern picker offers only the chosen category's options. Picking another category with concerns added asks "Change the category?" (Change category / Keep ...); changing clears them. If the server refuses a concern from a second category, the form (and a queued report on Reports) says "A report can have only one category ..." instead of the generic failure.
+- A draft that only holds the issue's prefill ("Illegal Parking —") is no longer saved or offered back. Drafts no longer keep the other concerns (they are picked on the first page).
+- Tests: `test/report_form_test.dart` (concerns on page 1, second category not offered, change-category ask, the note's close button, Keep editing, Back on the dialog, confirmed Discard). `BrgyMap.nativeView` lets widget tests open screens with a map.
+
 **Rose's web bugs (19 Nov, 0176)**
 
 - Exported documents: the barangay seal on the Complaint, the Complaint Summary and the Certification printed stretched (the letterhead set only the seal's width, so it kept its file's 256 px height). It is a fitted square now, on screen and in print, and a barangay's own seal of any shape keeps its proportions.

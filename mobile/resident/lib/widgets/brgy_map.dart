@@ -230,6 +230,10 @@ class BrgyMap extends StatefulWidget {
   final double cornerRadius;
   final Color? cornerColour;
 
+  /// Off in widget tests, where the native map view (a platform view) cannot be made: the map's place is kept, blank.
+  @visibleForTesting
+  static bool nativeView = true;
+
   @override
   State<BrgyMap> createState() => _BrgyMapState();
 }
@@ -850,7 +854,7 @@ class _BrgyMapState extends State<BrgyMap> {
   Widget _map2(BuildContext context) {
     final style = _style;
     final bg = context.colors.bg;
-    if (style == null) return ColoredBox(color: bg);
+    if (style == null || !BrgyMap.nativeView) return ColoredBox(color: bg);
     final i = widget.interactive;
     return ml.MapLibreMap(
       // A new style (dark mode switched) is a new map, so the layers are
