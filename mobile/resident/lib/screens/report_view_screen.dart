@@ -16,6 +16,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 import 'package:share_plus/share_plus.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -459,7 +460,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                   SliverToBoxAdapter(
                     child: CaseHeader(
                       colour: r == null ? DStatusPill.grey : categoryColour(cat),
-                      label: r == null ? null : context.tr(cat.label, cat.labelFil),
+                      glyph: r == null ? null : categoryGlyph(cat),
                       onBack: () => Navigator.of(context).maybePop(),
                       onShare: r == null ? null : _share,
                     ),
@@ -712,6 +713,17 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       ));
     }
 
+    // where it is: a small map and the address (two fingers move the map; one finger scrolls the page)
+    if (lat != null && lng != null) {
+      blocks.add(CaseWhereCard(
+        point: LatLng(lat, lng),
+        colour: categoryColour(cat),
+        glyph: cat.icon,
+        address: _address(r),
+        sub: '${BarangayProfile.name}, ${BarangayProfile.place}',
+      ));
+    }
+
     // evidence: with the Resolved card, the proof is already big, so the card keeps your photos and any further proof
     final barangayForCard = showResolved && barangay.isNotEmpty ? barangay.sublist(1) : barangay;
     final addTile = askingDetails ? _addDetails : null;
@@ -727,7 +739,6 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 
     // the details, folded
     final rows = <CaseDetailRow>[
-      if (lat != null && lng != null) CaseDetailRow(Icons.place_outlined, _address(r), '${BarangayProfile.name}, ${BarangayProfile.place}'),
       if (createdAt != null) CaseDetailRow(Icons.calendar_today_outlined, s.reportsSubmittedOn(_fmtDate(s, createdAt)), context.tr('Filed in the app', 'Isinampa sa app')),
       CaseDetailRow(
         Icons.shield_outlined,
@@ -740,8 +751,6 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       if (r['is_anonymous'] == true) CaseDetailRow(Icons.visibility_off_outlined, s.reportViewAnonymous),
     ];
     blocks.add(CaseDetailsCard(
-      address: lat != null && lng != null ? _address(r) : null,
-      addressSub: '${BarangayProfile.name}, ${BarangayProfile.place}',
       quote: description,
       rows: rows,
       foldLabel: finished ? context.tr('Your words, and who handled it', 'Ang sinabi mo, at sino ang humawak') : context.tr('Your words, and who is handling it', 'Ang sinabi mo, at sino ang humahawak'),
@@ -1036,6 +1045,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       String? title;
       String? body = said;
       var proof = false;
+      var col = CaseTokens.doneFill;
+      var ic = Icons.check_rounded;
       if (from != to) {
         switch (to) {
           case 'validated':
@@ -1044,31 +1055,46 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           case 'assigned':
             title = context.tr('Tanod dispatched', 'Na-dispatch ang tanod');
             body = context.tr('A tanod was assigned to your report.', 'May tanod na naka-assign sa iyong ulat.');
+            col = DStatusPill.progress;
           case 'in_progress' || 'offline_investigation':
             title = context.tr('A tanod is on it', 'May tanod na umaasikaso');
+            col = DStatusPill.progress;
           case 'resolved' || 'closed':
             title = to == 'closed' ? context.tr('Closed', 'Isinara') : context.tr('Resolved', 'Nalutas');
             proof = !proofPlaced && barangay.isNotEmpty;
             if (proof) proofPlaced = true;
           case 'rejected':
             title = context.tr('Rejected', 'Tinanggihan');
+            col = DStatusPill.denied;
+            ic = Icons.close_rounded;
           case 'cancelled':
             title = context.tr('Cancelled', 'Kinansela');
+            col = DStatusPill.grey;
+            ic = Icons.close_rounded;
           case 'pending_review':
             title = context.tr('Reopened', 'Binuksan muli');
+            col = DStatusPill.violet;
+            ic = Icons.refresh_rounded;
         }
       } else if (remark.startsWith('Resident requested reopening')) {
         title = context.tr('You asked to reopen this report', 'Humiling kang buksan muli ang ulat na ito');
+        col = DStatusPill.violet;
+        ic = Icons.refresh_rounded;
         body = context.tr('Reason: ${_sentence(remark.substring(remark.indexOf(':') + 1).trim())}', 'Dahilan: ${_sentence(remark.substring(remark.indexOf(':') + 1).trim())}');
       } else if (remark.startsWith('Resident appealed') || remark.startsWith('Appeal requested')) {
         title = context.tr('You appealed this decision', 'Umapela ka sa desisyong ito');
+        col = DStatusPill.violet;
+        ic = Icons.refresh_rounded;
       } else if (remark.startsWith('More details requested')) {
         title = context.tr('The barangay asked for details', 'Humingi ng detalye ang barangay');
+        col = DStatusPill.pending;
+        ic = Icons.priority_high_rounded;
         body = remark.substring(remark.indexOf(':') + 1).trim();
       } else if (remark.startsWith('Resident sent more details')) {
         title = context.tr('You sent more details', 'Nagpadala ka ng karagdagang detalye');
       } else if (remark.startsWith('Escalated to') || remark.startsWith('Referred to')) {
         title = context.tr('Escalated', 'In-escalate');
+        col = DStatusPill.violet;
       }
       if (title == null) continue;
       items.add((
@@ -1079,6 +1105,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           body: body,
           thumbs: proof ? barangay : const [],
           thumbLabel: proof ? context.tr('Proof from the barangay', 'Patunay mula sa barangay') : null,
+          colour: col,
+          icon: ic,
         ),
       ));
     }

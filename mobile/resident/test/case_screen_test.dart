@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resident/main.dart' show navigatorKey;
 import 'package:resident/screens/case/case_screens.dart';
 import 'package:resident/screens/case/case_ui.dart';
+import 'package:resident/widgets/brgy_map.dart';
 
 import 'support/app_harness.dart';
 import 'support/case_seed.dart';
@@ -17,11 +18,21 @@ Future<void> _open(WidgetTester t, int n) async {
 
 Future<void> _tap(WidgetTester t, Finder f) async {
   await t.ensureVisible(f.first);
+  await t.pump();
+  // keep the target clear of the pinned action bar
+  final y = t.getCenter(f.first).dy;
+  final h = t.view.physicalSize.height / t.view.devicePixelRatio;
+  if (y > h - 140 && find.byType(CustomScrollView).evaluate().isNotEmpty) {
+    await t.drag(find.byType(CustomScrollView).first, Offset(0, -(y - (h - 300))));
+    await t.pump();
+  }
   await t.tap(f.first, warnIfMissed: false);
   await settle(t, rounds: 6);
 }
 
 void main() {
+  setUpAll(() => BrgyMap.nativeView = false);
+
   testWidgets('Under Review with details requested: Add details is the one action, the rest is behind More', (t) async {
     final b = await bootApp(t);
     seedCaseData(b);
@@ -50,6 +61,31 @@ void main() {
     }
     expect(find.text('Ask the barangay'), findsOneWidget, reason: 'the one main action');
     expect(find.byIcon(Icons.more_horiz_rounded), findsNothing, reason: 'nothing else to do while a tanod is on it');
+    await finish(t);
+  });
+
+  testWidgets('Where: a small map card with the address under it; the place row is not repeated in the details', (t) async {
+    final b = await bootApp(t);
+    seedCaseData(b);
+    await _open(t, 301);
+    expect(find.byType(CaseWhereCard), findsOneWidget);
+    expect(find.text('8th Street'), findsOneWidget, reason: 'the address, once');
+    expect(find.text('Move the map with two fingers'), findsOneWidget);
+    await _tap(t, find.text('Your words, and who is handling it'));
+    expect(find.text('8th Street'), findsOneWidget, reason: 'the opened details do not repeat the place');
+    expect(find.text('Submitted on November 17, 2026'), findsOneWidget);
+    // the address copies and nothing else happens
+    await _tap(t, find.text('8th Street'));
+    expect(find.text('Address copied'), findsOneWidget);
+    await finish(t);
+  });
+
+  testWidgets('the header has no category pill: the watermark symbol and the title say it', (t) async {
+    final b = await bootApp(t);
+    seedCaseData(b);
+    await _open(t, 216);
+    expect(find.text('Peace, Order, & Nuisance'), findsNothing);
+    expect(find.bySemanticsLabel('Back'), findsOneWidget);
     await finish(t);
   });
 

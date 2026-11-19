@@ -1,8 +1,10 @@
 // A resident's own reports, on the real screens over the preview backend.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:resident/widgets/brgy_map.dart';
 import 'support/app_harness.dart';
 
 void main() {
+  setUpAll(() => BrgyMap.nativeView = false); // the native map cannot be made in a test
   testWidgets('Reports lists the resident\'s complaints and filters them by status', (tester) async {
     await bootApp(tester);
     await tester.tap(find.text('Reports').last);

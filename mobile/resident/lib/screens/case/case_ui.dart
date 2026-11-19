@@ -5,15 +5,20 @@
 // ActionBar, Strip, Evidence, ResolvedCard, Completed, StatusCase). One piece per component, so the screen reads as the
 // canvas does. The canvas' colours are used as drawn (its tokens are in [CaseTokens]).
 
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../../d/d_theme.dart';
 import '../../d/d_ui.dart';
 import '../../i18n.dart';
+import '../../widgets/brgy_map.dart';
 
 // ---------- tokens --------------------------------------------
 
@@ -201,10 +206,11 @@ class CaseThumb extends StatelessWidget {
 
 /// CaseHero: the thin header, the category's colour with back, the category's name and share.
 class CaseHeader extends StatelessWidget {
-  const CaseHeader({super.key, required this.colour, required this.onBack, this.label, this.onShare});
+  const CaseHeader({super.key, required this.colour, required this.onBack, this.glyph, this.onShare});
 
   final Color colour;
-  final String? label;
+  /// The category's own symbol (as its map pin wears it), drawn large and faint behind the buttons, bleeding off the edge.
+  final IconData? glyph;
   final VoidCallback onBack;
   final VoidCallback? onShare;
 
@@ -236,27 +242,14 @@ class CaseHeader extends StatelessWidget {
         gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [colour, Color.lerp(colour, Colors.black, .42)!]),
       ),
       child: Stack(children: [
+        if (glyph != null)
+          Positioned(
+            right: -22,
+            top: -30,
+            child: IgnorePointer(child: ExcludeSemantics(child: Icon(glyph, size: 190, color: Colors.white.withValues(alpha: .15)))),
+          ),
         Positioned(left: 18, top: top + 8, child: round(Icons.chevron_left_rounded, context.tr('Back', 'Bumalik'), onBack, 28)),
         if (onShare != null) Positioned(right: 18, top: top + 8, child: round(Icons.ios_share_rounded, context.tr('Share this report', 'Ibahagi ang ulat'), onShare!, 20)),
-        if (label != null)
-          Positioned(
-            left: 76,
-            right: 76,
-            top: top + 16,
-            child: Center(
-              child: Container(
-                height: 28,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: Colors.black.withValues(alpha: .30), borderRadius: BorderRadius.circular(14)),
-                child: Text(label!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.25),
-                    style: caseInter(Colors.white, 12.5, FontWeight.w700, 16)),
-              ),
-            ),
-          ),
       ]),
     );
   }
@@ -1330,6 +1323,152 @@ class CaseSegments extends StatelessWidget {
           ],
         ]),
       ),
+    );
+  }
+}
+
+// ---------- Where ---------------------------------------------
+
+/// Where: a small map of the place you reported (the pin is the portal's disc in the category's colour and symbol), with the address
+/// under it. Two fingers move and zoom the map, so a single finger still scrolls the page past it; the frame button brings the pin
+/// back. No zoom buttons and no full-screen, by design. With no signal it is a still placeholder that keeps the address.
+class CaseWhereCard extends StatefulWidget {
+  const CaseWhereCard({super.key, required this.point, required this.colour, required this.glyph, required this.address, required this.sub});
+
+  final ll.LatLng point;
+  final Color colour;
+
+  /// The category's symbol key, as the map's pins use it.
+  final String glyph;
+  final String address;
+  final String sub;
+
+  @override
+  State<CaseWhereCard> createState() => _CaseWhereCardState();
+}
+
+class _CaseWhereCardState extends State<CaseWhereCard> {
+  static const _mapHeight = 170.0;
+  bool _offline = false;
+  bool _moved = false;
+  StreamSubscription<List<ConnectivityResult>>? _net;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_check());
+    try {
+      _net = Connectivity().onConnectivityChanged.listen((r) {
+        if (mounted) setState(() => _offline = !r.any((c) => c != ConnectivityResult.none));
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _check() async {
+    try {
+      final r = await Connectivity().checkConnectivity();
+      if (mounted) setState(() => _offline = !r.any((c) => c != ConnectivityResult.none));
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _net?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: '${widget.address}, ${widget.sub}'));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(context.tr('Address copied', 'Nakopya ang address'))));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = CaseTokens.of(context);
+    final map = Semantics(
+      container: true,
+      label: context.tr('Map of where you reported, ${widget.address}', 'Mapa kung saan mo isinampa, ${widget.address}'),
+      child: SizedBox(
+        height: _mapHeight,
+        child: _offline
+            ? Container(
+                decoration: BoxDecoration(color: t.field, borderRadius: BorderRadius.circular(14), border: Border.all(color: t.line)),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(color: widget.colour, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                    child: const Icon(Icons.place_rounded, size: 20, color: Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(context.tr('The map shows when you have signal.', 'Lalabas ang mapa kapag may signal ka.'), textAlign: TextAlign.center, style: caseInter(t.muted, 12.5, FontWeight.w600, 17)),
+                ]),
+              )
+            : Stack(children: [
+                Positioned.fill(
+                  child: BrgyMap(
+                    use: BrgyMapUse.place,
+                    initialCenter: widget.point,
+                    initialZoom: 17,
+                    cornerRadius: 14,
+                    cornerColour: t.card,
+                    fitLabel: context.tr('Back to the pin', 'Balik sa pin'),
+                    onMoved: (_) {
+                      if (!_moved) setState(() => _moved = true);
+                    },
+                    pins: [BrgyMapPin(id: 'report', point: widget.point, colour: widget.colour, glyph: widget.glyph)],
+                  ),
+                ),
+                if (!_moved)
+                  Positioned(
+                    left: 8,
+                    top: 8,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: t.card.withValues(alpha: .92), borderRadius: BorderRadius.circular(12)),
+                        child: Text(context.tr('Move the map with two fingers', 'Igalaw ang mapa gamit ang dalawang daliri'), style: caseInter(t.ink2, 11.5, FontWeight.w700, 15)),
+                      ),
+                    ),
+                  ),
+              ]),
+      ),
+    );
+    return Container(
+      decoration: caseCardBox(t),
+      padding: const EdgeInsets.all(12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        map,
+        Semantics(
+          button: true,
+          label: context.tr('${widget.address}. Copy the address', '${widget.address}. Kopyahin ang address'),
+          child: ExcludeSemantics(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: _copy,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 48),
+                padding: const EdgeInsets.only(top: 10, left: 2, right: 2, bottom: 0),
+                child: Row(children: [
+                  Icon(Icons.place_outlined, size: 22, color: t.navy),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(widget.address, style: caseInter(t.ink, 14.5, FontWeight.w700, 20)),
+                      Text(widget.sub, style: caseInter(t.muted, 12.5, FontWeight.w500, 17)),
+                    ]),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }

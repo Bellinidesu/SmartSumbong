@@ -12,7 +12,20 @@ import 'case_ui.dart';
 
 /// One event of the full timeline: when, what happened, and the evidence that goes with it.
 class CaseEvent {
-  const CaseEvent({required this.title, required this.time, this.body, this.now = false, this.thumbs = const [], this.thumbLabel});
+  const CaseEvent({
+    required this.title,
+    required this.time,
+    this.body,
+    this.now = false,
+    this.thumbs = const [],
+    this.thumbLabel,
+    this.colour = CaseTokens.doneFill,
+    this.icon = Icons.check_rounded,
+  });
+
+  /// The stage's colour: green done, blue while a tanod is on it, red or grey when it stopped, violet for what you asked.
+  final Color colour;
+  final IconData icon;
 
   final String title;
   final String time;
@@ -79,7 +92,7 @@ class CaseTimelineScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Text(context.tr('Nothing has happened on this report yet.', 'Wala pang nangyayari sa ulat na ito.'), textAlign: TextAlign.center, style: caseInter(t.muted, 14, FontWeight.w500, 20)),
             ),
-          for (var i = 0; i < events.length; i++) _EventRow(event: events[i], last: i == events.length - 1, t: t),
+          for (var i = 0; i < events.length; i++) _EventRow(event: events[i], nextColour: i == events.length - 1 ? null : events[i + 1].colour, t: t),
         ],
       ),
     );
@@ -87,56 +100,74 @@ class CaseTimelineScreen extends StatelessWidget {
 }
 
 class _EventRow extends StatelessWidget {
-  const _EventRow({required this.event, required this.last, required this.t});
+  const _EventRow({required this.event, required this.nextColour, required this.t});
 
   final CaseEvent event;
-  final bool last;
+
+  /// The colour of the next (older) node, or null on the last row: the connector fades from this node's colour into it.
+  final Color? nextColour;
   final CaseTokens t;
 
   @override
   Widget build(BuildContext context) {
-    final col = event.now ? CaseTokens.orange : CaseTokens.doneFill;
-    return Padding(
-      padding: const EdgeInsets.only(left: 7),
-      child: Stack(clipBehavior: Clip.none, children: [
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.fromLTRB(24, 0, 0, last ? 0 : 22),
-          decoration: BoxDecoration(border: Border(left: BorderSide(width: 2, color: last ? Colors.transparent : t.edge))),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(event.title, style: caseInter(t.ink, 15, FontWeight.w800, 20)),
-            Text(event.time, style: caseInter(t.muted, 12.5, FontWeight.w500, 17)),
-            if (event.body != null && event.body!.isNotEmpty)
-              Padding(padding: const EdgeInsets.only(top: 4), child: Text(event.body!, style: caseInter(t.ink2, 13.5, FontWeight.w500).copyWith(height: 1.45))),
-            if (event.thumbs.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                  for (var i = 0; i < event.thumbs.length && i < 3; i++)
-                    CaseThumb(
-                      media: event.thumbs[i],
-                      semantics: event.thumbs[i].fromBarangay
-                          ? context.tr('Barangay proof ${i + 1} of ${event.thumbs.length}', 'Patunay ng barangay ${i + 1} sa ${event.thumbs.length}')
-                          : context.tr('Your photo ${i + 1} of ${event.thumbs.length}', 'Larawan mo ${i + 1} sa ${event.thumbs.length}'),
-                      onTap: () => CaseViewer.open(context, event.thumbs, i),
-                    ),
-                  if (event.thumbLabel != null) Text(event.thumbLabel!, style: caseInter(t.muted, 12, FontWeight.w700, 16)),
-                ]),
+    final col = event.now ? CaseTokens.orange : event.colour;
+    return IntrinsicHeight(
+      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // the stage node and the connector to the next one, as the track draws them, turned upright
+        SizedBox(
+          width: 28,
+          child: Column(children: [
+            Container(
+              width: 24,
+              height: 24,
+              margin: const EdgeInsets.only(top: 1, bottom: 3),
+              decoration: BoxDecoration(
+                color: col,
+                shape: BoxShape.circle,
+                boxShadow: event.now ? [BoxShadow(color: CaseTokens.orange.withValues(alpha: t.dark ? .32 : .28), spreadRadius: 4)] : null,
+              ),
+              child: event.now
+                  ? Center(child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)))
+                  : Icon(event.icon, size: 15, color: Colors.white),
+            ),
+            if (nextColour != null)
+              Expanded(
+                child: Container(
+                  width: 4,
+                  margin: const EdgeInsets.only(bottom: 3),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [col, nextColour!]),
+                  ),
+                ),
               ),
           ]),
         ),
-        Positioned(
-          left: -7,
-          top: 2,
-          child: Container(
-            width: 16,
-            height: 16,
-            decoration: BoxDecoration(
-              color: col,
-              shape: BoxShape.circle,
-              border: Border.all(color: t.bg, width: 3),
-              boxShadow: [BoxShadow(color: col, spreadRadius: 1.5)],
-            ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: nextColour == null ? 0 : 22),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(event.title, style: caseInter(t.ink, 15, FontWeight.w800, 20)),
+              Text(event.time, style: caseInter(t.muted, 12.5, FontWeight.w500, 17)),
+              if (event.body != null && event.body!.isNotEmpty)
+                Padding(padding: const EdgeInsets.only(top: 4), child: Text(event.body!, style: caseInter(t.ink2, 13.5, FontWeight.w500).copyWith(height: 1.45))),
+              if (event.thumbs.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                    for (var i = 0; i < event.thumbs.length && i < 3; i++)
+                      CaseThumb(
+                        media: event.thumbs[i],
+                        semantics: event.thumbs[i].fromBarangay
+                            ? context.tr('Barangay proof ${i + 1} of ${event.thumbs.length}', 'Patunay ng barangay ${i + 1} sa ${event.thumbs.length}')
+                            : context.tr('Your photo ${i + 1} of ${event.thumbs.length}', 'Larawan mo ${i + 1} sa ${event.thumbs.length}'),
+                        onTap: () => CaseViewer.open(context, event.thumbs, i),
+                      ),
+                    if (event.thumbLabel != null) Text(event.thumbLabel!, style: caseInter(t.muted, 12, FontWeight.w700, 16)),
+                  ]),
+                ),
+            ]),
           ),
         ),
       ]),
