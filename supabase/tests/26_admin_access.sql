@@ -31,7 +31,10 @@ begin
   values (v_res, 'animal_welfare', 'Asong gala', 'Mga asong gala sa harap ng paaralan.', lat + 0.001, lng) returning id into r_ani;
   insert into public.reports (resident_id, category, subject, description, latitude, longitude)
   values (v_res, 'environmental_waste_hazard', 'Daga', 'Maraming daga sa basurahan.', lat - 0.001, lng) returning id into r_mix;
+  -- a case from before 0176, whose concerns mix categories (0176 refuses that for new concerns only)
+  alter table public.report_concerns disable trigger one_category_per_case;
   insert into public.report_concerns (report_id, category, note, created_by) values (r_mix, 'animal_welfare', 'Daga', v_res);
+  alter table public.report_concerns enable trigger one_category_per_case;
   v_log := 'setup ok';
 
   -- 1. the committees for 183, and the ticks they start with

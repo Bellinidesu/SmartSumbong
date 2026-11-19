@@ -16,7 +16,9 @@ if (str_ends_with((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH
 }
 session_start_once();
 if (!str_contains($_SERVER['REQUEST_URI'] ?? '', 'login.php')) {
-    $_SESSION[SESSION_KEY] = ['access_token' => 'fake', 'refresh_token' => 'fake', 'expires_at' => time() + 3000,
+    // 19 Nov 2026 (0175): each rung signs in with its own token (fake-super, fake-moderator, ...), so the fake answers as row level security would
+    $tierC = in_array($_COOKIE['ss_tier'] ?? '', ['super', 'committee', 'moderator', 'captain'], true) ? $_COOKIE['ss_tier'] : 'super';
+    $_SESSION[SESSION_KEY] = ['access_token' => 'fake-' . $tierC, 'refresh_token' => 'fake', 'expires_at' => time() + 3000,
         'id' => 'a0000000-0000-0000-0000-000000000001', 'full_name' => 'Reyes, Marites', 'email' => 'sec@brgy183.test',
         'must_change' => false, 'avatar_url' => null, 'seen' => time(),
         // 0145: the tests choose the tier with a cookie (super unless told otherwise)

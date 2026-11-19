@@ -687,6 +687,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
         child: p == null
             ? Container(color: d.field, child: Center(child: Text(context.ts.dispatchNoLocation, style: DType.body(d.muted, size: 12.5))))
             : BrgyMap(
+                use: BrgyMapUse.job,
                 controller: _mapCtl,
                 initialCenter: p,
                 pins: [_casePin(p, ComplaintCategory.parse(_report?['category'] as String?))],

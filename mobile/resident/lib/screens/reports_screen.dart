@@ -955,7 +955,7 @@ class _QueuedCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            refused ? s.outboxRefused(item.error!) : s.outboxWaitingBody,
+            refused ? (isOneCategoryRefusal(item.error!) ? s.reportDetailsOneCategory : s.outboxRefused(item.error!)) : s.outboxWaitingBody,
             style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,

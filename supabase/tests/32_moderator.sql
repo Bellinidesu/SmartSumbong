@@ -42,37 +42,50 @@ begin
     v_log := v_log || E'\n' || 'ok  a position sets its tier (Chairman super admin, Kagawad committee, secretary moderator), a super admin stays one; a moderator needs a committee';
   exception when others then v_log := v_log || E'\n' || 'FAIL positions: ' || sqlerrm; end;
 
-  -- 2. a moderator reads and works their committee's cases only
+  -- 2. a moderator reads and works the cases assigned to them, not every case of their committee (0175, Rose 19 Nov 2026)
   begin
     execute 'set local role authenticated';
     perform set_config('request.jwt.claim.sub', v_stf::text, true);
+    if exists (select 1 from public.reports where id in (r_po, r_env)) then raise exception 'staff read a case nobody assigned to them'; end if;
+    if not public.admin_can_write() or not public.admin_scoped() then raise exception 'not a writing, scoped tier'; end if;
+    reset role;
+    perform set_config('request.jwt.claim.sub', v_kag::text, true);
+    perform public.assign_case(r_po, v_stf, null);
+    perform set_config('request.jwt.claim.sub', v_stf::text, true);
+    perform public.answer_case_assignment(r_po, true, null);
+    execute 'set local role authenticated';
     select count(*) into n from public.reports where id in (r_po, r_env);
     if n <> 1 or not exists (select 1 from public.reports where id = r_po) then raise exception 'reads % of the two', n; end if;
-    if not public.admin_can_write() or not public.admin_scoped() then raise exception 'not a writing, scoped tier'; end if;
     reset role;   -- _scope_guard is internal (the case functions call it); as the moderator, outside the API role
     perform public._scope_guard(r_po, true);
     begin perform public._scope_guard(r_env, true); raise exception 'worked a case outside the committee';
     exception when insufficient_privilege then null; end;
-    v_log := v_log || E'\n' || 'ok  a moderator reads and works their committee''s cases, not another''s';
-  exception when others then reset role; v_log := v_log || E'\n' || 'FAIL scope: ' || sqlerrm; end;
+    v_log := v_log || E'
+' || 'ok  a moderator reads and works the case assigned to them, not the rest of the committee''s or another''s';
+  exception when others then reset role; v_log := v_log || E'
+' || 'FAIL scope: ' || sqlerrm; end;
 
   -- 3. staff hold the decisions that change who answers for a case (0166, Ace 7 Nov: "Staff get all 5"); here, escalating
-  --    their committee's case reaches its Kagawad
+  --    the case they handle reaches its Kagawad
   declare v_to uuid;
   begin
     perform set_config('request.jwt.claim.sub', v_stf::text, true);
     v_to := public.escalate_in_barangay(r_po, 'Needs the Kagawad', null);
     if v_to <> v_kag then raise exception 'went to %', v_to; end if;
-    v_log := v_log || E'\n' || 'ok  a moderator escalates their committee''s case, and it reaches the committee''s Kagawad';
-  exception when others then v_log := v_log || E'\n' || 'FAIL decisions: ' || sqlerrm; end;
+    v_log := v_log || E'
+' || 'ok  a moderator escalates the case they handle, and it reaches the committee''s Kagawad';
+  exception when others then v_log := v_log || E'
+' || 'FAIL decisions: ' || sqlerrm; end;
 
-  -- 4. a moderator is never notified about a case outside their committee
+  -- 4. a moderator is notified only about the cases they may open (assigned, handled, or handled before)
   begin
     insert into public.notifications (user_id, report_id, kind, message) values (v_stf, r_env, 'status_change', 'outside'), (v_stf, r_po, 'status_change', 'inside');
-    select count(*) into n from public.notifications where user_id = v_stf;
-    if n <> 1 or not exists (select 1 from public.notifications where user_id = v_stf and report_id = r_po) then raise exception '% notifications', n; end if;
-    v_log := v_log || E'\n' || 'ok  a moderator is notified about their committee''s cases only';
-  exception when others then v_log := v_log || E'\n' || 'FAIL notify: ' || sqlerrm; end;
+    select count(*) into n from public.notifications where user_id = v_stf and message in ('outside', 'inside');
+    if n <> 1 or not exists (select 1 from public.notifications where user_id = v_stf and report_id = r_po and message = 'inside') then raise exception '% notifications', n; end if;
+    v_log := v_log || E'
+' || 'ok  a moderator is notified about the cases they may open only';
+  exception when others then v_log := v_log || E'
+' || 'FAIL notify: ' || sqlerrm; end;
 
   raise exception 'SWEEP-ROLLBACK%', v_log;
 end $sweep$;

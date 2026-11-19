@@ -44,7 +44,10 @@ function doc_head(string $title, bool $desk = false): void
     box-shadow: 0 2px 14px rgba(0,0,0,.18); }
   .letterhead { display: grid; grid-template-columns: 1.3in 1fr 1.3in; align-items: center; text-align: center; }
   .letterhead img { max-width: 100%; }
-  .letterhead .seal { width: 1.2in; }
+  /* 19 Nov 2026 (Rose): the seal printed stretched. The <img> carries its file's own width and height (256 x 256), and only the
+     width was set here, so it was drawn 1.2in wide and 256px tall. Both sides now, with the picture fitted inside the box, so a
+     barangay's own seal of any shape keeps its proportions too. */
+  .letterhead .seal { width: 1.2in; height: 1.2in; object-fit: contain; justify-self: center; }
   .letterhead p { margin: 0; font-size: 12.5pt; line-height: 1.3; }
   .doc-title { text-align: center; font-weight: 700; margin: 0.45in 0 0.35in; font-size: 12.5pt; }
   .fill { font-weight: 700; text-decoration: underline; }

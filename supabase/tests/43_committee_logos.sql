@@ -38,12 +38,13 @@ begin
     v_log := v_log || E'\n' || 'ok  only a super admin sets a committee''s logo, only an uploaded picture, and can clear it';
   exception when others then v_log := v_log || E'\n' || 'FAIL logo: ' || sqlerrm; end;
 
-  -- 2. a staff member sees their committee's other staff, not its Kagawad (0153); a Kagawad their staff; nobody another committee's
+  -- 2. a staff member sees only their own card (0175, Rose 19 Nov 2026: not their fellow staff's); a Kagawad their staff; nobody another committee's
   begin
     perform set_config('request.jwt.claim.sub', v_s1::text, true);
     j := public.punch_cards(7, null);
     select array_agg((x->>'id')::uuid) into ids from jsonb_array_elements(j) x;
-    if not (ids @> array[v_s1, v_s2]) then raise exception 'a staff member does not see their committee''s staff'; end if;
+    if not (ids @> array[v_s1]) then raise exception 'a staff member does not see their own card'; end if;
+    if ids && array[v_s2] then raise exception 'a staff member sees their fellow staff''s card'; end if;
     if ids && array[v_k1] then raise exception 'a staff member sees their Kagawad''s card'; end if;
     if ids && array[v_s3, v_k2, v_sup] then raise exception 'a staff member sees another committee''s cards'; end if;
     perform set_config('request.jwt.claim.sub', v_k1::text, true);
@@ -53,7 +54,7 @@ begin
     if ids && array[v_s3, v_k2] then raise exception 'a Kagawad sees another committee''s cards'; end if;
     perform set_config('request.jwt.claim.sub', v_s3::text, true);
     if public._sees_punch_card(v_k1) or public._sees_punch_card(v_s1) then raise exception 'staff of one committee see the other''s'; end if;
-    v_log := v_log || E'\n' || 'ok  staff see their own committee''s other staff, not their Kagawad; a Kagawad their staff; never another committee''s';
+    v_log := v_log || E'\n' || 'ok  staff see their own card, not their fellow staff''s or their Kagawad''s; a Kagawad their staff; never another committee''s';
   exception when others then v_log := v_log || E'\n' || 'FAIL punch cards: ' || sqlerrm; end;
 
   raise exception 'SWEEP-ROLLBACK%', v_log;

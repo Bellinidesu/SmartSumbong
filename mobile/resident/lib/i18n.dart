@@ -441,6 +441,14 @@ class Strings {
       'the barangay.',
       'Hindi pa maaaring mag-file ng ulat ang iyong account. Pakitanong '
       'sa barangay.');
+  /// 0176 refused a concern from a second category (Rose, 18 Nov 2026).
+  String get reportDetailsOneCategory => _t(
+      'A report can have only one category. Go back and keep the other '
+      'concerns under the same category, or file a separate report for '
+      'the other one.',
+      'Iisang kategorya lang ang maaari sa bawat ulat. Bumalik at '
+      'panatilihin ang iba pang concern sa iisang kategorya, o gumawa ng '
+      'hiwalay na ulat para sa isa pa.');
   String get reportDetailsSubmitFailed => _t(
       'Could not submit your report. Please try again.',
       'Hindi maisumite ang iyong ulat. Subukan ulit.');
@@ -1618,12 +1626,6 @@ class Strings {
 
   // ---------- map ----------
   String get mapTitle => _t('${BarangayProfile.name} Map', 'Mapa ng ${BarangayProfile.name}');
-  String get mapHazardToggle => _t('Flood hazard', 'Panganib ng baha');
-  String get mapHazardLow => _t('Low', 'Mababa');
-  String get mapHazardMedium => _t('Medium', 'Katamtaman');
-  String get mapHazardHigh => _t('High', 'Mataas');
-  String get mapHazardSource =>
-      _t('100-year flood · Project NOAH', '100-taóng baha · Project NOAH');
   String get mapViewReport => _t('View report', 'Tingnan ang ulat');
   String get mapReportsSpotted =>
       _t('Reports spotted!', 'Nakita ang mga ulat!');

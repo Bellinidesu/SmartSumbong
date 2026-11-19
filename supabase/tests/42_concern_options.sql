@@ -17,18 +17,19 @@ begin
   update public.users set role = 'admin', admin_tier = 'super' where id = v_sup;
   insert into public.complaint_options (category, label_en, label_fil) values ('barangay_service', 'Delayed response', 'Naantalang tugon') returning id into o_a;
   insert into public.complaint_options (category, label_en, label_fil) values ('barangay_service', 'Duty negligence', 'Pagpapabaya sa tungkulin') returning id into o_b;
-  insert into public.complaint_options (category, label_en, label_fil) values ('animal_welfare', 'Stray dog', 'Asong gala') returning id into o_c;
-  insert into public.complaint_options (category, label_en, label_fil, active) values ('animal_welfare', 'Old option', 'Lumang opsyon', false) returning id into o_off;
+  -- 0176: every concern of a report is under its own category, so the options here are all Barangay Service
+  insert into public.complaint_options (category, label_en, label_fil) values ('barangay_service', 'Rude personnel', 'Bastos na kawani') returning id into o_c;
+  insert into public.complaint_options (category, label_en, label_fil, active) values ('barangay_service', 'Old option', 'Lumang opsyon', false) returning id into o_off;
 
-  -- 1. one report, its main option by id, two options of one category and another category; a switched-off one left out
+  -- 1. one report, its main option by id, two more options of its category; a switched-off one left out
   begin
     perform set_config('request.jwt.claim.sub', v_res::text, true);
     r := public.file_report('barangay_service', 'Delayed response', 'Walang sumagot sa hotline ng barangay.', lat, lng, false, '[]'::jsonb, null,
                             o_a, jsonb_build_array(jsonb_build_object('category', 'barangay_service', 'option', o_b),
-                                                   jsonb_build_object('category', 'animal_welfare', 'option', o_c),
-                                                   jsonb_build_object('category', 'animal_welfare', 'option', o_off)));
+                                                   jsonb_build_object('category', 'barangay_service', 'option', o_c),
+                                                   jsonb_build_object('category', 'barangay_service', 'option', o_off)));
     select count(*) into n from public.report_concerns where report_id = r.id;
-    if n <> 3 then raise exception '% concerns, not 3 (main, a second option of it, another category; the switched-off one left out)', n; end if;
+    if n <> 3 then raise exception '% concerns, not 3 (main and two more options of it; the switched-off one left out)', n; end if;
     if not exists (select 1 from public.report_concerns where report_id = r.id and category = 'barangay_service' and option_id = o_a
                     and filed_option_en = 'Delayed response' and filed_category_en is not null) then
       raise exception 'the main concern does not carry its option and its names';
@@ -39,7 +40,7 @@ begin
     -- an old app (no option, no concerns) still files, and the subject finds its option
     r2 := public.file_report('barangay_service', 'Duty negligence', 'Hindi dumating ang tanod sa oras.', lat, lng);
     if (select option_id from public.report_concerns where report_id = r2.id) is distinct from o_b then raise exception 'the subject did not find its option'; end if;
-    v_log := v_log || E'\n' || 'ok  one report files several categories and sub-categories; a switched-off one is left out; an old app still files';
+    v_log := v_log || E'\n' || 'ok  one report files several sub-categories of its category; a switched-off one is left out; an old app still files';
   exception when others then v_log := v_log || E'\n' || 'FAIL filing: ' || sqlerrm; end;
 
   -- 2. the same concern twice is refused; a resident cannot add one that is not offered, nor a fifth
@@ -47,11 +48,11 @@ begin
     perform set_config('request.jwt.claim.sub', v_res::text, true);
     begin perform public.add_report_concern(r.id, 'barangay_service', null, o_b); raise exception 'the same concern was added twice';
     exception when raise_exception then if sqlerrm not like '%already has that concern%' then raise; end if; end;
-    begin perform public.add_report_concern(r.id, 'animal_welfare', null, o_off); raise exception 'a switched-off option was added';
-    exception when check_violation then null; end;
-    perform public.add_report_concern(r.id, 'animal_welfare', 'Sa kanto', null);   -- the category itself, the fourth
+    begin perform public.add_report_concern(r.id, 'barangay_service', null, o_off); raise exception 'a switched-off option was added';
+    exception when check_violation then if sqlerrm not like '%not offered%' then raise; end if; end;
+    perform public.add_report_concern(r.id, 'barangay_service', 'Sa kanto', null);   -- the category itself, the fourth
     begin perform public.add_report_concern(r.id, 'traffic_violation', null, null); raise exception 'a fifth concern was added';
-    exception when check_violation then null; end;
+    exception when check_violation then if sqlerrm not like '%at most four%' then raise; end if; end;
     v_log := v_log || E'\n' || 'ok  the same concern twice is refused; a resident adds only what is offered, four at most';
   exception when others then v_log := v_log || E'\n' || 'FAIL adding: ' || sqlerrm; end;
 
@@ -67,7 +68,7 @@ begin
     if not exists (select 1 from public.status_logs where report_id = r.id and is_system and remark like '%now called "Barangay Help Desk"%' and remark like '%filed under "' || t || '"%') then
       raise exception 'no note on the timeline for the renamed category';
     end if;
-    if not exists (select 1 from public.status_logs where report_id = r.id and is_system and remark like '%"Stray dog" was switched off%filed as "Stray dog"%') then
+    if not exists (select 1 from public.status_logs where report_id = r.id and is_system and remark like '%"Rude personnel" was switched off%filed as "Rude personnel"%') then
       raise exception 'no note on the timeline for the switched-off option';
     end if;
     if (select handler_id from public.reports where id = r.id) is not null then raise exception 'the note made the super admin take the case'; end if;

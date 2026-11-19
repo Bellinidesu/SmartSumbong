@@ -97,6 +97,7 @@ const TITLES: Record<string, string> = {
   verification: "Account update",
   retirement: "Personnel update",
   look_around: "Shared view",
+  case_assigned: "Case assigned to you",
   case_forwarded: "Case forwarded",
   forward_flag: "Forwarding flag",
   tanod_committee: "Personnel update",

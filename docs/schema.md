@@ -22,7 +22,7 @@ How the database fits the rest of the system is in
 | Table | Purpose | Since |
 |---|---|---|
 | `reports` | Complaints: category, place (`geom`), status, admin-set `due_at`, referral (`referred_to`…), follow-ups, resolution awaiting approval, `is_public`, `version` (stale-page guard), sensitivity | 0001 |
-| `report_concerns` | One row per concern in a report (the main category included), each open or resolved on its own | 0130 |
+| `report_concerns` | One row per concern in a report (the main category included), each open or resolved on its own; since 0176 every new concern is under the report's own category (trigger `one_category_per_case`; older rows that mix are kept) | 0130 |
 | `report_media` | Resident photos and video | 0001 |
 | `report_evidence` | Photos the barangay attaches from the portal: with an update, or when it resolves | 0079 |
 | `status_logs` | Append-only, hash-chained audit trail (0015); one writer per complaint, checked with `verify_report_trail` (0082) | 0001 |
@@ -35,7 +35,8 @@ How the database fits the rest of the system is in
 | `escalation_requests` | A tanod's request to escalate, and the admin's decision | 0073 |
 | `sla_policies` | Per-category guide hours and the tanod's accept window | 0001 |
 | `sla_extensions` | Audited deadline extensions | 0002 |
-| `case_handler_log` | Admins taking, releasing and taking over cases (Activity page) | 0087 |
+| `case_handler_log` | Admins taking, releasing and taking over cases (Activity page); since 0175 also assigning (`to_id`: to whom), taking an assignment back, accepting and declining | 0087 |
+| `reports.assigned_to`, `assigned_by`, `assigned_at`, `assign_note` | A case assigned to a councilor or staff member who has not answered yet (0175); the one who assigned it holds it (`handler_id`) meanwhile. Changed only by `assign_case` and `answer_case_assignment`; any change of hands ends it | 0175 |
 | `reports.committee`, `reports.awaiting_placement` | The committee a case was forwarded to (null: its category's committee), and whether a Kagawad handed it to the super admins to place; changed only by forwarding (0152) | 0152 |
 | `case_forwards` | Every forward, staff flag and dismissed flag of a case: from and to which committee, the note, who, when; append-only. The view `case_forward_flags` lists the flags still open | 0152 |
 | `committees` | The barangay's committees, made and edited by a super admin; switched off = not created (0145). For 183: Peace and Order, Environment and Disaster Risk, Health and Sanitation (the Anti-Drug Abuse Council is off, 0159) | 0145 |
@@ -160,6 +161,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `set_resolution_target(report, due, reason)` | 0079 | Set the target date; the resident is told. Moving it later is an extension: needs a reason, recorded in `sla_extensions`, capped by `max_deadline_extensions` (2) |
 | `hand_to_higher_official(report, official, note)` | 0079 | Once the extensions are used up: hand the case to a barangay official; any tanod stands down |
 | `escalate_in_barangay(report, …)` / `return_from_official(report, …)` | 0130, 0166 | Up the ladder to `escalation_target()` (0166: the Kagawad of the committee the case is with now; the Chairman for a Kagawad's escalation, a sensitive case or a committee with no Kagawad, with the super admins told), and back down to whoever held it |
+| `assign_case(report, to, note)` / `answer_case_assignment(report, accept, reason)` / `case_assignees(report)` | 0175 | A super admin assigns a case to a councilor or a staff member (someone of another committee: the case moves there, as a forward), a Kagawad to the staff of their committee; staff never. The assignee is told (`case_assigned`), accepts (they hold it) or declines with a reason (it stays with whoever assigned it, who is told). `to` null takes a waiting assignment back. `case_assignees` is the pick list |
 | `add_report_concern`, `set_concern_status` | 0130 | Several concerns in one report, each resolved on its own |
 | `set_case_sensitive(report, …)` | 0130 | Mark or unmark a case sensitive (VAWC and the like); sensitive cases stay out of the dispatch waiting line |
 | `admin_barangay_update(report, body, media)` | 0079 | An update with photos to the timeline and the resident, no tanod needed |
@@ -311,6 +313,14 @@ reports are counted.
   another admin takes it over with a reason. Enforced by triggers on everything
   an admin action writes; residents, tanods and the scheduled jobs are
   untouched. `reports.version` stops an action from a stale page.
+- **The case hierarchy** (0175, Rose 19 Nov 2026). A super admin takes over from
+  anyone, a Kagawad only from the staff of their own committee, staff never.
+  Staff (the moderator tier) read a case only once it is assigned to them, while
+  they handle it, and (to read) the ones they handled before; they never claim a
+  case by acting on it. A case changes hands only through the functions: a direct
+  write to `handler_id` or the assignment is refused (`_guard_case_hands`). A
+  Kagawad's or staff member's notice about a case shows only while the case is
+  theirs to see.
 - **A tanod holds at most five dispatches** (0100/0101, `max_active_dispatches`).
 - **Extensions are capped** (0079). The date can move later only
   `max_deadline_extensions` times, each with a reason; then the case goes to a
