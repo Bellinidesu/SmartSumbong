@@ -1427,8 +1427,8 @@ class _MiniMap extends StatelessWidget {
         child: Stack(
           children: [
             BrgyMap(
+              use: BrgyMapUse.report,
               initialCenter: point,
-              interactive: false,
               cornerRadius: 25,
               // The report card behind it (see _ReportCard).
               cornerColour: context.isDark

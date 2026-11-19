@@ -40,9 +40,9 @@ const bool kJobPinnedDock = true;
 BrgyMapPin _casePin(LatLng at, ComplaintCategory? cat) => BrgyMapPin(
       id: 'case',
       point: at,
-      glyph: categoryGlyph(cat ?? ComplaintCategory.other),
-      bodyColour: categoryColour(cat ?? ComplaintCategory.other),
-      dotColour: const Color(0xFF356CF9),
+      glyph: (cat ?? ComplaintCategory.other).icon,
+      colour: categoryColour(cat ?? ComplaintCategory.other),
+      dot: const Color(0xFF356CF9),
       pulse: true,
     );
 
@@ -1012,6 +1012,7 @@ class _DispatchWindowState extends State<DispatchWindow>
                   child: Text(context.ts.dispatchNoLocation, style: DType.body(d.muted, size: 12.5)),
                 )
               : BrgyMap(
+                  use: BrgyMapUse.job,
                   controller: _mapCtl,
                   initialCenter: to,
                   initialZoom: 16.5,
@@ -1019,7 +1020,8 @@ class _DispatchWindowState extends State<DispatchWindow>
                   route: _route,
                   accuracyCentre: _me,
                   accuracyMetres: _me == null ? null : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),
-                  attributionBottom: 60,
+                  // clear of the route line and the Open in Maps pill drawn over the bottom
+                  controlsPadding: EdgeInsets.only(bottom: line != null || _routing || _routeNote != null ? 108 : 64),
                 ),
         ),
         Positioned(
