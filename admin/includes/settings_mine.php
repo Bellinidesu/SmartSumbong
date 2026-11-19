@@ -55,7 +55,7 @@ function render_my_committee_pane(Supabase $db): void
           <?php foreach ($people as $p): ?>
             <li><?= admin_avatar_html(['full_name' => $p['full_name'], 'avatar_url' => null]) ?><b><?= e(formal_name((string) $p['full_name'])) ?></b><?= rank_chip(($p['admin_tier'] ?? '') === 'committee' ? 'kagawad' : ($p['official_role'] ?? null)) ?></li>
           <?php endforeach; ?>
-          <li class="my-com-tanods"><?= p_icon('i-users', 18) ?><span><?= e($nT === 1 ? t('1 tanod', 'Isang tanod') : sprintf(t('%d tanods', '%d tanod'), $nT)) ?></span><a href="personnel.php"><?= e(t('See them in Personnel', 'Tingnan sa Personnel')) ?></a></li>
+          <li class="my-com-tanods"><?= p_icon('i-users', 18) ?><span><?= e($nT === 1 ? t('1 tanod', 'Isang tanod') : sprintf(t('%d tanods', '%d tanod'), $nT)) ?></span><?php if (page_allowed('personnel.php')): // 19 Nov 2026 (Rose): staff have no Personnel ?><a href="personnel.php"><?= e(t('See them in Personnel', 'Tingnan sa Personnel')) ?></a><?php endif; ?></li>
         </ul>
       </div>
       <p class="st-note my-com-note"><?= e(t('A super admin sets these up in Administrative Services: the names, the logo, the colour, the kinds of complaint and who is in the committee.', 'Ang super admin ang nag-aayos nito sa Administrative Services: ang mga pangalan, logo, kulay, mga uri ng reklamo at kung sino ang nasa komite.')) ?></p>
