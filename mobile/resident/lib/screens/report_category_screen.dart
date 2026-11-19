@@ -2,7 +2,10 @@
 //
 // Figma node 2212:145.
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../d/d_categories.dart';
 import '../d/d_theme.dart';
@@ -151,6 +154,7 @@ class _CategoryCard extends StatelessWidget {
     return _Shell(
       colour: col,
       title: context.tr(category.label, category.labelFil),
+      reachBelow: more != null,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Wrap(spacing: 6, runSpacing: 6, children: [
           for (final o in category.options)
@@ -190,11 +194,14 @@ class _OthersCard extends StatelessWidget {
 }
 
 class _Shell extends StatelessWidget {
-  const _Shell({required this.colour, required this.title, required this.child});
+  const _Shell({required this.colour, required this.title, required this.child, this.reachBelow = false});
 
   final Color colour;
   final String title;
   final Widget child;
+
+  /// Lets a tap in the card's bottom padding reach the last row (the concern chips' 48 px targets).
+  final bool reachBelow;
 
   @override
   Widget build(BuildContext context) {
@@ -208,15 +215,18 @@ class _Shell extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: colour)),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(title, style: DType.body(d.ink, size: 15, w: FontWeight.w800))),
+              child: _HitSlop(
+                slop: EdgeInsets.only(bottom: reachBelow ? _HitSlop.chip : 0),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: colour)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(title, style: DType.body(d.ink, size: 15, w: FontWeight.w800))),
+                  ]),
+                  const SizedBox(height: 10),
+                  child,
                 ]),
-                const SizedBox(height: 10),
-                child,
-              ]),
+              ),
             ),
           ),
         ]),
@@ -335,12 +345,19 @@ class _MoreConcerns extends StatelessWidget {
       const SizedBox(height: 12),
       Text(context.tr('Is there more than one problem? (optional)', 'May iba pa bang problema? (opsyonal)'), style: DType.body(d.ink, size: 13.5, w: FontWeight.w800)),
       const SizedBox(height: 6),
-      Wrap(spacing: 6, runSpacing: 6, children: [
-        for (final x in extras)
-          _ExtraChip(label: context.tr(x.option!.en, x.option!.fil), colour: col, onRemove: () => onRemove(x)),
-        if (extras.length < max && left(main, extras).isNotEmpty)
-          _AddChip(colour: col, onTap: () => _pick(context)),
-      ]),
+      // Each chip answers a 48 px tall touch though it is drawn 30 tall: the slop reaches into the gaps around it.
+      _HitSlop(
+        slop: const EdgeInsets.symmetric(vertical: _HitSlop.chip),
+        child: Wrap(spacing: 6, runSpacing: 6, children: [
+          for (final x in extras)
+            _HitSlop(
+              slop: const EdgeInsets.symmetric(vertical: _HitSlop.chip),
+              child: _ExtraChip(label: context.tr(x.option!.en, x.option!.fil), colour: col, onRemove: () => onRemove(x)),
+            ),
+          if (extras.length < max && left(main, extras).isNotEmpty)
+            _HitSlop(slop: const EdgeInsets.symmetric(vertical: _HitSlop.chip), child: _AddChip(colour: col, onTap: () => _pick(context))),
+        ]),
+      ),
     ]);
   }
 }
@@ -377,24 +394,34 @@ class _ExtraChip extends StatelessWidget {
     final d = context.d;
     return Container(
       constraints: const BoxConstraints(minHeight: 30),
-      padding: const EdgeInsets.only(left: 12, right: 4),
+      padding: const EdgeInsets.only(left: 12),
       decoration: BoxDecoration(
         color: colour.withValues(alpha: d.dark ? .22 : .12),
         borderRadius: BorderRadius.circular(99),
         border: Border.all(color: colour.withValues(alpha: .6)),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Flexible(child: Text(label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 12.5).copyWith(color: d.ink))),
-        const SizedBox(width: 2),
-        Tooltip(
-          message: '${context.tr('Remove', 'Alisin')} $label',
-          child: InkResponse(
-            onTap: onRemove,
-            radius: 16,
-            child: SizedBox(width: 26, height: 28, child: Icon(Icons.close_rounded, size: 16, color: d.muted)),
+      // The border insets the row by 1 px; the slop lets a tap on the border itself reach the row.
+      child: _HitSlop(
+        slop: const EdgeInsets.all(1),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Flexible(child: Text(label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 12.5).copyWith(color: d.ink))),
+          const SizedBox(width: 2),
+          // The cross is drawn 26 wide; its touch is 48 x 48: 18 over the end of the name, the pill's 4 px end, and
+          // (with the chip's own slop) 9 above and below the pill.
+          _HitSlop(
+            slop: const EdgeInsets.fromLTRB(18, _HitSlop.chip, 4, _HitSlop.chip),
+            child: Tooltip(
+              message: '${context.tr('Remove', 'Alisin')} $label',
+              child: InkResponse(
+                onTap: onRemove,
+                radius: 16,
+                child: SizedBox(width: 26, height: 28, child: Icon(Icons.close_rounded, size: 16, color: d.muted)),
+              ),
+            ),
           ),
-        ),
-      ]),
+          const SizedBox(width: 4),
+        ]),
+      ),
     );
   }
 }
@@ -430,5 +457,42 @@ class _AddChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Takes taps up to [slop] outside its child and hands them to the child at its nearest edge, so a small target answers
+/// a 48 x 48 touch (Android's minimum) without being drawn any bigger. Every box up the tree must reach the tap too,
+/// which is why the chips' Wrap and the card's column carry one as well.
+class _HitSlop extends SingleChildRenderObjectWidget {
+  const _HitSlop({required this.slop, required super.child});
+
+  /// What a 30 px chip needs above and below to make 48.
+  static const chip = 9.0;
+
+  final EdgeInsets slop;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderHitSlop(slop);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderHitSlop renderObject) => renderObject.slop = slop;
+}
+
+class _RenderHitSlop extends RenderProxyBox {
+  _RenderHitSlop(this.slop);
+
+  EdgeInsets slop;
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    final c = child;
+    if (c == null || !slop.inflateRect(Offset.zero & size).contains(position)) return false;
+    final inside = Offset(
+      position.dx.clamp(0.0, math.max(0.0, size.width - .01)),
+      position.dy.clamp(0.0, math.max(0.0, size.height - .01)),
+    );
+    if (!c.hitTest(result, position: inside)) return false;
+    result.add(BoxHitTestEntry(this, position));
+    return true;
   }
 }

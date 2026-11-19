@@ -119,6 +119,51 @@ void main() {
     await finish(tester);
   });
 
+  testWidgets('the remove cross answers a 48 x 48 touch around it, and the rest of the name does not', (tester) async {
+    await bootApp(tester);
+    _catalogue();
+    await _open(tester, '/submit-report');
+    Finder chips() => find.byWidgetPredicate((w) => w is Tooltip && (w.message ?? '').startsWith('Remove '));
+    Future<void> add(String name) async {
+      await _tapVisible(tester, find.text('Add another concern'));
+      await tester.tap(_inSheet(name));
+      await settle(tester);
+    }
+
+    // Street Obstruction: the main one and two more.
+    await _tapVisible(tester, find.text('Illegal Parking'));
+    await add('Obstructed Sidewalks');
+    await add('Vendor Blocking Sidewalks');
+    expect(chips(), findsNWidgets(2));
+    final cross = tester.getCenter(find.byTooltip('Remove Obstructed Sidewalks'));
+    final pill = tester.getRect(find.ancestor(of: find.byTooltip('Remove Obstructed Sidewalks'), matching: find.byType(Container)).first);
+    expect(pill.height, lessThan(48), reason: 'drawn as before');
+    // far along the name: nothing
+    await tester.tapAt(cross + const Offset(-60, 0));
+    await settle(tester);
+    expect(chips(), findsNWidgets(2));
+    // over the end of the name and above the pill, 21 px from the cross's middle each way
+    await tester.tapAt(cross + const Offset(-28, -21));
+    await settle(tester);
+    expect(find.byTooltip('Remove Obstructed Sidewalks'), findsNothing);
+    expect(chips(), findsOneWidget);
+    // past the cross, in the pill's end
+    final cross2 = tester.getCenter(find.byTooltip('Remove Vendor Blocking Sidewalks'));
+    await tester.tapAt(cross2 + const Offset(15, 0));
+    await settle(tester);
+    expect(chips(), findsNothing);
+
+    // below the pill, in the card's padding: a category with one option left, so nothing sits under the chip
+    await _tapVisible(tester, find.text('Street Drinking Nuisance'));
+    await add('Unreasonable Neighborhood Noise');
+    expect(chips(), findsOneWidget);
+    final cross3 = tester.getCenter(find.byTooltip('Remove Unreasonable Neighborhood Noise'));
+    await tester.tapAt(cross3 + const Offset(0, 21));
+    await settle(tester);
+    expect(chips(), findsNothing);
+    await finish(tester);
+  });
+
   group('the draft-restored note', () {
     const typed = 'Illegal Parking — a van has blocked the corner all week';
     final choice = CategoryChoice(category: ComplaintCategory.parse('street_obstruction'), issue: 'Illegal Parking', optionId: 2);
