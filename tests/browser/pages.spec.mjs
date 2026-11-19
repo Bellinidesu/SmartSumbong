@@ -2006,7 +2006,7 @@ test('Duty only (Ace, 19 Nov): every on-duty tanod is ON DUTY in green and can b
   await expect(page.locator('button[name="action"][value="dispatch"]')).toBeEnabled();
   await page.evaluate(() => { let n = document.querySelector('input[name="tanod"][value="b0000000-0000-0000-0000-000000000003"]'); while (n) { if (n.tagName === 'DETAILS') n.open = true; n = n.parentElement; } });
   await stale.check({ force: true });
-  await page.locator('textarea[name="note"]').first().fill('Check the canal by the school.');
+  await page.locator('#assign-form textarea[name="note"]').fill('Check the canal by the school.');
   await page.locator('button[name="action"][value="dispatch"]').click();
   await page.waitForLoadState('domcontentloaded');
   await expect(page.locator('.p-flash--error, [role="alert"].p-flash'), 'no refusal for an old location').toHaveCount(0);
@@ -2282,7 +2282,7 @@ test('Rose, 19 Nov (0175): a Kagawad assigns a case to their own staff; the staf
   await asg.locator('summary').click();
   expect(await asg.locator('select[name="to"] option:not([disabled])').allTextContents(), 'a Kagawad picks among their own staff only').toEqual(['Santos, Ben', 'Aquino, Lorna']);
   await asg.locator('select[name="to"]').selectOption('a0000000-0000-0000-0000-000000000009');
-  await asg.locator('textarea[name="note"]').fill('Ikaw na po ang bahala');
+  await asg.locator('textarea[name="assign_note"]').fill('Ikaw na po ang bahala');
   await asg.locator('button[type="submit"]').click();
   await expect(page.locator('.ss-asg-wait')).toContainText('Assigned to Ben Santos, waiting for them to accept it');
   await expect(page.locator('.ss-ladder li.now')).toHaveAttribute('data-r', 'staff');

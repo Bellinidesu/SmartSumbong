@@ -1052,7 +1052,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <div class="p-cfield"><label class="p-flabel" for="asg-to"><?= e(t('Assign to', 'Italaga kay')) ?></label>
             <select class="p-input-plain" id="asg-to" name="to" required><option value="" disabled selected><?= e(t('Choose', 'Pumili')) ?></option><?= assign_options($assignees) ?></select></div>
           <div class="p-cfield"><label class="p-flabel" for="asg-note"><?= e(t('Note for them (optional)', 'Paalala para sa kanya (opsyonal)')) ?></label>
-            <textarea class="p-input-plain" id="asg-note" name="note" rows="2" maxlength="300"></textarea></div>
+            <textarea class="p-input-plain" id="asg-note" name="assign_note" rows="2" maxlength="300"></textarea></div>
           <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Assign', 'Italaga')) ?></button>
           <p class="p-hint"><?= e(t('You hold the case until they accept it. They are told, and may decline it with a reason.', 'Hawak mo ang kaso hanggang tanggapin nila. Sasabihan sila, at maaari nilang tanggihan nang may dahilan.')) ?></p>
         </form>

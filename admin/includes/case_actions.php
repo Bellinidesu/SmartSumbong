@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 case 'assign':
                     $to = (string) ($_POST['to'] ?? '');
                     $db->rpc('assign_case', ['p_report' => $id, 'p_to' => preg_match('/^[0-9a-f-]{36}$/i', $to) ? $to : null,
-                        'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                        'p_note' => trim((string) ($_POST['assign_note'] ?? '')) ?: null]);
                     $flash = $to === '' ? t('Taken back. The case is no longer waiting for them.', 'Nabawi. Hindi na ito naghihintay sa kanila.')
                                         : t('Assigned. They are told, and the case stays with you until they accept it.', 'Naitalaga. Nasabihan sila, at nasa iyo ang kaso hanggang tanggapin nila.');
                     break;
