@@ -65,7 +65,7 @@ class CaseTokens {
     navy: Color(0xFF00308F),
     shadow: Color(0x2420273B),
     field: Color(0xFFF4F6FB),
-    green: Color(0xFF087F31),
+    green: Color(0xFF066A27), // darker than the done fill: it keeps 4.5:1 as lettering on the Resolved card's green tint
   );
 
   static const night = CaseTokens._(
@@ -329,6 +329,36 @@ class CaseTrack extends StatelessWidget {
       context.tr('Resolved', 'Nalutas'),
     ];
     final now = done.clamp(0, 4);
+    // At a large text size four labels cannot sit under four bars without breaking words, so the bars stay in one row and the
+    // labels become a list under them, one step to a line.
+    final large = MediaQuery.textScalerOf(context).scale(11.5) / 11.5 >= 1.2;
+    if (large) {
+      return Semantics(
+        container: true,
+        label: now >= 4
+            ? context.tr('Progress: all four steps done', 'Progreso: tapos na ang apat na hakbang')
+            : context.tr('Progress: $now of 4 steps done, now ${names[now]}', 'Progreso: $now sa 4 na hakbang ang tapos, ngayon ${names[now]}'),
+        child: ExcludeSemantics(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              for (var i = 0; i < 4; i++) ...[
+                if (i > 0) const SizedBox(width: 4),
+                Expanded(child: Container(height: 6, decoration: BoxDecoration(color: i < now ? CaseTokens.doneFill : (i == now ? CaseTokens.orange : t.edge), borderRadius: BorderRadius.circular(3)))),
+              ],
+            ]),
+            const SizedBox(height: 8),
+            for (var i = 0; i < 4; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  SizedBox(width: 18, child: i < now ? Icon(Icons.check_rounded, size: 14, color: t.green) : Padding(padding: const EdgeInsets.only(top: 6), child: Container(width: 8, height: 8, margin: const EdgeInsets.only(left: 3), decoration: BoxDecoration(shape: BoxShape.circle, color: i == now ? CaseTokens.orange : t.edge)))),
+                  Expanded(child: Text(names[i], style: caseInter(i < now ? t.green : (i == now ? t.ink : t.muted), 11.5, i == now ? FontWeight.w800 : (i < now ? FontWeight.w700 : FontWeight.w600), 14).copyWith(height: 1.3))),
+                ]),
+              ),
+          ]),
+        ),
+      );
+    }
     return Semantics(
       container: true,
       label: now >= 4
@@ -568,7 +598,7 @@ class CaseEvidenceCard extends StatelessWidget {
                 behavior: HitTestBehavior.opaque,
                 onTap: () => onOpen(0),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+                  constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
                   child: Align(alignment: Alignment.centerRight, child: Text(context.tr('View all', 'Tingnan lahat'), style: caseInter(t.navy, 13, FontWeight.w800))),
                 ),
               ),

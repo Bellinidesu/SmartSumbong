@@ -23,6 +23,9 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('Clogged Drainage'));
     await settle(tester);
+    // the place is on the card; the rest of the details are folded
+    await tester.tap(find.text('Your words, and who is handling it'));
+    await settle(tester);
     final text = screenText();
     for (final expected in ['BRG-2026-0101', '13th Street', 'The barangay expects to resolve this by', 'Filed', 'Validated', 'Tanod dispatched', 'Resolved', 'Ask the barangay']) {
       expect(text.any((t) => t.contains(expected)), isTrue, reason: expected);

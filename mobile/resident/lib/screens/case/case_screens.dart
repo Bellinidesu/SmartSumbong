@@ -231,7 +231,7 @@ class _CaseViewerState extends State<CaseViewer> {
                   child: CachedNetworkImage(
                     imageUrl: m.url,
                     fit: BoxFit.contain,
-                    placeholder: (_, _) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+                    placeholder: (_, _) => _viewerBackdrop(m),
                     errorWidget: (_, _, _) => Container(
                       color: m.fromBarangay ? const Color(0xFF223328) : const Color(0xFF2B3140),
                       alignment: Alignment.center,
@@ -268,9 +268,8 @@ class _CaseViewerState extends State<CaseViewer> {
               Container(
                 height: 24,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
-                alignment: Alignment.center,
                 decoration: BoxDecoration(color: tagFill, borderRadius: BorderRadius.circular(12)),
-                child: Text(cur.fromBarangay ? context.tr('From the barangay', 'Mula sa barangay') : context.tr('Your photo', 'Larawan mo'), textScaler: TextScaler.noScaling, style: caseInter(Colors.white, 11.5, FontWeight.w800, 14)),
+                child: Center(widthFactor: 1, child: Text(cur.fromBarangay ? context.tr('From the barangay', 'Mula sa barangay') : context.tr('Your photo', 'Larawan mo'), textScaler: TextScaler.noScaling, style: caseInter(Colors.white, 11.5, FontWeight.w800, 14))),
               ),
               const SizedBox(height: 10),
               Text(cur.title ?? (cur.fromBarangay ? context.tr('Proof of resolution', 'Patunay ng paglutas') : context.tr('What you sent', 'Ipinadala mo')), style: caseTight(ink, 20, 26)),
@@ -284,3 +283,14 @@ class _CaseViewerState extends State<CaseViewer> {
     );
   }
 }
+
+/// What shows while a picture loads: the canvas' soft gradient with the picture mark, so the page is never an empty black slab.
+Widget _viewerBackdrop(CaseMedia m) => Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: m.fromBarangay ? const [Color(0xFF3B5A47), Color(0xFF223328)] : const [Color(0xFF4A5266), Color(0xFF2B3140)]),
+      ),
+      alignment: Alignment.center,
+      child: Icon(Icons.image_outlined, size: 72, color: Colors.white.withValues(alpha: .5)),
+    );
