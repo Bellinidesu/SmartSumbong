@@ -1,6 +1,6 @@
 # SmartSumbong — Schema Reference
 
-What the migrations in `supabase/migrations/` add up to: 128 files, 0001–0135
+What the migrations in `supabase/migrations/` add up to: 169 files, 0001–0176
 (numbers 0048 and 0108–0113 are unused; 0108–0113 became 0114–0120 to follow
 production's 0107). The exact current schema, every column and grant, is
 `supabase/baseline/baseline.sql`; this file is the map. If the manuscript's
@@ -15,7 +15,7 @@ How the database fits the rest of the system is in
 
 ---
 
-## Tables (60)
+## Tables (105 on the live project, 20 Nov 2026; these are the main ones)
 
 ### Complaints and their work
 
@@ -296,6 +296,11 @@ Times in UTC; Philippine time is UTC+8.
 | `keep-portal-awake` | every 10 min | Pings the portal and records uptime; two misses alert every admin |
 | `purge-old-notifications` | daily 03:20 | Read notifications after 90 days, any after a year (0115) |
 | `media-cleanup` | daily 03:40 | Calls the `media-cleanup` function with the secret from Vault (0118) |
+| `places-ask`, `places-file` | every 6 h (:07, :17) | Ask OpenStreetMap's Overpass mirrors for places, then file the answer (0134) |
+| `smart-events-purge` | daily 03:55 | Deletes SMART events older than 180 days |
+| `command-watch` | every 5 min | The command center's auto switch (0143) |
+| `smart-snapshot` | every minute | Refreshes the engine's cached lists (0169) |
+| `cron-history-purge` | daily 04:10 | Trims pg_cron's own run history (0170) |
 
 `dashboard_metrics` is deliberately **not** definer: RLS still decides which
 reports are counted.

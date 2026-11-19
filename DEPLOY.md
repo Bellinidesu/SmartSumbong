@@ -81,13 +81,14 @@ reads `push_plan()` from 0136, so apply 0136 before deploying it.
 Deploy them all (Actions → **Deploy** does this, see OPERATIONS), or by hand:
 
 ```bash
-for f in send-dispatch-push sign-upload password-otp delete-account media-cleanup; do
+for f in send-dispatch-push sign-upload password-otp delete-account media-cleanup level-switch; do
   supabase functions deploy "$f" --project-ref <ref> --use-api
 done
 ```
 
-`supabase/config.toml` sets each function's JWT check; never run
-`supabase config push` from it.
+`supabase/config.toml` sets each function's JWT check and Auth's SMTP and
+recovery email. Run `supabase config diff` before any `supabase config push`:
+since CLI 2.121 it sends only what the file declares (config.toml's own comment).
 
 ### Forgot password by email (0174)
 

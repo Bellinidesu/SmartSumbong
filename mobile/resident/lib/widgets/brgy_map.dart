@@ -81,7 +81,7 @@ bool withinBrgyBounds(ll.LatLng p) =>
 
 /// What a map is for. The screen gives the data; this decides the look,
 /// the framing and the controls.
-enum BrgyMapMode { browse, report, pick, job, navigate, tab }
+enum BrgyMapMode { browse, report, place, pick, job, navigate, tab }
 
 @immutable
 class BrgyMapUse {
@@ -95,6 +95,7 @@ class BrgyMapUse {
     this.legend = false,
     this.scale = false,
     this.panOnTap = true,
+    this.twoFingers = false,
   });
 
   /// The resident's Map tab: pinned to the barangay like the portal, the
@@ -109,6 +110,10 @@ class BrgyMapUse {
 
   /// A picture of a place (View Report): no gestures, no controls.
   static const report = BrgyMapUse._(BrgyMapMode.report, interactive: false, bounded: false);
+
+  /// The Where card on the case page: a small map you move with TWO fingers (one finger scrolls the page, so the page never sticks on
+  /// the map), pinch to zoom, the portal's frame button to come back to the pin; no zoom pair, no layers.
+  static const place = BrgyMapUse._(BrgyMapMode.place, interactive: true, bounded: true, fitButton: true, twoFingers: true);
 
   /// The report form's pin picker: the map slides under a fixed pin.
   static const pick = BrgyMapUse._(BrgyMapMode.pick, interactive: true, bounded: false);
@@ -146,6 +151,8 @@ class BrgyMapUse {
   /// A tap on a pin eases the camera to it, with the pin in the upper part of the map (the portal's way). Off where the
   /// screen pans the map itself, knowing what it covers.
   final bool panOnTap;
+  /// Pan and zoom only with two fingers down; a single finger is left to the page's scrolling.
+  final bool twoFingers;
 
   /// Any control drawn over the map.
   bool get hasControls => zoomButtons || fitButton || layers || legend || scale;
@@ -335,6 +342,7 @@ class BrgyMap extends StatefulWidget {
     this.dimOutside,
     this.showPlaces,
     this.onMapTap,
+    this.fitLabel,
   });
 
   /// The Layers the screen controls itself (the Map tab's sheet): the fog outside the barangay, and the places to steer
@@ -382,6 +390,8 @@ class BrgyMap extends StatefulWidget {
   final double cornerRadius;
   final Color? cornerColour;
 
+  /// What the frame button is called to a screen reader and on long press, when it is not "Frame the map" (the Where card: "Back to the pin").
+  final String? fitLabel;
   /// Off in widget tests, where the native map view (a platform view) cannot be made: the map's place is kept, blank.
   @visibleForTesting
   static bool nativeView = true;
@@ -1004,6 +1014,7 @@ class _BrgyMapState extends State<BrgyMap> {
             onZoomIn: () => _ctl.zoomBy(1),
             onZoomOut: () => _ctl.zoomBy(-1),
             onFit: _fit,
+            fitLabel: widget.fitLabel,
             onPanel: _togglePanel,
             onDim: _setDim,
             onPlaces: _setPlaces,
@@ -1048,7 +1059,7 @@ class _BrgyMapState extends State<BrgyMap> {
       tiltGesturesEnabled: false,
       scrollGesturesEnabled: i,
       zoomGesturesEnabled: i,
-      doubleClickZoomEnabled: i,
+      doubleClickZoomEnabled: i && !use.twoFingers,
       dragEnabled: false,
       compassEnabled: false,
       logoEnabled: false,
@@ -1058,7 +1069,11 @@ class _BrgyMapState extends State<BrgyMap> {
       attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
       attributionButtonMargins: math.Point(pad.right + 8, pad.bottom + 8),
       annotationOrder: const [],
-      gestureRecognizers: i ? {Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new)} : null,
+      gestureRecognizers: !i
+          ? null
+          : use.twoFingers
+              ? {Factory<OneSequenceGestureRecognizer>(_TwoFingerRecognizer.new)}
+              : {Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new)},
     );
   }
 }
@@ -1257,8 +1272,10 @@ class BrgyMapOverlay extends StatelessWidget {
     this.onPanel,
     this.onDim,
     this.onPlaces,
+    this.fitLabel,
   });
 
+  final String? fitLabel;
   final BrgyMapUse use;
   final EdgeInsets padding;
   final BrgyMapPanel panel;
@@ -1296,7 +1313,7 @@ class BrgyMapOverlay extends StatelessWidget {
           bottom: dock,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             if (use.fitButton)
-              BrgyMapButton(glyph: MapIcons.focus, label: context.tr('Frame the map', 'Ipakita ang buong mapa'), onTap: onFit),
+              BrgyMapButton(glyph: MapIcons.focus, label: fitLabel ?? context.tr('Frame the map', 'Ipakita ang buong mapa'), onTap: onFit),
             if (showLegend) ...[
               const SizedBox(height: 8),
               BrgyMapButton(
@@ -1692,4 +1709,37 @@ bool insideBrgy(List<List<ll.LatLng>> rings, ll.LatLng p) {
     }
   }
   return inside;
+}
+
+/// Claims a touch only once a second finger is down, so a single finger drags the page past the map (the Where card) and two fingers
+/// move and zoom it. A finger that is already scrolling keeps scrolling.
+class _TwoFingerRecognizer extends OneSequenceGestureRecognizer {
+  final _down = <int>{};
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    startTrackingPointer(event.pointer, event.transform);
+    _down.add(event.pointer);
+    if (_down.length >= 2) resolve(GestureDisposition.accepted);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      _down.remove(event.pointer);
+      stopTrackingPointer(event.pointer);
+    }
+  }
+
+  @override
+  void rejectGesture(int pointer) {
+    _down.remove(pointer);
+    super.rejectGesture(pointer);
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {}
+
+  @override
+  String get debugDescription => 'two fingers';
 }

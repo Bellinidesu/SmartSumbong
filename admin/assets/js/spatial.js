@@ -1115,8 +1115,7 @@ async function lkSendGo(btn) {
     include_photos: !!(el.querySelector('#sd-photos').checked && LK.photos.length),
   });
   if (error) { btn.disabled = false; bl.textContent = T('Send', 'Ipadala'); if (window.pToast) pToast(T('Could not send: ', 'Hindi naipadala: ') + error.message); return; }
-  // The tanod's notifications list is what their phone shows first.
-  await sb.from('notifications').insert({ user_id: pick.value, report_id: r.id, kind: 'look_around', message: T('From the barangay: ', 'Mula sa barangay: ') + msg }).then(() => {}, () => {});
+  // The tanod's notification is made by the database when the share is saved (0183).
   el.innerHTML = '<div class="sd-h"><b>' + T('Sent', 'Naipadala') + '</b><button type="button" class="sd-x" data-lksendx aria-label="' + T('Close', 'Isara') + '">&times;</button></div>' +
     '<p class="sd-ok big"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>' + T('Sent to ', 'Naipadala kay ') + '<b>' + esc(name) + '</b></p>' +
     '<p class="sd-l">' + T('They will see it in their notifications and on the case.', 'Makikita nila ito sa notifications at sa kaso.') + '</p>';

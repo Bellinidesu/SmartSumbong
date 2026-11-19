@@ -6,9 +6,13 @@ setEnv({ SUPABASE_URL: "https://sb.test", SUPABASE_SERVICE_ROLE_KEY: "service-ke
 const { handler, sixDigits, useSmtpConnection } = await import("./handler.ts");
 const { message } = await import("./smtp.ts");
 
+/** The hourly allowances (take_rate_slot, 0116): every slot is free unless a test says otherwise. */
+let slotAnswer = true;
+const slots = (c: Call) => c.url.pathname === "/rest/v1/rpc/take_rate_slot" ? json(slotAnswer) : undefined;
+
 /** One resident, +639171234567, and the database's answer to a guess. */
 function supabase(outcome: "ok" | "wrong" | "expired", left = 4) {
-  return stubFetch([
+  return stubFetch([slots,
     (c: Call) => c.url.pathname === "/rest/v1/users" && c.method === "GET"
       ? json(c.url.searchParams.get("mobile_number") === "eq.+639171234567" ? [{ id: "u1", is_suspended: false, is_retired: false }] : [])
       : undefined,
@@ -161,7 +165,7 @@ function withMail(on: boolean, sms = true) {
 function mailbase(opts: { confirmed: boolean; email?: string | null; outcome?: "ok" | "wrong" | "expired"; pending?: string | null; updated?: boolean }) {
   const email = opts.email === undefined ? "ana.cruz@gmail.com" : opts.email;
   const row = { id: "u1", role: "resident", mobile_number: "+639171234567", email, email_confirmed_at: opts.confirmed ? "2026-11-17T00:00:00Z" : null, is_suspended: false, is_retired: false };
-  return stubFetch([
+  return stubFetch([slots,
     (c: Call) => c.url.pathname === "/auth/v1/user" ? json({ id: "u1" }) : undefined,
     (c: Call) => c.url.pathname === "/rest/v1/users" && c.method === "GET"
       ? json(c.url.searchParams.get("mobile_number") === "eq.+639171234567" || c.url.searchParams.get("id") === "eq.u1" ? [row] : [])
@@ -317,4 +321,30 @@ Deno.test("the message: UTF-8 subject and name as RFC 2047 words, both parts bas
   assertMatch(m, /\r\n\.\r\n$/);
   assertEquals((m.match(/Content-Transfer-Encoding: base64/g) ?? []).length, 2);
   assert(!/[^\r]\n/.test(m), "every line ends in CRLF");
+});
+
+Deno.test("asking for a code takes its allowance in the database, per number and per connection, before anything is sent", async () => {
+  slotAnswer = true;
+  const s = supabase("ok");
+  try {
+    await handler(post({ action: "send", mobile: "09171234567" }, { "cf-connecting-ip": "203.0.113.5" }));
+    const buckets = s.calls.filter((c) => c.url.pathname === "/rest/v1/rpc/take_rate_slot").map((c) => JSON.parse(c.body).p_bucket);
+    assert(buckets.includes("otp-ip:203.0.113.5"), "per connection");
+    assert(buckets.includes("otp-all"), "whole service");
+    assert(buckets.includes("otp-send:u1"), "per account");
+    assert(!s.calls.some((c) => c.url.pathname === "/rest/v1/password_otps" && c.method === "GET" && c.url.searchParams.get("created_at")), "no read-then-write count");
+  } finally { s.restore(); }
+});
+
+Deno.test("an exhausted allowance answers 429 for a number with an account and for one without, and sends nothing", async () => {
+  slotAnswer = false;
+  const s = supabase("ok");
+  try {
+    const known = await handler(post({ action: "send", mobile: "09171234567" }, { "cf-connecting-ip": "203.0.113.5" }));
+    const unknown = await handler(post({ action: "send", mobile: "09179999999" }, { "cf-connecting-ip": "203.0.113.5" }));
+    assertEquals(known.status, 429);
+    assertEquals(unknown.status, 429);
+    assertEquals((await known.json()).message, (await unknown.json()).message);
+    assert(!s.calls.some((c) => c.url.hostname === "api.semaphore.co" || (c.url.pathname === "/rest/v1/password_otps" && c.method === "POST")), "no code is made or sent");
+  } finally { slotAnswer = true; s.restore(); }
 });

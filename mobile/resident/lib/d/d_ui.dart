@@ -695,6 +695,8 @@ class DStatusPill extends StatelessWidget {
   static const denied = Color(0xFFC4172A);
   static const violet = Color(0xFF6A3FD1);
   static const grey = Color(0xFF566285);
+  /// An open concern: red-orange, between the amber of Under Review and the blue of Being handled (Ace, 19 Nov 2026).
+  static const open = Color(0xFFCF4308);
 
   @override
   Widget build(BuildContext context) {
@@ -702,14 +704,16 @@ class DStatusPill extends StatelessWidget {
     return Container(
       height: 24,
       padding: const EdgeInsets.symmetric(horizontal: 11),
-      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: colour,
         borderRadius: BorderRadius.circular(99),
         boxShadow: [BoxShadow(color: colour.withValues(alpha: .38), blurRadius: 12, spreadRadius: -5, offset: const Offset(0, 4))],
       ),
-      child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11.5, height: 1, color: fg)),
+      child: Center(
+        widthFactor: 1,
+        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11.5, height: 1, color: fg)),
+      ),
     );
   }
 }

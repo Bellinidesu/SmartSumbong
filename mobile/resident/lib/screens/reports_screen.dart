@@ -69,6 +69,7 @@ import '../widgets/figma_ui.dart';
 import '../outbox.dart';
 import '../widgets/resident_nav_bar.dart';
 import 'add_details_screen.dart';
+import 'case/case_ui.dart';
 
 /// Mirrors `public.report_status` in 0001, plus `cancelled` from 0023.
 enum ReportStatus {
@@ -378,7 +379,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             for (final r in rows) ReportSummary.fromRow(r),
           ]);
       // The notes and the details requests don't depend on each other.
-      await Future.wait([_loadResolutionNotes(), _loadDetailRequests()]);
+      await Future.wait([_loadResolutionNotes(), _loadDetailRequests(), _loadConcernCounts()]);
     } catch (e) {
       if (!mounted) return;
       // No signal but the saved list is showing: keep it.
@@ -408,6 +409,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
           });
     } catch (_) {
       // The list still works; only the menu item is missing.
+    }
+  }
+
+  /// report id -> how many concerns it has and how many are resolved: one read of the resident's own concerns (the
+  /// owner may read them), for the "3 concerns · 1 resolved" tag.
+  Map<String, ({int total, int done})> _concernCounts = const {};
+
+  Future<void> _loadConcernCounts() async {
+    try {
+      final rows = await Supabase.instance.client.from('report_concerns').select('report_id, status');
+      final m = <String, ({int total, int done})>{};
+      for (final r in rows) {
+        final id = r['report_id'] as String;
+        final c = m[id] ?? (total: 0, done: 0);
+        m[id] = (total: c.total + 1, done: c.done + (r['status'] == 'resolved' ? 1 : 0));
+      }
+      if (mounted) setState(() => _concernCounts = m);
+    } catch (_) {
+      // the list still works; only the tag is missing
     }
   }
 
@@ -847,6 +867,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           report: r,
           resolutionNote: _resolutionNotes[r.id],
           resolutionAuthor: _resolutionAuthors[r.id],
+          concerns: _concernCounts[r.id],
           onView: () => Navigator.of(context).pushNamed('/report', arguments: r.id).then((_) => _load()),
           onCancel: r.status.canCancel ? () => _cancel(r) : null,
           onReopen: r.status.canRequestReopen ? () => _requestReopen(r) : null,
@@ -1057,15 +1078,6 @@ class _FilterChips extends StatelessWidget {
   }
 }
 
-/// How far along a report is, in the preview's four steps: filed,
-/// validated, tanod dispatched, resolved.
-int _stepsDone(ReportStatus s) => switch (s) {
-      ReportStatus.pendingReview || ReportStatus.rejected || ReportStatus.cancelled => 1,
-      ReportStatus.validated => 2,
-      ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => 3,
-      ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived => 4,
-    };
-
 class _FilterDropdown extends StatelessWidget {
   const _FilterDropdown({
     required this.value,
@@ -1137,12 +1149,16 @@ class _FilterDropdown extends StatelessWidget {
   }
 }
 
+/// A report in the list, as the canvas draws it (frame L1): the category's colour down the side, the status pill and the three
+/// dots (inset, with a 44 px touch area), the title, the ticket and date, the place, the latest words, and the progress in the
+/// case page's own colours (green done, orange now). A report with several concerns says so under the title.
 class _ReportCard extends StatelessWidget {
   const _ReportCard({
     required this.report,
     required this.onView,
     this.resolutionNote,
     this.resolutionAuthor,
+    this.concerns,
     this.onCancel,
     this.onReopen,
     this.onAppeal,
@@ -1159,6 +1175,9 @@ class _ReportCard extends StatelessWidget {
   /// `"TANOD <NAME>"` or "SYSTEM" — who wrote [resolutionNote] (0049).
   final String? resolutionAuthor;
 
+  /// How many concerns the report has and how many are resolved; the tag shows only when there are several.
+  final ({int total, int done})? concerns;
+
   final VoidCallback? onCancel;
   final VoidCallback? onReopen;
   final VoidCallback? onAppeal;
@@ -1167,94 +1186,113 @@ class _ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final d = context.d;
+    final t = CaseTokens.of(context);
     final col = categoryColour(report.category);
     final st = reportStatusColour(report.status);
-    return DecoratedBox(decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: d.elevation(1)), child: Material(
-      color: d.surface(1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: onAddDetails != null ? BorderSide(color: DColors.orange, width: onAddDetails != null ? 1.6 : 1) : BorderSide.none),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(children: [
-        InkWell(
-        onTap: onView,
-        child: IntrinsicHeight(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Container(width: 5, color: col),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 4, 14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    DStatusPill(s.reportStatusLabel(report.status.wire), st),
-                    if (onAddDetails != null) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                        decoration: BoxDecoration(color: DColors.orange.withValues(alpha: .16), borderRadius: BorderRadius.circular(99)),
-                        child: Text(context.tr('Details needed', 'Kailangan ng detalye'),
-                            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11.5, color: Color(0xFFB26A00))),
-                      ),
-                    ],
-                    const Spacer(),
-                    // The menu's place; the menu itself is laid over the
-                    // corner below, so its 44 touch area adds no height.
-                    const SizedBox(width: 32, height: 24),
-                  ]),
-                  const SizedBox(height: 6),
-                  Text(report.subject, style: DType.h3(d.ink).copyWith(fontSize: 17)),
-                  const SizedBox(height: 2),
-                  Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                    Text(report.trackingId, style: DType.mono(d.link, size: 12.5)),
-                    Text(_formatDate(s, report.createdAt), style: DType.body(d.muted, size: 12.5)),
-                    if (report.latitude != null && report.longitude != null)
-                      _LocationLabel(latitude: report.latitude!, longitude: report.longitude!, stored: report.locationLabel, color: d.muted),
-                  ]),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: Text.rich(
-                      TextSpan(children: [
-                        if (resolutionNote != null && resolutionAuthor != null)
-                          TextSpan(text: '$resolutionAuthor: ', style: const TextStyle(fontWeight: FontWeight.w800)),
-                        TextSpan(text: resolutionNote ?? s.reportsCardDescription(report.description)),
-                      ]),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: DType.body(d.ink2, size: 13),
-                    ),
-                  ),
-                  // The preview's progress bar (Ace, 7 Oct 2026).
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: Row(children: [
-                      for (var i = 0; i < 4; i++) ...[
-                        if (i > 0) const SizedBox(width: 4),
-                        Expanded(
-                          child: Container(
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: i < _stepsDone(report.status) ? col : d.line,
-                              borderRadius: BorderRadius.circular(4),
+    final c = concerns;
+    final tag = c != null && c.total > 1
+        ? (c.done > 0
+            ? context.tr('${c.total} concerns · ${c.done} resolved', '${c.total} na concern · ${c.done} ang nalutas')
+            : context.tr('${c.total} concerns', '${c.total} na concern'))
+        : null;
+    final stop = switch (report.status) {
+      ReportStatus.rejected => DStatusPill.denied,
+      ReportStatus.cancelled => const Color(0xFF8A90A0),
+      _ => null,
+    };
+    return Semantics(
+      container: true,
+      child: DecoratedBox(
+        decoration: caseCardBox(t, radius: 22),
+        child: Material(
+          color: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22), side: onAddDetails != null ? const BorderSide(color: DColors.orange, width: 1.6) : BorderSide.none),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(children: [
+            InkWell(
+              onTap: onView,
+              child: IntrinsicHeight(
+                child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Container(width: 6, color: col),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 6, 14),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        // the pill's row is as high as the dots' touch area, so the title does not move
+                        SizedBox(
+                          height: 28,
+                          child: Row(children: [
+                            DStatusPill(s.reportStatusLabel(report.status.wire), st),
+                            if (onAddDetails != null) ...[
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                                  decoration: BoxDecoration(color: DColors.orange.withValues(alpha: .16), borderRadius: BorderRadius.circular(99)),
+                                  child: Text(context.tr('Details needed', 'Kailangan ng detalye'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11.5, color: t.dark ? const Color(0xFFFFC266) : const Color(0xFF8A5200))),
+                                ),
+                              ),
+                            ],
+                            const Spacer(),
+                            const SizedBox(width: 44),
+                          ]),
+                        ),
+                        const SizedBox(height: 4),
+                        Padding(padding: const EdgeInsets.only(right: 8), child: Text(report.subject, style: caseTight(t.ink, 20, 26))),
+                        if (tag != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Container(
+                              constraints: const BoxConstraints(minHeight: 24),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: t.dark ? const Color(0xFF4A4F57) : const Color(0xFFC3CBDD))),
+                              child: Text(tag, style: caseInter(t.ink2, 12, FontWeight.w700, 14)),
                             ),
                           ),
+                        const SizedBox(height: 6),
+                        Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                          Text(report.trackingId, style: caseInter(t.navy, 13.5, FontWeight.w800, 18)),
+                          Text(_formatDate(s, report.createdAt), style: caseInter(t.muted, 13, FontWeight.w500, 18)),
+                        ]),
+                        if (report.latitude != null && report.longitude != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: _LocationLabel(latitude: report.latitude!, longitude: report.longitude!, stored: report.locationLabel, color: t.muted),
+                          ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text.rich(
+                            TextSpan(children: [
+                              if (resolutionNote != null && resolutionAuthor != null) TextSpan(text: '$resolutionAuthor: ', style: const TextStyle(fontWeight: FontWeight.w800)),
+                              TextSpan(text: resolutionNote ?? s.reportsCardDescription(report.description)),
+                            ]),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: caseInter(t.ink2, 13.5, FontWeight.w500).copyWith(height: 1.4),
+                          ),
                         ),
-                      ],
-                    ]),
+                        const SizedBox(height: 10),
+                        Padding(padding: const EdgeInsets.only(right: 8), child: CaseSegments(done: caseStepsDone(report.status.wire), stop: stop)),
+                      ]),
+                    ),
                   ),
                 ]),
               ),
             ),
+            // the dots: their own 44 px target, inset from the corner
+            Positioned(
+              top: 4,
+              right: 6,
+              child: _CardMenu(onView: onView, onCancel: onCancel, onReopen: onReopen, onAppeal: onAppeal, onAddDetails: onAddDetails),
+            ),
           ]),
         ),
       ),
-        Positioned(
-          top: 2,
-          right: 0,
-          child: _CardMenu(onView: onView, onCancel: onCancel, onReopen: onReopen, onAppeal: onAppeal, onAddDetails: onAddDetails),
-        ),
-      ]),
-    ));
+    );
   }
 
   static String _formatDate(Strings s, DateTime utc) {
@@ -1328,14 +1366,14 @@ class _LocationLabelState extends State<_LocationLabel> {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.location_on_outlined, size: 12, color: colour),
-            const SizedBox(width: 3),
+            Icon(Icons.location_on_outlined, size: 14, color: colour),
+            const SizedBox(width: 6),
             Flexible(
               child: Text(
                 name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: colour),
+                style: TextStyle(fontFamily: 'Inter', fontSize: 12.5, height: 1.35, color: colour),
               ),
             ),
           ],
@@ -1461,47 +1499,18 @@ class _CardMenu extends StatelessWidget {
           ),
         ],
       ],
-      // The dots are drawn at the frame's size inside a finger-sized
-      // target (44, accessibility).
-      child: const SizedBox(
-        width: 44,
-        height: 44,
-        child: Align(
-          alignment: Alignment.topRight,
-          child: Padding(
-            // Where the dots sat before (the card's 12/4 padding, then 2).
-            padding: EdgeInsets.only(top: 12, right: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _Dot(),
-                SizedBox(width: 2),
-                _Dot(),
-                SizedBox(width: 2),
-                _Dot(),
-              ],
-            ),
-          ),
+      // The three dots: an orange icon in a finger-sized target (44, accessibility). Light mode uses the deeper orange, which
+      // keeps 3:1 against the white card.
+      child: Semantics(
+        label: context.tr('More', 'Iba pa'),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(child: Icon(Icons.more_horiz_rounded, size: 22, color: context.d.dark ? _orange : DColors.orangeDeep)),
         ),
       ),
     );
   }
-}
-
-class _Dot extends StatelessWidget {
-  const _Dot();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox(
-        width: 4,
-        height: 4,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: _CardMenu._orange,
-            shape: BoxShape.circle,
-          ),
-        ),
-      );
 }
 
 /// The navy pill dialog from REPORTS - CONFIRM CANCEL and
