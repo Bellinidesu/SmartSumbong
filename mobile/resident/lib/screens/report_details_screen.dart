@@ -1,60 +1,20 @@
-// SmartSumbong — Submit Report, step 2: the details.
+// SmartSumbong — Submit Report, step 3 of 3: the details.
 //
 // Figma node 2277:3268.
 //
-// ON THE MAP.
-//
-// OpenStreetMap vector tiles from OpenFreeMap, drawn by MapLibre
-// (widgets/brgy_map.dart): no API key, no billing account, nothing to
-// expire when the person who set it up graduates. That is the same
-// reasoning as everywhere else in this project — it has to work at zero
-// pesos and survive turnover.
-//
-// The pin starts at the resident's own position, because the
-// overwhelming case is someone standing in front of the problem. It is
-// draggable, because the second case is someone who walked home first.
-// The accuracy circle is not decoration: GPS on a phone under tree cover
-// or between buildings can be fifty metres out, and a resident who can
-// see that has a reason to drag rather than trusting a pin that looks
-// authoritative.
-//
-// Barangay 183's centre — 14.51646, 121.01621, from OSM relation 2988704
-// — is the fallback when location is denied or unavailable. It is always
-// wrong, which is the point: it forces a deliberate drag rather than
-// silently filing a complaint at a plausible-looking place.
-//
-// ON EXIF. It is tempting to read GPS out of the uploaded photo and move
-// the pin there. Two reasons not to: media_upload.dart strips EXIF
-// before upload precisely so an anonymous complaint does not carry the
-// complainant's home coordinates, and Android's photo picker removes
-// location before Flutter sees the file anyway unless the app asks for
-// ACCESS_MEDIA_LOCATION — a permission prompt that would tell the
-// resident exactly what it was doing. Live position is more accurate and
-// costs nothing.
-//
-// ON THE MANUAL ADDRESS FALLBACK. Figma (2547:103) offers a typed
-// address as a second way out of "location is off," alongside
-// re-requesting the permission — added during the parity pass (27 Aug
-// 2026) via OpenStreetMap's own Nominatim geocoder, the same zero-cost
-// family as the map tiles above and the barangay-boundary lookup
-// elsewhere in this app. A typed address only ever moves the pin on
-// this screen; it is never sent to file_report() as text and
-// report_media/reports carry only lat/lng, so nothing downstream needs
-// to know a pin came from a search box rather than a drag. A failed or
-// ambiguous lookup leaves the pin exactly where it was and just says
-// so — the resident can still drag it, same as before this existed.
-// Deliberately not autocomplete-as-you-type: Nominatim's usage policy
-// caps public requests at roughly one per second, and a single
-// on-submit search respects that without needing to think about
-// debouncing.
+// The map and the address search moved out (19 Nov 2026): "Where is it?" is a screen of its own, the second step
+// (screens/where_screen.dart; the search in place_search.dart). This screen shows what was chosen there as one
+// row, "Near 8th Street" with Change, which opens that screen again with the pin where it is and gets the new
+// one back. The pin goes to file_report() as latitude and longitude only; a typed address or a landmark's name
+// never does (report_media/reports carry nothing else), and the photos' EXIF is stripped before upload
+// (media_upload.dart), so an anonymous complaint carries no one's home. The outside-the-barangay refusal stays
+// here as a safety net, at submit, though the Where screen already will not confirm such a spot.
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -64,7 +24,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../d/d_categories.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
-import '../preview/demo.dart';
 import '../i18n.dart';
 import '../models/complaint_category.dart';
 import '../outbox.dart';
@@ -73,14 +32,7 @@ import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import '../location_lookup.dart';
 import '../models/barangay_profile.dart';
-
-/// Barangay 183, Zone 20, Villamor, Pasay City — from OSM relation
-/// 2988704. Used only when the resident's own position is unavailable.
-// Not the relation's centroid (14.51646, 121.01621) — that sits on the
-// NAIA apron, so a resident with location off was offered a pin beside
-// Terminal 3. This is the residential centre the admin portal's Spatial
-// Distribution uses; the two must stay in step.
-const _barangayCentre = LatLng(14.526905, 121.015543);
+import 'where_screen.dart';
 
 /// Matches operational_settings.max_report_photos, which the database
 /// enforces. Kept in step by hand; a mismatch shows up as a rejected
@@ -105,10 +57,15 @@ class ReportDetailsScreen extends StatefulWidget {
     super.key,
     required this.choice,
     required this.uploader,
+    this.where,
   });
 
   final CategoryChoice choice;
   final MediaUploader uploader;
+
+  /// Where the resident put the pin on the previous step. Null only for a screen opened without that step: the
+  /// barangay centre, which Change then moves.
+  final WhereResult? where;
 
   @override
   State<ReportDetailsScreen> createState() => _ReportDetailsScreenState();
@@ -117,27 +74,14 @@ class ReportDetailsScreen extends StatefulWidget {
 class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   /// 0163: the other concerns, picked on the first page under the same category (Rose, 18 Nov 2026).
   List<ExtraConcern> get _extras => widget.choice.extras;
-  final _map = BrgyMapController();
   late final TextEditingController _description;
 
-  LatLng _pin = _barangayCentre;
-  double? _accuracyMetres;
-  bool _locating = true;
-  bool _locationDenied = false;
+  /// The spot chosen on the Where screen (step 2); Change replaces it.
+  late WhereResult _where = widget.where ?? const WhereResult(pin: brgyCentre);
+  LatLng get _pin => _where.pin;
 
-  final _addressSearch = TextEditingController();
-  bool _geocoding = false;
-  String? _geocodeError;
-
-  // Rose (7 Oct 2026): the address can always be typed, with places to
-  // pick from, and the pin has to be inside Barangay 183.
+  // The barangay's outline, for the safety-net check at submit.
   List<List<LatLng>> _rings = const [];
-  bool _outside = false;
-  List<_Place> _suggestions = const [];
-  Timer? _suggestDebounce;
-  bool _settingAddress = false;
-  int _suggestSeq = 0;
-  final _suggestKey = GlobalKey();
 
   final _photos = <File>[];
   final _uploaded = <UploadedMedia>[]; // held across retries
@@ -164,275 +108,32 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     _description =
         TextEditingController(text: widget.choice.descriptionPrefill);
     _description.addListener(_scheduleDraftSave);
-    _addressSearch.addListener(_onAddressTyped);
     brgyBoundary().then((r) {
       if (mounted) setState(() => _rings = r);
     });
-    _locate();
     _restoreDraftIfAny();
   }
 
   @override
   void dispose() {
     _draftDebounce?.cancel();
-    _suggestDebounce?.cancel();
     _description.dispose();
-    _addressSearch.dispose();
     super.dispose();
   }
 
   // ---------- location ---------------------------------------
 
-  /// Places matching what is typed: first the barangay's own search
-  /// (search_places, 0134: OpenStreetMap refreshed every six hours plus the
-  /// barangay's own places; it forgives slips and shorthand and knows
-  /// Tagalog words for kinds of place, like "botika" or "simbahan"), then
-  /// Photon (komoot's open-source geocoder) for anything it does not have.
-  /// Only places inside the barangay's outline are offered.
-  Future<List<_Place>> _lookup(String q) async {
-    final out = <_Place>[];
-    try {
-      final rows = await Supabase.instance.client.rpc('search_places', params: {
-        'p_q': q,
-        'p_lat': _pin.latitude,
-        'p_lng': _pin.longitude,
-        'p_limit': 8,
-      }).timeout(const Duration(seconds: 6)) as List;
-      if (!mounted) return out;
-      for (final r in rows) {
-        final m = Map<String, dynamic>.from(r as Map);
-        final at = LatLng((m['lat'] as num).toDouble(), (m['lng'] as num).toDouble());
-        if (!insideBrgy(_rings, at)) continue;
-        final kind = _kindName(m['grp'] as String?);
-        final n = (m['branches'] as num?)?.toInt() ?? 1;
-        out.add(_Place('${m['name']}', [
-          ?kind,
-          if (n > 1) context.tr('$n branches, nearest shown', '$n sangay, pinakamalapit ang ipinapakita'),
-          BarangayProfile.name,
-        ].join(' · '), at));
-        if (out.length == 5) return out;
-      }
-    } catch (_) {
-      // Offline or the search is down: Photon below may still answer.
-    }
-    try {
-      for (final p in await _photon(q)) {
-        if (out.any((o) => o.title.toLowerCase() == p.title.toLowerCase())) continue;
-        out.add(p);
-        if (out.length == 5) break;
-      }
-    } catch (_) {
-      if (out.isEmpty) rethrow;
-    }
-    return out;
-  }
-
-  /// The kind of place, in the app's language, for a search_places group.
-  String? _kindName(String? grp) => switch (grp) {
-        'health' => context.tr('Health', 'Kalusugan'),
-        'school' => context.tr('School', 'Paaralan'),
-        'worship' => context.tr('Church', 'Simbahan'),
-        'safety' => context.tr('Police and fire', 'Pulis at bumbero'),
-        'hall' => context.tr('Barangay hall', 'Bulwagan ng barangay'),
-        'government' => context.tr('Government', 'Gobyerno'),
-        'transport' => context.tr('Transport', 'Sakayan'),
-        'food' => context.tr('Food', 'Pagkain'),
-        'shop' => context.tr('Shop', 'Tindahan'),
-        'service' => context.tr('Bank and service', 'Bangko at serbisyo'),
-        'lodging' => context.tr('Hotel', 'Tuluyan'),
-        'park' => context.tr('Park', 'Parke'),
-        'street' => context.tr('Street', 'Kalye'),
-        _ => null,
-      };
-
-  /// Photon (komoot's open-source geocoder over OpenStreetMap, made for
-  /// search-as-you-type), limited to the barangay's box.
-  Future<List<_Place>> _photon(String q) async {
-    final uri = Uri.https('photon.komoot.io', '/api/', {
-      'q': q,
-      'limit': '8',
-      'lang': 'en',
-      'lat': '${_barangayCentre.latitude}',
-      'lon': '${_barangayCentre.longitude}',
-      'bbox': '120.9996,14.5019,121.0328,14.5310',
-    });
-    final res = await http.get(uri, headers: {
-      'User-Agent': 'SmartSumbong-Resident/1.0 (Barangay 183, Pasay City)',
-    }).timeout(const Duration(seconds: 10));
-    if (res.statusCode != 200) throw Exception('geocode ${res.statusCode}');
-    final features = (jsonDecode(res.body) as Map)['features'] as List? ?? const [];
-    final out = <_Place>[];
-    for (final f in features) {
-      final c = (f['geometry']?['coordinates'] as List?)?.cast<num>();
-      if (c == null || c.length < 2) continue;
-      final at = LatLng(c[1].toDouble(), c[0].toDouble());
-      if (!insideBrgy(_rings, at)) continue;
-      final pr = (f['properties'] as Map?) ?? const {};
-      final name = (pr['name'] ?? '').toString();
-      final street = [pr['housenumber'], pr['street']].where((e) => e != null && '$e'.isNotEmpty).join(' ');
-      final title = name.isNotEmpty ? name : (street.isNotEmpty ? street : q);
-      final sub = [if (name.isNotEmpty && street.isNotEmpty) street, '${BarangayProfile.name}, ${BarangayProfile.city}'].join(' · ');
-      if (out.any((o) => o.title == title && o.sub == sub)) continue;
-      out.add(_Place(title, sub, at));
-      if (out.length == 5) break;
-    }
-    return out;
-  }
-
-  void _onAddressTyped() {
-    if (_settingAddress) return;
-    _suggestDebounce?.cancel();
-    final q = _addressSearch.text.trim();
-    if (q.length < 3) {
-      if (_suggestions.isNotEmpty || _geocodeError != null) {
-        setState(() {
-          _suggestions = const [];
-          _geocodeError = null;
-        });
-      }
-      return;
-    }
-    _suggestDebounce = Timer(const Duration(milliseconds: 450), () async {
-      final seq = ++_suggestSeq;
-      try {
-        final found = await _lookup(q);
-        if (!mounted || seq != _suggestSeq) return;
-        setState(() {
-          _suggestions = found;
-          _geocodeError = found.isEmpty ? context.s.reportDetailsAddressNotFound : null;
-        });
-        // Above the keyboard, so the list can be seen while typing.
-        if (found.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final c = _suggestKey.currentContext;
-            if (c != null) Scrollable.ensureVisible(c, alignment: 1, duration: const Duration(milliseconds: 250));
-          });
-        }
-      } catch (_) {
-        // Quietly: the search button says so if it fails again.
-      }
-    });
-  }
-
-  void _pickPlace(_Place p) {
-    FocusScope.of(context).unfocus();
-    _settingAddress = true;
-    _addressSearch.text = p.title;
-    _settingAddress = false;
+  /// Change: the Where screen again, with the pin where it is; the new one comes back when it is confirmed.
+  Future<void> _changeLocation() async {
+    final res = await Navigator.of(context).pushNamed<WhereResult>(
+      '/submit-report/where',
+      arguments: WhereArgs(widget.choice, current: _where, returnResult: true),
+    );
+    if (res == null || !mounted) return;
     setState(() {
-      _pin = p.at;
-      _accuracyMetres = null;
-      _outside = false;
-      _suggestions = const [];
-      _geocodeError = null;
+      _where = res;
       _errors.remove('location');
     });
-    _map.move(_pin, 17);
-  }
-
-  Future<void> _searchAddress() async {
-    final q = _addressSearch.text.trim();
-    if (q.isEmpty) return;
-    if (_suggestions.isNotEmpty) {
-      _pickPlace(_suggestions.first);
-      return;
-    }
-    FocusScope.of(context).unfocus();
-    setState(() {
-      _geocoding = true;
-      _geocodeError = null;
-    });
-    try {
-      final found = await _lookup(q);
-      if (!mounted) return;
-      if (found.isEmpty) {
-        setState(() => _geocodeError = context.s.reportDetailsAddressNotFound);
-        return;
-      }
-      _pickPlace(found.first);
-    } catch (_) {
-      if (!mounted) return;
-      setState(
-          () => _geocodeError = context.s.reportDetailsAddressLookupFailed);
-    } finally {
-      if (mounted) setState(() => _geocoding = false);
-    }
-  }
-
-  Future<void> _locate() async {
-    setState(() {
-      _locating = true;
-      _locationDenied = false;
-    });
-
-    try {
-      if (kDemo) {
-        // The Dart preview has no GPS: a fix on 13th Street.
-        if (!mounted) return;
-        setState(() {
-          _pin = const LatLng(14.5281, 121.0149);
-          _accuracyMetres = 12;
-          _locating = false;
-        });
-        _map.move(_pin, 17);
-        return;
-      }
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        _fallback(denied: true);
-        return;
-      }
-
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
-        _fallback(denied: true);
-        return;
-      }
-
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 15),
-        ),
-      );
-
-      if (!mounted) return;
-      final rings = _rings.isNotEmpty ? _rings : await brgyBoundary();
-      if (!mounted) return;
-      final here = LatLng(pos.latitude, pos.longitude);
-      if (!insideBrgy(rings, here)) {
-        // Rose (7 Oct 2026): a phone far away put the pin in another
-        // country. Start from the barangay instead.
-        _fallback(denied: false, outside: true);
-        return;
-      }
-      setState(() {
-        _pin = here;
-        _accuracyMetres = pos.accuracy;
-        _locating = false;
-        _outside = false;
-      });
-      _map.move(_pin, 17);
-    } catch (_) {
-      // Timed out, or no fix indoors. Not an error the resident can act
-      // on beyond dragging the pin themselves.
-      _fallback(denied: false);
-    }
-  }
-
-  void _fallback({required bool denied, bool outside = false}) {
-    if (!mounted) return;
-    setState(() {
-      _pin = _barangayCentre;
-      _accuracyMetres = null;
-      _locating = false;
-      _locationDenied = denied;
-      _outside = outside;
-    });
-    _map.move(_pin, 15);
   }
 
   // ---------- photos -----------------------------------------
@@ -901,7 +602,18 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
               children: [
-                Align(alignment: Alignment.centerLeft, child: DBack(onTap: _busy ? () {} : null)),
+                Row(children: [
+                  DBack(onTap: _busy ? () {} : null),
+                  const Spacer(),
+                  // page one is step 1, Where is it? step 2
+                  Container(
+                    height: 28,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: d.line)),
+                    child: Text(context.tr('Step 3 of 3', 'Hakbang 3 ng 3'), style: DType.body(d.ink2, size: 12, w: FontWeight.w800).copyWith(height: 1)),
+                  ),
+                ]),
                 const SizedBox(height: 12),
                 Row(children: [
                   Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
@@ -932,56 +644,20 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                   _Banner(_banner!),
                   const SizedBox(height: 14),
                 ],
-                section(1, s.reportDetailsStep1, [
-                  _MapCard(
-                    controller: _map,
-                    pin: _pin,
-                    accuracyMetres: _accuracyMetres,
-                    locating: _locating,
-                    onMoved: (p) => setState(() {
-                      _pin = p;
-                      _outside = false;
-                      _errors.remove('location');
-                      // The circle described the GPS fix, not a hand placed
-                      // pin. Keeping it would claim an accuracy that no
-                      // longer applies.
-                      _accuracyMetres = null;
-                    }),
-                  ),
-                  const SizedBox(height: 6),
-                  if (_outside && !_locating)
-                    Text(
-                      context.tr('You seem to be outside ${BarangayProfile.name}, so the map shows the barangay centre. Drag the pin or type the address.',
-                          'Mukhang nasa labas ka ng ${BarangayProfile.name}, kaya nasa gitna ng barangay ang mapa. I-drag ang pin o i-type ang address.'),
-                      style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5),
-                    )
-                  else
-                    _LocationStatus(locating: _locating, denied: _locationDenied, accuracyMetres: _accuracyMetres, onRetry: _locate),
-                  if (!_locating) ...[
-                    const SizedBox(height: 14),
-                    _ManualAddressField(
-                      controller: _addressSearch,
-                      busy: _geocoding,
-                      error: _geocodeError,
-                      enabled: !_busy,
-                      onSearch: _searchAddress,
-                    ),
-                    if (_suggestions.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      _Suggestions(key: _suggestKey, places: _suggestions, onPick: _pickPlace),
-                    ],
-                  ],
-                  if (_errors['location'] != null) ...[
-                    const SizedBox(height: 8),
-                    Text(_errors['location']!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
-                  ],
-                ]),
+                _LocationRow(
+                  colour: col,
+                  near: whereNearLine(context, _where.near),
+                  zone: whereZoneLine(),
+                  error: _errors['location'],
+                  enabled: !_busy,
+                  onChange: _changeLocation,
+                ),
                 const SizedBox(height: 12),
-                section(2, s.reportDetailsStep2, [
+                section(1, s.reportDetailsStep2, [
                   _DescriptionBox(controller: _description, error: _errors['description'], enabled: !_busy),
                 ]),
                 const SizedBox(height: 12),
-                section(3, s.reportDetailsStep3, [
+                section(2, s.reportDetailsStep3, [
                   _PhotoStrip(photos: _photos, max: _maxPhotos, enabled: !_busy, onAdd: _addPhoto, onRemove: _removePhoto),
                   const SizedBox(height: 12),
                   _VideoAttach(video: _video, enabled: !_busy, onAdd: _addVideo, onRemove: _removeVideo),
@@ -1040,236 +716,56 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
 // ---------- pieces -------------------------------------------
 
-class _MapCard extends StatelessWidget {
-  const _MapCard({
-    required this.controller,
-    required this.pin,
-    required this.accuracyMetres,
-    required this.locating,
-    required this.onMoved,
-  });
+/// The spot chosen on the Where screen, as one row: the pin in the category's colour, "Near X" and the zone, and
+/// Change, which opens that screen again.
+class _LocationRow extends StatelessWidget {
+  const _LocationRow({required this.colour, required this.near, required this.zone, required this.error, required this.enabled, required this.onChange});
 
-  final BrgyMapController controller;
-  final LatLng pin;
-  final double? accuracyMetres;
-  final bool locating;
-  final ValueChanged<LatLng> onMoved;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(25),
-      child: Container(
-        height: 218,
-        // In front of the map, which would otherwise cover it.
-        foregroundDecoration: BoxDecoration(
-          border: Border.all(color: context.colors.navy),
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Stack(
-          children: [
-            // Dragging the map moves the pin: the pin stays centred and
-            // the resident positions the map under it. Easier one-handed
-            // than dragging a small target with a thumb that covers it.
-            // The accuracy circle is on the ground, around the GPS fix.
-            BrgyMap(
-              use: BrgyMapUse.pick,
-              controller: controller,
-              initialCenter: pin,
-              onMoved: onMoved,
-              accuracyCentre: accuracyMetres == null ? null : pin,
-              accuracyMetres: accuracyMetres,
-              cornerRadius: 25,
-              cornerColour: context.colors.bg,
-            ),
-
-            // The pin is drawn over the map rather than as a marker, so
-            // it stays put while the map slides beneath it.
-            Center(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 24),
-                // Navy on the light map, the pale ink on the night one.
-                child: Icon(Icons.location_on,
-                    size: 36, color: context.colors.navy),
-              ),
-            ),
-
-            if (locating)
-              Container(
-                color: Colors.black.withValues(alpha: 0.25),
-                alignment: Alignment.center,
-                child: const CircularProgressIndicator(color: Colors.white),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LocationStatus extends StatelessWidget {
-  const _LocationStatus({
-    required this.locating,
-    required this.denied,
-    required this.accuracyMetres,
-    required this.onRetry,
-  });
-
-  final bool locating;
-  final bool denied;
-  final double? accuracyMetres;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    if (locating) {
-      return Text(context.s.reportDetailsFindingLocation,
-          style: TextStyle(fontSize: 12, color: context.colors.muted));
-    }
-
-    if (denied) {
-      // Figma SUBMIT REPORT - LOCATION CAN'T BE ENABLED: a centred
-      // 222x33 red pill (1px #F3F3F3 edge) right under the map. Tapping
-      // it still retries, for a resident who has since turned location
-      // on. The note, which the frame does not show, follows it.
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: SizedBox(
-              height: 33,
-              child: FilledButton(
-                onPressed: onRetry,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF4949),
-                  foregroundColor: context.colors.bg,
-                  minimumSize: const Size(222, 33),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  elevation: 0,
-                  side: BorderSide(color: context.colors.bg),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  textStyle: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-                child: Text(context.s.reportDetailsLocationCannotBeEnabled),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.s.reportDetailsLocationOffNote,
-            style: TextStyle(fontSize: 12, color: context.colors.hint, height: 1.3),
-          ),
-        ],
-      );
-    }
-
-    if (accuracyMetres != null) {
-      // Honest about the fix. A resident who can see the phone is fifty
-      // metres out has a reason to drag; one who sees eight metres can
-      // leave it alone.
-      return Text(
-        context.s.reportDetailsAccuracyNote(accuracyMetres!.round()),
-        style: TextStyle(fontSize: 12, color: context.colors.muted, height: 1.3),
-      );
-    }
-
-    return Text(
-      context.s.reportDetailsPinPlacedNote,
-      style: TextStyle(fontSize: 12, color: context.colors.muted),
-    );
-  }
-}
-
-/// Figma's second way out of "location is off" (2547:103), alongside
-/// _LocationStatus's "Enable Location" button above. Only shown once
-/// location has actually been denied — see this file's header for why
-/// a typed address never reaches file_report() as text.
-class _ManualAddressField extends StatelessWidget {
-  const _ManualAddressField({
-    required this.controller,
-    required this.busy,
-    required this.error,
-    required this.enabled,
-    required this.onSearch,
-  });
-
-  final TextEditingController controller;
-  final bool busy;
+  final Color colour;
+  final String near;
+  final String zone;
   final String? error;
   final bool enabled;
-  final VoidCallback onSearch;
+  final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Figma 2547:103 "manual input": a 14/700 section label and a
-        // 322x34 pill field (#FBFBFB, 1px navy, 20 in, 12/400 hint).
-        // The search icon stays: it is how the typed address is looked up.
-        Text(context.s.reportDetailsManualAddressLabel,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-              height: 19 / 14,
-              color: context.colors.navy,
-            )),
-        SizedBox(
-          height: 34,
-          child: TextField(
-            controller: controller,
-            enabled: enabled && !busy,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (_) => onSearch(),
-            textAlignVertical: TextAlignVertical.center,
-            style: TextStyle(fontSize: 12, color: context.colors.navy),
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-              hintText: context.s.reportDetailsManualAddressHint,
-              hintStyle: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w400,
-                fontSize: 12,
-                fontStyle: FontStyle.normal,
-                color: context.colors.navy,
-              ),
-              suffixIconConstraints:
-                  const BoxConstraints(minWidth: 40, minHeight: 34),
-              suffixIcon: busy
-                  ? Padding(
-                      padding: const EdgeInsets.all(9),
-                      child: SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: context.colors.navy),
-                      ),
-                    )
-                  : IconButton(
-                      padding: EdgeInsets.zero,
-                      iconSize: 18,
-                      icon: Icon(Icons.search, color: context.colors.navy),
-                      onPressed: enabled ? onSearch : null,
-                    ),
-            ),
+    final d = context.d;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Container(
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
+        decoration: d.cardBox(20),
+        child: Row(children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: colour),
+            child: const Icon(Icons.place_rounded, size: 20, color: Colors.white),
           ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(near, maxLines: 2, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 15, w: FontWeight.w800).copyWith(height: 20 / 15)),
+              Text(zone, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.muted, size: 12.5).copyWith(height: 17 / 12.5)),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          Semantics(
+            label: context.tr('Change the location', 'Baguhin ang lokasyon'),
+            button: true,
+            excludeSemantics: true,
+            onTap: enabled ? onChange : null,
+            child: DButton(context.tr('Change', 'Baguhin'), kind: DButtonKind.ghost, small: true, onTap: enabled ? onChange : null),
+          ),
+        ]),
+      ),
+      if (error != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8, left: 4),
+          child: Text(error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
         ),
-        if (error != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 4, top: 4),
-            child: Text(error!,
-                style: TextStyle(color: context.colors.hint, fontSize: 11)),
-          ),
-      ],
-    );
+    ]);
   }
 }
 
@@ -1656,54 +1152,4 @@ class _Banner extends StatelessWidget {
         child: Text(message,
             style: TextStyle(color: context.colors.hint, fontSize: 13)),
       );
-}
-
-
-/// One place offered under the address box.
-class _Place {
-  const _Place(this.title, this.sub, this.at);
-  final String title;
-  final String sub;
-  final LatLng at;
-}
-
-/// Rose (7 Oct 2026): a list to pick from as the address is typed.
-class _Suggestions extends StatelessWidget {
-  const _Suggestions({super.key, required this.places, required this.onPick});
-
-  final List<_Place> places;
-  final ValueChanged<_Place> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final d = context.d;
-    return Container(
-      decoration: d.cardBox(14),
-      clipBehavior: Clip.antiAlias,
-      child: Column(children: [
-        for (var i = 0; i < places.length; i++) ...[
-          if (i > 0) Divider(height: 1, color: d.line),
-          InkWell(
-            onTap: () => onPick(places[i]),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 52),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Row(children: [
-                  Icon(Icons.place_outlined, size: 20, color: d.accent),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(places[i].title, style: DType.body(d.ink, size: 14, w: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      Text(places[i].sub, style: DType.body(d.muted, size: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ]),
-                  ),
-                ]),
-              ),
-            ),
-          ),
-        ],
-      ]),
-    );
-  }
 }

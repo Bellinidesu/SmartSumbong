@@ -47,6 +47,7 @@ import 'screens/register_screen.dart';
 import 'screens/report_category_screen.dart';
 import 'screens/role_picker_screen.dart';
 import 'screens/report_details_screen.dart';
+import 'screens/where_screen.dart';
 import 'screens/report_submitted_screen.dart';
 import 'screens/report_view_screen.dart';
 import 'screens/reports_screen.dart';
@@ -319,12 +320,28 @@ class SmartSumbongApp extends StatelessWidget {
             ),
           );
         }
+        // Filing a report: the first page (category and concerns) pushes the choice; the second step, Where is it?,
+        // answers it; the third, the details, takes the choice and the spot. A bare choice sent to the details route
+        // (page one does that) is the first step's way on, so it opens Where is it? and not the details.
+        if (settings.name == '/submit-report/where') {
+          final a = settings.arguments;
+          final args = a is WhereArgs ? a : WhereArgs(a as CategoryChoice);
+          return MaterialPageRoute<WhereResult>(
+            settings: settings,
+            builder: (_) => WhereScreen(args: args),
+          );
+        }
         if (settings.name == '/submit-report/details') {
-          final choice = settings.arguments as CategoryChoice;
+          final a = settings.arguments;
+          if (a is! DetailsArgs) {
+            return MaterialPageRoute<WhereResult>(
+              settings: RouteSettings(name: '/submit-report/where', arguments: a),
+              builder: (_) => WhereScreen(args: WhereArgs(a as CategoryChoice)),
+            );
+          }
           return MaterialPageRoute(
             settings: settings,
-            builder: (_) =>
-                ReportDetailsScreen(choice: choice, uploader: uploader),
+            builder: (_) => ReportDetailsScreen(choice: a.choice, where: a.where, uploader: uploader),
           );
         }
         return null;
