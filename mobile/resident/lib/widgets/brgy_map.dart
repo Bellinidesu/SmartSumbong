@@ -226,7 +226,14 @@ class BrgyMapController {
 
   void zoomBy(double d) => _apply(ml.CameraUpdate.zoomBy(d));
 
-  void move(ll.LatLng p, double zoom) => _apply(ml.CameraUpdate.newLatLngZoom(_ml(p), _mlZoom(zoom)));
+  void move(ll.LatLng p, double zoom) {
+    lastMove = (p, zoom);
+    _apply(ml.CameraUpdate.newLatLngZoom(_ml(p), _mlZoom(zoom)));
+  }
+
+  /// The last place [move] was asked for, for tests.
+  @visibleForTesting
+  (ll.LatLng, double)? lastMove;
 
   /// Navigation (branch C): the camera on [p], turned to [bearing]
   /// degrees and tilted, so the way ahead is up the screen.
@@ -343,6 +350,10 @@ class BrgyMap extends StatefulWidget {
   @visibleForTesting
   static bool nativeView = true;
 
+  /// A drawing to stand in for the map where it is not made (local screen captures); null leaves it blank.
+  @visibleForTesting
+  static WidgetBuilder? stand;
+
   @override
   State<BrgyMap> createState() => _BrgyMapState();
 }
@@ -453,15 +464,22 @@ class _BrgyMapState extends State<BrgyMap> {
     _scale.value = _metresPerPixel(cam.target.latitude, cam.zoom);
   }
 
+  /// The Frame button. On the barangay's own map (the Map tab) it is the portal's: back to the residential centre
+  /// ([brgyCentre], RESIDENTIAL_CENTRE in the portal's spatial.js) at zoom 16, with or without pins; it never fits the
+  /// pins, and never the OSM relation's centroid, which sits on the airport apron. Elsewhere (a tanod's job, the
+  /// route) it frames the points shown.
   void _fit() {
+    if (widget.use.bounded) {
+      _ctl.move(brgyCentre, 16);
+      return;
+    }
     final pts = [
-      for (final p in widget.pins)
-        if (!widget.use.bounded || withinBrgyBounds(p.point)) p.point,
+      for (final p in widget.pins) p.point,
       ?widget.me,
       if (widget.me == null) ?widget.accuracyCentre,
     ];
     if (pts.isEmpty) {
-      _ctl.move(widget.use.bounded ? brgyCentre : widget.initialCenter, widget.use.bounded ? 16 : widget.initialZoom);
+      _ctl.move(widget.initialCenter, widget.initialZoom);
     } else {
       final pad = widget.controlsPadding;
       _ctl.fit(pts, padding: 56, top: pad.top + 56, bottom: pad.bottom + 56);
@@ -945,7 +963,7 @@ class _BrgyMapState extends State<BrgyMap> {
   Widget _mapView(BuildContext context) {
     final style = _style;
     final bg = context.colors.bg;
-    if (style == null || !BrgyMap.nativeView) return ColoredBox(color: bg);
+    if (style == null || !BrgyMap.nativeView) return BrgyMap.stand?.call(context) ?? ColoredBox(color: bg);
     final use = widget.use;
     final i = use.interactive;
     final pad = widget.controlsPadding;
