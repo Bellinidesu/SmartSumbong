@@ -695,6 +695,8 @@ class DStatusPill extends StatelessWidget {
   static const denied = Color(0xFFC4172A);
   static const violet = Color(0xFF6A3FD1);
   static const grey = Color(0xFF566285);
+  /// An open concern: red-orange, between the amber of Under Review and the blue of Being handled (Ace, 19 Nov 2026).
+  static const open = Color(0xFFCF4308);
 
   @override
   Widget build(BuildContext context) {
