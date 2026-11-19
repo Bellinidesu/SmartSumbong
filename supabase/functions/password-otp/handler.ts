@@ -103,6 +103,25 @@ const rest = (path: string, init: RequestInit = {}) =>
     },
   });
 
+/**
+ * One slot of an hourly allowance, taken in the database in a single statement (take_rate_slot, 0116), so sends fired in parallel
+ * cannot all pass a count that only the first has changed (the read-then-write this replaced let a burst past "3 an hour").
+ */
+async function takeSlot(bucket: string, max: number): Promise<boolean> {
+  const res = await rest("rpc/take_rate_slot", {
+    method: "POST",
+    body: JSON.stringify({ p_bucket: bucket, p_max: max, p_window: "1 hour" }),
+  });
+  if (!res.ok) throw new Error(`take_rate_slot failed: ${res.status}`);
+  return (await res.json()) === true;
+}
+
+/** The caller's network address as the gateway saw it, or "" when there is none (then no per-address limit applies). */
+const addressOf = (req: Request) =>
+  (req.headers.get("cf-connecting-ip") ?? (req.headers.get("x-forwarded-for") ?? "").split(",")[0]).trim();
+
+const TOO_MANY = "Too many requests from this connection. Try again in an hour, or visit the barangay hall.";
+
 /** 09XXXXXXXXX, 639XXXXXXXXX or +639XXXXXXXXX -> +639XXXXXXXXX, else null. */
 function normalise(raw: unknown): string | null {
   const d = String(raw ?? "").replace(/[\s-]/g, "");
@@ -179,7 +198,11 @@ function channel(user: Account | null): "email" | "sms" | null {
   return null;
 }
 
-async function send(mobile: string): Promise<Response> {
+async function send(req: Request, mobile: string): Promise<Response> {
+  // Ahead of any lookup, so a number with no account is limited exactly like one with: a connection may ask 20 times an hour for
+  // codes, and the whole service 200 (a ceiling on the mail and text this can spend, whoever is asking).
+  const addr = addressOf(req);
+  if ((addr && !await takeSlot(`otp-ip:${addr}`, 20)) || !await takeSlot("otp-all", 200)) return json({ ok: false, message: TOO_MANY }, 429);
   const user = await findAccount(mobile);
   const via = channel(user);
   // A confirmed email the function cannot write to is the barangay's to fix: said in Recent errors.
@@ -188,10 +211,7 @@ async function send(mobile: string): Promise<Response> {
   if (!via) return json({ ok: false, code: "no_email", message: NO_EMAIL });
   if (!user) return json({ ok: true, channel: "sms", message: SENT });
 
-  const since = new Date(Date.now() - 3600_000).toISOString();
-  const recent = await rest(
-    `password_otps?user_id=eq.${user.id}&purpose=eq.password&created_at=gte.${encodeURIComponent(since)}&select=id`);
-  if ((await recent.json()).length >= MAX_PER_HOUR) {
+  if (!await takeSlot(`otp-send:${user.id}`, MAX_PER_HOUR)) {
     return json({ ok: false, message: "Too many codes for this number. Try again in an hour, or visit the barangay hall." }, 429);
   }
 
@@ -319,9 +339,7 @@ async function mobileSend(req: Request, mobile: string): Promise<Response> {
   const taken = await rest(`users?mobile_number=eq.${encodeURIComponent(mobile)}&select=id&limit=1`);
   if ((await taken.json()).length) return json({ ok: false, message: "Another account already uses that number." }, 409);
 
-  const since = new Date(Date.now() - 3600_000).toISOString();
-  const recent = await rest(`password_otps?user_id=eq.${user.id}&purpose=eq.mobile&created_at=gte.${encodeURIComponent(since)}&select=id`);
-  if ((await recent.json()).length >= MAX_PER_HOUR) {
+  if (!await takeSlot(`otp-mobile:${user.id}`, MAX_PER_HOUR) || !await takeSlot("otp-all", 200)) {
     return json({ ok: false, message: "Too many codes. Try again in an hour." }, 429);
   }
   await rest(`password_otps?user_id=eq.${user.id}&purpose=eq.mobile&used_at=is.null`, {
@@ -396,9 +414,7 @@ async function emailSend(req: Request): Promise<Response> {
     return json({ ok: false, message: "Email is not set up yet. Try again later." }, 503);
   }
 
-  const since = new Date(Date.now() - 3600_000).toISOString();
-  const recent = await rest(`password_otps?user_id=eq.${user.id}&purpose=eq.email&created_at=gte.${encodeURIComponent(since)}&select=id`);
-  if ((await recent.json()).length >= MAX_PER_HOUR) {
+  if (!await takeSlot(`otp-email:${user.id}`, MAX_PER_HOUR) || !await takeSlot("otp-all", 200)) {
     return json({ ok: false, message: "Too many codes. Try again in an hour." }, 429);
   }
   await rest(`password_otps?user_id=eq.${user.id}&purpose=eq.email&used_at=is.null`, {
@@ -471,7 +487,7 @@ export async function handler(req: Request): Promise<Response> {
     if (body.action === "email_verify") return await emailVerify(req, String(body.code ?? ""));
     const mobile = normalise(body.mobile);
     if (!mobile) return json({ ok: false, message: "Enter your mobile number as 09XXXXXXXXX." }, 400);
-    if (body.action === "send") return await send(mobile);
+    if (body.action === "send") return await send(req, mobile);
     if (body.action === "verify") return await verify(mobile, String(body.code ?? ""), String(body.password ?? ""));
     if (body.action === "mobile_send") return await mobileSend(req, mobile);
     return json({ ok: false, message: "Unknown action" }, 400);
