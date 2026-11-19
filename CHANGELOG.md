@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**The app's map is the portal's map (19 Nov)**
+
+- Every map in the app (the resident's Map tab, the report pages, the report form's pin picker, the tanod's dispatch order and window, turn-by-turn) is one rebuilt widget, `widgets/brgy_map.dart`, in the look of Spatial Distribution: the portal's map styles (light and dark, for residents and tanods alike), its pins (a disc in the complaint type's colour with the type's own symbol from the portal's icon family, a white edge, two shadows, sized with the zoom as the portal sizes them), the soft fog outside Barangay 183 and the large faint place names, and its framing (the residential grid, the portal's zoom range).
+- One widget, one setting per use (`BrgyMapUse`): browse (Map tab: dock with Frame and Legend, the zoom pair, the Layers tile with Dim outside and Places, a scale bar), report (a still picture), pick (the pin picker), job (zoom, Frame, scale), navigate (scale only). Every screen keeps its data and behaviour.
+- A pressed pin opens the portal's case card as a sheet: the hero in the type's colour with its symbol, the ticket and status, the rows, Progress as the portal's coloured stages, Open this report; the map eases to the pin and draws it larger while the card is open.
+- No Project NOAH in the app (Ace: that is for the admins): the flood-zone chip, its layer and legend, the flood row on a pin's card and on View Report, and `hazards.geojson` are gone. The live rain reading (Open-Meteo, PAGASA's warning levels) stays. No heat map, hotspots or barangay-wide list on the phone; residents still see only their own reports and the incidents the barangay published.
+- Low-end phones: no work per frame (the portal's breathing fog holds still here, the scale bar is read when the map settles), one image per pin look, styles and map files read once and kept.
+
 **Forgot password by email (17 Nov, 0174)**
 
 - Residents and tanods get their reset code by email: "Forgot password?" asks for the number and sends the 6-digit code to the confirmed email on that account ("We sent a code to the email on your account: a•••@gmail.com"). With no confirmed email it says "No email on this account. Add one in Edit Profile, or ask the barangay hall to reset it." SMS stays as the fallback when Semaphore is set up; the hall's counter reset still works.
