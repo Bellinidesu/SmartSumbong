@@ -46,6 +46,8 @@ fn _notifications_scope() anon=- authenticated=-
 fn _notify_admins(p_message text, p_subject uuid) anon=- authenticated=-
 fn _notify_committee_heads(p_committee text, p_report uuid, p_kind text, p_message text) anon=- authenticated=call
 fn _notify_tanod_committee(p_to uuid, p_tanod uuid, p_message text) anon=- authenticated=call
+fn _one_category_per_case() anon=- authenticated=-
+fn _one_category_refuse(p_category complaint_category) anon=- authenticated=call
 fn _places_grp(t jsonb) anon=call authenticated=call
 fn _places_query() anon=call authenticated=call
 fn _places_text(p_name text, p_aliases text[]) anon=call authenticated=call

@@ -79,6 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 case 'add_concern':
                     [$acCat, $acOpt] = array_pad(explode('|', (string) ($_POST['category'] ?? ''), 2), 2, '');   // "category|option id" (0163)
+                    // 19 Nov 2026 (Rose), 0176: one category per case; the database refuses another too, this says it in the portal's words
+                    $acOwn = (string) ($db->select('reports', ['select' => 'category', 'id' => 'eq.' . $id, 'limit' => '1'])[0]['category'] ?? '');
+                    if ($acOwn !== '' && $acCat !== $acOwn) {
+                        $flash = sprintf(t('A case keeps to one category (%s). A concern from another category is its own case: ask the resident to report it separately.',
+                                           'Iisang kategorya lamang ang bawat kaso (%s). Ang alalahanin mula sa ibang kategorya ay hiwalay na kaso: hilingin sa residente na isumbong ito nang hiwalay.'), category_label($acOwn));
+                        $level = 'error';
+                        break;
+                    }
                     $db->rpc('add_report_concern', ['p_report' => $id, 'p_category' => $acCat, 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null,
                                                     'p_option' => ctype_digit($acOpt) ? (int) $acOpt : null]);
                     $flash = t('Concern added.', 'Naidagdag ang alalahanin.');
