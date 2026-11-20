@@ -122,6 +122,7 @@ How the database fits the rest of the system is in
 | `place_kinds` | Kinds of place and the English and Tagalog words for each (botika, simbahan, palengke) | 0134 |
 | `places_refresh` | The OpenStreetMap refresh's state: last request, mirror, last good count, last error | 0134 |
 | `smart_word_decisions` | Words an admin taught SMART or dismissed | 0128 |
+| `smart_snapshot` | The ready lists the engine's screens read (deadline risk, quiet cases, spikes, patterns), worked out once a minute by the `smart-snapshot` job instead of on every page; the table holds a few rows, no one reads it directly (all rights revoked), the engine functions do | 0169 |
 
 ### Workspace widgets
 

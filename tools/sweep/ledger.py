@@ -20,7 +20,7 @@ KIND = {"reopen-flow": ("B", "options/K-01-reopen-flow.md (button = C)"), "notic
 KNOWN = [
     ("K-01", "request_reopen (0037) + reopen_report", "Reopen flow is broken end to end (the notice part was fixed live by 0185; the rest stays open): request_reopen (and request_appeal) notify EVERY active admin with no report_id (probe: 6 admins told, 4 of whom cannot see the case, no Review button), reopen_report() works for a Kagawad or super on a resolved or closed case but nothing calls it, admin_set_status refuses closed/archived, and the resident gets no answer or decline.", "high", "open", "reopen-flow"),
     ("K-02", "F07 docs/BACKEND_SWEEP_2026-11.md", "password-otp code fix (F07) deployed 20 Nov.", "info", "done", None),
-    ("K-03", "F08 docs/BACKEND_SWEEP_2026-11.md", "Cloudinary secrets are missing from the Edge Function secrets (Ace's to set), so sign-upload/media-cleanup cannot talk to Cloudinary.", "high", "open (Ace)", None),
+    ("K-03", "F08 docs/BACKEND_SWEEP_2026-11.md", "Cloudinary secrets were missing from the Edge Function secrets, so sign-upload/media-cleanup could not talk to Cloudinary. Set by Ace on 20 Nov.", "high", "fixed 20 Nov (Cloudinary set)", None),
     ("K-04", "F09 docs/BACKEND_SWEEP_2026-11.md", "Kagawad/staff count(*) over reports takes 7-14 s at 20,000 cases: the case rule (_user_sees_case) runs per row inside the policy. Core rule; options file proposed.", "high", "open", "perf"),
     ("K-07", "migration 0185 (applied live 20 Nov)", "request_reopen and request_appeal notices now carry report_id: only admins who can open the case are told, with a Review link (probe: 6 told, 4 could not open it).", "high", "fixed live 20 Nov (0185)", None),
     ("K-08", "migration 0186 (applied live 20 Nov)", "34 trigger functions were executable by signed-out/signed-in callers; now 0 of 50 are (none disabled; filing still works).", "medium", "fixed live 20 Nov (0186)", None),
@@ -130,6 +130,8 @@ def fixed(r):
     t = r[2]
     if re.search(r"request_(reopen|appeal)\(\)", t) and ("no report_id" in t or "report_id" in t) and r[0].startswith(("D3-", "PN-")): return "0185"
     if r[0].startswith("PN-request_"): return "0185"
+    if r[0].startswith("D2-") and "file_report() swallows" in t: return "ACCEPTED: leave as is, core filing path (survives failures: proved by inject.py)"
+    if r[0].startswith("D3-") and re.search(r"assign_case\(\) writes a notice about a case without report_id", t): return "ACCEPTED: by design (a notice to staff whose assignment was taken back must not link a case they can no longer open)"
     if r[0] == "C-02": return "0186"
     if r[0].startswith("PI-") and re.search(r"SMART event log raises|SMART scoring unavailable|smart_triage\(\) raises", t): return "0187"
     if r[0].startswith("PI-") and "notification trigger raises" in t: return "0188"
@@ -138,10 +140,10 @@ def fixed(r):
 
 def main():
     rs = rows()
-    rs = [(a, b, c, d, f"fixed live 20 Nov ({fixed((a, b, c, d))})" if fixed((a, b, c, d)) else e, f, g) for (a, b, c, d, e, f, g) in rs]
+    rs = [(a, b, c, d, (fixed((a, b, c, d)).lower() if fixed((a, b, c, d)).startswith("ACCEPTED") else f"fixed live 20-21 Nov ({fixed((a, b, c, d))})") if fixed((a, b, c, d)) else e, f, g) for (a, b, c, d, e, f, g) in rs]
     order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
     rs = sorted(rs, key=lambda r: (order.get(r[3], 9), r[0]))
-    op = [r for r in rs if not r[4].startswith(("done", "fixed"))]
+    op = [r for r in rs if not r[4].startswith(("done", "fixed", "accepted"))]
     cnt = Counter(r[3] for r in op); cls = Counter(r[5] for r in op)
     table = ["| id | source | gap | severity | status | class | fix / options |", "|---|---|---|---|---|---|---|"]
     for r in rs: table.append("| " + " | ".join(str(x).replace("|", "/").replace("\n", " ") for x in r) + " |")
