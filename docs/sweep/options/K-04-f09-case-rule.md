@@ -22,7 +22,7 @@ member at 250x. Laptop PostgreSQL: read the ratios. Milliseconds of database tim
   security-definer helpers, and `admin_tier()`/`is_full_viewer()` already are). Kagawad and staff pages go from seconds to tens of milliseconds at 250x, and are *faster than today at 1x*
   too (97 -> 31 ms). Super/captain/resident/tanod: unchanged results (they short-circuit before the helpers). Cost: one migration rewriting one policy + 3 small functions + the
   existing pgTAP checks (26, 53, 57, 58) re-run as the equivalence proof; risk is low because the id set is proven identical, but it is the **core visibility rule**, so it needs
-  Ace's word and a second pair of eyes. Not drafted into `supabase/drafts` for that reason; the exact SQL is in `exp_case_rule.py` (option B).
+  Ace's word and a second pair of eyes. **Ace picked B on 20 Nov; drafted as `supabase/drafts/0189_case_rule_at_scale.sql`** (see "Drafted" below).
 - **C materialised table**: as fast, but every change of a case's committee/handler/assignment/category, of a user's committee/role/suspension, of a handler-log row and of a concern
   must update `case_visibility` (4 triggers + backfill), and a missed trigger silently hides or leaks a case. More moving parts for no gain over B at this size. Keep for when the
   rule gets too complex for a policy expression (e.g. per-case sharing lists).
