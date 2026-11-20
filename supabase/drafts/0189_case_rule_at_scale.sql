@@ -22,12 +22,17 @@
 -- as they are: the functions (guards, notices, the queue) still call them for one case at a time, which is cheap.
 -- Not touched: the two INSERT checks (status_logs_insert, look_shares_admin_insert) run once per inserted row; nothing else changes.
 --
--- Proof (tools/sweep/equiv_case_rule.py): for every (person, case) pair of an exhaustive fixture and of the 250x copy, the set of visible rows in all
--- 23 tables is identical before and after, and again after the undo; pgTAP 66 fails on a deliberately broken rule and passes on this one.
+-- Proof (tools/sweep/equiv_case_rule.py, on copies built from 0001-0188 whose 167 policies equal live): 28 people x 139,724 rows of an exhaustive fixture
+-- (3,912,272 pairs): the rows each person reads in all 22 tables are identical before, after, and after the undo. pgTAP 67 passes on the old and the new
+-- rule and fails on 5 deliberately broken ones; all 66 pgTAP scripts and the 37,642 probes give the same results before and after; every page request
+-- replayed at 1x/50x/250x answers the same rows. Draft test 68 (supabase/drafts/tests) fails before this file and passes after it.
 --
--- Rollout: one transaction (supabase db push wraps the file). CREATE FUNCTION takes no table lock; each ALTER POLICY takes an ACCESS EXCLUSIVE lock on
--- its table until COMMIT (milliseconds; reads queue behind it). Order: helpers first, then reports, then the tables hanging off it.
--- Apply with nothing else running (no long query holding the tables) and lock_timeout set so it gives up instead of queueing the portal.
+-- Rollout: one transaction (supabase db push runs the file as one; by hand psql -1 -f). CREATE FUNCTION takes no table lock; each ALTER POLICY takes an
+-- ACCESS EXCLUSIVE lock on its table (21 tables) held until COMMIT: well under a second on 82 cases, but reads of those tables queue behind it, and it
+-- queues behind any long query: lock_timeout 5s makes it give up and roll back rather than stall the portal. Order: helpers, reports, the rest.
+-- Each rewritten policy is equivalent on its own, so even a partial apply would not change who sees what.
+-- Realtime: Supabase Realtime checks each change against each subscriber's policies; a Kagawad/staff subscriber now builds the case set once per
+-- check (sub-millisecond at 82 cases, grows with the case count; see the report), where it used to run the per-case function once.
 
 set search_path = public, extensions;
 set local lock_timeout = '5s';

@@ -59,3 +59,26 @@ unchanged: guards, notices and the queue still use them one case at a time. The 
   `supabase/drafts/tests/`) fails before 0189 and passes after.
 - **Probers**: `probe.py` (227 functions x 11 actors x 11 states x 3 variants = 37,642 probes): 37,642 identical before/after (16 probes that hit a parallel-run
   deadlock in either run were re-run one function at a time: identical).
+- **Every replayed page request**: `loadcost.py --compare 1,50,250` replays the 2,422 captured portal and app requests as each rung through PostgREST before and
+  after 0189 at each scale; every GET answered by both gives the same rows (order-free digest): see the timing table.
+
+**Old behaviour kept identical on purpose (looks odd; not fixed here; each is a separate decision)**:
+1. The rows hanging off a **deleted** case (status logs, notices, messages, media, dispatches...) stay readable to the Kagawad/staff who could read the case:
+   `admin_sees_report` never looked at `deleted_at` (only `reports` itself hides deleted cases).
+2. `_user_sees_case` reads the rung from `users` without the retired check that `admin_tier()` has, so a **retired** (not suspended) Kagawad or staff member still
+   passes `_notifications_scope` (notices of their old cases are written to them) and, since `admin_scoped()` is false for them, reads every notice they own.
+3. The committee branch does not check that the Kagawad's committee is switched on (cases forwarded to a switched-off committee stay visible to its Kagawad),
+   while the category branch does.
+4. A case **waiting for placement** is hidden from every Kagawad, even the one handling it, but visible to the staff member assigned to it (the staff branch comes
+   before the waiting check).
+5. Performance only (now fixed, no visibility change): for residents and tanods the gate `(select admin_tier()) = any(...)` was NULL, not false, so the per-row
+   function still ran on every row they scanned (the 7.4 s resident map at 250x).
+
+**Rollout** (when Ace says "apply 0189"): one transaction (`supabase db push` runs the file as one; by hand: `psql -1 -f`). `CREATE FUNCTION` takes no table lock.
+Each `ALTER POLICY` takes an ACCESS EXCLUSIVE lock on its table (21 tables) until COMMIT; on 82 cases the whole file runs in well under a second, but a long
+query holding any of those tables makes it wait, and reads queue behind it: `lock_timeout = 5s` makes it give up and roll back instead. Apply at a quiet
+moment. Afterwards (read-only on live): `pg_policies` shows the new texts, the 7 helpers exist, and the Kagawad/staff case counts on the portal are unchanged;
+tests 67 and 68 run on the rebuilt baseline in CI (they roll back). Every rewritten policy is equivalent on its own, so even a partial apply
+would not change who sees what (helpers are created first).
+**Undo**: `psql -1 -f supabase/drafts/0189_undo.sql` (restores the 22 policies word for word, then drops the helpers; dropping fails if any policy still uses
+one, which is the safety check). Tested: apply then undo on the fixture copy gives identical rows for every person and identical policy texts.
