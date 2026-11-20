@@ -40,11 +40,15 @@ NORM = """create function pg_temp.norm(j jsonb) returns jsonb language sql as $n
          from jsonb_array_elements(j) with ordinality x(e, ord)), '[]') else j end $n$"""
 
 
+DQ = """create function pg_temp.dq(j jsonb) returns jsonb language sql as $q$
+  select coalesce((select jsonb_agg(e->'days_quiet' order by (e->>'days_quiet')::numeric) from jsonb_array_elements(j) e), '[]') $q$"""
+
+
 def same(name):
-    """[] when the old and the new body return the same document (a pattern's tracking ids compared as sets), else the differing keys"""
-    sql = (f"begin; {old_fn()}; {draft_up()}; {NORM}; select set_config('request.jwt.claim.sub', '{uid(name)}', true); "
+    """[] when the old and the new body return the same document (a pattern's tracking ids compared as sets, and the 8 quietest cases by their quiet days: ties at the cut are broken arbitrarily by both bodies), else the differing keys"""
+    sql = (f"begin; {old_fn()}; {draft_up()}; {NORM}; {DQ}; select set_config('request.jwt.claim.sub', '{uid(name)}', true); "
            f"select 'DIFF:' || coalesce(string_agg(o.k, ','), '') from jsonb_each(public._smart_module_old() - 'at') o(k, v) join jsonb_each(public.smart_module() - 'at') n(k, v) on n.k = o.k "
-           f"where pg_temp.norm(o.v) is distinct from pg_temp.norm(n.v); rollback;")
+           f"where (case when o.k = 'quiet' then pg_temp.dq(o.v) else pg_temp.norm(o.v) end) is distinct from (case when o.k = 'quiet' then pg_temp.dq(n.v) else pg_temp.norm(n.v) end); rollback;")
     out = [l.strip() for l in psql(sql, db=DB, raw=True).splitlines() if l.startswith("DIFF:")]
     return [k for k in out[0][5:].split(",") if k] if out else ["?"]
 

@@ -93,7 +93,7 @@ begin
           from public._snap_spikes() s where v_full or s.category::text = any (v_cats)) x), '[]'::jsonb),
     'patterns', coalesce((
       select jsonb_agg(to_jsonb(x) order by x.still_open desc, x.reports desc) from (
-        select p.pattern_key, p.category, p.reports, p.weeks, p.residents, p.still_open, p.hazard, p.last_at, case when v_tier = 'moderator' then array(select r.tracking_id from public.reports r where r.tracking_id = any (p.tracking_ids[1:3]) and r.id in (select s.id from public._my_scoped_case_ids() s(id))) else p.tracking_ids[1:3] end as tracking_ids
+        select p.pattern_key, p.category, p.reports, p.weeks, p.residents, p.still_open, p.hazard, p.last_at, case when v_tier = 'moderator' then array(select r.tracking_id from public.reports r where r.tracking_id = any (p.tracking_ids[1:3]) and r.id in (select s.id from public._my_scoped_case_ids() s(id)) order by array_position(p.tracking_ids, r.tracking_id)) else p.tracking_ids[1:3] end as tracking_ids
           from public._snap_patterns() p where v_full or p.category::text = any (v_cats)
          order by p.still_open desc, p.reports desc limit 6) x), '[]'::jsonb),
     'tanods', jsonb_build_object(

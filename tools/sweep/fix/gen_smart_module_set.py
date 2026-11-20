@@ -42,6 +42,11 @@ def main():
       v_log := v_log || E'\\nok  smart_module reads the case set once (_my_scoped_case_ids) and never calls _user_sees_case per case';
     exception when others then v_log := v_log || E'\\nFAIL structure: ' || sqlerrm; end;
     execute v_old;
+    -- a pattern's tracking ids are compared as sets (the old body listed them in an unspecified order)
+    create function pg_temp.norm(j jsonb) returns jsonb language sql as $n$
+      select case when jsonb_typeof(j) = 'array' then coalesce((select jsonb_agg(case when jsonb_typeof(e) = 'object' and e ? 'tracking_ids'
+             then (e - 'tracking_ids') || jsonb_build_object('tracking_ids', (select coalesce(jsonb_agg(t order by t), '[]') from jsonb_array_elements_text(e->'tracking_ids') t)) else e end order by ord)
+             from jsonb_array_elements(j) with ordinality x(e, ord)), '[]') else j end $n$;
     perform public._smart_snapshot_refresh(true);
     for vr in 1..3 loop
       set local session_replication_role = replica;
@@ -67,6 +72,10 @@ def main():
         begin jo := public._smart_module_old() - 'at'; exception when others then e1 := sqlstate; end;
         begin jn := public.smart_module() - 'at'; exception when others then e2 := sqlstate; end;
         ntests := ntests + 1;
+        if jo is not null then jo := jo || jsonb_build_object('patterns', pg_temp.norm(jo->'patterns')); end if;
+        if jn is not null then jn := jn || jsonb_build_object('patterns', pg_temp.norm(jn->'patterns')); end if;
+        if jo is not null then jo := jo || jsonb_build_object('quiet', (select coalesce(jsonb_agg(e->'days_quiet' order by (e->>'days_quiet')::numeric), '[]') from jsonb_array_elements(jo->'quiet') e)); end if;
+        if jn is not null then jn := jn || jsonb_build_object('quiet', (select coalesce(jsonb_agg(e->'days_quiet' order by (e->>'days_quiet')::numeric), '[]') from jsonb_array_elements(jn->'quiet') e)); end if;
         if e1 is distinct from e2 then sd := sd || format(' v%s %s error %s<>%s;', vr, a.nm, e1, e2);
         elsif jo is distinct from jn then
           for k in select key from (select key, value from jsonb_each(jo) except select key, value from jsonb_each(jn)
