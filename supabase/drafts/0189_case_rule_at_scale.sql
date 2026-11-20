@@ -28,7 +28,7 @@
 -- replayed at 1x/50x/250x answers the same rows. Draft test 68 (supabase/drafts/tests) fails before this file and passes after it.
 --
 -- Rollout: one transaction (supabase db push runs the file as one; by hand psql -1 -f). CREATE FUNCTION takes no table lock; each ALTER POLICY takes an
--- ACCESS EXCLUSIVE lock on its table (21 tables) held until COMMIT: well under a second on 82 cases, but reads of those tables queue behind it, and it
+-- ACCESS EXCLUSIVE lock on its table (22 tables) held until COMMIT: well under a second on 82 cases, but reads of those tables queue behind it, and it
 -- queues behind any long query: lock_timeout 5s makes it give up and roll back rather than stall the portal. Order: helpers, reports, the rest.
 -- Each rewritten policy is equivalent on its own, so even a partial apply would not change who sees what.
 -- Realtime: Supabase Realtime checks each change against each subscriber's policies; a Kagawad/staff subscriber now builds the case set once per
