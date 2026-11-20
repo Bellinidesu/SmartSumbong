@@ -57,13 +57,15 @@ returns public.complaint_category[] language sql stable security definer set sea
      where u.id = auth.uid() and public.admin_tier() = 'committee'), '{}')
 $$;
 
--- cases with no committee yet, not waiting for placement, with a concern in one of the caller's categories (Kagawad only)
+-- cases with no committee yet, not waiting for placement, OUTSIDE the caller's categories but with a concern in one of them (Kagawad only).
+-- (A case inside the categories is already seen by its category; every case has a concern of its own category, so leaving those out halves the work.)
 create or replace function public._my_concern_case_ids()
 returns setof uuid language sql stable security definer set search_path = public rows 200 as $$
-  select rc.report_id
+  select distinct rc.report_id
     from public.report_concerns rc
     join public.reports r on r.id = rc.report_id
    where rc.category = any (coalesce((select public._my_categories()), '{}'::public.complaint_category[]))
+     and r.category <> all (coalesce((select public._my_categories()), '{}'::public.complaint_category[]))
      and r.committee is null and not coalesce(r.awaiting_placement, false)
 $$;
 
@@ -97,14 +99,14 @@ $$;
 -- the dispatches of those cases
 create or replace function public._my_scoped_dispatch_ids()
 returns setof uuid language sql stable security definer set search_path = public rows 1000 as $$
-  select d.id from public.dispatches d where d.report_id in (select public._my_scoped_case_ids())
+  select d.id from public.dispatches d where d.report_id in (select s.id from public._my_scoped_case_ids() s(id))
 $$;
 
 -- the residents who filed those cases (not deleted ones: as _admin_sees_user)
 create or replace function public._my_scoped_resident_ids()
 returns setof uuid language sql stable security definer set search_path = public rows 1000 as $$
   select r.resident_id from public.reports r
-   where r.deleted_at is null and r.id in (select public._my_scoped_case_ids())
+   where r.deleted_at is null and r.id in (select s.id from public._my_scoped_case_ids() s(id))
 $$;
 
 do $grants$
@@ -127,13 +129,13 @@ alter policy reports_resident_read on public.reports using (
     or (select public.is_full_viewer())
     or ((select public.admin_tier()) = 'moderator'
         and ((handler_id = (select auth.uid())) or (assigned_to = (select auth.uid()))
-             or (id in (select public._my_handled_case_ids()))))
+             or (id in (select s.id from public._my_handled_case_ids() s(id)))))
     or ((select public.admin_tier()) = 'committee'
         and not coalesce(awaiting_placement, false)
         and ((handler_id = (select auth.uid()))
              or (committee = (select public._my_committee()))
              or (committee is null and ((category = any (coalesce((select public._my_categories()), '{}'::public.complaint_category[])))
-                                        or (id in (select public._my_concern_case_ids())))))
+                                        or (id in (select s.id from public._my_concern_case_ids() s(id))))))
     )
     or (exists (select 1 from public.dispatches d where d.report_id = reports.id and d.tanod_id = (select auth.uid())))
   ));
@@ -141,98 +143,98 @@ alter policy reports_resident_read on public.reports using (
 -- ---------- the tables hanging off a case: one set per query ----------
 alter policy case_handler_log_read on public.case_handler_log using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids()))));
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id)))));
 
 alter policy case_forwards_read on public.case_forwards using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids())))
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id))))
   or (((select public.admin_tier()) = 'committee') and (from_committee = (select u.committee from public.users u where u.id = (select auth.uid())))));
 
 alter policy detail_requests_read on public.detail_requests using (
   (exists (select 1 from public.reports r where r.id = detail_requests.report_id and r.resident_id = (select auth.uid())))
   or (exists (select 1 from public.dispatches d where d.report_id = detail_requests.report_id and d.tanod_id = (select auth.uid())))
-  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids())))));
+  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id))))));
 
 alter policy dispatch_media_read on public.dispatch_media using (
   exists (select 1 from public.dispatches d join public.reports r on r.id = d.report_id
            where d.id = dispatch_media.dispatch_id
              and ((d.tanod_id = (select auth.uid()))
-                  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (d.report_id in (select public._my_scoped_case_ids()))))
+                  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (d.report_id in (select s.id from public._my_scoped_case_ids() s(id)))))
                   or ((r.resident_id = (select auth.uid())) and (r.deleted_at is null) and (dispatch_media.update_id is null)))));
 
 alter policy dispatch_updates_read on public.dispatch_updates using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (dispatch_id in (select public._my_scoped_dispatch_ids())))
+  or ((select public.admin_scoped()) and (dispatch_id in (select s.id from public._my_scoped_dispatch_ids() s(id))))
   or (exists (select 1 from public.dispatches d where d.id = dispatch_updates.dispatch_id and d.tanod_id = (select auth.uid()))));
 
 alter policy dispatches_read on public.dispatches using (
   (tanod_id = (select auth.uid()))
-  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids())))));
+  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id))))));
 
 alter policy escalation_requests_read on public.escalation_requests using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids())))
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id))))
   or (requested_by = (select auth.uid())));
 
 alter policy feedback_read on public.feedback using (
   (resident_id = (select auth.uid()))
-  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids())))));
+  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id))))));
 
 alter policy look_shares_admin_read on public.look_shares using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids()))));
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id)))));
 
 -- the CASE keeps "is it my notice" first: the planner may reorder the two halves of an AND, and the case set must not be built for other people's rows
 alter policy notifications_read on public.notifications using (
   (user_id = (select auth.uid()))
   and (case when user_id = (select auth.uid()) and report_id is not null and (select public.admin_scoped())
-            then report_id in (select public._my_scoped_case_ids())
+            then report_id in (select s.id from public._my_scoped_case_ids() s(id))
             else true end));
 
 alter policy report_concerns_admin_read on public.report_concerns using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids()))));
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id)))));
 
 alter policy report_evidence_read on public.report_evidence using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids())))
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id))))
   or (exists (select 1 from public.reports r where r.id = report_evidence.report_id and r.resident_id = (select auth.uid()))));
 
 alter policy report_media_read on public.report_media using (
   exists (select 1 from public.reports r
            where r.id = report_media.report_id
              and ((r.resident_id = (select auth.uid()))
-                  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (report_media.report_id in (select public._my_scoped_case_ids()))))
+                  or ((select public.is_full_viewer()) or ((select public.admin_scoped()) and (report_media.report_id in (select s.id from public._my_scoped_case_ids() s(id)))))
                   or (exists (select 1 from public.dispatches d where d.report_id = r.id and d.tanod_id = (select auth.uid()))))));
 
 alter policy report_messages_read on public.report_messages using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids())))
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id))))
   or (exists (select 1 from public.reports r where r.id = report_messages.report_id and r.resident_id = (select auth.uid()) and r.deleted_at is null)));
 
 alter policy report_triage_admin_read on public.report_triage using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids()))));
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id)))));
 
 alter policy resolution_checks_admin_read on public.resolution_checks using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids()))));
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id)))));
 
 alter policy sla_extensions_read on public.sla_extensions using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids()))));
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id)))));
 
 alter policy smart_events_admin_read on public.smart_events using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids()))));
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id)))));
 
 alter policy smart_overrides_admin_read on public.smart_overrides using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids()))));
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id)))));
 
 alter policy status_logs_read on public.status_logs using (
   (select public.is_full_viewer())
-  or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids())))
+  or ((select public.admin_scoped()) and (report_id in (select s.id from public._my_scoped_case_ids() s(id))))
   or (exists (select 1 from public.reports r where r.id = status_logs.report_id and r.resident_id = (select auth.uid())))
   or (exists (select 1 from public.dispatches d where d.report_id = status_logs.report_id and d.tanod_id = (select auth.uid()))));
 
@@ -241,4 +243,4 @@ alter policy users_self_read on public.users using (
   (id = (select auth.uid()))
   or (select public.is_full_viewer())
   or ((select public.admin_scoped()) and ((role = any (array['admin'::public.user_role, 'tanod'::public.user_role]))
-                                          or (id in (select public._my_scoped_resident_ids())))));
+                                          or (id in (select s.id from public._my_scoped_resident_ids() s(id))))));

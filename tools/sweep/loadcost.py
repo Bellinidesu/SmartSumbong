@@ -149,7 +149,24 @@ def compare(scales):
         p.terminate()
 
 
+def new_only(sc):
+    """re-measure the current database (already seeded at `sc`) with 0189 applied, as _new; then undo."""
+    run = lambda f: subprocess.run([os.path.join(PGBIN, "psql" + (".exe" if os.name == "nt" else "")), "-h", "127.0.0.1", "-p", PORT, "-U", "postgres", "-X", "-q", "-1",
+                                    "-v", "ON_ERROR_STOP=1", "-f", str(ROOT / f)], capture_output=True, check=True)
+    p = start_postgrest()
+    try:
+        run("supabase/drafts/0189_case_rule_at_scale.sql"); psql("analyze")
+        call("GET", "/rest/v1/users?limit=1", jwt(users()["super"]))
+        r = measure(sc, 200, "_new"); print(f"scale {sc}x_new (re-measured): {len(r)} requests", flush=True)
+        subprocess.run([sys.executable, str(ROOT / "tools/sweep/time_0189.py"), "new_final"], check=False)
+        run("supabase/drafts/0189_undo.sql")
+    finally:
+        p.terminate()
+
+
 def main():
+    if "--new-only" in sys.argv:
+        return new_only(int(sys.argv[sys.argv.index("--new-only") + 1]))
     if "--compare" in sys.argv:
         return compare([int(x) for x in sys.argv[sys.argv.index("--compare") + 1].split(",")])
     if "--summary" in sys.argv:
