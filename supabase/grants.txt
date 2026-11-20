@@ -1,15 +1,15 @@
 fn _add_report_evidence(p_report uuid, p_log uuid, p_kind text, p_media jsonb) anon=- authenticated=-
 fn _admin_sees_user(p_user uuid) anon=- authenticated=call
 fn _admin_tier_default() anon=- authenticated=-
-fn _ask_if_fixed() anon=call authenticated=call
+fn _ask_if_fixed() anon=- authenticated=-
 fn _case_committee(p_report uuid) anon=- authenticated=call
 fn _case_guard(p_report uuid) anon=- authenticated=-
-fn _case_guard_report() anon=call authenticated=call
-fn _case_guard_row() anon=call authenticated=call
-fn _catalogue_change_note() anon=call authenticated=call
+fn _case_guard_report() anon=- authenticated=-
+fn _case_guard_row() anon=- authenticated=-
+fn _catalogue_change_note() anon=- authenticated=-
 fn _cld_sign(p_url text, p_transformation text, p_secret text) anon=- authenticated=-
 fn _clear_alerts_except(p_prefix text, p_keep text[]) anon=- authenticated=-
-fn _close_concerns() anon=call authenticated=call
+fn _close_concerns() anon=- authenticated=-
 fn _colour_clash(p_colour text, p_committee text) anon=- authenticated=call
 fn _colour_dist(a text, b text) anon=call authenticated=call
 fn _command_active() anon=- authenticated=-
@@ -22,27 +22,27 @@ fn _command_reads_forget() anon=- authenticated=-
 fn _command_reports(p_mode text, p_since timestamp with time zone) anon=- authenticated=-
 fn _command_suggestion(p_signal smallint) anon=- authenticated=-
 fn _command_words_all() anon=- authenticated=-
-fn _committee_colour_check() anon=call authenticated=call
+fn _committee_colour_check() anon=- authenticated=-
 fn _committee_free_colour() anon=- authenticated=call
 fn _committee_label(p text) anon=call authenticated=call
 fn _concern_backfill() anon=- authenticated=-
-fn _concern_snapshot() anon=call authenticated=call
-fn _dispatch_cap_guard() anon=call authenticated=call
+fn _concern_snapshot() anon=- authenticated=-
+fn _dispatch_cap_guard() anon=- authenticated=-
 fn _email_confirmation_guard() anon=- authenticated=-
-fn _flag_sensitive() anon=call authenticated=call
+fn _flag_sensitive() anon=- authenticated=-
 fn _guard_admin_access() anon=- authenticated=-
-fn _guard_case_committee() anon=call authenticated=call
+fn _guard_case_committee() anon=- authenticated=-
 fn _guard_case_hands() anon=- authenticated=-
-fn _guard_official_fields() anon=call authenticated=call
+fn _guard_official_fields() anon=- authenticated=-
 fn _id_reading_save(p_user uuid, p_type id_document_type, p_name text, p_number text) anon=- authenticated=-
-fn _inbox_alert() anon=- authenticated=call
+fn _inbox_alert() anon=- authenticated=-
 fn _inbox_thread() anon=- authenticated=-
 fn _is_sensitive_text(p_text text) anon=call authenticated=call
 fn _kagawad_of_staff(p_user uuid) anon=- authenticated=call
 fn _kagawad_of_tanod(p_tanod uuid) anon=- authenticated=call
 fn _look_share_notice() anon=- authenticated=-
 fn _mail_may_send(p_from uuid, p_to uuid) anon=- authenticated=-
-fn _main_concern() anon=call authenticated=call
+fn _main_concern() anon=- authenticated=-
 fn _may_take_over(p_me uuid, p_handler uuid) anon=- authenticated=-
 fn _notifications_scope() anon=- authenticated=-
 fn _notify_admins(p_message text, p_subject uuid) anon=- authenticated=-
@@ -106,11 +106,11 @@ fn _snap_deadline_risk() anon=- authenticated=-
 fn _snap_patterns() anon=- authenticated=-
 fn _snap_spikes() anon=- authenticated=-
 fn _snap_stuck() anon=- authenticated=-
-fn _status_log_no_repeat() anon=call authenticated=call
-fn _super_colour_check() anon=call authenticated=call
+fn _status_log_no_repeat() anon=- authenticated=-
+fn _super_colour_check() anon=- authenticated=-
 fn _system_mail(p_to uuid, p_subject text, p_body text, p_report uuid, p_question bigint) anon=- authenticated=-
 fn _temp_password() anon=- authenticated=-
-fn _triage_rules_version() anon=call authenticated=call
+fn _triage_rules_version() anon=- authenticated=-
 fn _user_sees_case(p_user uuid, p_report uuid, p_cat complaint_category, p_handler uuid) anon=- authenticated=-
 fn _user_sees_category(p_user uuid, p_cat complaint_category) anon=- authenticated=-
 fn _ws_feeds_ok(p_urls text[]) anon=call authenticated=call
@@ -146,7 +146,7 @@ fn approve_escalation(p_request uuid, p_office text, p_note text) anon=- authent
 fn approve_resolution(p_report uuid) anon=- authenticated=call
 fn assert_not_client(p_what text) anon=- authenticated=call
 fn assign_case(p_report uuid, p_to uuid, p_note text) anon=- authenticated=call
-fn assign_tracking_id() anon=call authenticated=call
+fn assign_tracking_id() anon=- authenticated=-
 fn assignable_tanods(p_report uuid) anon=- authenticated=call
 fn audit_integrity() anon=- authenticated=call
 fn auth_email_for(p_mobile text) anon=call authenticated=call
@@ -157,8 +157,8 @@ fn case_assignees(p_report uuid) anon=- authenticated=call
 fn case_committee(r reports) anon=- authenticated=call
 fn catalogue_fill() anon=- authenticated=call
 fn category_save(p_key text, p_label_en text, p_label_fil text, p_colour text, p_icon text, p_active boolean, p_sort integer) anon=- authenticated=call
-fn chain_account_audit() anon=call authenticated=call
-fn chain_status_log() anon=call authenticated=call
+fn chain_account_audit() anon=- authenticated=-
+fn chain_status_log() anon=- authenticated=-
 fn chat_state_set(p_report uuid, p_conv text, p_seen timestamp with time zone, p_muted boolean, p_pinned boolean, p_archived boolean) anon=- authenticated=call
 fn check_login_lockout(p_mobile text) anon=call authenticated=call
 fn check_system_health() anon=- authenticated=-
@@ -183,7 +183,7 @@ fn committee_set_categories(p_key text, p_categories complaint_category[]) anon=
 fn committee_set_logo(p_key text, p_url text) anon=- authenticated=call
 fn complaint_catalogue(p_all boolean) anon=call authenticated=call
 fn confirm_fix(p_report uuid, p_fixed boolean, p_note text) anon=- authenticated=call
-fn confirm_synthetic_auth_email() anon=call authenticated=call
+fn confirm_synthetic_auth_email() anon=- authenticated=-
 fn create_admin_account(p_email text, p_full_name text, p_mobile text) anon=- authenticated=call
 fn dashboard_committees(p_month_from timestamp with time zone) anon=- authenticated=call
 fn dashboard_metrics(p_from timestamp with time zone, p_to timestamp with time zone, p_category complaint_category) anon=- authenticated=call
@@ -194,12 +194,12 @@ fn deny_escalation(p_request uuid, p_reason text) anon=- authenticated=call
 fn dev_levels() anon=- authenticated=call
 fn dev_test_accounts_ensure(p_committee text) anon=- authenticated=call
 fn dismiss_forward_flag(p_flag bigint, p_note text) anon=- authenticated=call
-fn dispatch_on_file() anon=call authenticated=call
+fn dispatch_on_file() anon=- authenticated=-
 fn display_name(p_name text) anon=call authenticated=call
 fn end_sessions_on_access_change() anon=- authenticated=-
 fn endorse_retirement(p_request uuid, p_note text) anon=- authenticated=call
-fn enforce_daily_report_limit() anon=call authenticated=call
-fn enforce_media_cap() anon=call authenticated=call
+fn enforce_daily_report_limit() anon=- authenticated=-
+fn enforce_media_cap() anon=- authenticated=-
 fn escalate_in_barangay(p_report uuid, p_reason text, p_committee text) anon=- authenticated=call
 fn escalation_target(p_report uuid, p_committee text) anon=- authenticated=call
 fn extensions_used(p_report uuid) anon=- authenticated=call
@@ -210,10 +210,10 @@ fn finalize_retirement(p_request uuid, p_decision text, p_reason text) anon=- au
 fn flag_case_for_forward(p_report uuid, p_reason text, p_to text) anon=- authenticated=call
 fn follow_up_report(p_report uuid, p_message text) anon=- authenticated=call
 fn forward_case(p_report uuid, p_to text, p_note text, p_flag bigint) anon=- authenticated=call
-fn guard_last_admin() anon=call authenticated=call
-fn guard_privileged_user_fields() anon=call authenticated=call
+fn guard_last_admin() anon=- authenticated=-
+fn guard_privileged_user_fields() anon=- authenticated=-
 fn hand_to_higher_official(p_report uuid, p_official text, p_note text) anon=- authenticated=call
-fn handle_new_auth_user() anon=call authenticated=call
+fn handle_new_auth_user() anon=- authenticated=-
 fn identity_media_in_use(p_url text) anon=- authenticated=-
 fn is_admin() anon=call authenticated=call
 fn is_barangay_media_url(p_url text) anon=- authenticated=call
@@ -278,7 +278,7 @@ fn queue_media_trash(p_url text) anon=- authenticated=-
 fn record_game_score(p_game text, p_score numeric) anon=- authenticated=call
 fn redispatch_report(p_report uuid, p_why text) anon=- authenticated=-
 fn refer_report(p_report uuid, p_agency text, p_note text) anon=- authenticated=call
-fn refuse_audit_write() anon=call authenticated=call
+fn refuse_audit_write() anon=- authenticated=-
 fn register_device_token(p_token text, p_platform text) anon=- authenticated=call
 fn register_login_failure(p_mobile text) anon=call authenticated=call
 fn reject_resolution(p_report uuid, p_reason text) anon=- authenticated=call
@@ -298,7 +298,7 @@ fn request_retirement() anon=- authenticated=call
 fn request_source() anon=- authenticated=-
 fn reroute_dispatch(p_dispatch uuid, p_reason text, p_to uuid) anon=- authenticated=call
 fn reset_admin_password(p_user uuid) anon=- authenticated=call
-fn reset_verification_overdue_mark() anon=call authenticated=call
+fn reset_verification_overdue_mark() anon=- authenticated=-
 fn resident_abuse_reports(p_user uuid) anon=- authenticated=call
 fn resident_remark(p_remark text, p_is_system boolean) anon=call authenticated=call
 fn retirement_requests_queue() anon=- authenticated=call
@@ -309,7 +309,7 @@ fn run_admin_handover_expirations() anon=- authenticated=-
 fn run_media_cleanup() anon=- authenticated=-
 fn search_places(p_q text, p_lat double precision, p_lng double precision, p_limit integer) anon=- authenticated=call
 fn send_mail(p_to uuid[], p_subject text, p_body text, p_report uuid, p_reply_to bigint, p_cc uuid[], p_bcc uuid[], p_draft bigint) anon=- authenticated=call
-fn set_accept_deadline() anon=call authenticated=call
+fn set_accept_deadline() anon=- authenticated=-
 fn set_account_suspension(p_user uuid, p_suspend boolean, p_reason text) anon=- authenticated=call
 fn set_admin_access(p_user uuid, p_tier text, p_committee text, p_dev boolean) anon=- authenticated=call
 fn set_case_sensitive(p_report uuid, p_on boolean, p_reason text) anon=- authenticated=call
@@ -319,11 +319,11 @@ fn set_my_banner(p_preset text, p_colour text, p_url text, p_y integer) anon=- a
 fn set_notification_mute(p_kind notification_kind, p_muted boolean) anon=- authenticated=call
 fn set_official_role(p_user uuid, p_role text, p_committee text, p_women boolean) anon=- authenticated=call
 fn set_push_choices(p_scope text, p_quiet_from smallint, p_quiet_to smallint, p_quiet_urgent boolean) anon=- authenticated=call
-fn set_report_deadline() anon=call authenticated=call
+fn set_report_deadline() anon=- authenticated=-
 fn set_report_location_label(p_report uuid, p_label text) anon=- authenticated=call
 fn set_report_public(p_report uuid, p_public boolean) anon=- authenticated=call
 fn set_resolution_target(p_report uuid, p_due timestamp with time zone, p_reason text) anon=- authenticated=call
-fn set_verification_deadline() anon=call authenticated=call
+fn set_verification_deadline() anon=- authenticated=-
 fn shift_checkin(p_mood text) anon=- authenticated=call
 fn shift_mood_totals(p_date date) anon=- authenticated=call
 fn smart_calibration(p_days integer) anon=- authenticated=call
@@ -381,7 +381,7 @@ fn sweep_overdue_reports() anon=- authenticated=-
 fn sweep_overdue_verifications() anon=- authenticated=-
 fn sweep_reroute_questions() anon=- authenticated=-
 fn sweep_unaccepted_dispatches() anon=- authenticated=-
-fn sync_dispatchable() anon=call authenticated=call
+fn sync_dispatchable() anon=- authenticated=-
 fn system_usage() anon=- authenticated=call
 fn take_case(p_report uuid) anon=- authenticated=call
 fn take_over_case(p_report uuid, p_reason text) anon=- authenticated=call
@@ -389,8 +389,8 @@ fn take_rate_slot(p_bucket text, p_max integer, p_window interval) anon=- authen
 fn tanod_dispatch_cap() anon=call authenticated=call
 fn tanod_pick_list() anon=- authenticated=call
 fn tanod_roster(p_report uuid) anon=- authenticated=call
-fn touch_settings() anon=call authenticated=call
-fn touch_updated_at() anon=call authenticated=call
+fn touch_settings() anon=- authenticated=-
+fn touch_updated_at() anon=- authenticated=-
 fn unregister_device_token(p_token text) anon=- authenticated=call
 fn update_my_location(p_lat double precision, p_lon double precision) anon=- authenticated=call
 fn users_queue_media_trash() anon=- authenticated=-

@@ -52,3 +52,4 @@ tests/browser/shots/
 /test-results/
 # the app capture harness is a local tool (it writes PNGs of every screen; see its header): never committed
 mobile/resident/test/capture_screens_test.dart
+tools/sweep/out/
