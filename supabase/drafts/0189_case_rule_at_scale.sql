@@ -177,9 +177,12 @@ alter policy look_shares_admin_read on public.look_shares using (
   (select public.is_full_viewer())
   or ((select public.admin_scoped()) and (report_id in (select public._my_scoped_case_ids()))));
 
+-- the CASE keeps "is it my notice" first: the planner may reorder the two halves of an AND, and the case set must not be built for other people's rows
 alter policy notifications_read on public.notifications using (
   (user_id = (select auth.uid()))
-  and ((report_id is null) or (not (select public.admin_scoped())) or (report_id in (select public._my_scoped_case_ids()))));
+  and (case when user_id = (select auth.uid()) and report_id is not null and (select public.admin_scoped())
+            then report_id in (select public._my_scoped_case_ids())
+            else true end));
 
 alter policy report_concerns_admin_read on public.report_concerns using (
   (select public.is_full_viewer())

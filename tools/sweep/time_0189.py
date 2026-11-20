@@ -2,8 +2,12 @@
 """K-04 / 0189: direct timings (EXPLAIN ANALYZE as the real role, row level security on) of the case-rule queries a page or Realtime makes, on the
 throwaway database at its current scale. Bulk: counts and lists over every table the rule guards. Point: one row by id, which is what Supabase
 Realtime runs per subscriber per change. usage: python time_0189.py TAG   (called by loadcost.py --compare; appends to out/time_0189.json)"""
-import json, re, sys
+import json, os, re, sys
 from common import *
+
+DB = os.environ.get("SWEEP_DB", "postgres")
+_psql = psql
+psql = lambda sql, **kw: _psql(sql, db=DB, **kw)
 
 WHO = {"Kagawad": "Sweep, Rung 4", "staff": "Sweep, Rung 12", "super": "Sweep, Rung 1", "resident": "Sweep, Resident 1", "tanod": "Sweep, Rung 25"}
 BULK = {
@@ -32,13 +36,13 @@ POINT = {
 
 def ms(uid, q, timeout=60):
     sql = (f"begin; set local statement_timeout = '{timeout}s'; set local role authenticated; select set_config('request.jwt.claim.sub', '{uid}', true); "
-           f"explain (analyze, timing off, summary on) {q}; rollback;")
+           f"explain (analyze, timing off, summary on) {q}; explain (analyze, timing off, summary on) {q}; rollback;")   # the 2nd run: warm, as on a pooled API connection
     try:
         out = psql(sql, raw=True)
     except Exception as e:
         return f">{timeout}s" if "statement timeout" in str(e) else "err"
-    m = re.search(r"Execution Time: ([0-9.]+) ms", out)
-    return round(float(m.group(1)), 1) if m else "?"
+    m = re.findall(r"Execution Time: ([0-9.]+) ms", out)
+    return round(float(m[-1]), 1) if m else "?"
 
 
 def main():
