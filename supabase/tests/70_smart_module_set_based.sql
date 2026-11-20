@@ -1,4 +1,4 @@
--- 70_smart_module_set_based.sql (DRAFT test for 0190; moves to supabase/tests/ when Ace says apply). Rolled back.
+-- 70_smart_module_set_based.sql (test for 0190, applied 21 Nov 2026). Rolled back.
 -- Fails before 0190 on the structure check (smart_module still calls the case rule per case); the equivalence check passes before and after: the old body
 -- is compared with the new one for every rung on the exhaustive fixture of test 67, in three fixture variants (statuses and due dates, referral and taken-over cases,
 -- moved assignments and a case waiting for placement).

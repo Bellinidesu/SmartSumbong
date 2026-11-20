@@ -1,4 +1,4 @@
--- DRAFT: not applied until Ace says apply 0190
+-- 0190: applied to the live project on 21 Nov 2026 after Ace said "apply 0190"; undo: supabase/drafts/0190_undo.sql
 -- 0190_smart_module_set_based: smart_module() reads the visible-case set once instead of the case rule once per case
 --
 -- smart_module() (the SMART panel of every administrator, called on pages) ran the case rule once per open case (2 call sites; 3.4 s for a Kagawad at 20,000 cases).
