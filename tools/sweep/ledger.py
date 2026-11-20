@@ -27,7 +27,7 @@ KNOWN = [
     ("K-09", "migration 0187 (applied live 20 Nov)", "_smart_triage_after_write records engine_error in smart_events; _smart_event is best-effort so a failing log line no longer aborts admin_dispatch.", "medium", "fixed live 20 Nov (0187)", None),
     ("K-06", "portal case.php (no reopen button)", "Ace chose K-01 option B: wire reopen_report() plus a decline/answer notice to the resident and a Reopen / Decline card on the case page. The button and card are front end: nothing to build now, waits for Rose.", "medium", "open (Rose, front end)", "C-button"),
     ("K-10", "docs/ROLES_AND_PAGES.md + 0166", "Staff retirement rule: confirmed by Ace 20 Nov: staff may request retirement (0166), no change. (The probe saw request_retirement succeed for staff; that is intended.)", "info", "done (confirmed by Ace 20 Nov)", None),
-    ("K-11", "0188 (planned, notif-isolation)", "A failing notification insert or notification trigger aborts review_report, admin_dispatch, post_report_message and the reopen/appeal requests. Ace: isolate (yes). Draft 0188 comes as a separate small task.", "medium", "open (decided: isolate)", None),
+    ("K-11", "0188 (applied live 20 Nov)", "A failing notification insert or notification trigger aborted review_report, admin_dispatch, post_report_message and the reopen/appeal requests. Fixed: _notifications_scope() is best-effort (repairs or drops notices that would break the insert, records notice_error, fails closed).", "medium", "fixed live 20 Nov (0188)", None),
     ("K-05", "branch notices-backend", "Barangay notices backend drafted by an agent on branch notices-backend; paused for the UI freeze.", "info", "paused", None),
 ]
 
@@ -126,6 +126,7 @@ def fixed(r):
     if r[0].startswith("PN-request_"): return "0185"
     if r[0] == "C-02": return "0186"
     if r[0].startswith("PI-") and re.search(r"SMART event log raises|SMART scoring unavailable|smart_triage\(\) raises", t): return "0187"
+    if r[0].startswith("PI-") and "notification trigger raises" in t: return "0188"
     return None
 
 
