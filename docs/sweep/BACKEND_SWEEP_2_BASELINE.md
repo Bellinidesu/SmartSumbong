@@ -15,9 +15,9 @@ the same visible cases (proved). The reopen/appeal flow, complaint printing and 
 
 | critical | high | medium | low | info | total |
 |---|---|---|---|---|---|
-| 0 | 11 | 37 | 55 | 29 | 132 open (+15 fixed or done) |
+| 0 | 11 | 33 | 55 | 29 | 128 open (+21 fixed or done) |
 
-Fix class (open rows): **A mechanical 37, B needs one decision 92, C look/front end 3**. Generators exist for 3 A-kinds (below); the other A rows name the generator they would use.
+Fix class (open rows): **A mechanical 33, B needs one decision 92, C look/front end 3**. Generators exist for 3 A-kinds (below); the other A rows name the generator they would use.
 
 ## Top violations (proof pointer -> fix)
 
@@ -87,6 +87,7 @@ Fix class (open rows): **A mechanical 37, B needs one decision 92, C look/front 
 - 0185: `request_reopen` / `request_appeal` now insert notifications with `report_id`.
 - 0186: 0 of 50 trigger functions callable by anon/authenticated afterwards; none disabled; roles and queues unchanged.
 - 0187: `_smart_triage_after_write` records `engine_error`; `_smart_event` is best-effort.
+- 0188 (applied after Ace's "apply 0188", PR 'Notification failures isolated'): `_notifications_scope` is security definer, still scopes by `_user_sees_case`, records `notice_error`, has a best-effort exception block (fails closed); anon/authenticated cannot execute it; role counts unchanged. Test `supabase/tests/66_notification_failures_isolated.sql`. Ledger K-11 and the four matching injection rows: fixed live 20 Nov (0188).
 - The three files moved from `supabase/drafts/` to `supabase/migrations/`, the tests to `supabase/tests/63-65`; `baseline.sql` and `grants.txt` rebuilt for 0001-0187. Ledger rows K-07, K-08, K-09 and the matching detector/prober rows are marked "fixed live 20 Nov"; the reopen flow (K-01) stays open for the answer/decline part.
 
 Options files (no migration until Ace picks): `K-01-reopen-flow`, `K-04-f09-case-rule` (timed at 1x/50x/250x), `B-dead-code`, `B-state-machine`, `B-request-decision`, `B-role-symmetry`.
