@@ -18,10 +18,13 @@ KIND = {"reopen-flow": ("B", "options/K-01-reopen-flow.md (button = C)"), "notic
         "author-admitted": ("B", "check still true, then drop or schedule"), "doc-drift": ("A", "fix/gen_docs.py (not built; edit the doc)"), "baseline-stale": ("A", "bash supabase/baseline/build.sh"),
         "missing-index": ("A", "fix/gen_indexes.py"), "revoke-unused": ("A", "fix/gen_revoke_unused.py"), "untested": ("A", "fix/gen_test_skeleton.py"), "C-button": ("C", "options/K-01-reopen-flow.md option B (the button is the front end sweep)"), "perf": ("B", "options/K-04-f09-case-rule.md")}
 KNOWN = [
-    ("K-01", "request_reopen (0037) + reopen_report", "Reopen flow is broken end to end: request_reopen (and request_appeal) notify EVERY active admin with no report_id (probe: 6 admins told, 4 of whom cannot see the case, no Review button), reopen_report() works for a Kagawad or super on a resolved or closed case but nothing calls it, admin_set_status refuses closed/archived, and the resident gets no answer or decline.", "high", "open", "reopen-flow"),
+    ("K-01", "request_reopen (0037) + reopen_report", "Reopen flow is broken end to end (the notice part was fixed live by 0185; the rest stays open): request_reopen (and request_appeal) notify EVERY active admin with no report_id (probe: 6 admins told, 4 of whom cannot see the case, no Review button), reopen_report() works for a Kagawad or super on a resolved or closed case but nothing calls it, admin_set_status refuses closed/archived, and the resident gets no answer or decline.", "high", "open", "reopen-flow"),
     ("K-02", "F07 docs/BACKEND_SWEEP_2026-11.md", "password-otp code fix (F07) deployed 20 Nov.", "info", "done", None),
     ("K-03", "F08 docs/BACKEND_SWEEP_2026-11.md", "Cloudinary secrets are missing from the Edge Function secrets (Ace's to set), so sign-upload/media-cleanup cannot talk to Cloudinary.", "high", "open (Ace)", None),
     ("K-04", "F09 docs/BACKEND_SWEEP_2026-11.md", "Kagawad/staff count(*) over reports takes 7-14 s at 20,000 cases: the case rule (_user_sees_case) runs per row inside the policy. Core rule; options file proposed.", "high", "open", "perf"),
+    ("K-07", "migration 0185 (applied live 20 Nov)", "request_reopen and request_appeal notices now carry report_id: only admins who can open the case are told, with a Review link (probe: 6 told, 4 could not open it).", "high", "fixed live 20 Nov (0185)", None),
+    ("K-08", "migration 0186 (applied live 20 Nov)", "34 trigger functions were executable by signed-out/signed-in callers; now 0 of 50 are (none disabled; filing still works).", "medium", "fixed live 20 Nov (0186)", None),
+    ("K-09", "migration 0187 (applied live 20 Nov)", "_smart_triage_after_write records engine_error in smart_events; _smart_event is best-effort so a failing log line no longer aborts admin_dispatch.", "medium", "fixed live 20 Nov (0187)", None),
     ("K-06", "portal case.php (no reopen button)", "The portal has no button for an administrator to reopen a finished case or to answer a resident's reopen request (needs a look change).", "medium", "open", "C-button"),
     ("K-05", "branch notices-backend", "Barangay notices backend drafted by an agent on branch notices-backend; paused for the UI freeze.", "info", "paused", None),
 ]
@@ -114,11 +117,23 @@ def rows():
     return out
 
 
+def fixed(r):
+    """rows closed by migrations applied live on 20 Nov 2026 (0185-0187); the local sweep database is still built from 0001-0184, so the detectors keep seeing them"""
+    t = r[2]
+    if re.search(r"request_(reopen|appeal)\(\)", t) and ("no report_id" in t or "report_id" in t) and r[0].startswith(("D3-", "PN-")): return "0185"
+    if r[0].startswith("PN-request_"): return "0185"
+    if r[0] == "C-02": return "0186"
+    if r[0].startswith("PI-") and re.search(r"SMART event log raises|SMART scoring unavailable|smart_triage\(\) raises", t): return "0187"
+    return None
+
+
 def main():
     rs = rows()
+    rs = [(a, b, c, d, f"fixed live 20 Nov ({fixed((a, b, c, d))})" if fixed((a, b, c, d)) else e, f, g) for (a, b, c, d, e, f, g) in rs]
     order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
     rs = sorted(rs, key=lambda r: (order.get(r[3], 9), r[0]))
-    cnt = Counter(r[3] for r in rs if r[4] != "done"); cls = Counter(r[5] for r in rs if r[4] != "done")
+    op = [r for r in rs if not r[4].startswith(("done", "fixed"))]
+    cnt = Counter(r[3] for r in op); cls = Counter(r[5] for r in op)
     table = ["| id | source | gap | severity | status | class | fix / options |", "|---|---|---|---|---|---|---|"]
     for r in rs: table.append("| " + " | ".join(str(x).replace("|", "/").replace("\n", " ") for x in r) + " |")
     auto = f"{B}\n\n{len(rs)} rows. Severity: " + ", ".join(f"{k} {cnt.get(k, 0)}" for k in order) + ". Class: " + ", ".join(f"{k} {cls.get(k, 0)}" for k in "ABC") + ".\n\n" + "\n".join(table) + f"\n\n{E}"

@@ -1,4 +1,4 @@
--- DRAFT: not applied until Ace says apply 0187
+-- 0187 (backend sweep 2, 20 Nov 2026): applied after Ace said "apply 0187".
 -- 0187_engine_failures_recorded: record SMART engine failures instead of swallowing them; a failing event log must not abort the press
 --
 -- tools/sweep/inject.py (failure injection): with smart_triage() or the scoring tables broken, file_report still succeeds (good) but the only trace is a

@@ -1,4 +1,4 @@
--- DRAFT: not applied until Ace says apply 0185
+-- 0185 (backend sweep 2, 20 Nov 2026): applied after Ace said "apply 0185".
 -- 0185_notice_report_id: reopen and appeal requests notify only admins who can open the case, with a Review link
 --
 -- Probe (tools/sweep/probe.py): request_reopen and request_appeal insert one notice per active admin with no report_id, so _notifications_scope (which only

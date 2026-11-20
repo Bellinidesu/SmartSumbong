@@ -1,6 +1,6 @@
 # Database checks
 
-Sixty-one scripts (the first 38 held 393 checks; the rest are counted in the rows below) that walk the whole system through the real
+Sixty-four scripts (the first 38 held 393 checks; the rest are counted in the rows below) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -46,6 +46,9 @@ it does is saved. Add a check here for every new behaviour.
 | `60_error_log_rate.sql` | 2 checks (0182): the error log takes 60 browser errors an hour per address; functions and the portal's server are not held back; forged sources file nothing |
 | `61_look_share_notice.sql` | 1 check (0183): sending a look-around notifies the tanod from the database |
 | `62_sensitive_not_public.sql` | 1 check (0184): a sensitive case cannot be published and one marked sensitive after publishing drops off the residents' map; ordinary public cases stay |
+| `63_notice_report_id.sql` | 3-4 checks (0185): a reopen or appeal request notifies the Kagawad of the case's committee and the super admin with the case attached, and nobody who cannot open it (another committee's Kagawad, staff nobody assigned) |
+| `64_revoke_dead_trigger_functions.sql` | 3 checks (0186): no trigger function is executable by the API, they still exist, and triggers still fire for a resident filing a report |
+| `65_engine_failures_recorded.sql` | 3 checks (0187): filing still succeeds when SMART triage fails, the failure is recorded as an engine_error event, and a log line that cannot be written no longer aborts the action it describes |
 | `52_email_reset.sql` | 4 checks (0174): a new email starts unconfirmed and only the service role confirms it; signed in, neither the person nor a super admin can set or clear the mark; the person still edits their email and address, a new or removed address clears the mark and a change of case does not; a confirming code is its own purpose with its address, a wrong one counts, it never resets a password, and the app reads none of it |
 | `31_committee_colours.sql` | 3 checks (0150): every committee has a colour and the active ones keep apart from each other and from branding blue; a super admin picks a colour or gets a free one, and a colour near the super admin colour or another active committee, or not a colour at all, is refused, a committee admin cannot change one; the super admins cannot take a committee's colour, and once they change theirs, branding blue is free for a committee |
 | `38_backend_hardening.sql` | 3 checks (0158): records past their retention period are deleted and newer ones kept, the period follows the barangay's setting, and the audit trail is never touched; every foreign key has an index, anonymous callers cannot run the internal helpers and nobody signed in can run the purge; forwarding and flagging lock the case |

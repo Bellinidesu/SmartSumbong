@@ -1,23 +1,23 @@
 # Backend sweep 2: scripted baseline + round 2 (20 Nov 2026)
 
-Branch `backend-sweep-2`, draft PR 439, **not for merge**. Everything below was found by scripts in `tools/sweep/` (re-run: `bash tools/sweep/run_all.sh`, ~45 min; `quick` = static only, ~1 min).
+Branch `backend-sweep-2`, PR 439 (**0185-0187 applied live 20 Nov**; Ace merges). Everything below was found by scripts in `tools/sweep/` (re-run: `bash tools/sweep/run_all.sh`, ~45 min; `quick` = static only, ~1 min).
 Read-only against the live project (live row counts, `supabase inspect db`, GETs of the portal's headers). Load and probe results come from throwaway PostgreSQL 16 + PostGIS databases on a
 laptop built from migrations 0001-0184, driven through a real PostgREST or directly as each rung's own database role (row level security on): **ratios, not Singapore milliseconds**.
-No migration was changed or applied. Drafts live in `supabase/drafts/` (not `supabase/migrations/`, so a merge cannot deploy them).
+The sweep itself changed nothing live. Drafts were kept in `supabase/drafts/` until Ace said apply; 0185-0187 have since been applied and moved to `supabase/migrations/` (see Applied 20 Nov). The remaining skeleton test stays in `supabase/drafts/tests/`.
 
 ## Verdict
 
 The perimeter is sound; the problem is **scale for the scoped rungs**, plus a few broken flows. Headers, CSP, cookies, Edge Function auth, grants and RPC wiring are clean; filing survives
 every injected engine/push/vault failure. But at 20,000 cases a Kagawad's or staff member's pages do not load (queries pass 15-30 s); option B in `docs/sweep/options/K-04` brings that to ~40 ms with
-the same visible cases (proved). The reopen/appeal flow, complaint printing and the notice reach are broken by small gaps; draft 0185 fixes the notice part.
+the same visible cases (proved). The reopen/appeal flow, complaint printing and the notice reach are broken by small gaps; 0185 (applied) fixes the notice part.
 
 ## Counts (ledger rows, `docs/sweep/GAP_LEDGER.md`; several rows can be one cause)
 
 | critical | high | medium | low | info | total |
 |---|---|---|---|---|---|
-| 0 | 16 | 42 | 56 | 29 | 143 open (+1 done) |
+| 0 | 11 | 37 | 55 | 29 | 132 open (+15 fixed or done) |
 
-Fix class: **A mechanical 48, B needs one decision 92, C look/front end 3**. Generators exist for 3 A-kinds (below); the other A rows name the generator they would use.
+Fix class (open rows): **A mechanical 37, B needs one decision 92, C look/front end 3**. Generators exist for 3 A-kinds (below); the other A rows name the generator they would use.
 
 ## Top violations (proof pointer -> fix)
 
@@ -25,14 +25,14 @@ Fix class: **A mechanical 48, B needs one decision 92, C look/front end 3**. Gen
    10 ms -> 7.4 s; 76 of 122 (page, role) pairs exceed 200 ms at 250x (`out/loadcost.json`). **Option B proved**: 15,082 -> 38 ms (Kagawad), 7,268 -> 19 ms (staff), identical case sets, also faster at 1x
    (97 -> 31 ms); a materialised table (C) is as fast with more risk; indexes (D) do nothing (`options/K-04-f09-case-rule.md`). Class B (core rule): needs Ace.
 2. **Reopen/appeal flow** (K-01): the request notices go to every active admin with **no report_id**; the probe shows 6 admins told, **4 of whom cannot open the case**, no Review button; `reopen_report()` works
-   (Kagawad, staff handling it, super; resolved and closed) but nothing calls it; no decline path. Draft **0185** (proven) fixes the notice; options A/B/C in `options/K-01-reopen-flow.md` (the button is class C).
+   (Kagawad, staff handling it, super; resolved and closed) but nothing calls it; no decline path. **0185** (applied) fixes the notice; options A/B/C in `options/K-01-reopen-flow.md` (the button is class C).
 3. **`complaint-print.php` loses every photo**: it orders `report_media` by `created_at`; the live column is `uploaded_at` (checked live); the call is optional so the page prints without evidence and shows no error.
    One-word PHP fix (class A, not a migration).
 4. **SMART at 20,000 cases**: `smart_watch()` (cron every 5 min) 46.5 s; `smart_queue` 0.6-0.9 s per rung (budget 0.2 s); filing 158 ms (triage 119 ms). Class B.
 5. **Engine failures are invisible and some abort real presses** (injection): with scoring/triage broken `file_report` still succeeds but the only trace is a server-log warning; a failing `_smart_event` write **aborts
-   `admin_dispatch`**; a failing notification trigger **aborts review, dispatch, post message and reopen request**. Draft **0187** (proven) records `engine_error` and makes the event log best-effort; notification
+   `admin_dispatch`**; a failing notification trigger **aborts review, dispatch, post message and reopen request**. **0187** (applied) records `engine_error` and makes the event log best-effort; notification
    isolation is a decision (B).
-6. **34 trigger functions are executable by signed-out/signed-in callers** (3 read `auth.uid()`); a trigger needs no EXECUTE right to fire (proved: filing still works after the revoke). Draft **0186** (proven).
+6. **34 trigger functions are executable by signed-out/signed-in callers** (3 read `auth.uid()`); a trigger needs no EXECUTE right to fire (proved: filing still works after the revoke). **0186** (applied).
 7. **28 API-callable functions have no caller of any kind** (strict cross-check; the first pass counted comments and tests as callers and said 1): the Inbox suite (`send_mail`, `mail_*`: backend without a screen), SMART
    screens not built (`smart_read`, `smart_duplicates`, `smart_similar_cases`, `smart_verify*`), `reopen_report`, `release_case`, `answer_reroute_question`, `reset_admin_password`, `places_status`, `assignable_tanods`,
    `audit_integrity`, `command_suggest`, 2 dead trigger functions; and 27 functions callable by the API that only other functions call (`options/B-dead-code.md`).
@@ -74,16 +74,24 @@ Fix class: **A mechanical 48, B needs one decision 92, C look/front end 3**. Gen
 | Notification kinds | 15 | 13 have a producer and a label |
 | Author-admitted markers (168 hits) | judged against the schema | 97 noise (UI strings), 4 still true, 1 no longer true (`REOPEN IS NOT ADDED`: reopen exists now), 66 need a human |
 
-## Drafts (supabase/drafts/, each proven failing-before / passing-after on a scratch database; NOT applied)
+## Drafts -> applied live 20 Nov (Ace: "apply 185 186 187")
 
-| No. | What | Test result |
-|---|---|---|
-| 0185 `notice_report_id` | reopen and appeal notices carry the case, so only admins who can open it are told | before 1 ok / 3 FAIL, after 4 ok |
-| 0186 `revoke_dead_trigger_functions` | revoke API execute on 34 trigger functions (filing still works) | before 2 ok / 1 FAIL, after 3 ok |
-| 0187 `engine_failures_recorded` | triage failure recorded as `engine_error`; `_smart_event` best-effort | before 1 ok / 2 FAIL, after 3 ok |
+| No. | What | Test (now supabase/tests) | Test result before / after |
+|---|---|---|---|
+| 0185 `notice_report_id` | reopen and appeal notices carry the case, so only admins who can open it are told | 63 | 1 ok 3 FAIL / 4 ok |
+| 0186 `revoke_dead_trigger_functions` | revoke API execute on 34 trigger functions (filing still works) | 64 | 2 ok 1 FAIL / 3 ok |
+| 0187 `engine_failures_recorded` | triage failure recorded as `engine_error`; `_smart_event` best-effort | 65 | 1 ok 2 FAIL / 3 ok |
+
+## Applied 20 Nov (applied by the coordinator, staged one by one, verified read-only after each; not touched again by the sweep)
+
+- 0185: `request_reopen` / `request_appeal` now insert notifications with `report_id`.
+- 0186: 0 of 50 trigger functions callable by anon/authenticated afterwards; none disabled; roles and queues unchanged.
+- 0187: `_smart_triage_after_write` records `engine_error`; `_smart_event` is best-effort.
+- The three files moved from `supabase/drafts/` to `supabase/migrations/`, the tests to `supabase/tests/63-65`; `baseline.sql` and `grants.txt` rebuilt for 0001-0187. Ledger rows K-07, K-08, K-09 and the matching detector/prober rows are marked "fixed live 20 Nov"; the reopen flow (K-01) stays open for the answer/decline part.
 
 Options files (no migration until Ace picks): `K-01-reopen-flow`, `K-04-f09-case-rule` (timed at 1x/50x/250x), `B-dead-code`, `B-state-machine`, `B-request-decision`, `B-role-symmetry`.
 Not drafted on purpose: the case-rule policy (core visibility rule).
+
 
 ## Coverage
 
