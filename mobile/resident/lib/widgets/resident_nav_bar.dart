@@ -45,19 +45,15 @@ class ResidentNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.s;
     final d = context.d;
-    // At night the bar is the page's own graphite (the card colour, a hairline on top), not a pale slab: it follows dark mode as the
-    // portal does (canvas frame L1, 19 Nov 2026). By day it stays the barangay navy.
-    final night = d.dark;
     return DBar(
       colors: d,
-      graphite: night,
       children: [
         for (final t in ResidentTab.values)
           DBarTab(
             label: t.label(s),
-            icon: Image.asset('assets/images/${t.asset}.png', width: t.iconWidth, height: t.iconHeight, color: night ? (t == current ? d.ink : d.muted) : d.barFg),
+            icon: Image.asset('assets/images/${t.asset}.png', width: t.iconWidth, height: t.iconHeight, color: d.barFg),
             active: t == current,
-            color: night ? (t == current ? d.ink : d.muted) : d.barFg,
+            color: d.barFg,
             onTap: () {
               if (t == current) return;
               Navigator.of(context).pushReplacementNamed(t.route);
@@ -70,19 +66,15 @@ class ResidentNavBar extends StatelessWidget {
 
 /// The bar itself, shared with the tanod's.
 class DBar extends StatelessWidget {
-  const DBar({super.key, required this.colors, required this.children, this.graphite = false});
+  const DBar({super.key, required this.colors, required this.children});
 
   final DColors colors;
   final List<Widget> children;
 
-  /// Night mode for residents: the card's graphite with a hairline, instead of the role colour.
-  final bool graphite;
-
   @override
   Widget build(BuildContext context) {
     // The system buttons sit on this bar: dark ones on a light bar.
-    final fill = graphite ? colors.card : colors.bar;
-    final light = fill.computeLuminance() > .5;
+    final light = colors.bar.computeLuminance() > .5;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.transparent,
@@ -95,10 +87,9 @@ class DBar extends StatelessWidget {
       ),
       child: Container(
       decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(graphite ? 24 : 30)),
-        border: graphite ? Border(top: BorderSide(color: colors.line)) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: graphite ? .45 : .12), blurRadius: 18, offset: const Offset(0, -6))],
+        color: colors.bar,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 18, offset: const Offset(0, -6))],
       ),
       child: SafeArea(
         top: false,

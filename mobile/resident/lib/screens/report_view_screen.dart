@@ -1,22 +1,86 @@
-// SmartSumbong — View a report (the case screen).
+// SmartSumbong — View a report.
 //
-// 19 Nov 2026 (Ace: "case page now"): rebuilt 1:1 from the approved design canvas, following the portal's case card. A thin
-// header; the status said once (the portal's solid pill and one sentence); the portal's segmented track only while the report is
-// moving; each concern with its own status when there are several; the one note that matters; evidence you can open; the details
-// folded; the full timeline on its own page; feedback. The one main action is pinned at the bottom, the rest sit behind More.
-// The parts are in case/case_ui.dart and case/case_screens.dart; this file reads the report's rows and chooses what to say.
+// Figma 2436:752 (Under Review), 2613:773 (In Progress), 2461:490
+// (Completed), 2613:616 (Rejected), 2461:382 (Cancelled), and the photo
+// viewer from 2613:709.
 //
-// LIVE WHILE OPEN (29 Aug 2026): a channel filtered to this report (reports) and its log rows (status_logs) reloads the whole screen
-// through the same _load() the pull-to-refresh uses — one fetch path, not two that could drift apart.
+// ONE SCREEN, NOT SIX. Rose drew a frame per state, but they differ only
+// in the status word, which actions the menu offers, and one line of
+// copy underneath. Six files would drift apart the first time the card
+// styling changed; this reads the status and says the right thing.
 //
-// Reads only what the app already read (reports, report_media, dispatch_media, report_evidence, report_concerns, status_logs,
-// detail_requests, feedback, the byline function); writes only through the same calls (cancel_report, request_reopen,
-// request_appeal, follow_up_report, the feedback insert). Nothing new on the server.
+// ROUND 16 (30 Aug 2026) — BACK TO ROSE'S SIX FRAMES, NOT THE REFERENCE
+// MOCKUP. Rounds 1-15 progressively rebuilt this card to match a
+// separate reference HTML mockup (light card, a "TRACKING-ID · Category"
+// meta line, a corner status pill, the timeline embedded in the card,
+// the tanod's resolution note replacing the card body). The barangay
+// supervisor's feedback on seeing it live: keep every functional
+// upgrade, but the LAYOUT should follow Rose's actual approved frames,
+// not the mockup. Checked against zoomed crops of the six real frames
+// (screenshots the user supplied directly — the Figma MCP connector had
+// hit its own plan-level rate limit that session), which settled several
+// things definitively:
+//
+//   - The card is navy fill (this app's own accent), not a light
+//     `field` card. Reverts Round 4/5's flip.
+//   - The title is ONE inline bold line — "(# <id> - <Status>) <subject>"
+//     — no separate meta line, no corner pill. Only Cancelled gets a
+//     distinct colour (red); every other status stays plain white. This
+//     is the ORIGINAL pre-Round-2 title format and ReportStatus's own
+//     pre-Round-11 labelColour rule, both reinstated rather than reinvented.
+//   - The card BODY is always the resident's OWN original description —
+//     never the tanod's resolution note. All six frames confirm this,
+//     including the two Completed ones (their body is still the
+//     resident's original complaint text, unchanged by resolution).
+//   - There is no multi-row timeline anywhere in these frames. Instead,
+//     a single small note bubble floats below-right of the card — only
+//     for In Progress / Rejected / Completed, never for Under Review or
+//     Cancelled — carrying whatever the tanod/system last logged.
+//   - A "•••" menu on the card offers Cancel (View/Reopen dropped for
+//     this screen — see _ReportCard's own header for why).
+//
+// WHAT SURVIVES FROM THE HYBRID PASS, ON PURPOSE. The user was explicit:
+// every functional/data upgrade stays, it just moves to fit Rose's
+// actual layout instead of the mockup's.
+//   - The real tanod/system resolution text + "TANOD <NAME>:" / "SYSTEM:"
+//     byline (Rounds 12-15) — now the note bubble's own content instead
+//     of the card body, via the same _loadTimelineAuthors()/
+//     my_status_log_authors() plumbing, unchanged.
+//   - The chronological-order fix (Round 15) — `_load()`'s
+//     `ascending: true` stays; the bubble just reads timeline.last
+//     instead of walking every row.
+//   - The reverse-geocoded "📍 <place>" line and the bigger map/photo
+//     carousel (Rounds 7-8) — real, user-requested improvements with no
+//     connection to the mockup's structure, so they're untouched here
+//     even though Rose's own example frames don't show them at this
+//     size (her sample reports just have modest map+photo, not a
+//     deliberate size cue to shrink back to).
+//
+// The "•••" menu's View/Cancel styling (orange popup, same icons) is
+// identical to what reports_screen.dart's own _CardMenu already draws —
+// that screen's card apparently never drifted as far from Rose's frames
+// as this one did (its header already cited Figma 2869:156 and the
+// exact same cancel-flow node IDs throughout). reports_screen.dart's own
+// card likely needs this same navy/inline-title treatment, but that is
+// a separate frame ("REPORTS", not "VIEW REPORTS - <STATUS>") the user
+// has not sent screenshots of yet — left untouched this round rather
+// than guessed at.
+//
+// LIVE WHILE OPEN (29 Aug 2026 — see home_screen.dart's header for the
+// broader reasoning). This is the one screen where "seconds matter" is
+// most literally true: a resident staring at this exact report while a
+// tanod is dispatched should watch it move, not sit on a stale card
+// until they remember to pull down. A channel filtered to this single
+// report id (on reports) plus this single report's own log rows (on
+// status_logs) reloads the whole screen through the same _load() the
+// pull-to-refresh already used — one fetch path, not two that could
+// drift apart — the moment either changes.
 
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart' show LatLng;
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:share_plus/share_plus.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -24,17 +88,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../d/d_categories.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
-import '../models/barangay_profile.dart';
 import '../models/complaint_catalogue.dart';
 import '../models/complaint_category.dart';
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import 'add_details_screen.dart';
-import 'case/case_screens.dart';
-import 'case/case_ui.dart';
 import 'report_messages_screen.dart';
-import 'reports_screen.dart' show ReportStatus, reportStatusColour;
+import '../models/barangay_profile.dart';
+import 'reports_screen.dart' show ReportStatus;
 
 class ReportViewScreen extends StatefulWidget {
   const ReportViewScreen({super.key, required this.reportId, this.uploader});
@@ -47,7 +110,6 @@ class ReportViewScreen extends StatefulWidget {
   @override
   State<ReportViewScreen> createState() => _ReportViewScreenState();
 }
-
 
 class _ReportViewScreenState extends State<ReportViewScreen> {
   /// Once the coloured header has scrolled away, the status bar gets the
@@ -63,7 +125,14 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   Map<String, dynamic>? _detailRequest;
   String? _error;
 
-  List<({String url, String kind, DateTime? at})> _evidence = const [];
+  /// Round 17 (30 Aug 2026): the full row-by-row timeline is back, per
+  /// direct feedback that the barangay actually liked it even though
+  /// none of Rose's six frames draw it. Collapsed by default so the
+  /// screen still reads like those frames at a glance (note bubble only)
+  /// -- expanding is one tap on the centered toggle below the bubble.
+  bool _timelineExpanded = false;
+  bool _mediaOpen = false;
+  List<({String url, String kind})> _evidence = const [];
   // 0130: each concern in this report, open or resolved on its own (panel ask 3b).
   List<Map<String, dynamic>> _concerns = const [];
   // 0140: "Was it fixed?", while the barangay's question is open and unanswered.
@@ -72,6 +141,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   Map<String, dynamic>? _whyOrder;
   String? _official;
   String? _officialNote;
+  bool _reasonsOpen = false;
   bool _busyAct = false;
 
   RealtimeChannel? _liveChannel;
@@ -198,7 +268,6 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     return true;
   }
 
-
   Future<void> _load() async {
     final client = Supabase.instance.client;
     setState(() => _error = null);
@@ -312,12 +381,12 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         try {
           final ev = await client
               .from('report_evidence')
-              .select('kind, media_url, mime_type, created_at')
+              .select('kind, media_url, mime_type')
               .eq('report_id', widget.reportId)
               .order('created_at', ascending: true);
           if (mounted) {
             setState(() => _evidence = [
-                  for (final m in ev) (url: m['media_url'] as String, kind: m['kind'] as String? ?? 'update', at: DateTime.tryParse(m['created_at'] as String? ?? '')),
+                  for (final m in ev) (url: m['media_url'] as String, kind: m['kind'] as String? ?? 'update'),
                 ]);
           }
         } catch (_) {}
@@ -427,51 +496,47 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     }
   }
 
-
-  // ---------- the screen -------------------------------------------------------------------------------------------------
-  //
-  // 19 Nov 2026 (Ace: "case page now"): built 1:1 from the approved canvas. A thin header (the category, back, share); the status
-  // said once (the portal's solid pill and one sentence); the portal's track only while the report is moving; the concerns each
-  // with their own status when there are several; the one note that matters; evidence you can open; the details folded; the full
-  // timeline on its own page; feedback. The one main action is pinned at the bottom and the rest sit behind More.
-
+  // Branch D (go list: the individual report page): the case's category
+  // colour across the top with the contour lines, back and share on it;
+  // under it the status pill, the subject, the ticket and date, the
+  // detail rows, the resident's words, the map and photos; then the
+  // case desk, the latest note, the timeline and the rating as before.
   @override
   Widget build(BuildContext context) {
-    final t = CaseTokens.of(context);
+    final s = context.s;
+    final d = context.d;
     final r = _report;
     final cat = ComplaintCategory.parse(r?['category'] as String?);
+    final col = categoryColour(cat);
     final top = MediaQuery.paddingOf(context).top;
-    final v = r == null ? null : _view(context, r);
-    final headerHeight = CaseHeader.heightFor(top);
     return Scaffold(
-      backgroundColor: t.bg,
+      backgroundColor: d.bg,
       body: Stack(children: [
-        Column(children: [
-          Expanded(
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (n) {
-                if (n.depth == 0) _pastHero.value = n.metrics.pixels > headerHeight - 8;
-                return false;
-              },
-              child: RefreshIndicator(
-                onRefresh: _load,
-                color: context.d.accent,
-                child: CustomScrollView(physics: const AlwaysScrollableScrollPhysics(), slivers: [
-                  SliverToBoxAdapter(
-                    child: CaseHeader(
-                      colour: r == null ? DStatusPill.grey : categoryColour(cat),
-                      glyph: r == null ? null : categoryGlyph(cat),
-                      onBack: () => Navigator.of(context).maybePop(),
-                      onShare: r == null ? null : _share,
-                    ),
-                  ),
-                  SliverToBoxAdapter(child: _body(context, t, v)),
-                ]),
-              ),
+        NotificationListener<ScrollNotification>(
+          onNotification: (n) {
+            if (n.depth == 0) _pastHero.value = n.metrics.pixels > 170 - 8;
+            return false;
+          },
+          child: RefreshIndicator(
+        onRefresh: _load,
+        color: d.accent,
+        child: CustomScrollView(slivers: [
+          SliverToBoxAdapter(
+            child: DHero(
+              colour: r == null ? d.card2 : col,
+              height: 170 + MediaQuery.paddingOf(context).top,
+              glyph: r == null ? null : categoryGlyph(cat),
+              children: [
+                Positioned(left: 12, top: MediaQuery.paddingOf(context).top + 10, child: DHeroButton(icon: Icons.chevron_left_rounded, onTap: () => Navigator.of(context).maybePop())),
+                if (r != null) Positioned(right: 12, top: MediaQuery.paddingOf(context).top + 10, child: DHeroButton(icon: Icons.ios_share_rounded, onTap: _share)),
+                if (r != null) Positioned(left: 12, bottom: 10, child: DHeroChip(context.tr(cat.label, cat.labelFil))),
+              ],
             ),
           ),
-          if (v != null) v.bar,
+          SliverToBoxAdapter(child: _body(s)),
         ]),
+      ),
+        ),
         Positioned(
           left: 0,
           right: 0,
@@ -480,7 +545,11 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           child: IgnorePointer(
             child: ValueListenableBuilder<bool>(
               valueListenable: _pastHero,
-              builder: (context, on, _) => AnimatedOpacity(opacity: on ? 1 : 0, duration: const Duration(milliseconds: 150), child: ColoredBox(color: t.bg)),
+              builder: (context, on, _) => AnimatedOpacity(
+                opacity: on ? 1 : 0,
+                duration: const Duration(milliseconds: 150),
+                child: ColoredBox(color: d.bg),
+              ),
             ),
           ),
         ),
@@ -488,57 +557,30 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     );
   }
 
-  Widget _body(BuildContext context, CaseTokens t, _CaseView? v) {
+  Widget _body(Strings s) {
+    final d = context.d;
     if (_error != null) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
-        child: Column(children: [
-          Text(_error!, textAlign: TextAlign.center, style: caseInter(t.dangerInk, 14, FontWeight.w700, 20)),
-          const SizedBox(height: 16),
-          SizedBox(width: 200, child: CaseButton(label: context.tr('Try again', 'Subukan muli'), icon: Icons.refresh_rounded, kind: CaseButtonKind.ghost, small: true, onTap: _load)),
-        ]),
+        padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+        child: Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 14, w: FontWeight.w700)),
       );
     }
-    if (v == null) {
-      return Padding(padding: const EdgeInsets.only(top: 60), child: Center(child: CircularProgressIndicator(color: context.d.accent)));
+    if (_report == null) {
+      return Padding(padding: const EdgeInsets.only(top: 60), child: Center(child: CircularProgressIndicator(color: d.accent)));
     }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        for (var i = 0; i < v.blocks.length; i++) ...[if (i > 0) const SizedBox(height: 12), v.blocks[i]],
-      ]),
-    );
-  }
 
-  /// The words of a report's state and the blocks that say it, from the report's rows.
-  _CaseView _view(BuildContext context, Map<String, dynamic> r) {
-    final s = context.s;
-    final t = CaseTokens.of(context);
-    final fil = AppLocaleScope.of(context) == AppLocale.fil;
+    final r = _report!;
     final status = ReportStatus.parse(r['status'] as String?);
-    final cat = ComplaintCategory.parse(r['category'] as String?);
     final lat = (r['latitude'] as num?)?.toDouble();
     final lng = (r['longitude'] as num?)?.toDouble();
-    final createdAt = DateTime.tryParse(r['created_at'] as String? ?? '');
-    final referred = (r['referred_to'] as String?)?.isNotEmpty ?? false;
-    final ongoing = status.isOngoing;
-    final finished = status == ReportStatus.resolved || status == ReportStatus.closed || status == ReportStatus.archived;
-    final cancelled = status == ReportStatus.cancelled;
-    final rejected = status == ReportStatus.rejected;
-    final reopened = (r['reopened_count'] as num?)?.toInt() ?? 0;
-    final description = (r['description'] as String?)?.trim() ?? '';
-    final ticket = r['tracking_id'] as String? ?? '';
-    final subject = r['subject'] as String? ?? '';
-    final askingDetails = _detailRequest != null && widget.uploader != null && ongoing;
-    final multi = _concerns.length > 1;
-    final resolvedConcerns = _concerns.where((c) => c['status'] == 'resolved').length;
 
-    // What the resident asked and the barangay has not yet decided (reopen after a resolution, appeal after a rejection).
-    final reopenReason = _pendingRequest(status, const {'resolved', 'closed'}, 'Resident requested reopening');
-    final appealReason = _pendingRequest(status, const {'rejected'}, 'Resident appealed the rejection', alt: 'Appeal requested');
-    final pendingChat = reopenReason != null || appealReason != null;
-
-    // The entry that explains the status: a resolution's note, a rejection's reason, else the newest.
+    // Whether a note bubble shows at all, and what it says, both live in
+    // _StatusNoteBubble. Neither Under Review nor Cancelled gets a bubble.
+    final showsNote = status != ReportStatus.pendingReview && status != ReportStatus.validated && status != ReportStatus.cancelled;
+    // The note is the entry that explains the current status, not simply
+    // the newest row: a completed report's resolution note, a rejected
+    // one's denial. Newer system rows can follow those (dispatch retries,
+    // the old SLA sweep) and used to replace the tanod's note here.
     final wanted = switch (status) {
       ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived => const {'resolved', 'closed', 'archived'},
       ReportStatus.rejected => const {'rejected'},
@@ -559,644 +601,295 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       }
       latestEntry ??= bare;
     }
-    final remark = (latestEntry?['remark'] as String?)?.trim();
-    final author = latestEntry?['author_label'] as String?;
-    final hasRemark = remark != null && remark.isNotEmpty;
-    final remarkText = hasRemark ? (_byline(author) != null ? '${_byline(author)}: $remark' : remark) : null;
 
-    // ---- the pill and the one sentence
-    final Color pillColour;
-    final String pillLabel;
-    final String answer;
-    if (reopenReason != null) {
-      pillColour = DStatusPill.violet;
-      pillLabel = context.tr('Reopen requested', 'Hiniling na buksan muli');
-      answer = context.tr('You asked the barangay to reopen this report.', 'Hiniling mo sa barangay na buksan muli ang ulat na ito.');
-    } else if (appealReason != null) {
-      pillColour = DStatusPill.violet;
-      pillLabel = context.tr('Appeal requested', 'Hiniling ang apela');
-      answer = context.tr('You asked the barangay to look at this again.', 'Hiniling mo sa barangay na muling tingnan ito.');
-    } else {
-      pillColour = reportStatusColour(status);
-      pillLabel = s.reportStatusLabel(status.wire);
-      if (finished) {
-        answer = context.tr('Your report is resolved.', 'Nalutas na ang ulat mo.');
-      } else if (rejected) {
-        answer = context.tr('The barangay could not accept this report.', 'Hindi natanggap ng barangay ang ulat na ito.');
-      } else if (cancelled) {
-        answer = context.tr('You cancelled this report.', 'Kinansela mo ang ulat na ito.');
-      } else if (status == ReportStatus.pendingReview || status == ReportStatus.validated) {
-        answer = context.tr('The barangay is reviewing your report.', 'Sinusuri ng barangay ang iyong ulat.');
-      } else {
-        final base = context.tr('A tanod is on it.', 'May tanod na umaasikaso.');
-        answer = multi && resolvedConcerns > 0
-            ? '$base ${context.tr('$resolvedConcerns of ${_concerns.length} concerns is resolved.', '$resolvedConcerns sa ${_concerns.length} na concern ang nalutas na.')}'
-            : base;
-      }
-    }
-    final violetInk = t.dark ? const Color(0xFFCDBDFF) : DStatusPill.violet;
-    final extraLine = referred && ongoing
-        ? context.tr('Escalated to the ${r['referred_to']}', 'In-escalate sa ${r['referred_to']}')
-        : (reopened > 0 && reopenReason == null ? (reopened == 1 ? s.reportViewReopenedOnce : s.reportViewReopenedTimes(reopened)) : null);
+    final createdAt = DateTime.tryParse(r['created_at'] as String? ?? '');
+    final col0 = categoryColour(ComplaintCategory.parse(r['category'] as String?));
+    final referred = (r['referred_to'] as String?)?.isNotEmpty ?? false;
+    final (Color stCol, String stLabel) = referred && status.isOngoing
+        ? (const Color(0xFF8B5CF6), context.tr('Escalated', 'In-escalate'))
+        : (_statusColour(status), s.reportStatusLabel(status.wire));
 
-    // ---- overdue, and what the barangay asked for
     final due = DateTime.tryParse(r['due_at'] as String? ?? '')?.toLocal();
-    final overdue = ongoing && due != null && due.isBefore(DateTime.now()) && !referred;
-    String dueText(DateTime d) {
-      final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
-      return '${s.monthFull(d.month)} ${d.day}, ${d.year}, $h:${d.minute.toString().padLeft(2, '0')} ${d.hour < 12 ? 'AM' : 'PM'}';
+    final overdue = status.isOngoing && due != null && due.isBefore(DateTime.now()) && !referred;
+    String dueText(DateTime t) {
+      final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
+      return '${s.monthFull(t.month)} ${t.day}, ${t.year}, $h:${t.minute.toString().padLeft(2, '0')} ${t.hour < 12 ? 'AM' : 'PM'}';
     }
 
     final followedAt = DateTime.tryParse(r['followed_up_at'] as String? ?? '');
     final followedToday = followedAt != null && DateTime.now().difference(followedAt).inHours < 24;
+    final finished = status.isFinished;
+    final remark = (latestEntry?['remark'] as String?)?.trim();
+    final author = latestEntry?['author_label'] as String?;
+    final hasRemark = remark != null && remark.isNotEmpty;
+    final remarkText = hasRemark ? (author != null ? '$author: $remark' : remark) : null;
+    final reopened = (r['reopened_count'] as num?)?.toInt() ?? 0;
+    // A question left unanswered when the case closed no longer asks
+    // anything (found on the phone, 7 Oct 2026).
+    final askingDetails = _detailRequest != null && widget.uploader != null && status.isOngoing;
+    const amber = Color(0xFFF59E0B);
+    const green = Color(0xFF1F8A45);
 
-    // ---- the evidence
-    final mine = <CaseMedia>[
-      for (final p in _photos)
-        CaseMedia(url: p.url, isVideo: p.isVideo, at: createdAt, title: context.tr('What you sent', 'Ipinadala mo'), text: description.isEmpty ? null : '“$description”'),
-    ];
-    final finishedAt = _entryTime(latestEntry);
-    final barangay = <CaseMedia>[];
-    final seen = <String>{};
-    for (final p in _proof) {
-      if (seen.add(p.url)) {
-        barangay.add(CaseMedia(url: p.url, isVideo: p.isVideo, fromBarangay: true, at: finishedAt, title: context.tr('Proof of resolution', 'Patunay ng paglutas'), text: finished ? remarkText : null));
-      }
-    }
-    for (final e in _evidence) {
-      if (seen.add(e.url)) {
-        final proof = e.kind == 'resolution';
-        barangay.add(CaseMedia(
-          url: e.url,
-          fromBarangay: true,
-          at: e.at ?? finishedAt,
-          title: proof ? context.tr('Proof of resolution', 'Patunay ng paglutas') : context.tr('An update from the barangay', 'Update mula sa barangay'),
-          text: proof ? remarkText : null,
-        ));
-      }
-    }
-    final all = [...mine, ...barangay];
-    void openViewer(int i) => CaseViewer.open(context, all, i);
-
-    // ---- the blocks, in the canvas' order
-    final blocks = <Widget>[];
-    blocks.add(CaseTitleBlock(
-      title: multi ? context.tr(cat.label, cat.labelFil) : subject,
-      ticket: ticket,
-      pillLabel: pillLabel,
-      pillColour: pillColour,
-      filed: createdAt == null ? '' : context.tr('Filed ${s.monthAbbr(createdAt.toLocal().month)} ${createdAt.toLocal().day}', 'Naisampa ${s.monthAbbr(createdAt.toLocal().month)} ${createdAt.toLocal().day}'),
-      answer: answer,
-      extraLine: extraLine,
-      extraColour: referred && ongoing ? violetInk : null,
-    ));
-
-    final showFix = _fixCheck != null && status == ReportStatus.resolved && reopenReason == null;
-    if (showFix) blocks.add(_FixCheckCard(reportId: widget.reportId, onDone: _load));
-
-    // the portal's track, only while the report is moving
-    if (ongoing) blocks.add(Container(padding: const EdgeInsets.all(14), decoration: caseCardBox(t), child: CaseTrack(done: caseStepsDone(status.wire))));
-
-    if (multi) {
-      blocks.add(CaseConcernsCard(concerns: _concernRows(context, status, fil), dot: categoryColour(cat)));
-    }
-
-    // the one note that matters
+    // One tinted note per situation, the way the preview draws them: a
+    // dot, a bold title, the words under it.
+    final notes = <Widget>[];
     if (overdue) {
-      blocks.add(CaseNote(
-        tone: DStatusPill.denied,
+      notes.add(_RNote(
+        colour: const Color(0xFFE5383B),
         title: s.caseOverdue,
         body: s.caseOverdueBody(dueText(due)),
         action: followedToday ? null : (s.followUpButton, () => _followUp(r)),
         foot: followedToday ? s.followUpToday : null,
       ));
     }
-    if (reopenReason != null) {
-      blocks.add(CaseNote(
-        tone: DStatusPill.violet,
-        title: context.tr('Your reason', 'Dahilan mo'),
-        body: '“${_sentence(reopenReason)}” ${context.tr('The barangay will look at it. You can chat with them here.', 'Titingnan ito ng barangay. Puwede kayong mag-chat dito.')}',
+    if (askingDetails) {
+      notes.add(_RNote(colour: amber, title: s.reportViewDetailsNeeded, body: '“${_detailRequest!['message'] as String? ?? ''}”'));
+    } else if (referred && status.isOngoing) {
+      notes.add(_RNote(
+        colour: const Color(0xFF8B5CF6),
+        title: context.tr('Escalated to the ${r['referred_to']}', 'In-escalate sa ${r['referred_to']}'),
+        body: (r['referral_note'] as String?)?.isNotEmpty == true ? r['referral_note'] as String : s.caseReferredBody,
       ));
-    } else if (appealReason != null) {
-      blocks.add(CaseNote(
-        tone: DStatusPill.violet,
-        title: context.tr('Your reason', 'Dahilan mo'),
-        body: '“${_sentence(appealReason)}” ${context.tr('The barangay will look at it. You can chat with them here.', 'Titingnan ito ng barangay. Puwede kayong mag-chat dito.')}',
+    } else if (status == ReportStatus.rejected) {
+      notes.add(_RNote(colour: const Color(0xFFC62828), title: context.tr('Not accepted', 'Hindi tinanggap'), body: remarkText ?? s.reportViewRejected));
+    } else if (status == ReportStatus.cancelled) {
+      notes.add(_RNote(
+        colour: const Color(0xFF9AA1AB),
+        title: context.tr('Cancelled', 'Kinansela'),
+        body: context.tr('You cancelled this report. A cancelled case can’t be opened again.', 'Kinansela mo ang ulat na ito.'),
       ));
-    } else if (askingDetails) {
-      blocks.add(CaseNote(tone: DStatusPill.pending, title: context.tr('The barangay needs more details', 'Kailangan ng barangay ng karagdagang detalye'), body: '“${_detailRequest!['message'] as String? ?? ''}”'));
-    } else if (referred && ongoing) {
-      final note = (r['referral_note'] as String?)?.isNotEmpty == true ? r['referral_note'] as String : s.caseReferredBody;
-      blocks.add(CaseNote(tone: DStatusPill.violet, title: context.tr('Escalated to the ${r['referred_to']}', 'In-escalate sa ${r['referred_to']}'), body: note));
-    } else if (rejected) {
-      blocks.add(CaseNote(tone: DStatusPill.denied, title: context.tr('The barangay’s reason', 'Dahilan ng barangay'), body: remarkText ?? s.reportViewRejected));
-    } else if (cancelled) {
-      blocks.add(CaseNote(tone: DStatusPill.grey, body: context.tr('A cancelled case can’t be opened again.', 'Hindi na mabubuksan muli ang kinanselang ulat.')));
-    } else if (ongoing && status != ReportStatus.pendingReview && status != ReportStatus.validated) {
-      // the hand-off already has its own "Handled by" row below; the same words in a note above it read twice
+    } else if (finished) {
+      notes.add(_RNote(
+        colour: green,
+        title: context.tr('Resolved', 'Naayos na'),
+        body: remarkText ?? (_proof.isNotEmpty || _evidence.any((e) => e.kind == 'resolution') ? s.reportViewResolvedWithProof : s.reportViewResolvedNoProof),
+        action: _proof.isNotEmpty
+            ? (s.reportViewViewPhoto, () => _openPhoto(_proof, 0))
+            : _evidence.any((e) => e.kind == 'resolution')
+                ? (s.reportViewViewPhoto, () => _openPhoto([for (final e in _evidence) if (e.kind == 'resolution') (url: e.url, isVideo: false)], 0))
+                : null,
+        foot: reopened > 0 ? (reopened == 1 ? s.reportViewReopenedOnce : s.reportViewReopenedTimes(reopened)) : null,
+      ));
+    } else if (showsNote) {
+      final fallback = status == ReportStatus.assigned || status == ReportStatus.inProgress || status == ReportStatus.offlineInvestigation ? s.reportViewAssigned : null;
+      // The hand-off already has its own "Handled by" row below; the same
+      // words in a note above it read twice (phone run, 7 Oct 2026).
       final handOff = _official != null && (remark ?? '').startsWith('Handed to');
-      final update = handOff ? null : (_latestUpdate(context, latestEntry, remarkText) ?? (context.tr('Latest update', 'Pinakabagong update'), s.reportViewAssigned));
-      if (update != null) blocks.add(CaseNote(tone: DStatusPill.progress, title: update.$1, body: update.$2));
+      final text = handOff ? null : (remarkText ?? fallback);
+      if (text != null) notes.add(_RNote(colour: stCol, title: stLabel, body: text));
     }
 
-    // the completed report's big Resolved card
-    final showResolved = finished && reopenReason == null;
-    final proofItems = [for (var i = 0; i < barangay.length; i++) if (barangay[i].fromBarangay) i];
-    final proofIndex = proofItems.isEmpty ? null : mine.length + proofItems.first;
-    if (showResolved) {
-      blocks.add(CaseResolvedCard(
-        words: hasRemark ? remark : (barangay.isNotEmpty ? s.reportViewResolvedWithProof : s.reportViewResolvedNoProof),
-        byTanod: (author ?? '').startsWith('TANOD'),
-        proof: proofIndex == null ? null : barangay[proofIndex - mine.length],
-        onOpenProof: proofIndex == null ? null : () => openViewer(proofIndex),
-        steps: _steps(context, createdAt),
-      ));
-    }
-
-    // where it is: a small map and the address (two fingers move the map; one finger scrolls the page)
-    if (lat != null && lng != null) {
-      blocks.add(CaseWhereCard(
-        point: LatLng(lat, lng),
-        colour: categoryColour(cat),
-        glyph: cat.icon,
-        address: _address(r),
-        sub: '${BarangayProfile.name}, ${BarangayProfile.place}',
-      ));
-    }
-
-    // evidence: with the Resolved card, the proof is already big, so the card keeps your photos and any further proof
-    final barangayForCard = showResolved && barangay.isNotEmpty ? barangay.sublist(1) : barangay;
-    final addTile = askingDetails ? _addDetails : null;
-    if (mine.isNotEmpty || barangayForCard.isNotEmpty || addTile != null) {
-      blocks.add(CaseEvidenceCard(
-        mine: mine,
-        barangay: barangayForCard,
-        barangayBase: mine.length + (showResolved && barangay.isNotEmpty ? 1 : 0),
-        onOpen: openViewer,
-        onAdd: addTile,
-      ));
-    }
-
-    // the details, folded
-    final rows = <CaseDetailRow>[
-      if (createdAt != null) CaseDetailRow(Icons.calendar_today_outlined, s.reportsSubmittedOn(_fmtDate(s, createdAt)), context.tr('Filed in the app', 'Isinampa sa app')),
-      CaseDetailRow(
-        Icons.shield_outlined,
-        _hasTanod(status) ? (finished ? context.tr('A tanod handled it', 'Tanod ang umasikaso') : context.tr('A tanod is assigned', 'May naka-assign na tanod')) : context.tr('No tanod assigned yet', 'Wala pang tanod'),
-        _hasTanod(status) ? context.tr('Assigned to your report', 'Naka-assign sa iyong report') : context.tr('The barangay is reviewing it', 'Sinusuri ng barangay'),
-      ),
-      if (_official != null)
-        CaseDetailRow(Icons.account_balance_outlined, context.tr('Handled by $_official', 'Hawak ni $_official'), (_officialNote?.isNotEmpty ?? false) ? _officialNote : context.tr('Handed up by the barangay', 'Ipinasa ng barangay')),
-      if (ongoing && due != null && !overdue && !referred) CaseDetailRow(Icons.schedule_rounded, s.caseExpectedTitle, dueText(due)),
-      if (r['is_anonymous'] == true) CaseDetailRow(Icons.visibility_off_outlined, s.reportViewAnonymous),
-    ];
-    blocks.add(CaseDetailsCard(
-      quote: description,
-      rows: rows,
-      foldLabel: finished ? context.tr('Your words, and who handled it', 'Ang sinabi mo, at sino ang humawak') : context.tr('Your words, and who is handling it', 'Ang sinabi mo, at sino ang humahawak'),
-      extra: [
-        if (_whyOrder != null && ongoing)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: DEngineCard(
-              label: context.tr('WHY THIS ORDER', 'BAKIT GANITO ANG PAGKAKASUNOD'),
-              child: Text(context.tr(_whyOrder!['en'] as String? ?? '', _whyOrder!['fil'] as String? ?? ''), style: DType.body(DEngineCard.body, size: 13.5).copyWith(height: 1.45)),
+    final barangayPhotos = [for (final e in _evidence) (url: e.url, isVideo: false)];
+    final hasMedia = (lat != null && lng != null) || _photos.isNotEmpty || barangayPhotos.isNotEmpty;
+    final cancelled = status == ReportStatus.cancelled;
+    Widget ask() => DButton(
+          context.tr('Ask the barangay', 'Magtanong sa barangay'),
+          kind: DButtonKind.line,
+          icon: Icons.chat_bubble_outline_rounded,
+          expand: true,
+          onTap: () => ReportMessagesScreen.open(
+            context,
+            ReportMessagesScreen(
+              reportId: widget.reportId,
+              trackingId: r['tracking_id'] as String? ?? '',
+              subject: r['subject'] as String? ?? '',
+              category: ComplaintCategory.parse(r['category'] as String?),
+              canWrite: status != ReportStatus.cancelled && status != ReportStatus.archived,
             ),
           ),
-      ],
-    ));
+        );
 
-    blocks.add(CaseFold(
-      icon: Icons.calendar_today_outlined,
-      label: context.tr('Full timeline', 'Buong timeline'),
-      onTap: () => CaseTimelineScreen.open(
-        context,
-        CaseTimelineScreen(ticket: ticket, category: context.tr(cat.label, cat.labelFil), events: _events(context, r, status, mine, barangay, multi, answer, latestEntry, remarkText, fil)),
-      ),
-    ));
-
-    // feedback, once the barangay has finished (or while a reopen waits)
-    if (finished && status != ReportStatus.archived) {
+    final actions = <Widget>[];
+    if (finished) {
+      if (_fixCheck != null && status == ReportStatus.resolved) {
+        actions.add(_FixCheckCard(reportId: widget.reportId, onDone: _load));
+      }
       if (_feedback == null) {
-        blocks.add(_RateCard(reportId: widget.reportId, onSaved: _load));
+        actions.add(_RateCard(reportId: widget.reportId, onSaved: _load));
       } else {
-        blocks.add(CaseFeedbackCard(rating: (_feedback!['rating'] as num?)?.toInt() ?? 0, comment: _feedback!['comment'] as String?));
+        actions.add(Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: d.cardBox(16),
+          child: _FeedbackCard(feedback: _feedback, onRate: _openFeedback),
+        ));
+      }
+      actions.add(ask());
+      if (status.canRequestReopen) {
+        actions.add(DButton(context.tr('Reopen this report', 'Buksan muli ang ulat'), kind: DButtonKind.line, expand: true, onTap: () => setState(() => _reasonsOpen = !_reasonsOpen)));
+        if (_reasonsOpen) {
+          actions.add(_ReasonPanel(
+            title: context.tr('Why are you reopening it?', 'Bakit mo ito binubuksan muli?'),
+            options: [
+              context.tr('The problem came back', 'Bumalik ang problema'),
+              context.tr('The proof photo doesn’t match', 'Hindi tugma ang litrato'),
+              context.tr('Other', 'Iba pa'),
+            ],
+            busy: _busyAct,
+            onBack: () => setState(() => _reasonsOpen = false),
+            onConfirm: (why) => _sendRequest('request_reopen', why, '${r['tracking_id']} — ${context.tr('your reopen request was sent.', 'naipadala ang iyong hiling na buksan muli.')}'),
+          ));
+        }
+      }
+    } else if (status == ReportStatus.rejected) {
+      actions.add(ask());
+      if (status.canRequestAppeal) {
+        actions.add(DButton(context.tr('Appeal this decision', 'Umapela'), kind: DButtonKind.line, expand: true, onTap: () => setState(() => _reasonsOpen = !_reasonsOpen)));
+        if (_reasonsOpen) {
+          actions.add(_ReasonPanel(
+            title: context.tr('Why are you appealing?', 'Bakit ka umaapela?'),
+            options: [
+              context.tr('I think the decision was a mistake', 'Sa tingin ko ay mali ang desisyon'),
+              context.tr('I have more information', 'May dagdag akong impormasyon'),
+              context.tr('Other', 'Iba pa'),
+            ],
+            busy: _busyAct,
+            onBack: () => setState(() => _reasonsOpen = false),
+            onConfirm: (why) => _sendRequest('request_appeal', why, '${r['tracking_id']} — ${context.tr('your appeal was sent.', 'naipadala ang iyong apela.')}'),
+          ));
+        }
+      }
+    } else if (!cancelled) {
+      if (askingDetails) {
+        actions.add(DButton(
+          s.reportsMenuAddDetails,
+          expand: true,
+          onTap: () async {
+            final sent = await AddDetailsScreen.open(
+              context,
+              AddDetailsScreen(
+                requestId: _detailRequest!['id'] as String,
+                trackingId: r['tracking_id'] as String? ?? '',
+                subject: r['subject'] as String? ?? '',
+                statusLabel: context.s.reportStatusLabel(status.wire),
+                createdAt: createdAt,
+                question: _detailRequest!['message'] as String? ?? '',
+                uploader: widget.uploader!,
+              ),
+            );
+            if (sent && mounted) _load();
+          },
+        ));
+      }
+      actions.add(ask());
+      if (status.canCancel && !referred) {
+        actions.add(DButton(context.tr('Cancel this report', 'Kanselahin ang ulat'), kind: DButtonKind.danger, expand: true, onTap: () => _cancel(r)));
       }
     }
 
-    // ---- the pinned bar: the one main action, the rest behind More
-    final canWrite = status != ReportStatus.cancelled && status != ReportStatus.archived;
-    void ask() => ReportMessagesScreen.open(
-          context,
-          ReportMessagesScreen(
-            reportId: widget.reportId,
-            trackingId: ticket,
-            subject: subject,
-            category: cat,
-            canWrite: canWrite,
-            status: (pillLabel, pillColour),
-            request: pendingChat
-                ? (
-                    title: reopenReason != null ? context.tr('You asked to reopen this report', 'Humiling kang buksan muli ang ulat na ito') : context.tr('You appealed this decision', 'Umapela ka sa desisyong ito'),
-                    reason: reopenReason ?? appealReason,
-                    at: _requestTime(),
-                  )
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18, 16, 18, 32 + MediaQuery.viewPaddingOf(context).bottom),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(r['subject'] as String? ?? '', style: DType.body(d.ink, size: 19, w: FontWeight.w800).copyWith(height: 1.25)),
+        const SizedBox(height: 10),
+        Text.rich(TextSpan(children: [
+          TextSpan(text: r['tracking_id'] as String? ?? '', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
+          TextSpan(text: ' · ', style: DType.body(d.muted, size: 13)),
+          WidgetSpan(alignment: PlaceholderAlignment.middle, child: Container(width: 8, height: 8, margin: const EdgeInsets.only(right: 6), decoration: BoxDecoration(shape: BoxShape.circle, color: stCol))),
+          TextSpan(text: stLabel, style: DType.body(d.ink, size: 13, w: FontWeight.w700)),
+        ])),
+        const SizedBox(height: 10),
+        Column(children: [
+          if (lat != null && lng != null)
+            DRow(icon: Icons.place_outlined, title: (r['location_label'] as String?)?.isNotEmpty == true ? r['location_label'] as String : BarangayProfile.name, sub: '${BarangayProfile.name}, ${BarangayProfile.place}'),
+          if (createdAt != null) DRow(icon: Icons.calendar_today_outlined, title: s.reportsSubmittedOn(_fmtDate(s, createdAt))),
+          DRow(
+            icon: Icons.shield_outlined,
+            title: _hasTanod(status) ? context.tr('A tanod is assigned', 'May naka-assign na tanod') : context.tr('No tanod assigned yet', 'Wala pang tanod'),
+            sub: _hasTanod(status) ? context.tr('Assigned to your report', 'Naka-assign sa iyong report') : context.tr('The barangay is reviewing it', 'Sinusuri ng barangay'),
+          ),
+          if (_whyOrder != null && status.isOngoing)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: DEngineCard(
+                label: context.tr('WHY THIS ORDER', 'BAKIT GANITO ANG PAGKAKASUNOD'),
+                child: Text(context.tr(_whyOrder!['en'] as String? ?? '', _whyOrder!['fil'] as String? ?? ''),
+                    style: DType.body(DEngineCard.body, size: 13.5).copyWith(height: 1.45)),
+              ),
+            ),
+          if (_official != null)
+            DRow(
+              icon: Icons.account_balance_outlined,
+              title: context.tr('Handled by $_official', 'Hawak ni $_official'),
+              sub: (_officialNote?.isNotEmpty ?? false) ? _officialNote : context.tr('Handed up by the barangay', 'Ipinasa ng barangay'),
+            ),
+          if (status.isOngoing && due != null && !overdue && !referred) DRow(icon: Icons.schedule_rounded, title: s.caseExpectedTitle, sub: dueText(due)),
+          if (r['is_anonymous'] == true) DRow(icon: Icons.visibility_off_outlined, title: s.reportViewAnonymous),
+        ]),
+        const SizedBox(height: 10),
+        Text(r['description'] as String? ?? '', style: DType.body(d.ink2, size: 14, w: FontWeight.w400).copyWith(height: 1.5)),
+        // A report with more than one concern shows each one's own state; one concern is the report itself.
+        if (_concerns.length > 1) ...[const SizedBox(height: 14), _ConcernsCard(concerns: _concerns)],
+        for (final n in notes) ...[const SizedBox(height: 10), n],
+        const SizedBox(height: 10),
+        DStepList(
+          labels: _short(status, referred)
+              ? [context.tr('Filed', 'Naisampa'), referred && status.isOngoing ? context.tr('Escalated to the ${r['referred_to']}', 'In-escalate sa ${r['referred_to']}') : stLabel]
+              : [context.tr('Filed', 'Naisampa'), context.tr('Validated', 'Napatunayan'), context.tr('Tanod dispatched', 'Na-dispatch ang tanod'), context.tr('Resolved', 'Nalutas')],
+          on: _short(status, referred)
+              ? 2
+              : switch (status) {
+                  ReportStatus.pendingReview => 1,
+                  ReportStatus.validated => 2,
+                  ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => 3,
+                  _ => 4,
+                },
+          colour: col0,
+          subs: createdAt == null ? const {} : {0: _fmtDate(s, createdAt)},
+        ),
+        // The map and the photos, folded away: the preview's page has
+        // neither, so they open from here rather than push the page down.
+        if (hasMedia) ...[
+          const SizedBox(height: 14),
+          _Drop(
+            icon: Icons.photo_library_outlined,
+            title: context.tr('Location & photos', 'Lokasyon at mga larawan'),
+            open: _mediaOpen,
+            onTap: () => setState(() => _mediaOpen = !_mediaOpen),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (lat != null && lng != null) _MiniMap(point: LatLng(lat, lng)),
+              if (lat != null && lng != null && _photos.isNotEmpty) const SizedBox(height: 12),
+              if (_photos.isNotEmpty) _MediaCarousel(photos: _photos, onViewPhoto: (i) => _openPhoto(_photos, i)),
+              if (barangayPhotos.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(context.tr("The barangay's photos", 'Mga larawan ng barangay'), style: DType.body(d.muted, size: 12, w: FontWeight.w800)),
+                const SizedBox(height: 6),
+                _MediaCarousel(photos: barangayPhotos, onViewPhoto: (i) => _openPhoto(barangayPhotos, i)),
+              ],
+            ]),
+          ),
+        ],
+        const SizedBox(height: 10),
+        _Drop(
+          icon: Icons.timeline_rounded,
+          title: _timelineExpanded ? s.reportViewHideTimeline : s.reportViewShowTimeline,
+          open: _timelineExpanded,
+          onTap: () => setState(() => _timelineExpanded = !_timelineExpanded),
+          child: _Timeline(
+            entries: _timeline,
+            submittedAt: createdAt,
+            upcomingWire: status.isOngoing
+                ? (status == ReportStatus.pendingReview || status == ReportStatus.validated ? 'assigned' : 'resolved')
                 : null,
           ),
-        );
-    final askItem = CaseMoreItem(Icons.chat_bubble_outline_rounded, context.tr('Ask the barangay', 'Magtanong sa barangay'), ask);
-    final more = <CaseMoreItem>[];
-    String label;
-    IconData? icon;
-    CaseButtonKind kind = CaseButtonKind.primary;
-    VoidCallback? onTap;
-    if (pendingChat) {
-      label = context.tr('Open the chat', 'Buksan ang chat');
-      icon = Icons.chat_bubble_outline_rounded;
-      onTap = ask;
-    } else if (rejected) {
-      label = context.tr('Appeal this decision', 'Umapela');
-      icon = null;
-      kind = CaseButtonKind.appeal;
-      onTap = status.canRequestAppeal ? _appeal : null;
-      more.add(askItem);
-    } else if (cancelled || status == ReportStatus.archived) {
-      label = context.tr('Ask the barangay', 'Magtanong sa barangay');
-      icon = Icons.chat_bubble_outline_rounded;
-      kind = CaseButtonKind.ghost;
-      onTap = ask;
-    } else if (finished) {
-      label = context.tr('Ask the barangay', 'Magtanong sa barangay');
-      icon = Icons.chat_bubble_outline_rounded;
-      onTap = ask;
-      if (status.canRequestReopen) more.add(CaseMoreItem(Icons.refresh_rounded, context.tr('Reopen this report', 'Buksan muli ang ulat'), _reopen));
-    } else if (askingDetails) {
-      label = s.reportsMenuAddDetails;
-      icon = Icons.add_rounded;
-      onTap = _addDetails;
-      more.add(askItem);
-      if (status.canCancel && !referred) more.add(CaseMoreItem(Icons.close_rounded, context.tr('Cancel this report', 'Kanselahin ang ulat'), () => _cancel(r), danger: true));
-    } else {
-      label = context.tr('Ask the barangay', 'Magtanong sa barangay');
-      icon = Icons.chat_bubble_outline_rounded;
-      onTap = ask;
-      if (status.canCancel && !referred) more.add(CaseMoreItem(Icons.close_rounded, context.tr('Cancel this report', 'Kanselahin ang ulat'), () => _cancel(r), danger: true));
-    }
-    final bar = CaseActionBar(
-      label: label,
-      icon: icon,
-      kind: kind,
-      onTap: onTap,
-      busy: _busyAct,
-      onMore: more.isEmpty ? null : () => showCaseMore(context, more),
-    );
-    return _CaseView(blocks: blocks, bar: bar);
-  }
-
-  // ---------- reading the report's rows -----------------------------------------------------------------------------------
-
-  /// The reason of a request the resident made and the barangay has not yet decided, or null. A reopen or an appeal leaves the
-  /// status as it is and writes one line in the history; a later change of status means the barangay has decided.
-  String? _pendingRequest(ReportStatus status, Set<String> statuses, String prefix, {String? alt}) {
-    if (!statuses.contains(status.wire)) return null;
-    for (var i = _timeline.length - 1; i >= 0; i--) {
-      final e = _timeline[i];
-      final remark = ((e['remark'] as String?) ?? '').trim();
-      for (final p in [prefix, ?alt]) {
-        if (remark.startsWith(p)) {
-          final at = remark.indexOf(':');
-          final why = at < 0 ? '' : remark.substring(at + 1).trim();
-          return why.isEmpty ? '…' : why;
-        }
-      }
-      if (e['old_status'] != e['new_status']) return null;
-    }
-    return null;
-  }
-
-  DateTime? _requestTime() {
-    for (var i = _timeline.length - 1; i >= 0; i--) {
-      final remark = ((_timeline[i]['remark'] as String?) ?? '');
-      if (remark.startsWith('Resident requested reopening') || remark.startsWith('Resident appealed') || remark.startsWith('Appeal requested')) {
-        return DateTime.tryParse(_timeline[i]['created_at'] as String? ?? '');
-      }
-    }
-    return null;
-  }
-
-  static String _sentence(String s) {
-    final t = s.trim();
-    if (t.isEmpty) return t;
-    return RegExp(r'[.!?…]$').hasMatch(t) ? t : '$t.';
-  }
-
-  static DateTime? _entryTime(Map<String, dynamic>? e) => e == null ? null : DateTime.tryParse(e['created_at'] as String? ?? '');
-
-  String _address(Map<String, dynamic> r) => (r['location_label'] as String?)?.isNotEmpty == true ? r['location_label'] as String : BarangayProfile.name;
-
-  /// "TANOD KIM" as "Tanod Kim", "BARANGAY" as "Barangay"; the system has no name to show.
-  static String? _byline(String? raw) {
-    if (raw == null || raw == 'SYSTEM') return null;
-    return raw.toLowerCase().split(' ').where((w) => w.isNotEmpty).map((w) => '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
-  }
-
-  /// The latest update: a concern resolved since the last note, else the newest line of the history.
-  (String, String)? _latestUpdate(BuildContext context, Map<String, dynamic>? entry, String? remarkText) {
-    final fil = AppLocaleScope.of(context) == AppLocale.fil;
-    DateTime? entryAt = _entryTime(entry);
-    Map<String, dynamic>? newest;
-    DateTime? newestAt;
-    for (final c in _concerns) {
-      final at = DateTime.tryParse(c['resolved_at'] as String? ?? '');
-      if (c['status'] == 'resolved' && at != null && (newestAt == null || at.isAfter(newestAt))) {
-        newest = c;
-        newestAt = at;
-      }
-    }
-    if (_concerns.length > 1 && newest != null && (entryAt == null || newestAt!.isAfter(entryAt))) {
-      final remark = (newest['remark'] as String?)?.trim() ?? '';
-      return (context.tr('${concernOptionName(newest, filipino: fil)} resolved', '${concernOptionName(newest, filipino: fil)} ay nalutas'), remark.isEmpty ? context.tr('Resolved.', 'Nalutas na.') : remark);
-    }
-    if (remarkText == null) return null;
-    return (context.tr('Latest update', 'Pinakabagong update'), remarkText);
-  }
-
-  /// Each concern with its own state. The database knows open and resolved; an open concern is Being handled once a tanod is on the report.
-  List<CaseConcern> _concernRows(BuildContext context, ReportStatus status, bool fil) {
-    final s = context.s;
-    final handled = status == ReportStatus.assigned || status == ReportStatus.inProgress || status == ReportStatus.offlineInvestigation;
-    return [
-      for (final c in _concerns)
-        () {
-          final resolved = c['status'] == 'resolved';
-          final at = DateTime.tryParse(c['resolved_at'] as String? ?? '')?.toLocal();
-          final remark = (c['remark'] as String?)?.trim() ?? '';
-          final note = (c['note'] as String?)?.trim() ?? '';
-          final state = resolved ? CaseConcernState.resolved : (handled ? CaseConcernState.handled : CaseConcernState.open);
-          final sub = switch (state) {
-            CaseConcernState.resolved => [
-                at == null ? context.tr('Resolved', 'Nalutas') : context.tr('Resolved ${s.monthAbbr(at.month)} ${at.day}', 'Nalutas noong ${s.monthAbbr(at.month)} ${at.day}'),
-                if (remark.isNotEmpty) remark,
-              ].join(' · '),
-            CaseConcernState.handled => [context.tr('A tanod is handling it', 'May tanod na umaasikaso'), if (note.isNotEmpty) note].join(' · '),
-            CaseConcernState.open => [context.tr('Waiting its turn', 'Naghihintay ng turn'), if (note.isNotEmpty) note].join(' · '),
-          };
-          return CaseConcern(name: concernOptionName(c, filipino: fil), sub: sub, state: state, filedAs: concernFiledAs(c, filipino: fil));
-        }(),
-    ];
-  }
-
-  static String _clock(DateTime d) {
-    final l = d.toLocal();
-    final h = l.hour % 12 == 0 ? 12 : l.hour % 12;
-    return '$h:${l.minute.toString().padLeft(2, '0')} ${l.hour < 12 ? 'AM' : 'PM'}';
-  }
-
-  /// "How it was handled": the steps the report went through, with their times, from its history.
-  List<CaseStep> _steps(BuildContext context, DateTime? createdAt) {
-    final s = context.s;
-    String day(DateTime d) => '${s.monthAbbr(d.toLocal().month)} ${d.toLocal().day}';
-    final out = <CaseStep>[];
-    DateTime? prev;
-    void add(String title, DateTime? at) {
-      if (at == null) return;
-      final same = prev != null && prev!.toLocal().year == at.toLocal().year && prev!.toLocal().month == at.toLocal().month && prev!.toLocal().day == at.toLocal().day;
-      out.add(CaseStep(title, same ? _clock(at) : '${day(at)} · ${_clock(at)}'));
-      prev = at;
-    }
-
-    add(context.tr('Filed', 'Naisampa'), createdAt);
-    final seen = <String>{'filed'};
-    for (final e in _timeline) {
-      final to = e['new_status'] as String?;
-      if (e['old_status'] == to) continue;
-      final (key, title) = switch (to) {
-        'validated' => ('validated', context.tr('Validated', 'Napatunayan')),
-        'assigned' || 'in_progress' || 'offline_investigation' => ('dispatched', context.tr('Tanod dispatched', 'Na-dispatch ang tanod')),
-        'resolved' || 'closed' => ('resolved', context.tr('Resolved', 'Nalutas')),
-        _ => ('', ''),
-      };
-      if (key.isEmpty || !seen.add(key)) continue;
-      add(title, DateTime.tryParse(e['created_at'] as String? ?? ''));
-    }
-    return out;
-  }
-
-  /// The full timeline, oldest to newest then flipped: the report's history, each concern that was resolved, the evidence at the step it belongs to.
-  List<CaseEvent> _events(BuildContext context, Map<String, dynamic> r, ReportStatus status, List<CaseMedia> mine, List<CaseMedia> barangay, bool multi, String answer,
-      Map<String, dynamic>? latestEntry, String? remarkText, bool fil) {
-    final s = context.s;
-    String when(DateTime d) {
-      final l = d.toLocal();
-      final yr = l.year == DateTime.now().year ? '' : ', ${l.year}';
-      return '${s.monthAbbr(l.month)} ${l.day}$yr, ${_clock(l)}';
-    }
-
-    final ongoing = status.isOngoing;
-    final createdAt = DateTime.tryParse(r['created_at'] as String? ?? '');
-    final items = <(DateTime, CaseEvent)>[];
-    if (createdAt != null) {
-      items.add((
-        createdAt,
-        CaseEvent(
-          title: context.tr('Filed', 'Naisampa'),
-          time: when(createdAt),
-          body: multi ? context.tr('You filed this report with ${_concerns.length} concerns.', 'Isinampa mo ang ulat na ito na may ${_concerns.length} na concern.') : context.tr('You filed this report.', 'Isinampa mo ang ulat na ito.'),
-          thumbs: mine,
-          thumbLabel: mine.isEmpty ? null : context.tr('Your photos', 'Mga larawan mo'),
         ),
-      ));
-    }
-    var proofPlaced = false;
-    // concerns that were resolved (several concerns only)
-    final concernEvents = <(DateTime, Map<String, dynamic>)>[];
-    if (multi) {
-      for (final c in _concerns) {
-        final at = DateTime.tryParse(c['resolved_at'] as String? ?? '');
-        if (c['status'] == 'resolved' && at != null) concernEvents.add((at, c));
-      }
-      concernEvents.sort((a, b) => a.$1.compareTo(b.$1));
-    }
-    final lastConcern = concernEvents.isEmpty ? null : concernEvents.last.$2;
-    for (final ce in concernEvents) {
-      final remark = (ce.$2['remark'] as String?)?.trim() ?? '';
-      final carriesProof = !proofPlaced && ongoing && identical(ce.$2, lastConcern) && barangay.isNotEmpty;
-      if (carriesProof) proofPlaced = true;
-      items.add((
-        ce.$1,
-        CaseEvent(
-          title: context.tr('${concernOptionName(ce.$2, filipino: fil)} resolved', '${concernOptionName(ce.$2, filipino: fil)} ay nalutas'),
-          time: when(ce.$1),
-          body: remark.isEmpty ? null : remark,
-          thumbs: carriesProof ? barangay : const [],
-          thumbLabel: carriesProof ? context.tr('Proof from the barangay', 'Patunay mula sa barangay') : null,
-        ),
-      ));
-    }
-    for (final e in _timeline) {
-      final at = DateTime.tryParse(e['created_at'] as String? ?? '');
-      if (at == null) continue;
-      final from = e['old_status'] as String?;
-      final to = e['new_status'] as String?;
-      final remark = ((e['remark'] as String?) ?? '').trim();
-      final by = _byline(e['author_label'] as String?);
-      final said = remark.isEmpty ? null : (by == null ? remark : '$by: $remark');
-      if (from == null && to == 'pending_review') continue; // the Filed event is the report's own
-      String? title;
-      String? body = said;
-      var proof = false;
-      var col = CaseTokens.doneFill;
-      var ic = Icons.check_rounded;
-      if (from != to) {
-        switch (to) {
-          case 'validated':
-            title = context.tr('Validated', 'Napatunayan');
-            body = context.tr('The barangay confirmed your report.', 'Kinumpirma ng barangay ang iyong ulat.');
-          case 'assigned':
-            title = context.tr('Tanod dispatched', 'Na-dispatch ang tanod');
-            body = context.tr('A tanod was assigned to your report.', 'May tanod na naka-assign sa iyong ulat.');
-            col = DStatusPill.progress;
-          case 'in_progress' || 'offline_investigation':
-            title = context.tr('A tanod is on it', 'May tanod na umaasikaso');
-            col = DStatusPill.progress;
-          case 'resolved' || 'closed':
-            title = to == 'closed' ? context.tr('Closed', 'Isinara') : context.tr('Resolved', 'Nalutas');
-            proof = !proofPlaced && barangay.isNotEmpty;
-            if (proof) proofPlaced = true;
-          case 'rejected':
-            title = context.tr('Rejected', 'Tinanggihan');
-            col = DStatusPill.denied;
-            ic = Icons.close_rounded;
-          case 'cancelled':
-            title = context.tr('Cancelled', 'Kinansela');
-            col = DStatusPill.grey;
-            ic = Icons.close_rounded;
-          case 'pending_review':
-            title = context.tr('Reopened', 'Binuksan muli');
-            col = DStatusPill.violet;
-            ic = Icons.refresh_rounded;
-        }
-      } else if (remark.startsWith('Resident requested reopening')) {
-        title = context.tr('You asked to reopen this report', 'Humiling kang buksan muli ang ulat na ito');
-        col = DStatusPill.violet;
-        ic = Icons.refresh_rounded;
-        body = context.tr('Reason: ${_sentence(remark.substring(remark.indexOf(':') + 1).trim())}', 'Dahilan: ${_sentence(remark.substring(remark.indexOf(':') + 1).trim())}');
-      } else if (remark.startsWith('Resident appealed') || remark.startsWith('Appeal requested')) {
-        title = context.tr('You appealed this decision', 'Umapela ka sa desisyong ito');
-        col = DStatusPill.violet;
-        ic = Icons.refresh_rounded;
-      } else if (remark.startsWith('More details requested')) {
-        title = context.tr('The barangay asked for details', 'Humingi ng detalye ang barangay');
-        col = DStatusPill.pending;
-        ic = Icons.priority_high_rounded;
-        body = remark.substring(remark.indexOf(':') + 1).trim();
-      } else if (remark.startsWith('Resident sent more details')) {
-        title = context.tr('You sent more details', 'Nagpadala ka ng karagdagang detalye');
-      } else if (remark.startsWith('Escalated to') || remark.startsWith('Referred to')) {
-        title = context.tr('Escalated', 'In-escalate');
-        col = DStatusPill.violet;
-      }
-      if (title == null) continue;
-      items.add((
-        at,
-        CaseEvent(
-          title: title,
-          time: when(at),
-          body: body,
-          thumbs: proof ? barangay : const [],
-          thumbLabel: proof ? context.tr('Proof from the barangay', 'Patunay mula sa barangay') : null,
-          colour: col,
-          icon: ic,
-        ),
-      ));
-    }
-    items.sort((a, b) => a.$1.compareTo(b.$1));
-    final out = [for (final i in items.reversed) i.$2];
-    if (ongoing) {
-      final open = _concerns.where((c) => c['status'] != 'resolved').toList();
-      final lines = [for (final c in _concernRows(context, status, fil)) if (c.state != CaseConcernState.resolved) '${c.name}: ${c.sub.split(' · ').first}'];
-      out.insert(
-        0,
-        CaseEvent(
-          title: context.tr('Now', 'Ngayon'),
-          time: multi ? context.tr('${open.length} of ${_concerns.length} concerns are still open', '${open.length} sa ${_concerns.length} na concern ang bukas pa') : answer,
-          body: multi ? lines.join('. ') : (status == ReportStatus.pendingReview || status == ReportStatus.validated ? null : remarkText),
-          now: true,
-        ),
-      );
-    }
-    return out;
-  }
-
-  // ---------- doing things ----------------------------------------------------------------------------------------------
-
-  Future<void> _addDetails() async {
-    final r = _report;
-    final q = _detailRequest;
-    if (r == null || q == null || widget.uploader == null) return;
-    final status = ReportStatus.parse(r['status'] as String?);
-    final sent = await AddDetailsScreen.open(
-      context,
-      AddDetailsScreen(
-        requestId: q['id'] as String,
-        trackingId: r['tracking_id'] as String? ?? '',
-        subject: r['subject'] as String? ?? '',
-        statusLabel: context.s.reportStatusLabel(status.wire),
-        createdAt: DateTime.tryParse(r['created_at'] as String? ?? ''),
-        question: q['message'] as String? ?? '',
-        uploader: widget.uploader!,
-      ),
+        if (actions.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          for (var i = 0; i < actions.length; i++) ...[if (i > 0) const SizedBox(height: 8), actions[i]],
+        ],
+      ]),
     );
-    if (sent && mounted) _load();
   }
 
-  /// Reopen: pick the reason, then one request to the barangay (the report keeps its status until an administrator decides).
-  Future<void> _reopen() async {
-    final r = _report;
-    if (r == null) return;
-    final why = await showCaseReasonSheet(
-      context,
-      title: context.tr('Why are you reopening it?', 'Bakit mo ito binubuksan muli?'),
-      hint: context.tr('The barangay sees your reason in the chat, and you can talk there.', 'Nakikita ng barangay ang dahilan mo sa chat, at puwede kayong mag-usap doon.'),
-      reasons: [
-        context.tr('The problem came back', 'Bumalik ang problema'),
-        context.tr('The proof photo doesn’t match', 'Hindi tugma ang litrato'),
-        context.tr('Other', 'Iba pa'),
-      ],
-      confirmLabel: context.tr('Reopen this report', 'Buksan muli ang ulat'),
-      confirmIcon: Icons.refresh_rounded,
-    );
-    if (why == null || !mounted) return;
-    await _sendRequest('request_reopen', why, '${r['tracking_id']} — ${context.tr('your reopen request was sent.', 'naipadala ang iyong hiling na buksan muli.')}');
-  }
-
-  Future<void> _appeal() async {
-    final r = _report;
-    if (r == null) return;
-    final why = await showCaseReasonSheet(
-      context,
-      title: context.tr('Why are you appealing?', 'Bakit ka umaapela?'),
-      hint: context.tr('The barangay sees your reason in the chat, and you can talk there.', 'Nakikita ng barangay ang dahilan mo sa chat, at puwede kayong mag-usap doon.'),
-      reasons: [
-        context.tr('I think the decision was a mistake', 'Sa tingin ko ay mali ang desisyon'),
-        context.tr('I have more information', 'May dagdag akong impormasyon'),
-        context.tr('Other', 'Iba pa'),
-      ],
-      confirmLabel: context.tr('Send my appeal', 'Ipadala ang apela'),
-      confirmIcon: Icons.gavel_outlined,
-      confirmKind: CaseButtonKind.appeal,
-    );
-    if (why == null || !mounted) return;
-    await _sendRequest('request_appeal', why, '${r['tracking_id']} — ${context.tr('your appeal was sent.', 'naipadala ang iyong apela.')}');
-  }
-
-  /// Reopen or appeal: a request to the barangay, never a decision.
+  /// Reopen or appeal: a request to the barangay, never a decision — the
+  /// report keeps its status until an administrator acts on it.
   Future<void> _sendRequest(String fn, String reason, String done) async {
     final s = context.s;
     setState(() => _busyAct = true);
     try {
       await Supabase.instance.client.rpc(fn, params: {'p_report': widget.reportId, 'p_reason': reason});
       if (!mounted) return;
+      setState(() => _reasonsOpen = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
       await _load();
     } on PostgrestException catch (e) {
@@ -1212,6 +905,16 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 
   static bool _hasTanod(ReportStatus s) =>
       s == ReportStatus.assigned || s == ReportStatus.inProgress || s == ReportStatus.offlineInvestigation || s == ReportStatus.resolved || s == ReportStatus.closed || s == ReportStatus.archived;
+
+  static bool _short(ReportStatus s, bool referred) => s == ReportStatus.rejected || s == ReportStatus.cancelled || (referred && s.isOngoing);
+
+  static Color _statusColour(ReportStatus s) => switch (s) {
+        ReportStatus.pendingReview || ReportStatus.validated => const Color(0xFFF59E0B),
+        ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => const Color(0xFF356CF9),
+        ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived => const Color(0xFF1F8A45),
+        ReportStatus.rejected => const Color(0xFFC62828),
+        ReportStatus.cancelled => const Color(0xFF9AA1AB),
+      };
 
   /// The resident's "up" on an overdue complaint (0072): an optional
   /// line for the barangay, then follow_up_report(). Once a day.
@@ -1344,6 +1047,14 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     }
   }
 
+  Future<void> _openFeedback() async {
+    final saved = await showFigmaDialog<bool>(
+      context,
+      builder: (_) => _FeedbackSheet(reportId: widget.reportId),
+    );
+    if (saved == true) await _load();
+  }
+
   // Hands the tracking id off through the OS share sheet — SMS, Messenger,
   // copy — rather than the resident retyping a 13-character code by hand
   // to a neighbour or a barangay staffer. Never includes the resident's
@@ -1372,17 +1083,475 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       );
     }
   }
+
+  void _openPhoto(List<({String url, bool isVideo})> items, int index) {
+    if (items.isEmpty) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => _PhotoViewer(items: items, initial: index),
+    ));
+  }
 }
 
-/// What the screen says for one report: the blocks in order, and the pinned bar.
-class _CaseView {
-  const _CaseView({required this.blocks, required this.bar});
+// ---------- pieces -------------------------------------------
 
-  final List<Widget> blocks;
-  final Widget bar;
+// Round 17 (30 Aug 2026): the top status field from Round 16 (_StatusBadge)
+// is gone -- direct feedback that it had no job on this single-report
+// screen and was just taking up space. Removed rather than left unused.
+
+/// The concerns in one report (0130), each open or resolved on its own: "Barangay service: delayed response"
+/// can be resolved while "Duty & negligence" is still being looked at. Shown only when there are two or more.
+class _ConcernsCard extends StatelessWidget {
+  const _ConcernsCard({required this.concerns});
+
+  final List<Map<String, dynamic>> concerns;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final done = concerns.where((c) => c['status'] == 'resolved').length;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(
+        context.tr('Concerns in this report · $done of ${concerns.length} resolved', 'Mga concern sa report na ito · $done sa ${concerns.length} ang nalutas'),
+        style: DType.body(d.muted, size: 12, w: FontWeight.w800),
+      ),
+      const SizedBox(height: 4),
+      for (var i = 0; i < concerns.length; i++)
+        DRow(
+          icon: concerns[i]['status'] == 'resolved' ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+          title: concernTitle(concerns[i], filipino: AppLocaleScope.of(context) == AppLocale.fil),
+          sub: [_sub(context, concerns[i]), ?concernFiledAs(concerns[i], filipino: AppLocaleScope.of(context) == AppLocale.fil)].join('\n'),
+          divider: i < concerns.length - 1,
+        ),
+    ]);
+  }
+
+  static String _sub(BuildContext context, Map<String, dynamic> c) {
+    final resolved = c['status'] == 'resolved';
+    final note = (c['note'] as String?)?.trim() ?? '';
+    final remark = (c['remark'] as String?)?.trim() ?? '';
+    final head = resolved ? context.tr('Resolved', 'Nalutas') : context.tr('Being handled', 'Inaasikaso pa');
+    return [head, if (resolved && remark.isNotEmpty) remark else if (note.isNotEmpty) note].join(' · ');
+  }
 }
 
-// ---------- pieces that stay ---------------------------------
+class _Timeline extends StatelessWidget {
+  const _Timeline({
+    required this.entries,
+    required this.submittedAt,
+    this.upcomingWire,
+  });
+
+  final List<Map<String, dynamic>> entries;
+  final DateTime? submittedAt;
+  final String? upcomingWire;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUpcoming = upcomingWire != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (submittedAt != null)
+          _SubmittedStepRow(
+            when: submittedAt!,
+            hasMore: entries.isNotEmpty || hasUpcoming,
+          ),
+        for (var i = 0; i < entries.length; i++)
+          _TimelineRow(
+            entry: entries[i],
+            isCurrent: i == entries.length - 1 && hasUpcoming,
+            isFinalNode: i == entries.length - 1 && !hasUpcoming,
+          ),
+        if (upcomingWire != null) _UpcomingStepRow(wire: upcomingWire!),
+      ],
+    );
+  }
+}
+
+/// The dot-and-line shell every timeline row shares, so the submitted /
+/// real / upcoming rows all line up in the same 24px-wide rail
+/// regardless of which one draws the dot.
+class _TimelineRail extends StatelessWidget {
+  const _TimelineRail({
+    required this.dot,
+    required this.hasLineBelow,
+    required this.bottomPadding,
+    this.lineColor,
+    required this.child,
+  });
+
+  final Widget dot;
+  final bool hasLineBelow;
+  final double bottomPadding;
+
+  /// Only the line below a fully-`done` dot gets the accent colour --
+  /// the line below the current dot stays neutral, since what follows
+  /// is unknown/future. Callers pass `navy` after a done row and
+  /// `divider` after the current row; unset falls back to `divider`.
+  final Color? lineColor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 24,
+            child: Column(
+              children: [
+                dot,
+                if (hasLineBelow)
+                  Expanded(
+                    child: VerticalDivider(
+                      color: lineColor ?? context.colors.divider,
+                      thickness: 2,
+                      width: 10,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: bottomPadding),
+              child: child,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SubmittedStepRow extends StatelessWidget {
+  const _SubmittedStepRow({required this.when, required this.hasMore});
+  final DateTime when;
+  final bool hasMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    return _TimelineRail(
+      hasLineBelow: hasMore,
+      bottomPadding: hasMore ? 20 : 0,
+      lineColor: context.colors.navy,
+      dot: Container(
+        width: 14,
+        height: 14,
+        margin: const EdgeInsets.only(top: 2),
+        decoration: BoxDecoration(color: context.colors.navy, shape: BoxShape.circle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.reportViewSubmittedStep,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: context.colors.navy,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(_formatWhen(s, when),
+              style: TextStyle(fontSize: 11, color: context.colors.muted)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({
+    required this.entry,
+    required this.isCurrent,
+    required this.isFinalNode,
+  });
+
+  final Map<String, dynamic> entry;
+
+  /// This is the report's status right now -- the report is still
+  /// moving and an upcoming row follows.
+  final bool isCurrent;
+
+  /// This is the last row drawn, full stop -- no line beneath it.
+  final bool isFinalNode;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final status = ReportStatus.parse(entry['new_status'] as String?);
+    final when = DateTime.tryParse(entry['created_at'] as String? ?? '');
+    final remark = entry['remark'] as String?;
+    // "TANOD <NAME>" / "SYSTEM" -- see ReportViewScreen's
+    // _loadTimelineAuthors(). Null while the lookup is still in flight,
+    // or for a synthetic row (submitted/upcoming), which never has one.
+    final author = entry['author_label'] as String?;
+
+    return _TimelineRail(
+      hasLineBelow: !isFinalNode,
+      bottomPadding: isFinalNode ? 0 : 20,
+      lineColor: isCurrent ? context.colors.divider : context.colors.navy,
+      dot: Container(
+        width: 14,
+        height: 14,
+        margin: const EdgeInsets.only(top: 2),
+        decoration: BoxDecoration(
+          color: isCurrent ? const Color(0xFFFF9800) : context.colors.navy,
+          shape: BoxShape.circle,
+          boxShadow: isCurrent
+              ? const [
+                  BoxShadow(color: Color(0x55FF9800), blurRadius: 0, spreadRadius: 3),
+                ]
+              : null,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.reportStatusLabel(status.wire),
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: context.colors.navy,
+            ),
+          ),
+          if (when != null) ...[
+            const SizedBox(height: 2),
+            Text(_formatWhen(s, when),
+                style: TextStyle(fontSize: 11, color: context.colors.muted)),
+          ],
+          if (remark != null && remark.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    if (author != null)
+                      TextSpan(
+                        text: '$author: ',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    TextSpan(text: remark),
+                  ],
+                ),
+                style: TextStyle(fontSize: 12, height: 1.3, color: context.colors.navy),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The greyed, not-yet-happened last row.
+class _UpcomingStepRow extends StatelessWidget {
+  const _UpcomingStepRow({required this.wire});
+  final String wire;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    return _TimelineRail(
+      hasLineBelow: false,
+      bottomPadding: 0,
+      dot: Container(
+        width: 14,
+        height: 14,
+        margin: const EdgeInsets.only(top: 2),
+        decoration: BoxDecoration(
+          color: context.colors.field,
+          shape: BoxShape.circle,
+          border: Border.all(color: context.colors.divider, width: 2.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.reportStatusLabel(wire),
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: context.colors.muted,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(s.reportViewUpcomingStep,
+              style: TextStyle(fontSize: 11, color: context.colors.muted)),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatWhen(Strings s, DateTime utc) {
+  final d = utc.toLocal();
+  final h24 = d.hour;
+  final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
+  final ampm = h24 < 12 ? 'AM' : 'PM';
+  final mm = d.minute.toString().padLeft(2, '0');
+  return '${s.monthAbbr(d.month)} ${d.day}, ${d.year} • $h12:$mm $ampm';
+}
+
+/// Where the complaint was filed. Not interactive — the resident chose
+/// this pin already, and letting them drag it here would imply they
+/// could still change it.
+class _MiniMap extends StatelessWidget {
+  const _MiniMap({required this.point});
+  final LatLng point;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(25),
+      child: Container(
+        // Bumped 189 -> 240 (29 Aug 2026) -- the user's own call after
+        // seeing it live on the emulator next to the evidence photos
+        // below, which read as cramped at the old size.
+        height: 240,
+        // The frame's 1px #F3F3F3 edge; the height stays the 240 asked
+        // for on 29 Aug rather than the frame's 189.
+        foregroundDecoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFF3F3F3)),
+          borderRadius: BorderRadius.circular(25),
+        ),
+        // A picture of the place, not a map to explore: no gestures,
+        // the pin drawn over the centre with its tip on the report.
+        child: Stack(
+          children: [
+            BrgyMap(
+              use: BrgyMapUse.report,
+              initialCenter: point,
+              cornerRadius: 25,
+              // The report card behind it (see _ReportCard).
+              cornerColour: context.isDark
+                  ? context.colors.field
+                  : const Color(0xFF00308F),
+            ),
+            // Navy on the light map, the pale ink on the night one.
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 36),
+                child: Icon(Icons.location_on,
+                    size: 36, color: context.colors.navy),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The evidence photos/videos a resident attached, shown one at a time
+/// large and swipeable -- not as a strip of small 200x134 thumbnails --
+/// so this reads with the same visual weight as the map above it rather
+/// than as an afterthought squeezed underneath it. A small dot rail
+/// beneath the frame is the only affordance for "there's more than one";
+/// tapping the frame still opens the full-screen _PhotoViewer, same as
+/// the old thumbnail strip did.
+class _MediaCarousel extends StatefulWidget {
+  const _MediaCarousel({required this.photos, required this.onViewPhoto});
+
+  final List<({String url, bool isVideo})> photos;
+  final ValueChanged<int> onViewPhoto;
+
+  @override
+  State<_MediaCarousel> createState() => _MediaCarouselState();
+}
+
+class _MediaCarouselState extends State<_MediaCarousel> {
+  final _controller = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: SizedBox(
+            height: 220,
+            width: double.infinity,
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: widget.photos.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (_, i) {
+                final photo = widget.photos[i];
+                return GestureDetector(
+                  onTap: () => widget.onViewPhoto(i),
+                  child: photo.isVideo
+                      ? Container(
+                          color: context.colors.navy.withValues(alpha: 0.08),
+                          child: Center(
+                            child: Icon(Icons.play_circle_fill,
+                                size: 48, color: context.colors.navy),
+                          ),
+                        )
+                      : CachedNetworkImage(
+                          // Card width, not the 1920 upload.
+                          imageUrl: cloudinarySized(photo.url, width: 1080),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          placeholder: (_, _) => Container(
+                            color: context.colors.navy.withValues(alpha: 0.08),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                  color: context.colors.navy, strokeWidth: 2),
+                            ),
+                          ),
+                          errorWidget: (_, _, _) => Container(
+                            color: context.colors.navy.withValues(alpha: 0.08),
+                            child: Icon(Icons.broken_image_outlined,
+                                color: context.colors.navy),
+                          ),
+                        ),
+                );
+              },
+            ),
+          ),
+        ),
+        if (widget.photos.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < widget.photos.length; i++)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == _page ? 16 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i == _page
+                        ? context.colors.navy
+                        : context.colors.divider,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
 
 /// The navy pill dialog from Figma 2864:332/2864:461 (Confirm Cancel /
 /// Report Cancelled) -- byte-for-byte the same shape as
@@ -1548,6 +1717,128 @@ class _DialogPill extends StatelessWidget {
   }
 }
 
+/// Figma 2613:709 — full-screen photo with pinch to zoom. A video page
+/// embeds the shared player instead of an InteractiveViewer, since
+/// pinch-to-zoom on a playing video is not a thing anyone wants.
+/// Full-screen photo/video viewer. No frame of its own: black, as any
+/// photo viewer is, with the design's round light close button and a
+/// "2 / 3" count when there is more than one.
+class _PhotoViewer extends StatefulWidget {
+  const _PhotoViewer({required this.items, required this.initial});
+
+  final List<({String url, bool isVideo})> items;
+  final int initial;
+
+  @override
+  State<_PhotoViewer> createState() => _PhotoViewerState();
+}
+
+class _PhotoViewerState extends State<_PhotoViewer> {
+  late final PageController _pages =
+      PageController(initialPage: widget.initial);
+  late int _index = widget.initial;
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.items;
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pages,
+            itemCount: items.length,
+            onPageChanged: (i) => setState(() => _index = i),
+            itemBuilder: (_, i) {
+              final item = items[i];
+              if (item.isVideo) {
+                return SafeArea(child: InlineVideoPlayer(url: item.url));
+              }
+              return InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Center(
+                  child: CachedNetworkImage(
+                    imageUrl: item.url,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(color: Colors.white)),
+                    errorWidget: (context, url, error) => Center(
+                      child: Text(context.s.reportViewCouldNotLoadPhoto,
+                          style: const TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(
+                children: [
+                  Material(
+                    color: const Color(0xFFF3F3F3),
+                    shape: const CircleBorder(),
+                    elevation: 2,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close,
+                          color: Color(0xFF00308F), size: 22),
+                      tooltip: MaterialLocalizations.of(context)
+                          .closeButtonTooltip,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (items.length > 1)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: Text(
+                        '${_index + 1} / ${items.length}',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+// ---------- feedback -----------------------------------------
+
+/// Shown under a resolved or closed report. Either an invitation to
+/// rate, or the rating already given — feedback cannot be edited,
+/// because the table takes one row per report and the barangay is
+/// reading these as a record of how a case landed at the time. Used to
+/// be its own separately bordered box below the card; absorbed into the
+/// card itself as of 29 Aug 2026 (see the card's own build() for the
+/// section that now wraps this), so the box's own border/fill/radius
+/// are gone -- just the content, sized to match the rest of the card's
+/// now-14px titles and 12px body text rather than its old standalone
+/// 16px/13px. Centered as of the same round's follow-up feedback --
+/// reads as the card's closing summary now, not a left-aligned body
+/// section, matching _StatusNote's own centering right above it.
 /// 0140: "Naayos na ba? / Was it fixed?", asked of the resident when the barangay resolves their report. One
 /// answer, within 14 days. "No" opens a line for what is still wrong and tells the barangay, who then reopen the
 /// report or write back.
@@ -1642,6 +1933,406 @@ class _FixCheckCardState extends State<_FixCheckCard> {
   }
 }
 
+class _FeedbackCard extends StatelessWidget {
+  const _FeedbackCard({required this.feedback, required this.onRate});
+
+  final Map<String, dynamic>? feedback;
+  final VoidCallback onRate;
+
+  @override
+  Widget build(BuildContext context) {
+    final given = feedback;
+    final s = context.s;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          given == null ? s.reportViewHowDidWeDo : s.reportViewYourFeedback,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: context.colors.navy,
+          ),
+        ),
+        const SizedBox(height: 6),
+
+        if (given == null) ...[
+          Text(
+            s.reportViewFeedbackPrompt,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, height: 1.4, color: context.colors.muted),
+          ),
+          const SizedBox(height: 12),
+          FigmaPill(
+            onPressed: onRate,
+            child: Text(s.reportViewGiveFeedback),
+          ),
+        ] else ...[
+          _Stars(rating: (given['rating'] as num?)?.toInt() ?? 0),
+          if ((given['comment'] as String?)?.trim().isNotEmpty ?? false) ...[
+            const SizedBox(height: 8),
+            Text(
+              given['comment'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 12, height: 1.4, color: context.colors.muted),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+class _Stars extends StatelessWidget {
+  const _Stars({required this.rating});
+
+  final int rating;
+  final double size = 26;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 1; i <= 5; i++)
+          Icon(
+            i <= rating ? Icons.star_rounded : Icons.star_outline_rounded,
+            size: size,
+            color: const Color(0xFFFF9800),
+          ),
+      ],
+    );
+  }
+}
+
+class _FeedbackSheet extends StatefulWidget {
+  const _FeedbackSheet({required this.reportId});
+
+  final String reportId;
+
+  @override
+  State<_FeedbackSheet> createState() => _FeedbackSheetState();
+}
+
+class _FeedbackSheetState extends State<_FeedbackSheet> {
+  final _comment = TextEditingController();
+  int _rating = 0;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _comment.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_rating == 0) {
+      setState(() => _error = context.s.reportViewRatingRequired);
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final comment = _comment.text.trim();
+      await client.from('feedback').insert({
+        'report_id': widget.reportId,
+        'resident_id': client.auth.currentUser!.id,
+        'rating': _rating,
+        'comment': comment.isEmpty ? null : comment,
+      });
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      final m = e.message.toLowerCase();
+      final s = context.s;
+      setState(() {
+        _saving = false;
+        // The unique constraint on report_id, and the RLS check that
+        // only lets a resolved or closed report through, are the two
+        // ways this legitimately fails.
+        _error = m.contains('duplicate') || m.contains('unique')
+            ? s.reportViewFeedbackDuplicate
+            : m.contains('policy') || m.contains('row-level')
+                ? s.reportViewFeedbackNotFinished
+                : s.reportViewFeedbackFailed;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = context.s.reportViewFeedbackFailed;
+      });
+    }
+  }
+
+  // Figma EMERGENCY - FEEDBACK's popup: a 352-wide #F3F3F3 card with a
+  // 2px navy edge, radius 50; the 28/800 title, five 38px orange stars 10
+  // apart, "Please provide your feedback" 14/700 over a 128-tall #FBFBFB
+  // box (radius 25) with its 0/300 count, and the 180x50 navy Submit.
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final c = context.colors;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Container(
+        width: 352,
+        decoration: BoxDecoration(
+          color: c.bg,
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: c.navy, width: 2),
+          boxShadow: kFigmaShadow,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(34, 52, 34, 44),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                s.reportViewFeedbackTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Inter Tight',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 28,
+                  height: 25 / 28,
+                  color: c.navy,
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 1; i <= 5; i++)
+                    Semantics(
+                      button: true,
+                      selected: i <= _rating,
+                      label: s.reportViewRateStars(i),
+                      excludeSemantics: true,
+                      child: InkResponse(
+                        onTap: _saving
+                            ? null
+                            : () => setState(() {
+                                  _rating = i;
+                                  _error = null;
+                                }),
+                        radius: 26,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: Icon(
+                            i <= _rating
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            size: 44,
+                            color: kFigmaOrange,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 22),
+
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 2, bottom: 2),
+                  child: Text(
+                    s.reportViewProvideFeedback,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      height: 22 / 14,
+                      color: c.navy,
+                    ),
+                  ),
+                ),
+              ),
+              // The count sits inside the box's corner, as the frame has it.
+              Stack(
+                children: [
+                  TextField(
+                    controller: _comment,
+                    enabled: !_saving,
+                    minLines: 5,
+                    maxLines: 5,
+                    maxLength: 300,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      color: c.navy,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: s.reportViewCommentHint,
+                      hintStyle: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                        fontSize: 12,
+                        color: c.navy,
+                      ),
+                      counterText: '',
+                      contentPadding: const EdgeInsets.fromLTRB(17, 12, 17, 22),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide(color: c.navy),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide(color: c.navy),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide(color: c.navy, width: 2),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 16,
+                    bottom: 8,
+                    child: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _comment,
+                      builder: (context, v, _) => Text(
+                        '${v.text.characters.length}/300',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w300,
+                          fontSize: 10,
+                          color: c.navy,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              if (_error != null) ...[
+                const SizedBox(height: 6),
+                Text(_error!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: c.hint, fontSize: 12)),
+              ],
+              const SizedBox(height: 30),
+
+              FigmaPill(
+                width: 180,
+                height: 50,
+                onPressed: _saving ? null : _submit,
+                child: _saving
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: c.bg),
+                      )
+                    : Text(s.reportViewSendFeedback),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------- Branch D report page pieces ----------
+
+/// The preview's `.rnote`: a tinted card, a dot, a bold title and the
+/// words under it; optionally one underlined action and a small foot line.
+class _RNote extends StatelessWidget {
+  const _RNote({required this.colour, required this.title, required this.body, this.action, this.foot});
+
+  final Color colour;
+  final String title;
+  final String body;
+  final (String, VoidCallback)? action;
+  final String? foot;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(colour.withValues(alpha: .10), d.card),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colour.withValues(alpha: .35)),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(width: 10, height: 10, margin: const EdgeInsets.only(top: 4), decoration: BoxDecoration(shape: BoxShape.circle, color: colour)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: DType.body(d.ink, size: 13, w: FontWeight.w800).copyWith(height: 1.35)),
+            Text(body, style: DType.body(d.ink2, size: 12.5).copyWith(height: 1.45)),
+            if (action != null)
+              GestureDetector(
+                onTap: action!.$2,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 2),
+                  child: Text(action!.$1, style: DType.body(d.link, size: 12.5, w: FontWeight.w800).copyWith(decoration: TextDecoration.underline)),
+                ),
+              ),
+            if (foot != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(foot!, style: DType.body(d.muted, size: 11.5))),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+/// A folded section: a bordered row with a chevron that opens its content.
+class _Drop extends StatelessWidget {
+  const _Drop({required this.icon, required this.title, required this.open, required this.onTap, required this.child});
+
+  final IconData icon;
+  final String title;
+  final bool open;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      decoration: d.cardBox(14),
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(children: [
+              Icon(icon, size: 20, color: d.link),
+              const SizedBox(width: 12),
+              Expanded(child: Text(title, style: DType.body(d.ink, size: 13.5, w: FontWeight.w700))),
+              Icon(open ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: d.muted),
+            ]),
+          ),
+        ),
+        if (open) Padding(padding: const EdgeInsets.fromLTRB(14, 0, 14, 14), child: child),
+      ]),
+    );
+  }
+}
 
 /// "How did we do?": stars, a few words, Send feedback — the same insert
 /// the old sheet made, now on the page.
@@ -1745,6 +2436,87 @@ class _RateCardState extends State<_RateCard> {
   }
 }
 
+/// The reopen / appeal reasons: a few choices, Other with a line of its
+/// own, then Back and Confirm.
+class _ReasonPanel extends StatefulWidget {
+  const _ReasonPanel({required this.title, required this.options, required this.busy, required this.onBack, required this.onConfirm});
+
+  final String title;
+  final List<String> options;
+  final bool busy;
+  final VoidCallback onBack;
+  final void Function(String reason) onConfirm;
+
+  @override
+  State<_ReasonPanel> createState() => _ReasonPanelState();
+}
+
+class _ReasonPanelState extends State<_ReasonPanel> {
+  int _pick = 0;
+  final _other = TextEditingController();
+
+  @override
+  void dispose() {
+    _other.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final last = _pick == widget.options.length - 1;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: d.cardBox(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(widget.title, style: DType.body(d.ink, size: 13.5, w: FontWeight.w800)),
+        const SizedBox(height: 6),
+        for (var i = 0; i < widget.options.length; i++)
+          InkWell(
+            onTap: () => setState(() => _pick = i),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Row(children: [
+                Icon(_pick == i ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, size: 20, color: _pick == i ? d.link : d.muted),
+                const SizedBox(width: 10),
+                Expanded(child: Text(widget.options[i], style: DType.body(d.ink, size: 13.5))),
+              ]),
+            ),
+          ),
+        if (last)
+          TextField(
+            controller: _other,
+            maxLength: 300,
+            style: DType.body(d.ink, size: 13.5),
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              counterText: '',
+              hintText: context.tr('Tell us why', 'Sabihin kung bakit'),
+              hintStyle: DType.body(d.muted, size: 13.5),
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: d.line)),
+            ),
+          ),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: DButton(context.tr('Back', 'Bumalik'), small: true, kind: DButtonKind.ghost, expand: true, onTap: widget.onBack)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: DButton(
+              context.tr('Confirm', 'Kumpirmahin'),
+              small: true,
+              expand: true,
+              busy: widget.busy,
+              onTap: widget.busy || (last && _other.text.trim().isEmpty)
+                  ? null
+                  : () => widget.onConfirm(last ? _other.text.trim() : widget.options[_pick]),
+            ),
+          ),
+        ]),
+      ]),
+    );
+  }
+}
 
 String _fmtDate(Strings s, DateTime utc) {
   final d = utc.toLocal();
@@ -1794,14 +2566,4 @@ String? concernFiledAs(Map<String, dynamic> c, {required bool filipino}) {
   return filipino
       ? 'Isinampa bilang "$was" (${off ? 'hindi na inaalok' : 'pinalitan ang pangalan mula noon'})'
       : 'Filed as "$was" (${off ? 'no longer offered' : 'renamed since'})';
-}
-
-/// A concern's name inside its own report: the option alone ("Illegal Parking"), since the report's title already says the category
-/// (one category per report, 0176). The category's name stands in when the concern has no option.
-String concernOptionName(Map<String, dynamic> c, {required bool filipino}) {
-  final cat = ComplaintCategory.parse(c['category'] as String?);
-  final id = (c['option_id'] as num?)?.toInt();
-  final opt = id == null ? null : cat.options.where((o) => o.id == id).firstOrNull;
-  final name = opt != null ? (filipino ? opt.fil : opt.en) : ((filipino ? c['filed_option_fil'] : c['filed_option_en']) as String?);
-  return name == null || name.isEmpty ? (filipino ? cat.labelFil : cat.label) : name;
 }

@@ -81,7 +81,7 @@ bool withinBrgyBounds(ll.LatLng p) =>
 
 /// What a map is for. The screen gives the data; this decides the look,
 /// the framing and the controls.
-enum BrgyMapMode { browse, report, place, pick, job, navigate, tab }
+enum BrgyMapMode { browse, report, pick, job, navigate }
 
 @immutable
 class BrgyMapUse {
@@ -94,8 +94,6 @@ class BrgyMapUse {
     this.layers = false,
     this.legend = false,
     this.scale = false,
-    this.panOnTap = true,
-    this.twoFingers = false,
   });
 
   /// The resident's Map tab: pinned to the barangay like the portal, the
@@ -103,17 +101,8 @@ class BrgyMapUse {
   static const browse = BrgyMapUse._(BrgyMapMode.browse,
       interactive: true, bounded: true, zoomButtons: true, fitButton: true, layers: true, legend: true, scale: true);
 
-  /// The resident's Map tab, as a phone map works (20 Nov 2026, the Map tab artifact): pinch and double-tap to zoom, no
-  /// buttons of the map's own. The screen draws what sits over it (the Frame 183 button, Layers, the filter chips, the
-  /// pin's card) and decides what a tap on a pin does, so the map neither pans on a tap nor draws a dock.
-  static const tab = BrgyMapUse._(BrgyMapMode.tab, interactive: true, bounded: true, panOnTap: false);
-
   /// A picture of a place (View Report): no gestures, no controls.
   static const report = BrgyMapUse._(BrgyMapMode.report, interactive: false, bounded: false);
-
-  /// The Where card on the case page: a small map you move with TWO fingers (one finger scrolls the page, so the page never sticks on
-  /// the map), pinch to zoom, the portal's frame button to come back to the pin; no zoom pair, no layers.
-  static const place = BrgyMapUse._(BrgyMapMode.place, interactive: true, bounded: true, fitButton: true, twoFingers: true);
 
   /// The report form's pin picker: the map slides under a fixed pin.
   static const pick = BrgyMapUse._(BrgyMapMode.pick, interactive: true, bounded: false);
@@ -147,12 +136,6 @@ class BrgyMapUse {
   final bool legend;
 
   final bool scale;
-
-  /// A tap on a pin eases the camera to it, with the pin in the upper part of the map (the portal's way). Off where the
-  /// screen pans the map itself, knowing what it covers.
-  final bool panOnTap;
-  /// Pan and zoom only with two fingers down; a single finger is left to the page's scrolling.
-  final bool twoFingers;
 
   /// Any control drawn over the map.
   bool get hasControls => zoomButtons || fitButton || layers || legend || scale;
@@ -235,40 +218,7 @@ class BrgyMapController {
 
   void zoomBy(double d) => _apply(ml.CameraUpdate.zoomBy(d));
 
-  void move(ll.LatLng p, double zoom) {
-    lastMove = (p, zoom);
-    camera.value = (p, zoom);
-    _apply(ml.CameraUpdate.newLatLngZoom(_ml(p), _mlZoom(zoom)));
-  }
-
-  /// The map's size on screen, given by the map once it is laid out.
-  Size? Function()? _sizeOf;
-
-  /// Pans the map, without zooming, so that [p] sits in the middle of what a screen leaves uncovered: [coveredTop]
-  /// logical pixels under a bar at the top, [coveredBottom] under a card at the bottom. This is how a card that rises
-  /// over the map keeps its pin in view (the Map tab artifact: "the map pans so the pin stays clear above the card").
-  void reveal(ll.LatLng p, {double coveredTop = 0, double coveredBottom = 0}) {
-    final size = _sizeOf?.call();
-    if (size == null || size.height <= 0) return;
-    final z = _map?.cameraPosition?.zoom ?? _mlZoom(camera.value?.$2 ?? lastMove?.$2 ?? 16);
-    final want = coveredTop + (size.height - coveredTop - coveredBottom) / 2;
-    // the camera's centre sits (h/2 - want) pixels south of the pin; a pin wanted above the middle has the centre below it
-    final centre = ll.LatLng(
-      p.latitude - _BrgyMapState._metresPerPixel(p.latitude, z) * (size.height / 2 - want) / 110574,
-      p.longitude,
-    );
-    lastMove = (centre, z + 1);
-    camera.value = (centre, z + 1);
-    _apply(ml.CameraUpdate.newLatLngZoom(_ml(centre), z));
-  }
-
-  /// Where the camera was last put (the API's zoom), for the stand-in a local capture draws.
-  @visibleForTesting
-  final camera = ValueNotifier<(ll.LatLng, double)?>(null);
-
-  /// The last place [move] was asked for, for tests.
-  @visibleForTesting
-  (ll.LatLng, double)? lastMove;
+  void move(ll.LatLng p, double zoom) => _apply(ml.CameraUpdate.newLatLngZoom(_ml(p), _mlZoom(zoom)));
 
   /// Navigation (branch C): the camera on [p], turned to [bearing]
   /// degrees and tilted, so the way ahead is up the screen.
@@ -339,19 +289,7 @@ class BrgyMap extends StatefulWidget {
     this.controlsPadding = EdgeInsets.zero,
     this.cornerRadius = 0,
     this.cornerColour,
-    this.dimOutside,
-    this.showPlaces,
-    this.onMapTap,
-    this.fitLabel,
   });
-
-  /// The Layers the screen controls itself (the Map tab's sheet): the fog outside the barangay, and the places to steer
-  /// by. Null leaves the map's own switches (the portal's Layers tile) in charge.
-  final bool? dimOutside;
-  final bool? showPlaces;
-
-  /// A tap on the map where there is no pin.
-  final VoidCallback? onMapTap;
 
   final BrgyMapUse use;
   final BrgyMapController? controller;
@@ -390,19 +328,9 @@ class BrgyMap extends StatefulWidget {
   final double cornerRadius;
   final Color? cornerColour;
 
-  /// What the frame button is called to a screen reader and on long press, when it is not "Frame the map" (the Where card: "Back to the pin").
-  final String? fitLabel;
   /// Off in widget tests, where the native map view (a platform view) cannot be made: the map's place is kept, blank.
   @visibleForTesting
   static bool nativeView = true;
-
-  /// A drawing to stand in for the map where it is not made (local screen captures); null leaves it blank.
-  @visibleForTesting
-  static WidgetBuilder? stand;
-
-  /// Like [stand], with the map's own settings in hand, so a capture can draw its pins and where the camera was put.
-  @visibleForTesting
-  static Widget Function(BuildContext context, BrgyMap map)? standMap;
 
   @override
   State<BrgyMap> createState() => _BrgyMapState();
@@ -423,8 +351,8 @@ class _BrgyMapState extends State<BrgyMap> {
 
   // the overlay's state: which card is open, which layers are on, the scale
   BrgyMapPanel _panel = BrgyMapPanel.none;
-  late bool _dim = widget.dimOutside ?? true;
-  late bool _places = widget.showPlaces ?? true;
+  bool _dim = true;
+  bool _places = true;
   final _scale = ValueNotifier<double?>(null);
 
   Future<String> _loadStyle(bool dark) =>
@@ -443,23 +371,8 @@ class _BrgyMapState extends State<BrgyMap> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _ctl._sizeOf = () => mounted ? context.size : null;
-  }
-
-  @override
   void didUpdateWidget(BrgyMap old) {
     super.didUpdateWidget(old);
-    final dim = widget.dimOutside, places = widget.showPlaces;
-    if (dim != null && dim != _dim) {
-      _dim = dim;
-      unawaited(_layersVisible(['brgy-fog', for (var k = 1; k <= 6; k++) 'fog-s$k'], dim));
-    }
-    if (places != null && places != _places) {
-      _places = places;
-      unawaited(_layersVisible(['landmarks-badge', 'landmarks-label'], places));
-    }
     if (!_styleReady) return;
     if (!listEquals(old.pins, widget.pins) || old.selectedPinId != widget.selectedPinId) unawaited(_setPins());
     if (!listEquals(old.route, widget.route)) unawaited(_setRoute());
@@ -491,7 +404,7 @@ class _BrgyMapState extends State<BrgyMap> {
     // enough to read the street, with the pin in the upper part of the
     // map so the card that rises from the bottom does not cover it.
     for (final p in widget.pins) {
-      if (p.id != id || !widget.use.panOnTap) continue;
+      if (p.id != id) continue;
       final map = _map;
       final cam = map?.cameraPosition;
       if (map != null && cam != null) {
@@ -529,22 +442,15 @@ class _BrgyMapState extends State<BrgyMap> {
     _scale.value = _metresPerPixel(cam.target.latitude, cam.zoom);
   }
 
-  /// The Frame button. On the barangay's own map (the Map tab) it is the portal's: back to the residential centre
-  /// ([brgyCentre], RESIDENTIAL_CENTRE in the portal's spatial.js) at zoom 16, with or without pins; it never fits the
-  /// pins, and never the OSM relation's centroid, which sits on the airport apron. Elsewhere (a tanod's job, the
-  /// route) it frames the points shown.
   void _fit() {
-    if (widget.use.bounded) {
-      _ctl.move(brgyCentre, 16);
-      return;
-    }
     final pts = [
-      for (final p in widget.pins) p.point,
+      for (final p in widget.pins)
+        if (!widget.use.bounded || withinBrgyBounds(p.point)) p.point,
       ?widget.me,
       if (widget.me == null) ?widget.accuracyCentre,
     ];
     if (pts.isEmpty) {
-      _ctl.move(widget.initialCenter, widget.initialZoom);
+      _ctl.move(widget.use.bounded ? brgyCentre : widget.initialCenter, widget.use.bounded ? 16 : widget.initialZoom);
     } else {
       final pad = widget.controlsPadding;
       _ctl.fit(pts, padding: 56, top: pad.top + 56, bottom: pad.bottom + 56);
@@ -553,24 +459,26 @@ class _BrgyMapState extends State<BrgyMap> {
 
   void _togglePanel(BrgyMapPanel p) => setState(() => _panel = _panel == p ? BrgyMapPanel.none : p);
 
-  Future<void> _layersVisible(List<String> ids, bool on) async {
+  Future<void> _setDim(bool on) async {
+    setState(() => _dim = on);
     final map = _map;
     if (map == null || !_styleReady) return;
-    for (final id in ids) {
+    for (final id in ['brgy-fog', for (var k = 1; k <= 6; k++) 'fog-s$k']) {
       try {
         await map.setLayerVisibility(id, on);
       } catch (_) {}
     }
   }
 
-  Future<void> _setDim(bool on) async {
-    setState(() => _dim = on);
-    await _layersVisible(['brgy-fog', for (var k = 1; k <= 6; k++) 'fog-s$k'], on);
-  }
-
   Future<void> _setPlaces(bool on) async {
     setState(() => _places = on);
-    await _layersVisible(['landmarks-badge', 'landmarks-label'], on);
+    final map = _map;
+    if (map == null || !_styleReady) return;
+    for (final id in ['landmarks-badge', 'landmarks-label']) {
+      try {
+        await map.setLayerVisibility(id, on);
+      } catch (_) {}
+    }
   }
 
   // ---------- layers -------------------------------------------
@@ -1014,7 +922,6 @@ class _BrgyMapState extends State<BrgyMap> {
             onZoomIn: () => _ctl.zoomBy(1),
             onZoomOut: () => _ctl.zoomBy(-1),
             onFit: _fit,
-            fitLabel: widget.fitLabel,
             onPanel: _togglePanel,
             onDim: _setDim,
             onPlaces: _setPlaces,
@@ -1026,9 +933,7 @@ class _BrgyMapState extends State<BrgyMap> {
   Widget _mapView(BuildContext context) {
     final style = _style;
     final bg = context.colors.bg;
-    if (style == null || !BrgyMap.nativeView) {
-      return BrgyMap.standMap?.call(context, widget) ?? BrgyMap.stand?.call(context) ?? ColoredBox(color: bg);
-    }
+    if (style == null || !BrgyMap.nativeView) return ColoredBox(color: bg);
     final use = widget.use;
     final i = use.interactive;
     final pad = widget.controlsPadding;
@@ -1045,7 +950,6 @@ class _BrgyMapState extends State<BrgyMap> {
       onCameraIdle: _idle,
       onMapClick: (_, _) {
         if (_panel != BrgyMapPanel.none) setState(() => _panel = BrgyMapPanel.none);
-        widget.onMapTap?.call();
       },
       trackCameraPosition: true,
       cameraTargetBounds: use.bounded
@@ -1059,7 +963,7 @@ class _BrgyMapState extends State<BrgyMap> {
       tiltGesturesEnabled: false,
       scrollGesturesEnabled: i,
       zoomGesturesEnabled: i,
-      doubleClickZoomEnabled: i && !use.twoFingers,
+      doubleClickZoomEnabled: i,
       dragEnabled: false,
       compassEnabled: false,
       logoEnabled: false,
@@ -1069,11 +973,7 @@ class _BrgyMapState extends State<BrgyMap> {
       attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
       attributionButtonMargins: math.Point(pad.right + 8, pad.bottom + 8),
       annotationOrder: const [],
-      gestureRecognizers: !i
-          ? null
-          : use.twoFingers
-              ? {Factory<OneSequenceGestureRecognizer>(_TwoFingerRecognizer.new)}
-              : {Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new)},
+      gestureRecognizers: i ? {Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new)} : null,
     );
   }
 }
@@ -1272,10 +1172,8 @@ class BrgyMapOverlay extends StatelessWidget {
     this.onPanel,
     this.onDim,
     this.onPlaces,
-    this.fitLabel,
   });
 
-  final String? fitLabel;
   final BrgyMapUse use;
   final EdgeInsets padding;
   final BrgyMapPanel panel;
@@ -1313,7 +1211,7 @@ class BrgyMapOverlay extends StatelessWidget {
           bottom: dock,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             if (use.fitButton)
-              BrgyMapButton(glyph: MapIcons.focus, label: fitLabel ?? context.tr('Frame the map', 'Ipakita ang buong mapa'), onTap: onFit),
+              BrgyMapButton(glyph: MapIcons.focus, label: context.tr('Frame the map', 'Ipakita ang buong mapa'), onTap: onFit),
             if (showLegend) ...[
               const SizedBox(height: 8),
               BrgyMapButton(
@@ -1709,37 +1607,4 @@ bool insideBrgy(List<List<ll.LatLng>> rings, ll.LatLng p) {
     }
   }
   return inside;
-}
-
-/// Claims a touch only once a second finger is down, so a single finger drags the page past the map (the Where card) and two fingers
-/// move and zoom it. A finger that is already scrolling keeps scrolling.
-class _TwoFingerRecognizer extends OneSequenceGestureRecognizer {
-  final _down = <int>{};
-
-  @override
-  void addAllowedPointer(PointerDownEvent event) {
-    startTrackingPointer(event.pointer, event.transform);
-    _down.add(event.pointer);
-    if (_down.length >= 2) resolve(GestureDisposition.accepted);
-  }
-
-  @override
-  void handleEvent(PointerEvent event) {
-    if (event is PointerUpEvent || event is PointerCancelEvent) {
-      _down.remove(event.pointer);
-      stopTrackingPointer(event.pointer);
-    }
-  }
-
-  @override
-  void rejectGesture(int pointer) {
-    _down.remove(pointer);
-    super.rejectGesture(pointer);
-  }
-
-  @override
-  void didStopTrackingLastPointer(int pointer) {}
-
-  @override
-  String get debugDescription => 'two fingers';
 }

@@ -15,7 +15,7 @@ const sameInBoth = {
   'SmartSumbong', 'Tanod', 'Email', 'OK', 'Online', 'Offline', 'GPS', 'Video', 'Selfie',
   'Barangay', 'Barangay 183', 'Map', 'Hotline', 'Hotlines', 'PhilSys', 'Pasay City', 'Facebook',
   'Password', 'Email Address', 'Address', 'Mobile number', 'Reference Number', 'Valid ID',
-  'Barangay appointment', 'Status', 'Emergency', 'Anonymous', 'fingerprint', 'Filipino / Tagalog', 'Gallery',
+  'Barangay appointment', 'Status', 'Emergency', 'Anonymous', 'fingerprint', 'Filipino / Tagalog',
 };
 
 class Pair {
