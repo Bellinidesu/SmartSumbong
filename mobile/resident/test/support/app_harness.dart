@@ -27,8 +27,6 @@ void stubPlatform({bool online = true}) {
   for (final name in ['dev.fluttercommunity.plus/connectivity_status', 'com.llfbandit.app_links/events']) {
     messenger.setMockMethodCallHandler(MethodChannel(name), (call) async => null);
   }
-  // CachedNetworkImage keeps its files in the app's temp folder; there is none in a test.
-  messenger.setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/path_provider'), (call) async => '.');
 }
 
 bool _fontsLoaded = false;

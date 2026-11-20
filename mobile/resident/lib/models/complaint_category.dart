@@ -173,47 +173,6 @@ class CategoryChoice {
   String get descriptionPrefill => issue == null ? '' : '$issue — ';
 }
 
-/// What is picked, main concern first: the main one and the other concerns, as the category's options. Empty for
-/// "Others", which has none.
-extension ChoiceConcerns on CategoryChoice {
-  List<ComplaintOption> get concernOptions {
-    ComplaintOption? main;
-    for (final o in category.options) {
-      if ((optionId != null && o.id == optionId) || (optionId == null && o.en == issue)) {
-        main = o;
-        break;
-      }
-    }
-    return [
-      ?main,
-      for (final x in extras) ?x.option,
-    ];
-  }
-
-  /// The same category with these concerns picked (the first is the main one, the rest ride with it).
-  CategoryChoice withConcerns(List<ComplaintOption> picked) {
-    if (picked.isEmpty) return CategoryChoice(category: category);
-    final main = picked.first;
-    return CategoryChoice(
-      category: category,
-      issue: main.en,
-      issueFil: main.fil,
-      optionId: main.id,
-      extras: [for (final o in picked.skip(1)) ExtraConcern(category, o)],
-    );
-  }
-}
-
-/// Tap on a pill: put it down if it is picked, else pick it, up to [max]. The built-in list (before the barangay's
-/// has been read) has no ids to send other concerns by, so there one pick replaces another.
-List<ComplaintOption> toggleConcern(List<ComplaintOption> picked, ComplaintOption o, {int max = 3}) {
-  final at = picked.indexWhere((p) => p.en == o.en);
-  if (at >= 0) return [...picked]..removeAt(at);
-  if (o.id == null || picked.any((p) => p.id == null)) return [o];
-  if (picked.length < max) return [...picked, o];
-  return picked;
-}
-
 /// Whether the database refused a concern from a second category (0176: a report keeps to one category). The
 /// exact wording is the migration's; any message naming one/the same/a second/another category counts.
 bool isOneCategoryRefusal(String message) {

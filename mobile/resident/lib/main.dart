@@ -29,6 +29,7 @@ import 'models/barangay_profile.dart';
 import 'net_timeout.dart';
 import 'models/complaint_catalogue.dart';
 import 'models/wording.dart';
+import 'models/complaint_category.dart';
 import 'outbox.dart';
 import 'screens/account_status_screen.dart';
 import 'screens/change_password_screen.dart';
@@ -46,7 +47,6 @@ import 'screens/register_screen.dart';
 import 'screens/report_category_screen.dart';
 import 'screens/role_picker_screen.dart';
 import 'screens/report_details_screen.dart';
-import 'screens/where_screen.dart';
 import 'screens/report_submitted_screen.dart';
 import 'screens/report_view_screen.dart';
 import 'screens/reports_screen.dart';
@@ -319,20 +319,12 @@ class SmartSumbongApp extends StatelessWidget {
             ),
           );
         }
-        // Filing a report, three steps: the first page (category and concerns) pushes WhereArgs to the second,
-        // Where is it?, which pushes DetailsArgs (the picks and the spot) to the third, the details.
-        if (settings.name == '/submit-report/where') {
-          final args = settings.arguments as WhereArgs;
-          return MaterialPageRoute<WhereResult>(
-            settings: settings,
-            builder: (_) => WhereScreen(args: args),
-          );
-        }
         if (settings.name == '/submit-report/details') {
-          final a = settings.arguments as DetailsArgs;
+          final choice = settings.arguments as CategoryChoice;
           return MaterialPageRoute(
             settings: settings,
-            builder: (_) => ReportDetailsScreen(choice: a.choice, where: a.where, picks: a.picks, uploader: uploader),
+            builder: (_) =>
+                ReportDetailsScreen(choice: choice, uploader: uploader),
           );
         }
         return null;

@@ -1,10 +1,8 @@
 // A resident's own reports, on the real screens over the preview backend.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:resident/widgets/brgy_map.dart';
 import 'support/app_harness.dart';
 
 void main() {
-  setUpAll(() => BrgyMap.nativeView = false); // the native map cannot be made in a test
   testWidgets('Reports lists the resident\'s complaints and filters them by status', (tester) async {
     await bootApp(tester);
     await tester.tap(find.text('Reports').last);
@@ -24,9 +22,6 @@ void main() {
     await tester.tap(find.text('Reports').last);
     await settle(tester);
     await tester.tap(find.text('Clogged Drainage'));
-    await settle(tester);
-    // the place is on the card; the rest of the details are folded
-    await tester.tap(find.text('Your words, and who is handling it'));
     await settle(tester);
     final text = screenText();
     for (final expected in ['BRG-2026-0101', '13th Street', 'The barangay expects to resolve this by', 'Filed', 'Validated', 'Tanod dispatched', 'Resolved', 'Ask the barangay']) {

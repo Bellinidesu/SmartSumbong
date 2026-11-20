@@ -6,11 +6,10 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:resident/widgets/d_form.dart' show DFormButton;
+import 'package:resident/d/d_ui.dart' show DButton;
 import 'package:resident/main.dart' show navigatorKey;
 import 'package:resident/models/complaint_catalogue.dart';
 import 'package:resident/models/complaint_category.dart';
-import 'package:resident/screens/where_screen.dart';
 import 'package:resident/widgets/brgy_map.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -55,19 +54,18 @@ void main() {
     expect(find.text('Add another concern'), findsNothing);
     expect(find.text('Is there more than one problem? (optional)'), findsNothing);
     expect(find.text('1 of 3 picked'), findsNothing, reason: 'nothing chosen yet');
-    expect(find.text('Step 1 of 3'), findsOneWidget);
-    expect(tester.widget<DFormButton>(find.widgetWithText(DFormButton, 'Continue')).onTap, isNull, reason: 'nothing to continue with');
+    expect(tester.widget<DButton>(find.widgetWithText(DButton, 'Continue')).onTap, isNull, reason: 'nothing to continue with');
 
     await _tapVisible(tester, find.text('Illegal Parking'));
     expect(find.text('1 of 3 picked'), findsOneWidget);
     await _tapVisible(tester, find.text('Obstructed Sidewalks'));
     await _tapVisible(tester, find.text('Vendor Blocking Sidewalks'));
-    expect(find.text('3 of 3 picked · tap one to swap'), findsOneWidget);
+    expect(find.text('3 of 3 picked'), findsOneWidget);
     expect(find.byIcon(Icons.check_rounded), findsNWidgets(3), reason: 'each picked pill shows a tick');
 
     // Out of picks: the fourth does nothing.
     await _tapVisible(tester, find.text('Blocked Driveway'));
-    expect(find.text('3 of 3 picked · tap one to swap'), findsOneWidget);
+    expect(find.text('3 of 3 picked'), findsOneWidget);
     expect(find.byIcon(Icons.check_rounded), findsNWidgets(3));
 
     // Tapping a picked one puts it down; the first one tapped was the main concern, so the next in line takes over.
@@ -75,16 +73,8 @@ void main() {
     expect(find.text('2 of 3 picked'), findsOneWidget);
     await tester.tap(find.text('Continue'));
     await settle(tester);
-    await tester.tap(find.text('Confirm this spot'));
-    await settle(tester);
-    // the third page: the picks in ONE row, the main concern first (Obstructed Sidewalks took over from Illegal Parking)
-    expect(find.text('Step 3 of 3'), findsOneWidget);
-    expect(find.text('Illegal Parking'), findsNothing);
-    final first = tester.getTopLeft(find.text('Obstructed Sidewalks'));
-    final second = tester.getTopLeft(find.text('Vendor Blocking Sidewalks'));
-    expect(second.dy, first.dy, reason: 'one row, never stacked');
-    expect(second.dx, greaterThan(first.dx));
-    expect(find.text('+ Vendor Blocking Sidewalks'), findsNothing, reason: 'no stacked + chips');
+    expect(find.text('+ Vendor Blocking Sidewalks'), findsOneWidget, reason: 'the second page lists the others');
+    expect(find.text('+ Obstructed Sidewalks'), findsNothing, reason: 'Obstructed Sidewalks is the main concern now');
     expect(find.text('Add another concern'), findsNothing);
     await finish(tester);
   });
@@ -133,7 +123,7 @@ void main() {
     await tester.tap(find.text('Change category'));
     await settle(tester);
     expect(find.textContaining('picked'), findsNothing);
-    expect(tester.widget<DFormButton>(find.widgetWithText(DFormButton, 'Continue')).onTap, isNotNull, reason: 'Others can continue');
+    expect(tester.widget<DButton>(find.widgetWithText(DButton, 'Continue')).onTap, isNotNull, reason: 'Others can continue');
     await finish(tester);
   });
 
@@ -174,7 +164,7 @@ void main() {
         await prefs.setString('report_draft_v1',
             jsonEncode({'category': 'street_obstruction', 'description': typed, 'photoPaths': <String>[], 'videoPath': null, 'anonymous': false}));
       });
-      await _open(tester, '/submit-report/details', DetailsArgs(choice, const WhereResult(pin: brgyCentre)));
+      await _open(tester, '/submit-report/details', choice);
       expect(find.text('Restored your unfinished report.'), findsOneWidget);
       expect(find.text(typed), findsOneWidget);
     }
@@ -227,7 +217,7 @@ void main() {
       await tester.tap(find.descendant(of: find.byType(Dialog), matching: find.text('Discard')));
       await settle(tester);
       expect(find.text(typed), findsNothing);
-      expect(find.text(choice.descriptionPrefill.trim()), findsOneWidget, reason: 'back to how a fresh form opens');
+      expect(find.text(choice.descriptionPrefill), findsOneWidget, reason: 'back to how a fresh form opens');
       expect(await savedDraft(tester), isNull);
       expect(find.text('Submit'), findsOneWidget, reason: 'still on the form');
       await finish(tester);
