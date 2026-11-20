@@ -83,7 +83,7 @@ def rows():
         P = json.loads(read(pf))
         for i, t in enumerate(P["lifecycle"]):
             out.append((f"PR-{i + 1:02d}", "probe.py lifecycle", t, "medium" if "NO working" in t or "no decision" in t or "never notified" in t or "UNREACHABLE" in t else "low", "open", "B", "options/B-state-machine.md"))
-        for i, t in enumerate(P["doc_contradictions"]): out.append((f"PD-{i + 1:02d}", "probe.py vs docs/ROLES_AND_PAGES.md", t, "medium", "open", "B", "fix the doc or the rule (one decision)"))
+        for i, t in enumerate(P["doc_contradictions"]): out.append((f"PD-{i + 1:02d}", "probe.py vs docs/ROLES_AND_PAGES.md", t, "info" if t.startswith("(not proven)") else "medium", "open", "B", "fix the doc or the rule (one decision)"))
         for i, t in enumerate(P["refused"][:12]): out.append((f"PA-{i + 1:02d}", "probe.py vs access.php", t, "medium", "open", "B", "options/B-role-symmetry.md"))
         for fn, kind in P["norid"]: out.append((f"PN-{fn}", "probe.py notice reach", f"{fn}() notifies admins (kind {kind}) with no report_id, so every admin is told and there is no Review button", "high", "open", "A", "fix/gen_notice_report_id.py"))
         if P["cant_see"]:

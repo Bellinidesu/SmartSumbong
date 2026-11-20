@@ -3,7 +3,7 @@
 Scripts that find gaps systematically. Each runs alone, prints a compact result, and writes details to `out/*.json` (gitignored).
 Read-only against the live project (live row counts and the portal's response headers only). Nothing here changes a migration or live behaviour.
 
-    bash tools/sweep/run_all.sh          # everything, ~20-30 min (migrations 3 min, seed 250x 3-5 min, replays 5-10 min)
+    bash tools/sweep/run_all.sh          # everything, ~45 min (migrations 3, seed 250x 1, replays 9, probers 7, injection 2, options 8, generators 1)
     bash tools/sweep/run_all.sh quick    # static only, ~1 min, needs the local database from an earlier full run
 
 | Script | Step | What it does |
@@ -15,6 +15,12 @@ Read-only against the live project (live row counts and the portal's response he
 | `smart.py` | 3 | SMART engine: `smart_queue` per rung, triggers on filing, snapshot refresh, watcher, proof that filing survives a broken engine, grow-only tables. |
 | `standards.py` | 4 | Live portal headers/cookies, Edge Functions vs config.toml, migration hygiene and numbering gaps, pgTAP coverage map, secrets scan (file:line only). |
 | `detectors.py` | 7 | Six detectors: lifecycle, producer/consumer, request/decision symmetry, author-admitted gaps, role symmetry, doc vs code. |
+| `callgraph.py` | R2-1 | Strict caller cross-check of every API-callable function (clients, other functions, triggers, policies, cron): ORPHAN / DB-ONLY / CLIENT lists, calls to missing functions. |
+| `probe_db.sh`, `probe.py`, `sql/probe_setup.sql` | R2-2 | Dynamic probers on a small throwaway database: every API function driven as 11 actors in 11 case states x 3 handling variants; real status transition matrix, role x action matrix, who each notice reaches and whether they can open the case. |
+| `inject.py` | R2-2d | Failure injection: SMART scoring/triage/event log, notification trigger, push, secrets vault, status-log chain made to raise; do the presses survive, is the failure recorded. |
+| `markers.py` | R2-4 | Judges author-admitted gap markers against the current schema (still true / no longer true / noise / needs a human). |
+| `fix/gen_*.py` | R2-5 | Class A fix generators: DRAFT migrations in `supabase/drafts/` (never `supabase/migrations/`) + a test proven failing-before/passing-after on a scratch database. |
+| `exp_case_rule.py` | R2-5 | K-04 options (inline policy, materialised visibility, indexes) timed at 1x/50x/250x with a same-cases proof. |
 | `ledger.py` | 5 | Rebuilds the AUTO block of `docs/sweep/GAP_LEDGER.md` with A/B/C classes. |
 
 Needs: PostgreSQL 16 + PostGIS binaries (`PGBIN`; on Windows the EDB zip plus the OSGeo PostGIS bundle), PostgREST 12 (`PGRST_BIN`, needs libpq on PATH),

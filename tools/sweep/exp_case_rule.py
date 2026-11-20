@@ -12,6 +12,11 @@ OPTS = {
     "B inline policy + one-per-query initplans": """
 create or replace function public._my_committee() returns text language sql stable security definer set search_path = public as
 $$ select u.committee from public.users u where u.id = auth.uid() and u.role = 'admin' and not coalesce(u.is_suspended, false) $$;
+create or replace function public._my_categories() returns public.complaint_category[] language sql stable security definer set search_path = public as
+$$ select coalesce(array(select cc.category from public.users u join public.committees c on c.key = u.committee and c.active join public.committee_categories cc on cc.committee = c.key
+        where u.id = auth.uid() and u.role = 'admin' and not coalesce(u.is_suspended, false)), '{}') $$;
+create or replace function public._my_concern_reports() returns setof uuid language sql stable security definer set search_path = public as
+$$ select rc.report_id from public.report_concerns rc where rc.category = any (coalesce(public._my_categories(), '{}'::public.complaint_category[])) $$;
 drop policy reports_resident_read on public.reports;
 create policy reports_resident_read on public.reports for select using (
   deleted_at is null and (
@@ -20,7 +25,8 @@ create policy reports_resident_read on public.reports for select using (
     or exists (select 1 from public.dispatches d where d.report_id = reports.id and d.tanod_id = (select auth.uid()))
     or ((select public.admin_tier()) = 'committee' and (case when coalesce(awaiting_placement, false) then false
           when committee is not null then (committee = (select public._my_committee()) or handler_id = (select auth.uid()))
-          else public.admin_sees_case(id, category, handler_id) end))
+          else (category = any (coalesce((select public._my_categories()), '{}'::public.complaint_category[])) or handler_id = (select auth.uid())
+                or id in (select public._my_concern_reports())) end))
     or ((select public.admin_tier()) = 'moderator' and (handler_id = (select auth.uid()) or assigned_to = (select auth.uid())
           or exists (select 1 from public.case_handler_log l where l.report_id = reports.id and l.admin_id = (select auth.uid()) and l.action in ('take', 'take_over', 'accept'))))))""",
     "C materialised visibility table": """
@@ -72,7 +78,7 @@ def main():
     P = [f"{PGBIN}/psql{EXE}", "-h", "127.0.0.1", "-p", PORT, "-U", "postgres", "-X", "-q", "-d", "postgres", "-c"]
     subprocess.run(P + ["drop database if exists sweep_exp"]); subprocess.run(P + ["create database sweep_exp template postgres"], check=True)
     orig = psql("select qual from pg_policies where tablename = 'reports' and policyname = 'reports_resident_read'", db=DB, raw=True).strip()
-    restore = f"drop policy if exists reports_resident_read on public.reports; create policy reports_resident_read on public.reports for select using ({orig}); {TEAR}; drop function if exists public._my_committee()"
+    restore = f"drop policy if exists reports_resident_read on public.reports; create policy reports_resident_read on public.reports for select using ({orig}); {TEAR}; drop function if exists public._my_committee(); drop function if exists public._my_concern_reports(); drop function if exists public._my_categories()"
     res, same, apply_s = {}, {}, {}
     for label, keep in (("250x (20,000 cases)", 20000), ("50x (4,000)", 4000), ("1x (82)", 82)):
         if keep < 20000:

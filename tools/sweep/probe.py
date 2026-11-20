@@ -284,6 +284,7 @@ def cmd_report():
     for text, fn, a, exp in claims:
         got = RA.get(fn, {}).get(a)
         if got is None: contra.append(f"doc claim '{text}' could not be tested ({fn} not probed)")
+        elif exp == "ok" and got == "invalid": contra.append(f"(not proven) doc says '{text}': {fn} as {a} reached validation but a precondition of the fixture blocked it")
         elif (exp == "ok" and got != "ok") or (exp == "denied" and got == "ok"):
             contra.append(f"doc says '{text}' but probe: {fn} as {a} = {got}")
     # ---- (c) notice reach

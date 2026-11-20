@@ -25,7 +25,14 @@ if [ "$mode" != "quick" ]; then
   step "load cost and SMART at 1x and 250x"; python loadcost.py --scales 1,250
 fi
 step "SMART engine"; python smart.py
+step "callers (strict cross-check)"; python callgraph.py | head -4
+if [ "$mode" != "quick" ]; then
+  step "dynamic probers (small database: fixtures, every function as every role, failure injection)"
+  bash probe_db.sh && python probe.py run && python probe.py report | grep -E "^(PROBE|\(a\)|\(b\)|\(c\))|FINDING|DOC vs" && python inject.py | tail -12
+fi
 step "detectors"; python detectors.py
 step "standards"; python standards.py
+step "author-admitted markers"; python markers.py | head -1
 step "ledger"; python ledger.py
-[ -d fix ] && { step "fix generators (drafts only, never applied)"; for g in fix/gen_*.py; do python "$g" --check || true; done; }
+[ -d fix ] && { step "fix generators (DRAFTS in supabase/drafts, never applied; each proves failing-before/passing-after on a scratch database)"; for g in fix/gen_*.py; do python "$g" || true; done; }
+[ "$mode" != "quick" ] && { step "options for the case rule at 1x/50x/250x"; python exp_case_rule.py | tail -22; }
