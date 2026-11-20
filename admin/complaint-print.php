@@ -37,7 +37,7 @@ try {
         'media' => ['report_media', [
             'select'    => 'media_url,mime_type',
             'report_id' => 'eq.' . $id,
-            'order'     => 'created_at.asc',
+            'order'     => 'uploaded_at.asc',
         ], true],
     ]);
     $report = $got['report'][0] ?? null;
