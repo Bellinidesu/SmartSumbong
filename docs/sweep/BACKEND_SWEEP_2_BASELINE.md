@@ -44,7 +44,7 @@ Fix class (open rows): **A mechanical 37, B needs one decision 92, C look/front 
 12. **Test coverage**: 57 API-callable functions are never named in a test (the generated skeleton already finds the 3 anon-executable trigger functions); 15 RLS tables have no test.
 13. **Baseline out of date** (README says 0176, migrations run to 0184): `bash supabase/baseline/build.sh`. Class A.
 14. **Direct table writes from the portal**: 34 sites (settings, wording, barangay_profile, certificate status_logs...) rely on grants + RLS alone. Low; A after a human look at each.
-15. **`request_retirement` also succeeded for staff** (a tanod function) and only super can `request_ocr_rescan`: confirm intent (`options/B-request-decision.md`).
+15. `request_retirement` succeeds for staff: intended (0166, confirmed by Ace 20 Nov). Only super can `request_ocr_rescan`: confirm intent (`options/B-request-decision.md`).
 
 ## What the probers found that the text detectors missed or got wrong
 
@@ -95,7 +95,7 @@ Not drafted on purpose: the case-rule policy (core visibility rule).
 
 ## Decisions after round 2 (Ace, 20 Nov)
 
-K-04 = option B, but as a separate careful round (not started). K-01 = option B: the reopen button/answer card is front end (class C, Rose; ledger K-06). Notification failures: isolate (K-11, draft 0188 next). Staff retirement rule: left as is (0166), confirm with Rose (K-10).
+K-04 = option B, but as a separate careful round (not started). K-01 = option B: the reopen button/answer card is front end (class C, Rose; ledger K-06). Notification failures: isolate (K-11, draft 0188 next). Staff retirement rule: confirmed by Ace, staff may request retirement (0166), no change (K-10).
 
 ## Coverage
 

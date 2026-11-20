@@ -8,7 +8,7 @@ Evidence: probe.py (who can request, who can decide, who is told back) and detec
 | appeal | resident | `appeal_report` (Kagawad, staff, super) | yes (resident) | the request notice has no report_id (0185) |
 | more details | Kagawad, staff, super, tanod | the resident (`submit_additional_details`) | the asking admin and the tanod are told | no way to withdraw the request |
 | forward flag | staff | `forward_case` (Kagawad, super) tells the receiving committee; `dismiss_forward_flag` not exercised by the fixtures | staff told on dismiss (from migration 0152 text, not probed) | none proven |
-| retirement | tanod (and, oddly, staff: `request_retirement` succeeded for stf1/stf2) | `finalize_retirement` (super) tells the tanod; `endorse_retirement` not exercised | yes | confirm staff should not be able to request (a tanod function) |
+| retirement | tanod (and, oddly, staff: `request_retirement` succeeded for stf1/stf2) | `finalize_retirement` (super) tells the tanod; `endorse_retirement` not exercised | yes | intended: staff may request (0166, confirmed by Ace 20 Nov) |
 | escalation | tanod | `approve_escalation` / `deny_escalation` (Kagawad, staff, super) | yes (tanod, resident on approval) | none |
 | profile change | resident | `decide_profile_request` (super only) tells the resident | yes | the request function could not be probed (argument shapes), nothing found |
 | ocr rescan | super only (`request_ocr_rescan`) | none (the resident re-uploads) | resident sees a banner | by design; a Kagawad cannot ask |
