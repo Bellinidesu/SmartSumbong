@@ -241,7 +241,7 @@ for jn in sorted(set(re.findall(r"`([a-z]+(?:-[a-z]+)+)`", docs.get("OPERATIONS.
         add("D6", "docs/OPERATIONS.md|DEPLOY.md", f"names scheduled job `{jn}`, which is not scheduled in the migrations", "low", "doc-drift")
 for m in re.finditer(r"^\|\s*`?([A-Z][A-Z0-9_]{3,})`?\s*\|", docs["DEPLOY.md"], re.M):
     v = m.group(1)
-    if not re.search(r"['\"]" + v + r"['\"]|env\(\s*['\"]" + v + r"|Deno\.env\.get\(['\"]" + v, CODE_ALL) and not re.search(v, read(ROOT / "docker-entrypoint.sh") + read(ROOT / "Dockerfile")):
+    if not re.search(r"['\"]" + v + r"['\"]|env\(\s*['\"]" + v + r"|Deno\.env\.get\(['\"]" + v, CODE_ALL) and not re.search(v, read(ROOT / "docker-entrypoint.sh") + read(ROOT / "Dockerfile") + chr(10).join(read(f) for f in (ROOT / ".github" / "workflows").glob("*.yml"))):   # GitHub workflow secrets (BACKUP_PASSPHRASE, HEALTHCHECKS_BACKUP_URL) are used by .github/workflows
         add("D6", "DEPLOY.md", f"lists setting {v}, which no code reads", "low", "doc-drift")
 tm = re.search(r"Sixty-one|(\w+)-one scripts", read(ROOT / "supabase/tests/README.md"))
 nt = len(list((ROOT / "supabase/tests").glob("[0-9][0-9]_*.sql")))
