@@ -12,7 +12,8 @@ def timed(sql, runs=3, role_user=None):
     """best-of-N wall ms of a statement, inside a rolled-back DO block, optionally as the API's role."""
     setup = ""
     if role_user:
-        setup = f"set local role authenticated; select set_config('request.jwt.claim.sub', (select id::text from public.users where full_name = '{role_user}'), true);"
+        uid = psql(f"select id from public.users where full_name = '{role_user}'")[0][0]
+        setup = f"set local role authenticated; select set_config('request.jwt.claim.sub', '{uid}', true);"
     best = None
     for _ in range(runs):
         t = psql(f"begin; {setup} select 1; explain (analyze, timing on, summary on) {sql}; rollback;", raw=True)

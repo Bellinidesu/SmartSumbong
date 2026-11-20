@@ -13,7 +13,8 @@ case "${1:-up}" in
 esac
 "$PGBIN/pg_ctl$EXE" -D "$DIR" stop -m immediate >/dev/null 2>&1; rm -rf "$DIR"
 "$PGBIN/initdb$EXE" -D "$DIR" -A trust -U postgres -E UTF8 >/dev/null || exit 1
-printf "port=%s\nlisten_addresses='127.0.0.1'\nfsync=off\nsynchronous_commit=off\nfull_page_writes=off\nshared_buffers=512MB\nmax_connections=60\nshared_preload_libraries='pg_stat_statements'\n" "$PORT" >> "$DIR/postgresql.conf"
+printf "port=%s\nlisten_addresses='127.0.0.1'\nfsync=off\nsynchronous_commit=off\nfull_page_writes=off\nshared_buffers=512MB\nmax_connections=60
+max_locks_per_transaction=4000\nshared_preload_libraries='pg_stat_statements'\n" "$PORT" >> "$DIR/postgresql.conf"
 "$PGBIN/pg_ctl$EXE" -D "$DIR" -l "$DIR/log" -w start >/dev/null || { cat "$DIR/log"; exit 1; }
 "${PSQL[@]}" -d postgres -c 'alter database postgres set search_path = "$user", public, extensions' || exit 1
 sed -e '/^create extension pg_cron;/d' "$root/supabase/tests/local/supabase_stub.sql" > "$DIR/stub.sql"

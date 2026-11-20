@@ -158,9 +158,7 @@ for fn, body in sorted(BODY.items()):
         cols_, stmt = m.group(1), m.group(2)
         every_admin = re.search(r"role\s*=\s*'admin'", stmt) and not re.search(r"sees|committee|handler|admin_tier|assigned|scope|is_full_viewer|tier", stmt, re.I)
         if every_admin and "report_id" not in cols_:
-            add("D3", where_def(fn), f"{fn}() tells EVERY active admin with no report_id and no visibility filter (the notice has no Review button and reaches admins who cannot open the case)", "high" if fn.startswith("request_") else "medium", "notice-scope")
-        elif every_admin:
-            add("D3", where_def(fn), f"{fn}() tells every active admin with no visibility filter (some may not be allowed to open the case)", "medium", "notice-scope")
+            add("D3", where_def(fn), f"{fn}() tells EVERY active admin with no report_id and no visibility filter (the notifications_scope trigger only filters notices that carry a report_id, so this one reaches admins who cannot open the case and has no Review button)", "high" if fn.startswith("request_") else "medium", "notice-scope")
         elif "report_id" not in cols_ and re.search(r"p_report", sig) and not fn.startswith("_"):
             add("D3", where_def(fn), f"{fn}() writes a notice about a case without report_id (no Review button, cannot be scoped to who may see the case)", "low", "notice-report-id")
 # reverse: functions that tell a resident something about a case but are admin actions with no log of who
@@ -198,10 +196,10 @@ lc = (OUT / "loadcost_1x.json")
 refused = defaultdict(set)
 if lc.exists():
     for r in json.loads(read(lc)):
-        if r["role"] in ("super", "captain", "committee", "moderator") and r["code"] in (401, 403) or (r["code"] == 400 and "msg" in r):
+        if r["role"] in ("super", "captain", "committee", "moderator") and (r["code"] in (401, 403) or (r["code"] in (400, 404) and re.search(r"permission|not allowed|only .*(admin|super)|forbidden|must be an? ", r.get("msg", ""), re.I))):
             allowed = page_tiers.get(r["page"], ["super", "captain", "committee", "moderator"])
             if r["role"] in allowed:
-                refused[(r["page"], r["role"])].add(r["q"][14:70])
+                refused[(r["page"], r["role"])].add(r["q"].split("rpc/")[-1].split("?")[0][:40])
 for (pg, role), qs in sorted(refused.items()):
     add("D5", f"admin/includes/access.php {pg}", f"{role} may open {pg} but {len(qs)} of its backend calls are refused for that role (e.g. {sorted(qs)[0]})", "medium", "role-asymmetry")
 # actions: functions callable only by one tier (tier checks in the body) that other tiers' pages call

@@ -42,7 +42,9 @@ begin
   select array_agg(id) into tan from public.users where role = 'tanod' and full_name like 'Sweep%';
   select array_agg(id) into stf from public.users where admin_tier = 'moderator' and full_name like 'Sweep%';
   select array_agg(id) into kag from public.users where admin_tier = 'committee' and full_name like 'Sweep%';
-  -- 3. cases (SMART triage trigger stays ON: filing cost is part of what is measured)
+  -- 3. cases. Bulk history is loaded with the triage trigger OFF (as supabase/tests/perf does; scoring 20,000 rows one by one is O(n^2) on nearby
+  -- reports); the engine's own filing cost is measured separately by smart.py, and the newest open cases are triaged below.
+  alter table public.reports disable trigger reports_smart_triage;
   select count(*) into have_c from public.reports where subject like 'Sweep case %';
   insert into public.reports (resident_id, category, subject, description, latitude, longitude, status, created_at, is_public)
   select res[1 + (g % array_length(res, 1))], cats[1 + (g % 7)]::public.complaint_category, 'Sweep case ' || g,
@@ -50,6 +52,9 @@ begin
          14.5165 + ((g * 37) % 100 - 50) / 20000.0, 121.0162 + ((g * 53) % 100 - 50) / 20000.0,
          sts[1 + g % 10]::public.report_status, now() - make_interval(hours => (g * 7919) % 17500), (g % 4 = 0)
     from generate_series(have_c + 1, n_cases) g;
+  alter table public.reports enable trigger reports_smart_triage;
+  perform public.smart_triage(id) from (select id from public.reports where subject like 'Sweep case %' and status in ('pending_review','validated','in_progress')
+     and not exists (select 1 from public.report_triage t where t.report_id = id) order by created_at desc limit 3000) x;
   -- handlers / assignments / dispatches / logs / notifications for the new cases (superuser writes: nothing here is a user path)
   update public.reports r set handler_id = kag[1 + (abs(hashtext(r.id::text)) % array_length(kag, 1))], handled_since = r.created_at
    where r.subject like 'Sweep case %' and r.handler_id is null and r.status in ('validated','in_progress','resolved','closed') and array_length(kag, 1) > 0;

@@ -94,24 +94,33 @@ def measure(scale, budget):
                 rows.append((page, tier, m, u, pref, body, tok))
     for role, qs in app_catalogue(me, cases["super"][0][0]).items():
         for pg, m, u, pref in qs: rows.append((pg, role, m, u, pref, "", jwt(me[role])))
-    res, seen = [], set()
+    # one replay per distinct (role, request); the answer counts for every page that makes it. A time budget keeps the run bounded.
+    uniq = {}
     for page, tier, m, u, pref, body, tok in rows:
-        if (page, tier, m, u, body) in seen: continue
-        seen.add((page, tier, m, u, body))
-        code, ms, data = call(m, u, tok, body or None, pref)
+        uniq.setdefault((tier, m, u, body), [pref, tok, []])[2].append(page)
+    deadline = time.time() + float(os.environ.get("SWEEP_REPLAY_BUDGET_S", "540")); skipped = 0
+    res = []
+    for (tier, m, u, body), (pref, tok, pgs) in uniq.items():
+        if time.time() > deadline:
+            skipped += 1; continue
+        code, ms, data = call(m, u, tok, body or None, pref, timeout=30)
         exe, seq = None, []
         if m == "GET" and code == 200 and ms > 8:
-            c2, ms2, d2 = call("GET", u, tok, prefer=pref, plan=True)
+            c2, ms2, d2 = call("GET", u, tok, prefer=pref, plan=True, timeout=30)
             if c2 == 200:
                 try:
                     pl = json.loads(d2)[0]; exe = round(pl.get("Execution Time", 0), 1); scans(pl.get("Plan"), seq)
                 except Exception: pass
-        res.append({"page": page, "role": tier, "method": m, "q": re.sub(r"\s+", " ", u)[:170], "code": code, "wall_ms": round(ms, 1), "db_ms": exe if exe is not None else round(ms, 1), "seq": [s for s in seq if s[1] > 2000][:3]})
+        for page in pgs:
+            res.append({"page": page, "role": tier, "method": m, "q": re.sub(r"\s+", " ", u)[:170], "code": code, "msg": (data[:140].decode("utf-8", "replace") if code >= 400 and isinstance(data, bytes) else ""), "wall_ms": round(ms, 1), "db_ms": exe if exe is not None else round(ms, 1), "seq": [x for x in seq if x[1] > 2000][:3]})
+    if skipped: print(f"  replay budget reached at {scale}x: {skipped} of {len(uniq)} distinct requests not replayed")
     save(f"loadcost_{scale}x.json", res)
     return res
 
 
 def main():
+    if "--summary" in sys.argv:
+        return summary(None, float(sys.argv[sys.argv.index("--budget") + 1]) if "--budget" in sys.argv else 200.0)
     scales = [int(x) for x in (sys.argv[sys.argv.index("--scales") + 1] if "--scales" in sys.argv else "1,250").split(",")]
     budget = float(sys.argv[sys.argv.index("--budget") + 1]) if "--budget" in sys.argv else 200
     p = start_postgrest(); out = {}
@@ -132,7 +141,12 @@ def main():
             print(f"scale {sc}x: seeded in {seed_s}s, {len(out[sc])} requests replayed")
     finally:
         p.terminate()
-    # aggregate
+    summary(out, budget)
+
+
+def summary(out=None, budget=200.0):
+    if out is None:
+        out = {int(f.stem.split("_")[1][:-1]): json.load(open(f)) for f in OUT.glob("loadcost_*x.json")}
     agg = defaultdict(lambda: {"n": 0, "sum": 0.0, "max": 0.0, "slow": ""})
     for sc, rows in out.items():
         for r in rows:
@@ -154,6 +168,8 @@ def main():
         for t, n in r["seq"]: seqs[t] += 1
     print("seq scans over 2,000 rows at %dx (table: queries): " % big + ", ".join(f"{t}:{n}" for t, n in sorted(seqs.items(), key=lambda x: -x[1])[:8]))
     save("loadcost.json", {"top": [r for _, r in top], "pages_over_budget": [{"page": k[1], "role": k[2], "ms": round(s)} for s, k in over], "chatty": [{"page": k[1], "role": k[2], "n": n} for n, k in chatty]})
+
+
 
 
 if __name__ == "__main__":
