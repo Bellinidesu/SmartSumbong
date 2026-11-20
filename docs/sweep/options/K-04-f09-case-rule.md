@@ -62,7 +62,7 @@ unchanged: guards, notices and the queue still use them one case at a time. The 
 - **Every replayed page request**: `loadcost.py --compare 1,50,250` replays the 2,422 captured portal and app requests as each rung through PostgREST before and
   after 0189 at each scale; every GET answered by both gives the same rows (order-free digest): see the timing table.
 
-**Old behaviour kept identical on purpose (looks odd; not fixed here; each is a separate decision)**:
+**Old behaviour kept identical on purpose in 0189 (items 1-4 were fixed by 0191, applied live 21 Nov; item 5 was fixed in 0189)**:
 1. The rows hanging off a **deleted** case (status logs, notices, messages, media, dispatches...) stay readable to the Kagawad/staff who could read the case:
    `admin_sees_report` never looked at `deleted_at` (only `reports` itself hides deleted cases).
 2. `_user_sees_case` reads the rung from `users` without the retired check that `admin_tier()` has, so a **retired** (not suspended) Kagawad or staff member still

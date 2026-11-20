@@ -1,4 +1,4 @@
--- 67_case_rule_equivalence.sql: who reads which case, and every row hanging off it, is exactly the 0175 rule (K-04, 20 Nov 2026). Rolled back.
+-- 67_case_rule_equivalence.sql (updated for 0191, applied 21 Nov 2026): who reads which case, and every row hanging off it, is exactly the 0175 rule (K-04, 20 Nov 2026). Rolled back.
 -- Passes on the per-row policies (0001-0188) and on 0189's set-based ones; fails on a rule that drifts from _user_sees_case in any branch.
 -- The oracle is _user_sees_case(person, case, ...) itself (0189 does not touch it), checked per person and per table as the API's own role,
 -- plus named cases so a wrong oracle cannot hide a mistake, and a revoked assignment that must count from the very next statement.
@@ -118,7 +118,7 @@ begin
     perform set_config('request.jwt.claim.sub', kA::text, true);
     execute 'set local role authenticated';
     select string_agg(tracking_id, ',' order by tracking_id) into s from public.reports where tracking_id like 'RULE-%';
-    if s is distinct from 'RULE-01,RULE-02,RULE-05,RULE-09,RULE-11' then raise exception 'Kagawad A reads %', s; end if;
+    if s is distinct from 'RULE-01,RULE-02,RULE-04,RULE-05,RULE-09,RULE-11' then raise exception 'Kagawad A reads %', s; end if;
     perform set_config('request.jwt.claim.sub', sA::text, true);
     select string_agg(tracking_id, ',' order by tracking_id) into s from public.reports where tracking_id like 'RULE-%';
     if s is distinct from 'RULE-04,RULE-06,RULE-07' then raise exception 'staff A reads %', s; end if;
@@ -135,12 +135,12 @@ begin
     perform set_config('request.jwt.claim.sub', sup::text, true);
     if (select count(*) from public.reports where tracking_id like 'RULE-%') <> 11 then raise exception 'the super admin does not read every live case'; end if;
     perform set_config('request.jwt.claim.sub', kA::text, true);
-    if (select count(*) from public.status_logs where report_id = c_del) <> 1 then raise exception 'Kagawad A lost the log of a deleted case of theirs'; end if;
+    if (select count(*) from public.status_logs where report_id = c_del) <> 0 then raise exception 'Kagawad A still reads the log of a deleted case (0191: hidden)'; end if;
     if not exists (select 1 from public.users where id = res2) then raise exception 'Kagawad A cannot read the reporter of a case they handle'; end if;
     perform set_config('request.jwt.claim.sub', sA2::text, true);
     if exists (select 1 from public.users where id = res) then raise exception 'staff A2 reads a resident they have no case of'; end if;
     execute 'reset role';
-    v_log := v_log || E'\n' || 'ok  named cases: a Kagawad reads no-committee cases of their categories, forwarded-in, handled and concern cases, never forwarded-away or waiting ones; staff only assigned, handled and accepted-before (not declined); suspended and retired read none';
+    v_log := v_log || E'\n' || 'ok  named cases: a Kagawad reads no-committee cases of their categories, forwarded-in, handled and concern cases, never forwarded-away ones, nor waiting ones of someone else (their own waiting case, yes: 0191); the rows of a deleted case are hidden; staff only assigned, handled and accepted-before (not declined); suspended and retired read none';
   exception when others then reset role; v_log := v_log || E'\n' || 'FAIL named: ' || sqlerrm; end;
 
   -- 3. nothing is remembered between statements: a revoked assignment and a forward away count from the very next statement
