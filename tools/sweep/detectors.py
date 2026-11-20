@@ -117,7 +117,7 @@ for fn, body in BODY.items():
             break
 bysilent = [s for s in swallow if not s[2]]
 trig = {r[0] for r in psql("select p.proname from pg_trigger t join pg_proc p on p.oid = t.tgfoid where not t.tgisinternal")}
-intentional = re.compile(r"^(_?notify|_?push|smart_|_smart|_ws_|_command_auto|_ask_if|run_media|ping_portal|_?places_|_log_)")
+intentional = re.compile(r"^(file_report|_?notify|_?push|smart_|_smart|_ws_|_command_auto|_ask_if|run_media|ping_portal|_?places_|_log_)")
 for fn, h, lg in sorted(set(bysilent)):
     note = "best-effort side effect (notice/engine/push): fine, but nothing records that it failed" if intentional.match(fn) else "a real action may fail silently: review"
     add("D2", where_def(fn), f"{fn}() swallows errors ('{h}') without logging; {note}" + (" [trigger function]" if fn in trig else ""), "medium" if not intentional.match(fn) else "low", "log-instead-of-swallow")
@@ -168,7 +168,7 @@ STRONG = re.compile(r"\b(not added|deliberately not|todo|fixme|parked|out of sco
 hits = []
 roots = [("supabase/migrations", "*.sql"), ("docs", "*.md"), ("admin", "*.php"), ("supabase/functions", "*.ts"), ("mobile/resident/lib", "*.dart"), ("DEPLOY.md", None), ("README.md", None)]
 for base, pat in roots:
-    paths = [ROOT / base] if pat is None else [p for p in (ROOT / base).rglob(pat) if "vendor" not in p.parts and "changes" not in p.parts and "node_modules" not in p.parts]
+    paths = [ROOT / base] if pat is None else [p for p in (ROOT / base).rglob(pat) if "vendor" not in p.parts and "changes" not in p.parts and "sweep" not in p.parts and "node_modules" not in p.parts]
     for p in paths:
         for i, line in enumerate(read(p).splitlines(), 1):
             if MARK.search(line) and not re.search(r"to-?do list|todo_|updated_at|\blater than\b|\blater\b.*\bthan\b|(?<![a-z])Later\)", line):

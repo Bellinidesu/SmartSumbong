@@ -82,7 +82,7 @@ for p in pages:
           "csrf": "csrf_check" in alltext}
     res[p] = {"rpc": sorted(agg["rpc"]), "read": sorted(agg["read"]), "write": [list(w) for w in agg["write"]],
               "edge": sorted(agg["edge"]), "presses": pr, "includes": len(parts) - 1}
-    if pr["post_handler"] and not pr["csrf"] and p not in ("login.php", "forgot-password.php", "reset-password.php", "request-access.php"):
+    if pr["post_handler"] and POST.search(files[p]) and not pr["csrf"] and p not in ("login.php", "forgot-password.php", "reset-password.php", "request-access.php"):
         viol["no_csrf_post_handler"].append(p)
 
 seen_w = set()

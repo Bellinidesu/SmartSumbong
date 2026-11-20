@@ -153,11 +153,15 @@ def summary(out=None, budget=200.0):
             a = agg[(sc, r["page"], r["role"])]; a["n"] += 1; a["sum"] += r["db_ms"]
             if r["db_ms"] >= a["max"]: a["max"] = r["db_ms"]; a["slow"] = r["q"]
     big = max(out)
-    top = sorted([(r["db_ms"], r) for r in out[big]], key=lambda x: -x[0])[:15]
-    small = {(r["page"], r["role"], r["q"]): r["db_ms"] for r in out.get(1, [])}
-    print(f"TOP 15 slowest queries (db ms at {big}x / at 1x):")
+    grp = {}
+    for r in out[big]:
+        g = grp.setdefault((r["role"], r["q"]), dict(r, pages=set()))
+        g["pages"].add(r["page"])
+    top = sorted([(g["db_ms"], g) for g in grp.values()], key=lambda x: -x[0])[:15]
+    small = {(r["role"], r["q"]): r["db_ms"] for r in out.get(1, [])}
+    print(f"TOP 15 slowest distinct queries (db ms at {big}x / at 1x; 30000 = hit the 30 s replay timeout):")
     for ms, r in top:
-        print(f"  {ms:8.1f} / {small.get((r['page'], r['role'], r['q']), '-')!s:>6}  {r['page']:<24}{r['role']:<10}{r['q'][:90]}" + (f"  SEQ{r['seq']}" if r["seq"] else ""))
+        print(f"  {ms:8.1f} / {small.get((r['role'], r['q']), '-')!s:>6}  {r['role']:<10}{len(r['pages']):>3} pages  {r['q'][14:100]}" + (f"  SEQ{r['seq']}" if r["seq"] else ""))
     over = sorted([(a["sum"], k) for k, a in agg.items() if k[0] == big and a["sum"] > budget], reverse=True)
     pg = [f"{k[1]}/{k[2]} {s:.0f}ms({agg[k]['n']} req)" for s, k in over]
     print(f"PAGES over {budget:.0f} ms of db time at {big}x: {len(over)} of {sum(1 for k in agg if k[0] == big)}: " + "; ".join(pg[:12]))
@@ -167,7 +171,7 @@ def summary(out=None, budget=200.0):
     for r in out[big]:
         for t, n in r["seq"]: seqs[t] += 1
     print("seq scans over 2,000 rows at %dx (table: queries): " % big + ", ".join(f"{t}:{n}" for t, n in sorted(seqs.items(), key=lambda x: -x[1])[:8]))
-    save("loadcost.json", {"top": [r for _, r in top], "pages_over_budget": [{"page": k[1], "role": k[2], "ms": round(s)} for s, k in over], "chatty": [{"page": k[1], "role": k[2], "n": n} for n, k in chatty]})
+    save("loadcost.json", {"top": [dict({k: v for k, v in r.items() if k != "pages"}, page=",".join(sorted(r["pages"]))[:60]) for _, r in top], "pages_over_budget": [{"page": k[1], "role": k[2], "ms": round(s)} for s, k in over], "chatty": [{"page": k[1], "role": k[2], "n": n} for n, k in chatty]})
 
 
 
