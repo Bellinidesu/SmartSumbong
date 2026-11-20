@@ -1,4 +1,4 @@
--- DRAFT: not applied until Ace says apply 0191
+-- 0191: applied to the live project on 21 Nov 2026 after Ace said apply 0191; undo: supabase/drafts/0191_undo.sql
 -- 0191_case_rule_consistency: the case rule: deleted cases, retired admins, switched-off committees, awaiting placement (four intended changes)
 --
 -- Ace, 21 Nov 2026: the recommendation on the four old behaviours of the case rule, one migration. Everything else about who sees what is unchanged.

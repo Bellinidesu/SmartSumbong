@@ -1,4 +1,4 @@
--- 71_case_rule_consistency.sql (DRAFT test for 0191; moves to supabase/tests/ when Ace says apply 0191). Rolled back.
+-- 71_case_rule_consistency.sql (test for 0191, applied 21 Nov 2026). Rolled back.
 -- The four intended changes, each against an unchanged baseline: fails before 0191, passes after. (The 0189 equivalence stays pgTAP 67's.)
 do $sweep$
 declare

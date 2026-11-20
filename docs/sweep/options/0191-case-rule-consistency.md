@@ -1,7 +1,7 @@
-# 0191 case_rule_consistency (DRAFT, not applied): the four old behaviours of the case rule
+# 0191 case_rule_consistency (applied live 21 Nov): the four old behaviours of the case rule
 
-Ace, 21 Nov: "do the recommendation". One migration, `supabase/drafts/0191_case_rule_consistency.sql` (undo: `0191_undo.sql`, tested; test `tests/71_case_rule_consistency.test.sql`;
-updated test 67 in `tests/67_case_rule_equivalence.test.sql`, which replaces the one in `supabase/tests/` when 0191 is applied). The per-case function and the 0189 set helpers move together.
+Ace, 21 Nov: "do the recommendation". One migration, `supabase/migrations/0191_case_rule_consistency.sql` (undo: `supabase/drafts/0191_undo.sql`, tested; test `supabase/tests/71_case_rule_consistency.sql`;
+updated test `supabase/tests/67_case_rule_equivalence.sql`). The per-case function and the 0189 set helpers move together.
 
 | # | Change | Where |
 |---|---|---|
