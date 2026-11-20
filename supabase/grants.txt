@@ -44,6 +44,13 @@ fn _look_share_notice() anon=- authenticated=-
 fn _mail_may_send(p_from uuid, p_to uuid) anon=- authenticated=-
 fn _main_concern() anon=- authenticated=-
 fn _may_take_over(p_me uuid, p_handler uuid) anon=- authenticated=-
+fn _my_categories() anon=- authenticated=call
+fn _my_committee() anon=- authenticated=call
+fn _my_concern_case_ids() anon=- authenticated=call
+fn _my_handled_case_ids() anon=- authenticated=call
+fn _my_scoped_case_ids() anon=- authenticated=call
+fn _my_scoped_dispatch_ids() anon=- authenticated=call
+fn _my_scoped_resident_ids() anon=- authenticated=call
 fn _notifications_scope() anon=- authenticated=-
 fn _notify_admins(p_message text, p_subject uuid) anon=- authenticated=-
 fn _notify_committee_heads(p_committee text, p_report uuid, p_kind text, p_message text) anon=- authenticated=call
