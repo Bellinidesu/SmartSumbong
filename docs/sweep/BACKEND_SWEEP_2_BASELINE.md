@@ -93,6 +93,10 @@ Options files (no migration until Ace picks): `K-01-reopen-flow`, `K-04-f09-case
 Not drafted on purpose: the case-rule policy (core visibility rule).
 
 
+## Decisions after round 2 (Ace, 20 Nov)
+
+K-04 = option B, but as a separate careful round (not started). K-01 = option B: the reopen button/answer card is front end (class C, Rose; ledger K-06). Notification failures: isolate (K-11, draft 0188 next). Staff retirement rule: left as is (0166), confirm with Rose (K-10).
+
 ## Coverage
 
 | Scanned | N |

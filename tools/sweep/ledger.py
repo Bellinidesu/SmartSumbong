@@ -25,7 +25,9 @@ KNOWN = [
     ("K-07", "migration 0185 (applied live 20 Nov)", "request_reopen and request_appeal notices now carry report_id: only admins who can open the case are told, with a Review link (probe: 6 told, 4 could not open it).", "high", "fixed live 20 Nov (0185)", None),
     ("K-08", "migration 0186 (applied live 20 Nov)", "34 trigger functions were executable by signed-out/signed-in callers; now 0 of 50 are (none disabled; filing still works).", "medium", "fixed live 20 Nov (0186)", None),
     ("K-09", "migration 0187 (applied live 20 Nov)", "_smart_triage_after_write records engine_error in smart_events; _smart_event is best-effort so a failing log line no longer aborts admin_dispatch.", "medium", "fixed live 20 Nov (0187)", None),
-    ("K-06", "portal case.php (no reopen button)", "The portal has no button for an administrator to reopen a finished case or to answer a resident's reopen request (needs a look change).", "medium", "open", "C-button"),
+    ("K-06", "portal case.php (no reopen button)", "Ace chose K-01 option B: wire reopen_report() plus a decline/answer notice to the resident and a Reopen / Decline card on the case page. The button and card are front end: nothing to build now, waits for Rose.", "medium", "open (Rose, front end)", "C-button"),
+    ("K-10", "docs/ROLES_AND_PAGES.md + 0166", "Staff retirement rule: confirm with Rose. Current behaviour = allowed (0166, Ace 7 Nov: staff may request retirement; the probe saw request_retirement succeed for staff). Left as is.", "info", "open (confirm with Rose)", None),
+    ("K-11", "0188 (planned, notif-isolation)", "A failing notification insert or notification trigger aborts review_report, admin_dispatch, post_report_message and the reopen/appeal requests. Ace: isolate (yes). Draft 0188 comes as a separate small task.", "medium", "open (decided: isolate)", None),
     ("K-05", "branch notices-backend", "Barangay notices backend drafted by an agent on branch notices-backend; paused for the UI freeze.", "info", "paused", None),
 ]
 
