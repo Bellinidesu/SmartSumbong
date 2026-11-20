@@ -19,6 +19,12 @@ def psql(sql, db="postgres", user="postgres", raw=False, setup=""):
     return r.stdout if raw else [l.split("\x1f") for l in r.stdout.splitlines() if l != ""]
 
 
+def psqlj(sql, **kw):
+    """Rows as dicts (JSON through psql), safe for multi-line values such as function bodies."""
+    out = psql("select coalesce(json_agg(t), '[]'::json) from (" + sql + ") t", raw=True, **kw)
+    return json.loads(out)
+
+
 def live(sql):
     """READ-ONLY query on the live project through the linked CLI (SELECT / EXPLAIN only)."""
     if not re.match(r"\s*(select|with|explain|show)\b", sql, re.I) or re.search(r"\banalyze\b|;\s*\S", sql, re.I):

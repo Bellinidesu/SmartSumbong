@@ -19,6 +19,7 @@ printf "port=%s\nlisten_addresses='127.0.0.1'\nfsync=off\nsynchronous_commit=off
 sed -e '/^create extension pg_cron;/d' "$root/supabase/tests/local/supabase_stub.sql" > "$DIR/stub.sql"
 "${PSQL[@]}" -d postgres -f "$DIR/stub.sql" >/dev/null || exit 1
 "${PSQL[@]}" -d postgres -f "$here/sql/cron_stub.sql" >/dev/null || exit 1
+"${PSQL[@]}" -d postgres -c "alter role authenticator inherit" || exit 1   # so a local PostgREST sees the tables
 n=0
 for f in "$root"/supabase/migrations/*.sql; do
   sed -e 's/create extension if not exists pg_cron[^;]*;//I' "$f" > "$DIR/m.sql"
