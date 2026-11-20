@@ -73,7 +73,7 @@ if re.search(r"closed", sa) and "refus" in sa.lower() or re.search(r"status\s+in
     pass
 if "request_reopen" in F and "reopen_report" in F:
     rr = BODY.get("request_reopen", "")
-    add("D1", where_def("request_reopen"), "closed cases cannot be reopened: the resident can ask (request_reopen) but admin_set_status refuses closed/archived cases and reopen_report() is never called", "high", "reopen-flow")
+    add("D1", where_def("request_reopen"), "reopen: the resident can ask (request_reopen) and reopen_report() can reopen a resolved or closed case (proved by probe.py for Kagawad and super), but nothing calls it and admin_set_status refuses closed/archived, so the request has no way to be answered from the portal", "high", "reopen-flow")
 save("lifecycle.json", {k: {"enter": v[0], "leave": v[1]} for k, v in d1.items()})
 
 # ---------------- D2 producer / consumer ----------------

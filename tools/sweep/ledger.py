@@ -18,7 +18,7 @@ KIND = {"reopen-flow": ("B", "options/K-01-reopen-flow.md (button = C)"), "notic
         "author-admitted": ("B", "check still true, then drop or schedule"), "doc-drift": ("A", "fix/gen_docs.py (not built; edit the doc)"), "baseline-stale": ("A", "bash supabase/baseline/build.sh"),
         "missing-index": ("A", "fix/gen_indexes.py"), "revoke-unused": ("A", "fix/gen_revoke_unused.py"), "untested": ("A", "fix/gen_test_skeleton.py"), "C-button": ("C", "options/K-01-reopen-flow.md option B (the button is the front end sweep)"), "perf": ("B", "options/K-04-f09-case-rule.md")}
 KNOWN = [
-    ("K-01", "request_reopen (0037) + reopen_report", "Reopen flow is broken end to end: the notice goes to EVERY active admin with no report_id (no Review button; reaches admins who cannot see the case since 0175), no portal action calls reopen_report(), closed cases cannot be reopened (admin_set_status refuses closed/archived), the resident gets no answer or decline.", "high", "open", "reopen-flow"),
+    ("K-01", "request_reopen (0037) + reopen_report", "Reopen flow is broken end to end: request_reopen (and request_appeal) notify EVERY active admin with no report_id (probe: 6 admins told, 4 of whom cannot see the case, no Review button), reopen_report() works for a Kagawad or super on a resolved or closed case but nothing calls it, admin_set_status refuses closed/archived, and the resident gets no answer or decline.", "high", "open", "reopen-flow"),
     ("K-02", "F07 docs/BACKEND_SWEEP_2026-11.md", "password-otp code fix (F07) deployed 20 Nov.", "info", "done", None),
     ("K-03", "F08 docs/BACKEND_SWEEP_2026-11.md", "Cloudinary secrets are missing from the Edge Function secrets (Ace's to set), so sign-upload/media-cleanup cannot talk to Cloudinary.", "high", "open (Ace)", None),
     ("K-04", "F09 docs/BACKEND_SWEEP_2026-11.md", "Kagawad/staff count(*) over reports takes 7-14 s at 20,000 cases: the case rule (_user_sees_case) runs per row inside the policy. Core rule; options file proposed.", "high", "open", "perf"),
@@ -69,6 +69,34 @@ def rows():
                 bad.setdefault((r["q"].split("?")[0], re.sub(r"\s+", " ", r["msg"])[60:140]), set()).add(r["page"])
         for i, ((q, m), pgs) in enumerate(sorted(bad.items())):
             out.append((f"Q-{i + 1:02d}", f"loadcost.py replay ({', '.join(sorted(pgs))})", f"the page's own query fails against the real schema: {q} -> {m.strip(chr(34) + '}')}. The call is optional, so the page loads but silently loses that data.", "high", "open", "A", "edit the query in the PHP (a one-word fix); not a migration"))
+    cg = OUT / "callgraph.json"
+    if cg.exists():
+        C = json.loads(read(cg)); fs = C["functions"]
+        orph = sorted(n for n, r in fs.items() if r["api_callable"] and r["class"] == "ORPHAN" and r["returns"] != "trigger")
+        dead_trig = sorted(n for n, r in fs.items() if r["api_callable"] and r["class"] == "ORPHAN" and r["returns"] == "trigger")
+        dbo = sorted(n for n, r in fs.items() if r["api_callable"] and r["class"] == "DB-ONLY")
+        out.append(("C-01", "callgraph.py", f"{len(orph)} API-callable functions have no caller of any kind (no client, function, trigger, policy, cron): " + ", ".join(orph), "medium", "open", "B", "options/B-dead-code.md (wire a screen, or revoke)"))
+        if dead_trig: out.append(("C-02", "callgraph.py", f"{len(dead_trig)} trigger functions are attached to no trigger and still granted to the API: " + ", ".join(dead_trig), "low", "open", "A", "fix/gen_revoke_unused.py"))
+        out.append(("C-03", "callgraph.py", f"{len(dbo)} functions are callable by signed-in users although only other database code calls them (internal helpers exposed): " + ", ".join(dbo[:12]) + " ...", "low", "open", "A", "fix/gen_revoke_unused.py"))
+    pf = OUT / "probe_findings.json"
+    if pf.exists():
+        P = json.loads(read(pf))
+        for i, t in enumerate(P["lifecycle"]):
+            out.append((f"PR-{i + 1:02d}", "probe.py lifecycle", t, "medium" if "NO working" in t or "no decision" in t or "never notified" in t or "UNREACHABLE" in t else "low", "open", "B", "options/B-state-machine.md"))
+        for i, t in enumerate(P["doc_contradictions"]): out.append((f"PD-{i + 1:02d}", "probe.py vs docs/ROLES_AND_PAGES.md", t, "medium", "open", "B", "fix the doc or the rule (one decision)"))
+        for i, t in enumerate(P["refused"][:12]): out.append((f"PA-{i + 1:02d}", "probe.py vs access.php", t, "medium", "open", "B", "options/B-role-symmetry.md"))
+        for fn, kind in P["norid"]: out.append((f"PN-{fn}", "probe.py notice reach", f"{fn}() notifies admins (kind {kind}) with no report_id, so every admin is told and there is no Review button", "high", "open", "A", "fix/gen_notice_report_id.py"))
+        if P["cant_see"]:
+            bad = sorted({f"{f}->{t}" for f, t in P["cant_see"]})
+            out.append(("PN-leak", "probe.py notice reach", f"{len(bad)} notice kinds reach someone who cannot open the case it is about: " + ", ".join(bad[:10]), "medium", "open", "B", "options/K-01-reopen-flow.md (scope)"))
+    ij = OUT / "inject_findings.json"
+    if ij.exists():
+        for i, t in enumerate(json.loads(read(ij))): out.append((f"PI-{i + 1:02d}", "inject.py", t, "medium", "open", "A", "fix/gen_log_swallowed.py"))
+    mj = OUT / "markers.json"
+    if mj.exists():
+        M = json.loads(read(mj)); vc = Counter(m["verdict"] for m in M)
+        out.append(("M-01", "markers.py", f"{len(M)} author-admitted marker hits judged against the current schema: " + ", ".join(f"{k} {n}" for k, n in vc.most_common()), "info", "open", "B", "the NEEDS A HUMAN ones are in out/markers.json"))
+        for i, m in enumerate(x for x in M if x["verdict"] == "NO LONGER TRUE"): out.append((f"M-{i + 2:02d}", f"markers.py {m['file']}:{m['line']}", f"comment says '{m['marker']}' but {m['why']}: {m['text'][:90]}", "low", "open", "A", "update the comment/doc"))
     st = OUT / "standards.json"
     if st.exists():
         for i, (sev, txt) in enumerate(json.loads(read(st))["violations"]):
