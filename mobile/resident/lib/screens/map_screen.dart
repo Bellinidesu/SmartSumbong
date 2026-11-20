@@ -98,11 +98,11 @@ class _MapScreenState extends State<MapScreen> {
   Map<String, ({int total, int resolved})> _concerns = const {};
   Map<String, DateTime> _updated = const {};
 
-  // the Layers sheet: My reports is on from the first look; Dim outside starts off, as the artifact draws it
+  // the Layers sheet: My reports is on from the first look; Dim outside starts on (Ace, 20 Nov)
   bool _lMine = true;
   bool _lNotices = true;
   bool _lPlaces = true;
-  bool _lDim = false;
+  bool _lDim = true;
   bool _lRain = true;
 
   // the chips: where a pin comes from, and which category

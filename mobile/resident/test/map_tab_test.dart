@@ -107,7 +107,7 @@ void main() {
     expect(map.use, BrgyMapUse.tab);
     expect(map.use.zoomButtons, isFalse);
     expect(map.pins.length, 7);
-    expect(map.dimOutside, isFalse);
+    expect(map.dimOutside, isTrue, reason: 'Dim outside 183 starts on (Ace, 20 Nov)');
     expect(map.showPlaces, isTrue);
     sem.dispose();
     await finish(t);
@@ -155,11 +155,11 @@ void main() {
     await t.tap(find.descendant(of: find.byType(BottomSheet), matching: find.text('Barangay notices')));
     await settle(t, rounds: 2);
     expect(_map(t).pins.length, 4);
-    // Dim outside on, Places off: the map is told
+    // Dim outside off, Places off: the map is told
     await t.tap(find.descendant(of: find.byType(BottomSheet), matching: find.text('Dim outside 183')));
     await t.tap(find.descendant(of: find.byType(BottomSheet), matching: find.text('Places')));
     await settle(t, rounds: 2);
-    expect(_map(t).dimOutside, isTrue);
+    expect(_map(t).dimOutside, isFalse);
     expect(_map(t).showPlaces, isFalse);
     // Close
     await t.tap(find.descendant(of: find.byType(BottomSheet), matching: find.byType(InkWell)).first);
