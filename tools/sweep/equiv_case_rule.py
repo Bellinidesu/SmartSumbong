@@ -107,19 +107,19 @@ def main():
     if mode == "fixture" and "--resume" not in sys.argv:
         sh(P("postgres") + ["-c", f"drop database if exists {db}", "-c", f"create database {db} template k04_base"])
         t0 = time.time(); print(run_file(db, ROOT / "tools/sweep/sql/equiv_fixture.sql").strip().splitlines()[-1:], f"fixture {round(time.time() - t0)}s", flush=True)
-    else:
+    elif mode == "scale":
         sh(P(db) + ["-c", "create schema if not exists eq; create table if not exists eq.actors (name text primary key, id uuid not null); create table if not exists eq.snap (label text, actor text, tbl text, k text); grant usage on schema eq to authenticated; grant select, insert on eq.snap to authenticated; grant select on eq.actors to authenticated; truncate eq.actors; "
                     "insert into eq.actors select full_name, id from public.users where full_name like 'Sweep, Rung %' or full_name in (select 'Sweep, Resident ' || g from generate_series(1, 30) g); "
                     "insert into eq.actors values ('ghost', '00000000-0000-4000-8000-00000000e0e0')"])
     before_pol = policy_text("k04_base")   # the pristine copy (= live, checked by gen_0189_undo.py --check-live)
     out = {"mode": mode, "db": db, "seconds": {}}
     # "resume": the old and new snapshots exist and the undo has been applied (a run cut off during the last snapshot)
-    steps = [("old", None), ("new", DRAFT), ("undo", UNDO)] if "--resume" not in sys.argv else [("undo", None)]
+    steps = [("old", None), ("new", DRAFT), ("undo", UNDO)] if "--resume" not in sys.argv else ([("undo", None)] if "--report" not in sys.argv else [])
     for label, f in steps:
         if f: run_file(db, f)
         out["seconds"][label] = snapshot(db, label); print(f"{label} snapshot", out["seconds"][label], "s", flush=True)
     after_pol = policy_text(db)
-    left = psql("select string_agg(proname, ',') from pg_proc where pronamespace = 'public'::regnamespace and proname = any(array[" + ",".join(f"'{h}'" for h in HELPERS) + "])", db=db)[0][0]
+    left = (psql("select 'left:' || coalesce(string_agg(proname, ','), '') from pg_proc where pronamespace = 'public'::regnamespace and proname = any(array[" + ",".join(f"'{h}'" for h in HELPERS) + "])", db=db))[0][0][5:]
     n_actors = int(psql("select count(*) from eq.actors", db=db)[0][0])
     rows_per_tbl = {t: int(psql(f"select count(*) from public.{t}", db=db)[0][0]) for t in TABLES}
     d_new, d_undo = diff(db, "old", "new"), diff(db, "old", "undo")
