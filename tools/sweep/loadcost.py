@@ -11,9 +11,9 @@ from common import ROOT, OUT, PGBIN, PORT, psql, save, read
 
 PGRST = os.environ.get("PGRST_BIN", "C:/Users/acele/pgtmp/pgrst/artifacts/postgrest-windows-x64/postgrest.exe")
 SECRET = "sweep-throwaway-secret-0123456789abcdef0123456789"
-RPORT = 3011
+RPORT = int(os.environ.get("SWEEP_RPORT", "3011"))
 BASE = f"http://127.0.0.1:{RPORT}"
-SCALES = {1: (82, 8), 250: (20000, 2000)}
+SCALES = {1: (82, 8), 50: (4000, 400), 250: (20000, 2000)}
 
 
 def jwt(sub):
@@ -78,7 +78,7 @@ def app_catalogue(me, case):
                       ("tanod-app", "GET", "/rest/v1/reports?select=*&status=in.(in_progress,validated)&order=created_at.desc&limit=50", "")]}
 
 
-def measure(scale, budget):
+def measure(scale, budget, tag=""):
     me = users()
     cases = {t: psql("select id from public.reports where status = 'in_progress' and handler_id is not null " + ("and committee = 'peace_order' " if t in ("committee", "moderator") else "") + "limit 6")
              for t in me}
@@ -111,14 +111,64 @@ def measure(scale, budget):
                 try:
                     pl = json.loads(d2)[0]; exe = round(pl.get("Execution Time", 0), 1); scans(pl.get("Plan"), seq)
                 except Exception: pass
+        h = None
+        if m == "GET" and code == 200 and isinstance(data, bytes):   # what came back, order-free: old and new must answer the same rows
+            try:
+                j = json.loads(data); j = sorted(json.dumps(x, sort_keys=True) for x in j) if isinstance(j, list) else j
+                h = hashlib.md5(json.dumps(j, sort_keys=True).encode()).hexdigest()
+            except Exception: pass
         for page in pgs:
-            res.append({"page": page, "role": tier, "method": m, "q": re.sub(r"\s+", " ", u)[:170], "code": code, "msg": (data[:140].decode("utf-8", "replace") if code >= 400 and isinstance(data, bytes) else ""), "wall_ms": round(ms, 1), "db_ms": exe if exe is not None else round(ms, 1), "seq": [x for x in seq if x[1] > 2000][:3]})
+            res.append({"h": h, "page": page, "role": tier, "method": m, "q": re.sub(r"\s+", " ", u)[:170], "code": code, "msg": (data[:140].decode("utf-8", "replace") if code >= 400 and isinstance(data, bytes) else ""), "wall_ms": round(ms, 1), "db_ms": exe if exe is not None else round(ms, 1), "seq": [x for x in seq if x[1] > 2000][:3]})
     if skipped: print(f"  replay budget reached at {scale}x: {skipped} of {len(uniq)} distinct requests not replayed")
-    save(f"loadcost_{scale}x.json", res)
+    save(f"loadcost_{scale}x{tag}.json", res)
     return res
 
 
+def seed(sc):
+    n, r = SCALES[sc]
+    subprocess.run([os.path.join(PGBIN, "psql" + (".exe" if os.name == "nt" else "")), "-h", "127.0.0.1", "-p", PORT, "-U", "postgres", "-X", "-q", "-v", f"n_cases={n}", "-v", f"n_res={r}",
+                    "-f", str(ROOT / "tools/sweep/sql/seed.sql")], capture_output=True, check=True)
+
+
+def compare(scales):
+    """K-04 / 0189: the same replay before and after supabase/drafts/0189 at each scale (undone after each), out/loadcost_<s>x_old|_new.json."""
+    run = lambda f: subprocess.run([os.path.join(PGBIN, "psql" + (".exe" if os.name == "nt" else "")), "-h", "127.0.0.1", "-p", PORT, "-U", "postgres", "-X", "-q", "-1",
+                                    "-v", "ON_ERROR_STOP=1", "-f", str(ROOT / f)], capture_output=True, check=True)
+    p = start_postgrest()
+    try:
+        for sc in scales:
+            seed(sc); psql("analyze")
+            call("GET", "/rest/v1/users?limit=1", jwt(users()["super"]))
+            for tag, f in (("_old", None), ("_new", "supabase/drafts/0189_case_rule_at_scale.sql")):
+                if f: run(f); psql("analyze")
+                r = measure(sc, 200, tag)
+                subprocess.run([sys.executable, str(ROOT / "tools/sweep/time_0189.py"), tag.strip("_")], check=False)
+                print(f"scale {sc}x{tag}: {len(r)} requests replayed", flush=True)
+            run("supabase/drafts/0189_undo.sql")
+    finally:
+        p.terminate()
+
+
+def new_only(sc):
+    """re-measure the current database (already seeded at `sc`) with 0189 applied, as _new; then undo."""
+    run = lambda f: subprocess.run([os.path.join(PGBIN, "psql" + (".exe" if os.name == "nt" else "")), "-h", "127.0.0.1", "-p", PORT, "-U", "postgres", "-X", "-q", "-1",
+                                    "-v", "ON_ERROR_STOP=1", "-f", str(ROOT / f)], capture_output=True, check=True)
+    p = start_postgrest()
+    try:
+        run("supabase/drafts/0189_case_rule_at_scale.sql"); psql("analyze")
+        call("GET", "/rest/v1/users?limit=1", jwt(users()["super"]))
+        r = measure(sc, 200, "_new"); print(f"scale {sc}x_new (re-measured): {len(r)} requests", flush=True)
+        subprocess.run([sys.executable, str(ROOT / "tools/sweep/time_0189.py"), "new_final"], check=False)
+        run("supabase/drafts/0189_undo.sql")
+    finally:
+        p.terminate()
+
+
 def main():
+    if "--new-only" in sys.argv:
+        return new_only(int(sys.argv[sys.argv.index("--new-only") + 1]))
+    if "--compare" in sys.argv:
+        return compare([int(x) for x in sys.argv[sys.argv.index("--compare") + 1].split(",")])
     if "--summary" in sys.argv:
         return summary(None, float(sys.argv[sys.argv.index("--budget") + 1]) if "--budget" in sys.argv else 200.0)
     scales = [int(x) for x in (sys.argv[sys.argv.index("--scales") + 1] if "--scales" in sys.argv else "1,250").split(",")]

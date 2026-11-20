@@ -22,7 +22,7 @@ def psql(sql, db="postgres", user="postgres", raw=False, setup=""):
 def psqlj(sql, **kw):
     """Rows as dicts (JSON through psql), safe for multi-line values such as function bodies."""
     out = psql("select coalesce(json_agg(t), '[]'::json) from (" + sql + ") t", raw=True, **kw)
-    return json.loads(out)
+    return json.loads(re.sub(r"\A(?:SET\n)+", "", out))   # a `setup` such as `set search_path` prints SET first
 
 
 def live(sql):
