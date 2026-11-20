@@ -1,7 +1,5 @@
 -- UNDO of 0192_mechanical_fixes: the grants as they were and _command_auto as it was (tested). No data changes.
 set search_path = public, extensions;
-revoke all on function _case_committee(uuid) from public, anon, authenticated, service_role;
-grant execute on function _case_committee(uuid) to authenticated, service_role;
 revoke all on function _committee_label(text) from public, anon, authenticated, service_role;
 grant execute on function _committee_label(text) to anon, authenticated, public, service_role;
 revoke all on function _notify_committee_heads(text,uuid,text,text) from public, anon, authenticated, service_role;
@@ -34,8 +32,6 @@ revoke all on function is_within_barangay(double precision,double precision) fro
 grant execute on function is_within_barangay(double precision,double precision) to authenticated, service_role;
 revoke all on function nearest_available_tanod(uuid) from public, anon, authenticated, service_role;
 grant execute on function nearest_available_tanod(uuid) to authenticated, service_role;
-revoke all on function smart_eta(complaint_category) from public, anon, authenticated, service_role;
-grant execute on function smart_eta(complaint_category) to authenticated, service_role;
 
 create or replace function public._command_auto()
  RETURNS void

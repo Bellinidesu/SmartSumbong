@@ -25,19 +25,19 @@ begin
   set local session_replication_role = origin;
 
   begin
-    foreach s in array array['_case_committee(uuid)', '_committee_label(text)', '_notify_committee_heads(text,uuid,text,text)', '_notify_tanod_committee(uuid,uuid,text)', '_places_grp(jsonb)', '_places_query()', '_smart_common_words()', '_smart_id_number_ok(id_document_type,text)', '_smart_name_match(text,text)', '_smart_tokens(text)', '_smart_vocab()', 'auth_email_for(text)', 'display_name(text)', 'feature_on(text)', 'is_identity_media_url(text)', 'is_within_barangay(double precision,double precision)', 'nearest_available_tanod(uuid)', 'smart_eta(complaint_category)'] loop
+    foreach s in array array['_committee_label(text)', '_notify_committee_heads(text,uuid,text,text)', '_notify_tanod_committee(uuid,uuid,text)', '_places_grp(jsonb)', '_places_query()', '_smart_common_words()', '_smart_id_number_ok(id_document_type,text)', '_smart_name_match(text,text)', '_smart_tokens(text)', '_smart_vocab()', 'auth_email_for(text)', 'display_name(text)', 'feature_on(text)', 'is_identity_media_url(text)', 'is_within_barangay(double precision,double precision)', 'nearest_available_tanod(uuid)'] loop
       perform s::regprocedure;
       if has_function_privilege('authenticated', s::regprocedure, 'execute') or has_function_privilege('anon', s::regprocedure, 'execute') then raise exception '% is still executable by the API', s; end if;
     end loop;
-    v_log := v_log || E'\n' || 'ok  the 18 database-only functions are no longer executable by signed-in or signed-out callers (and still exist)';
-  exception when others then reset role; v_log := v_log || E'\n' || 'FAIL the 18 database-only functions are no longer executable by signed-in or signed-out callers (and still exist): ' || sqlerrm; end;
+    v_log := v_log || E'\n' || 'ok  the 16 database-only functions are no longer executable by signed-in or signed-out callers (and still exist)';
+  exception when others then reset role; v_log := v_log || E'\n' || 'FAIL the 16 database-only functions are no longer executable by signed-in or signed-out callers (and still exist): ' || sqlerrm; end;
 
   begin
-    foreach s in array array['_colour_clash(text,text)', '_colour_dist(text,text)', '_is_sensitive_text(text)', '_one_category_refuse(complaint_category)', '_smart_id_number(text)', '_smart_name_words(text)', 'location_is_fresh(timestamp with time zone)', 'places_norm(text)', 'tanod_dispatch_cap()'] loop
+    foreach s in array array['_case_committee(uuid)', '_colour_clash(text,text)', '_colour_dist(text,text)', '_is_sensitive_text(text)', '_one_category_refuse(complaint_category)', '_smart_id_number(text)', '_smart_name_words(text)', 'location_is_fresh(timestamp with time zone)', 'places_norm(text)', 'smart_eta(complaint_category)', 'tanod_dispatch_cap()'] loop
       if not has_function_privilege('authenticated', s::regprocedure, 'execute') then raise exception '% lost a right it needs', s; end if;
     end loop;
-    v_log := v_log || E'\n' || 'ok  the 9 excluded functions keep their rights (a SECURITY INVOKER caller or a dependent object needs them)';
-  exception when others then reset role; v_log := v_log || E'\n' || 'FAIL the 9 excluded functions keep their rights (a SECURITY INVOKER caller or a dependent object needs them): ' || sqlerrm; end;
+    v_log := v_log || E'\n' || 'ok  the 11 excluded functions keep their rights (a SECURITY INVOKER caller or a dependent object needs them)';
+  exception when others then reset role; v_log := v_log || E'\n' || 'FAIL the 11 excluded functions keep their rights (a SECURITY INVOKER caller or a dependent object needs them): ' || sqlerrm; end;
 
   begin
     execute 'set local role authenticated'; perform set_config('request.jwt.claim.sub', v_res::text, true);

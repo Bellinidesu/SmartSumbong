@@ -14,18 +14,28 @@ import json, re
 from fixlib import *
 
 
+# kept on purpose although only database code calls them: found by running every pgTAP script before and after the draft (pgtap_compare.py)
+KEEP = {"smart_eta": "pgTAP 04_smart calls it directly as a signed-in administrator (the resolution-time estimate is part of the contract): revoking made that check fail"}
+
+
 def classify():
     cg = json.loads(read(OUT / "callgraph.json"))["functions"]
     dbo = sorted(n for n, r in cg.items() if r["api_callable"] and r["class"] == "DB-ONLY")
-    meta = {r["proname"]: r for r in psqlj("select p.proname, p.prosecdef sd, p.prorettype::regtype::text ret, p.oid::regprocedure::text sig from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prokind = 'f'")}
+    allf = psqlj("select p.proname, p.prosecdef sd, p.prorettype::regtype::text ret, p.oid::regprocedure::text sig, p.prosrc from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prokind = 'f' and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')")
+    meta = {r["proname"]: r for r in allf}
+    strip = lambda t: re.sub("--[^" + chr(10) + "]*", " ", re.sub("/[*].*?[*]/", " ", t, flags=re.S))
+    bodies = {r["proname"]: strip(r["prosrc"]) for r in allf}
+    full_callers = lambda n: sorted(g for g, b in bodies.items() if g != n and re.search(r"(?<![a-z_0-9])" + re.escape(n) + r"\s*\(", b))    # EVERY caller (callgraph.json keeps only the first six)
     safe, excluded = [], []
     for n in dbo:
-        inv = [c for c in cg[n]["db_callers"] if not meta[c]["sd"]]
+        callers = full_callers(n)
+        inv = [c for c in callers if not meta[c]["sd"]]
         deps = int(psql(f"select count(*) from pg_depend d join pg_proc p on p.oid = d.refobjid where p.proname = '{n}' and p.pronamespace = 'public'::regnamespace and d.deptype = 'n'")[0][0])
-        if inv: excluded.append((n, f"a SECURITY INVOKER caller runs it as the signed-in user: {', '.join(inv[:3])}"))
+        if n in KEEP: excluded.append((n, KEEP[n]))
+        elif inv: excluded.append((n, f"a SECURITY INVOKER caller runs it as the signed-in user: {', '.join(inv[:3])}"))
         elif deps: excluded.append((n, f"{deps} catalog object(s) depend on it (policy, default, check, index or view)"))
         elif cg[n].get("string_refs"): excluded.append((n, "a client file names it as a string"))
-        else: safe.append((n, meta[n]["sig"], cg[n]["db_callers"]))
+        else: safe.append((n, meta[n]["sig"], callers))
     return safe, excluded
 
 

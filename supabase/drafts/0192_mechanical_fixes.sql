@@ -2,10 +2,11 @@
 -- 0192_mechanical_fixes: mechanical fixes: revoke the API's right on database-only helpers (proved safe), record _command_auto's swallowed race
 --
 -- Ace: 'mechanical fixes do'. Three parts.
--- (a) C-03: 18 functions are callable by the API but only other database code calls them; revoking the API's right is safe for exactly these because EVERY caller is
+-- (a) C-03: 16 functions are callable by the API but only other database code calls them; revoking the API's right is safe for exactly these because EVERY caller is
 -- SECURITY DEFINER (runs as the owner, which keeps its right) and nothing else in the catalog depends on them (pg_depend: no policy, default, check, index or view):
---   _case_committee, _committee_label, _notify_committee_heads, _notify_tanod_committee, _places_grp, _places_query, _smart_common_words, _smart_id_number_ok, _smart_name_match, _smart_tokens, _smart_vocab, auth_email_for, display_name, feature_on, is_identity_media_url, is_within_barangay, nearest_available_tanod, smart_eta.
+--   _committee_label, _notify_committee_heads, _notify_tanod_committee, _places_grp, _places_query, _smart_common_words, _smart_id_number_ok, _smart_name_match, _smart_tokens, _smart_vocab, auth_email_for, display_name, feature_on, is_identity_media_url, is_within_barangay, nearest_available_tanod.
 -- EXCLUDED, with the reason (revoking would break them):
+--   _case_committee: a SECURITY INVOKER caller runs it as the signed-in user: tanod_roster
 --   _colour_clash: a SECURITY INVOKER caller runs it as the signed-in user: _committee_colour_check
 --   _colour_dist: a SECURITY INVOKER caller runs it as the signed-in user: _super_colour_check
 --   _is_sensitive_text: a SECURITY INVOKER caller runs it as the signed-in user: _flag_sensitive
@@ -14,6 +15,7 @@
 --   _smart_name_words: a SECURITY INVOKER caller runs it as the signed-in user: _smart_name_match
 --   location_is_fresh: a SECURITY INVOKER caller runs it as the signed-in user: assignable_tanods, nearest_available_tanod, tanod_roster
 --   places_norm: a SECURITY INVOKER caller runs it as the signed-in user: _places_text, search_places
+--   smart_eta: pgTAP 04_smart calls it directly as a signed-in administrator (the resolution-time estimate is part of the contract): revoking made that check fail
 --   tanod_dispatch_cap: a SECURITY INVOKER caller runs it as the signed-in user: _dispatch_cap_guard, assignable_tanods, nearest_available_tanod
 -- (b) D2-06: _command_auto() swallowed one specific, benign error (unique_violation: an administrator turned a mode on in the same moment) without a trace; it now records a
 -- 'command_auto_skipped' event, best-effort. D2-07 (file_report) is accepted as it is: the core filing path, proved to survive failures.
@@ -27,7 +29,6 @@ set search_path = public, extensions;
 set local lock_timeout = '5s';
 
 -- (a) C-03: API rights nothing needs
-revoke all on function _case_committee(uuid) from public, anon, authenticated;   -- called only by: _reroute_committee, assign_case, case_assignees, escalation_target
 revoke all on function _committee_label(text) from public, anon, authenticated;   -- called only by: _notify_committee_heads, _reroute_ask, decide_tanod_committee, escalation_target
 revoke all on function _notify_committee_heads(text,uuid,text,text) from public, anon, authenticated;   -- called only by: flag_case_for_forward, forward_case
 revoke all on function _notify_tanod_committee(uuid,uuid,text) from public, anon, authenticated;   -- called only by: decide_tanod_committee, propose_tanod_committee, remove_tanod_committee
@@ -44,7 +45,6 @@ revoke all on function feature_on(text) from public, anon, authenticated;   -- c
 revoke all on function is_identity_media_url(text) from public, anon, authenticated;   -- called only by: queue_media_trash
 revoke all on function is_within_barangay(double precision,double precision) from public, anon, authenticated;   -- called only by: auto_dispatch
 revoke all on function nearest_available_tanod(uuid) from public, anon, authenticated;   -- called only by: _smart_tanod_ranking, auto_dispatch
-revoke all on function smart_eta(complaint_category) from public, anon, authenticated;   -- called only by: _smart_deadline_risk, smart_case_card
 
 -- (b) D2-06: _command_auto records its swallowed race
 create or replace function public._command_auto()
