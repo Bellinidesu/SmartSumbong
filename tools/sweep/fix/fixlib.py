@@ -3,7 +3,7 @@ throwaway database, and emits a DRAFT into supabase/drafts/ (NOT supabase/migrat
 'DRAFT: not applied until Ace says apply NNNN' and a plain-language UNDO note, plus tests/NNNN_slug.test.sql in the repo's rolled-back style. prove() builds a
 scratch database from sweep_probe (schema as of the migrations), runs the test BEFORE the draft (it must report a FAIL), applies the draft, runs it AFTER (only ok),
 and prints a 5-line summary. Nothing here touches live or supabase/migrations."""
-import re, subprocess, sys
+import os, re, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from common import *
@@ -11,6 +11,7 @@ from common import *
 DRAFTS = ROOT / "supabase" / "drafts"
 (DRAFTS / "tests").mkdir(parents=True, exist_ok=True)
 SCRATCH = "sweep_fix"
+TEMPLATE = os.environ.get("FIX_TEMPLATE", "sweep_probe")   # a database already at the latest migration (e.g. postgres of a full local build) skips the catch-up
 HEADER = """-- DRAFT: not applied until Ace says apply {num}
 -- {num}_{slug}: {title}
 --
@@ -53,6 +54,11 @@ def as_role(uid_var, sql):
     return f"    execute 'set local role authenticated'; perform set_config('request.jwt.claim.sub', {uid_var}::text, true);\n{sql}\n    reset role;"
 
 
+def wt(path, text):
+    """write with LF endings on every platform (a CRLF inside a function body would end up in the database)"""
+    Path(path).write_bytes(text.replace(chr(13), "").encode("utf-8"))
+
+
 def next_number():
     used = [int(p.name[:4]) for p in list(DRAFTS.glob("[0-9][0-9][0-9][0-9]_*.sql"))] + [int(f.name[:4]) for f in migrations()]
     return max(used) + 1
@@ -60,13 +66,13 @@ def next_number():
 
 def fn_def(sig):
     """current definition of a function from the local (migrations-built) database"""
-    return psql(f"select pg_get_functiondef('public.{sig}'::regprocedure)", raw=True).strip().rstrip(";") + ";"
+    return psql(f"select pg_get_functiondef('public.{sig}'::regprocedure)", raw=True).replace(chr(13), "").strip().rstrip(";") + ";"
 
 
 def scratch():
     P = [f"{PGBIN}/psql{EXE}", "-h", "127.0.0.1", "-p", PORT, "-U", "postgres", "-X", "-q", "-d", "postgres", "-c"]
     subprocess.run(P + [f"drop database if exists {SCRATCH}"], capture_output=True)
-    r = subprocess.run(P + [f"create database {SCRATCH} template sweep_probe"], capture_output=True, text=True)
+    r = subprocess.run(P + [f"create database {SCRATCH} template {TEMPLATE}"], capture_output=True, text=True)
     if r.returncode: raise RuntimeError(r.stderr[:200])
 
 
@@ -87,8 +93,8 @@ def emit_and_prove(slug, title, why, undo, up_sql, undo_sql, test_sql, gen, befo
     head = HEADER.format(num=num, slug=slug, title=title, why=why.replace("\n", "\n-- "), undo=undo, gen=gen)
     draft = DRAFTS / f"{num}_{slug}.sql"
     test = DRAFTS / "tests" / f"{num}_{slug}.test.sql"
-    draft.write_text(head + "\n" + up_sql.strip() + "\n\n-- UNDO SQL (not run; for the person applying this):\n" + "\n".join("-- " + l for l in undo_sql.strip().splitlines()) + "\n", encoding="utf-8")
-    test.write_text(test_sql, encoding="utf-8")
+    wt(draft, head + "\n" + up_sql.strip() + "\n\n-- UNDO SQL (not run; for the person applying this):\n" + "\n".join("-- " + l for l in undo_sql.strip().splitlines()) + "\n")
+    wt(test, test_sql)
     scratch()
     b_ok, b_fail = results(run_sql(test))
     out_apply = run_sql(draft)

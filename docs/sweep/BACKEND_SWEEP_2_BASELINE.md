@@ -15,9 +15,9 @@ the same visible cases (proved). The reopen/appeal flow, complaint printing and 
 
 | critical | high | medium | low | info | total |
 |---|---|---|---|---|---|
-| 0 | 10 | 33 | 55 | 29 | 127 open (+22 fixed or done) |
+| 0 | 10 | 32 | 55 | 29 | 126 open (+23 fixed or done) |
 
-Fix class (open rows): **A mechanical 33, B needs one decision 91, C look/front end 3**. Generators exist for 3 A-kinds (below); the other A rows name the generator they would use.
+Fix class (open rows): **A mechanical 33, B needs one decision 90, C look/front end 3**. Generators exist for 3 A-kinds (below); the other A rows name the generator they would use.
 
 ## Top violations (proof pointer -> fix)
 
@@ -90,6 +90,10 @@ Fix class (open rows): **A mechanical 33, B needs one decision 91, C look/front 
 - 0188 (applied after Ace's "apply 0188", PR 'Notification failures isolated'): `_notifications_scope` is security definer, still scopes by `_user_sees_case`, records `notice_error`, has a best-effort exception block (fails closed); anon/authenticated cannot execute it; role counts unchanged. Test `supabase/tests/66_notification_failures_isolated.sql`. Ledger K-11 and the four matching injection rows: fixed live 20 Nov (0188).
 - 0189 `case_rule_at_scale` (K-04 option B, applied after Ace's "apply 0189"; dry run showed only 0189, applied in about 2 s): the policies read the caller's facts once per query through 7 security-definer `_my_*` set helpers. Verified read-only: **198 of 198** per-role/per-table (9 test roles x 22 tables) count + md5 fingerprints of visible rows identical before vs after; 7 helpers security definer with pinned search_path, 0 callable by anon, 7 by signed-in; 167 policies unchanged in count; role counts unchanged. Tests: `supabase/tests/67_case_rule_equivalence.sql` (equivalence) and `68_case_rule_at_scale.sql` (fails before, passes after). The undo stays as documentation in `supabase/drafts/0189_undo.sql`. Ledger K-04 fixed; the L-rows are marked as addressed (re-measure with run_all.sh).
 - The three files moved from `supabase/drafts/` to `supabase/migrations/`, the tests to `supabase/tests/63-65`; `baseline.sql` and `grants.txt` rebuilt for 0001-0187. Ledger rows K-07, K-08, K-09 and the matching detector/prober rows are marked "fixed live 20 Nov"; the reopen flow (K-01) stays open for the answer/decline part.
+
+## Applied 21 Nov
+
+- 0190 `smart_module_set_based` (follow-up to 0189, applied after Ace's "apply 0190"; dry run showed only 0190, applied in about 2 s): `smart_module()` reads the visible-case set `_my_scoped_case_ids()` once instead of running the case rule per open case (Kagawad 3,742 -> 271 ms at 250x, 845 -> 127 ms at 50x, 114 -> 114 ms at 1x on the sweep database). Verified read-only on live: `smart_module()` output fingerprints per admin test role x top-level key identical before vs after (**70 of 70**); grants unchanged; the function now uses `_my_scoped_case_ids`. Test `supabase/tests/70_smart_module_set_based.sql` (fails before, passes after; equivalence for 11 rungs in 3 fixture variants). Undo kept as documentation: `supabase/drafts/0190_undo.sql` (tested: restores the identical definition). Ledger K-12 fixed.
 
 Options files (no migration until Ace picks): `K-01-reopen-flow`, `K-04-f09-case-rule` (timed at 1x/50x/250x), `B-dead-code`, `B-state-machine`, `B-request-decision`, `B-role-symmetry`.
 Not drafted on purpose: the case-rule policy (core visibility rule).
