@@ -1,5 +1,5 @@
 -- 0189: the case rule at scale (K-04 option B, Ace 20 Nov 2026). WHO SEES WHAT DOES NOT CHANGE; only how the database works it out.
--- DRAFT: not applied until Ace says "apply 0189". Undo: supabase/drafts/0189_undo.sql (restores every policy below word for word and drops the helpers).
+-- Applied to the live project on 20 Nov 2026 after Ace said "apply 0189". Undo: supabase/drafts/0189_undo.sql (restores every policy word for word and drops the helpers).
 --
 -- Why: every row of reports (and of 20 tables hanging off a case) ran the case rule as a function, once per row, and each run re-read the case and
 -- the caller several times. Fine at today's 82 cases (~100 ms), seconds at 4,000, 15-30 s at 20,000 (docs/sweep/options/K-04-f09-case-rule.md).
