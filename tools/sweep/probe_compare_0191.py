@@ -7,6 +7,7 @@ from common import *
 import probe
 
 draft = sys.argv[1]
+exclude = set(json.loads(read(sys.argv[3]))["revoked"]) if len(sys.argv) > 3 and sys.argv[2] == "--exclude" else set()   # functions the draft makes non-callable disappear from the probe set on purpose
 snap = {}
 for label in ("before", "after"):
     if label == "after":
@@ -18,8 +19,9 @@ for label in ("before", "after"):
     snap[label] = {(fn, x["s"], x["v"], x["a"], x["t"]): (probe.classify(x.get("r", "")), x.get("to"), x.get("side"), tuple(sorted((n["to"], n["kind"], n["rid"], str(n["sees"])) for n in x.get("n", []))))
                    for fn, rows in M.items() for x in rows}
     print(label, "probes", len(snap[label]), flush=True)
-diff = [(k, snap["before"][k], snap["after"].get(k)) for k in snap["before"] if snap["before"][k] != snap["after"].get(k)]
-print(f"PROBE COMPARE: {len(snap['before'])} probes before, {len(snap['after'])} after; differences: {len(diff)}")
+gone = [k for k in snap["before"] if k[0] in exclude]
+diff = [(k, snap["before"][k], snap["after"].get(k)) for k in snap["before"] if k[0] not in exclude and snap["before"][k] != snap["after"].get(k)]
+print(f"PROBE COMPARE: {len(snap['before'])} probes before, {len(snap['after'])} after ({len(gone)} probes of {len(exclude)} deliberately revoked functions left out); differences: {len(diff)}")
 for k, a, b in diff[:12]: print("  ", k, "\n     before", a, "\n     after ", b)
 save("probe_compare_0191.json", {"probes": len(snap["before"]), "differences": [[list(k), a, b] for k, a, b in diff][:200]})
 sys.exit(1 if diff else 0)

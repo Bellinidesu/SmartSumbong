@@ -22,7 +22,7 @@ begin
     ('cancel_admin_handover()', false, true, true, true, true, $c$select public.cancel_admin_handover()$c$),
     ('case_committee(reports)', false, true, true, true, false, null),
     ('clear_password_change_flag()', false, true, true, true, true, null),
-    ('display_name(text)', true, true, false, true, false, null),
+    ('display_name(text)', false, false, false, true, false, null),
     ('extensions_used(uuid)', false, true, true, true, false, null),
     ('is_barangay_media_url(text)', false, true, false, true, false, null),
     ('is_evidence_media_url(text)', false, true, false, true, false, null)
