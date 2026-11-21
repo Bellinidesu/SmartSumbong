@@ -15,13 +15,13 @@ begin
   update public.users set verification_status = 'verified', verified_at = now() where id = v_res;
   for r in select * from (values
     ('is_super_admin()', false, true, true, true, false, null),
-    ('is_within_barangay(double precision,double precision)', false, true, false, true, false, null),
+    ('is_within_barangay(double precision,double precision)', false, false, false, true, false, null),
     ('location_is_fresh(timestamp with time zone)', false, true, false, true, false, null),
     ('my_admin_handover_status()', false, true, false, true, true, null),
     ('my_resolution_authors(uuid[])', false, true, true, true, true, null),
     ('my_retirement_status()', false, true, false, true, true, null),
     ('my_role()', false, true, true, true, true, null),
-    ('nearest_available_tanod(uuid)', false, true, false, true, false, null),
+    ('nearest_available_tanod(uuid)', false, false, false, true, false, null),
     ('places_norm(text)', true, true, false, true, false, null),
     ('places_status()', false, true, true, true, false, $c$select public.places_status()$c$),
     ('promote_to_admin(uuid,text,integer,user_role)', false, true, true, true, true, $c$select public.promote_to_admin('00000000-0000-4000-8000-000000000001'::uuid)$c$),
