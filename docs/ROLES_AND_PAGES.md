@@ -110,6 +110,33 @@ The development team's test accounts never receive a real escalation.
 | Settings | System status, plan and usage, SMART, appearance | Their own: appearance, their committee (read only), their SMART module | The same, their module without decisions |
 | Edit Profile | Their own | Their own | Their own |
 
+### Page access at a glance (from `admin/includes/access.php`, the one place the portal reads)
+
+The database decides what each administrator may read and change; this table is what the portal shows so nobody is offered a page the database would refuse. A page that is
+not listed (the small JSON doors such as `alerts-act.php`, `board-act.php`, `chat-feed.php`, `command-act.php`, `workspace-act.php`, `geocode.php`, `hazards.php`, `glance.php`, `widgets.php`, `layers.php`) is open
+to every administrator and still goes through the same database rules.
+
+| Page | Who may open it | Note |
+|---|---|---|
+| `dashboard.php` | super admin, captain | the Dashboard is one of the four pages of viewing mode (15 Nov 2026, Rose) |
+| `home.php` | nobody | no Home for anyone: a Kagawad and staff land on Notifications |
+| `cases.php`, `case.php` | super admin, captain, Kagawad (committee), staff (moderator) | Case Reports and a case; staff see only the cases assigned to them |
+| `spatial.php` | super admin, captain, Kagawad, staff | Spatial Distribution (the map) |
+| `notifications.php` | super admin, Kagawad, staff | |
+| `inbox.php` | super admin, Kagawad, staff | |
+| `summary.php` | super admin, captain, Kagawad | Report Summary; not staff (Rose, 15 Nov) |
+| `certificate.php` | super admin, Kagawad, staff | the referral certificate: whoever may refer a case prints it; row level security keeps it to the cases they see |
+| `personnel.php` | super admin, Kagawad | a Kagawad: their tanods, their staff, their tanods' retirement requests; not staff |
+| `settings.php` | super admin, Kagawad, staff | a Kagawad's and staff's own: look, their committee, their SMART module |
+| `residents.php` | super admin | |
+| `activity.php` | super admin | |
+| `places.php` | super admin | the barangay's places, a button on the side of Spatial Distribution |
+| `workspace.php` | super admin | |
+| `retirement-requests.php` | super admin | |
+| `administrative-services.php` | super admin | |
+| `committee-editor.php` | super admin | making or editing a committee, a page of its own |
+| `control-room.php` | super admin | |
+
 ### Dashboard (super admins)
 
 - *Needs me today* (waiting for a super admin decision, overdue, not taken

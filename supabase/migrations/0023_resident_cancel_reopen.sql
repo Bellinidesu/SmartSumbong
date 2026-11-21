@@ -16,11 +16,14 @@
 -- evaporates underneath them is worse than one that stays open. So
 -- cancellation is allowed from pending_review and validated only.
 --
--- REOPEN IS NOT ADDED. reopen_report() in 0002 raises for anyone who is
+-- No resident reopen in this migration (see the note below). reopen_report() in 0002 raises for anyone who is
 -- not an admin, and that is correct: reopening restarts the SLA clock,
 -- re-notifies staff, and increments a counter the Report Summary reads.
 -- Handing that lever to the person with the most reason to pull it
 -- repeatedly would make the resolution figures meaningless.
+--
+-- (Note, 21 Nov 2026: reopen now exists in two parts. request_reopen() (0037) lets the resident ASK; reopen_report() reopens a resolved or closed case for the
+-- Kagawad, staff member or super admin handling it. The portal button that calls it is still to come: docs/sweep/options/K-01-reopen-flow.md.)
 --
 -- Instead the resident's Reopen button raises a *request*: it notifies
 -- every admin with the resident's stated reason, and an admin decides.
