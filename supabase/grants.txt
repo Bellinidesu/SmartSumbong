@@ -24,7 +24,7 @@ fn _command_suggestion(p_signal smallint) anon=- authenticated=-
 fn _command_words_all() anon=- authenticated=-
 fn _committee_colour_check() anon=- authenticated=-
 fn _committee_free_colour() anon=- authenticated=call
-fn _committee_label(p text) anon=call authenticated=call
+fn _committee_label(p text) anon=- authenticated=-
 fn _concern_backfill() anon=- authenticated=-
 fn _concern_snapshot() anon=- authenticated=-
 fn _dispatch_cap_guard() anon=- authenticated=-
@@ -53,12 +53,12 @@ fn _my_scoped_dispatch_ids() anon=- authenticated=call
 fn _my_scoped_resident_ids() anon=- authenticated=call
 fn _notifications_scope() anon=- authenticated=-
 fn _notify_admins(p_message text, p_subject uuid) anon=- authenticated=-
-fn _notify_committee_heads(p_committee text, p_report uuid, p_kind text, p_message text) anon=- authenticated=call
-fn _notify_tanod_committee(p_to uuid, p_tanod uuid, p_message text) anon=- authenticated=call
+fn _notify_committee_heads(p_committee text, p_report uuid, p_kind text, p_message text) anon=- authenticated=-
+fn _notify_tanod_committee(p_to uuid, p_tanod uuid, p_message text) anon=- authenticated=-
 fn _one_category_per_case() anon=- authenticated=-
 fn _one_category_refuse(p_category complaint_category) anon=- authenticated=call
-fn _places_grp(t jsonb) anon=call authenticated=call
-fn _places_query() anon=call authenticated=call
+fn _places_grp(t jsonb) anon=- authenticated=-
+fn _places_query() anon=- authenticated=-
 fn _places_text(p_name text, p_aliases text[]) anon=call authenticated=call
 fn _poll_vote_guard() anon=- authenticated=-
 fn _raise_alert(p_key text, p_message text) anon=- authenticated=-
@@ -74,16 +74,16 @@ fn _smart_apply_rules(p_changes jsonb) anon=- authenticated=-
 fn _smart_briefing_text(p_period text) anon=- authenticated=-
 fn _smart_category_hint(p_category complaint_category, p_subject text, p_description text) anon=- authenticated=-
 fn _smart_changed_since(p_at timestamp with time zone) anon=- authenticated=-
-fn _smart_common_words() anon=call authenticated=call
+fn _smart_common_words() anon=- authenticated=-
 fn _smart_concepts(p_text text) anon=- authenticated=-
 fn _smart_deadline_risk() anon=- authenticated=-
 fn _smart_digest_text() anon=- authenticated=-
 fn _smart_event(p_kind text, p_report uuid, p_summary text, p_detail jsonb) anon=- authenticated=-
 fn _smart_id_number(p_number text) anon=call authenticated=call
-fn _smart_id_number_ok(p_type id_document_type, p_number text) anon=call authenticated=call
+fn _smart_id_number_ok(p_type id_document_type, p_number text) anon=- authenticated=-
 fn _smart_lexicon_snapshot() anon=- authenticated=-
 fn _smart_lexicon_versioned() anon=- authenticated=-
-fn _smart_name_match(p_registered text, p_read text) anon=call authenticated=call
+fn _smart_name_match(p_registered text, p_read text) anon=- authenticated=-
 fn _smart_name_words(p_name text) anon=call authenticated=call
 fn _smart_new_version(p_default_reason text) anon=- authenticated=-
 fn _smart_patterns(p_days integer) anon=- authenticated=-
@@ -101,12 +101,12 @@ fn _smart_spikes() anon=- authenticated=-
 fn _smart_stem(p_tok text, p_vocab text[]) anon=- authenticated=-
 fn _smart_stuck() anon=- authenticated=-
 fn _smart_tanod_ranking(p_report uuid) anon=- authenticated=-
-fn _smart_tokens(p_text text) anon=call authenticated=call
+fn _smart_tokens(p_text text) anon=- authenticated=-
 fn _smart_triage_after_write() anon=- authenticated=-
 fn _smart_unrepeat(p_words text[]) anon=- authenticated=-
 fn _smart_unstretch(p_tok text) anon=- authenticated=-
 fn _smart_verify(p_user uuid) anon=- authenticated=-
-fn _smart_vocab() anon=- authenticated=call
+fn _smart_vocab() anon=- authenticated=-
 fn _smart_word_candidates(p_days integer) anon=- authenticated=-
 fn _smart_words_hit(p_words jsonb, p_text text, p_read jsonb) anon=- authenticated=-
 fn _snap_deadline_risk() anon=- authenticated=-
@@ -156,7 +156,7 @@ fn assign_case(p_report uuid, p_to uuid, p_note text) anon=- authenticated=call
 fn assign_tracking_id() anon=- authenticated=-
 fn assignable_tanods(p_report uuid) anon=- authenticated=call
 fn audit_integrity() anon=- authenticated=call
-fn auth_email_for(p_mobile text) anon=call authenticated=call
+fn auth_email_for(p_mobile text) anon=- authenticated=-
 fn auto_dispatch(p_report uuid) anon=- authenticated=-
 fn cancel_admin_handover() anon=- authenticated=call
 fn cancel_report(p_report uuid, p_reason text) anon=- authenticated=call
@@ -202,7 +202,7 @@ fn dev_levels() anon=- authenticated=call
 fn dev_test_accounts_ensure(p_committee text) anon=- authenticated=call
 fn dismiss_forward_flag(p_flag bigint, p_note text) anon=- authenticated=call
 fn dispatch_on_file() anon=- authenticated=-
-fn display_name(p_name text) anon=call authenticated=call
+fn display_name(p_name text) anon=- authenticated=-
 fn end_sessions_on_access_change() anon=- authenticated=-
 fn endorse_retirement(p_request uuid, p_note text) anon=- authenticated=call
 fn enforce_daily_report_limit() anon=- authenticated=-
@@ -210,7 +210,7 @@ fn enforce_media_cap() anon=- authenticated=-
 fn escalate_in_barangay(p_report uuid, p_reason text, p_committee text) anon=- authenticated=call
 fn escalation_target(p_report uuid, p_committee text) anon=- authenticated=call
 fn extensions_used(p_report uuid) anon=- authenticated=call
-fn feature_on(p_key text) anon=- authenticated=call
+fn feature_on(p_key text) anon=- authenticated=-
 fn feature_set(p_key text, p_on boolean) anon=- authenticated=call
 fn file_report(p_category complaint_category, p_subject text, p_description text, p_latitude double precision, p_longitude double precision, p_is_anonymous boolean, p_media jsonb, p_client_ref uuid, p_option bigint, p_concerns jsonb) anon=- authenticated=call
 fn finalize_retirement(p_request uuid, p_decision text, p_reason text) anon=- authenticated=call
@@ -226,10 +226,10 @@ fn is_admin() anon=call authenticated=call
 fn is_barangay_media_url(p_url text) anon=- authenticated=call
 fn is_evidence_media_url(p_url text) anon=- authenticated=call
 fn is_full_viewer() anon=- authenticated=call
-fn is_identity_media_url(p_url text) anon=call authenticated=call
+fn is_identity_media_url(p_url text) anon=- authenticated=-
 fn is_media_url(p_url text) anon=- authenticated=call
 fn is_super_admin() anon=- authenticated=call
-fn is_within_barangay(p_lat double precision, p_lon double precision) anon=- authenticated=call
+fn is_within_barangay(p_lat double precision, p_lon double precision) anon=- authenticated=-
 fn latest_app_release() anon=call authenticated=call
 fn location_is_fresh(p_at timestamp with time zone) anon=- authenticated=call
 fn log_duty_change() anon=- authenticated=-
@@ -251,7 +251,7 @@ fn my_resolution_authors(p_report_ids uuid[]) anon=- authenticated=call
 fn my_retirement_status() anon=- authenticated=call
 fn my_role() anon=- authenticated=call
 fn my_status_log_authors(p_report_id uuid) anon=- authenticated=call
-fn nearest_available_tanod(p_report uuid) anon=- authenticated=call
+fn nearest_available_tanod(p_report uuid) anon=- authenticated=-
 fn notification_committee(n notifications) anon=- authenticated=call
 fn option_save(p_id bigint, p_category text, p_label_en text, p_label_fil text, p_active boolean, p_sort integer) anon=- authenticated=call
 fn otp_attempt(p_user uuid, p_purpose text, p_hash text, p_max integer) anon=- authenticated=-
