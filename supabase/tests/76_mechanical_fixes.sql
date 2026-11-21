@@ -1,4 +1,4 @@
--- mechanical_fixes (draft test for 0192; moves to supabase/tests when Ace says apply 0192). Rolled back (ends by raising SWEEP-ROLLBACK), like every script in supabase/tests.
+-- mechanical_fixes (test for 0192, applied 21 Nov 2026). Rolled back (ends by raising SWEEP-ROLLBACK), like every script in supabase/tests.
 do $sweep$
 declare
   v_log text := 'setup ok';

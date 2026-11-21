@@ -1,4 +1,4 @@
--- DRAFT: not applied until Ace says apply 0192
+-- 0192: applied to the live project on 21 Nov 2026 after Ace said apply 0192; undo: supabase/drafts/0192_undo.sql
 -- 0192_mechanical_fixes: mechanical fixes: revoke the API's right on database-only helpers (proved safe), record _command_auto's swallowed race
 --
 -- Ace: 'mechanical fixes do'. Three parts.
