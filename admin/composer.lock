@@ -174,16 +174,16 @@
         },
         {
             "name": "openspout/openspout",
-            "version": "v5.13.0",
+            "version": "v5.15.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/openspout/openspout.git",
-                "reference": "dffb46563920c898216e64bbeb4e229b5a6b3d73"
+                "reference": "e16e49f57806c3ceb486205cba66ded33d708638"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/openspout/openspout/zipball/dffb46563920c898216e64bbeb4e229b5a6b3d73",
-                "reference": "dffb46563920c898216e64bbeb4e229b5a6b3d73",
+                "url": "https://api.github.com/repos/openspout/openspout/zipball/e16e49f57806c3ceb486205cba66ded33d708638",
+                "reference": "e16e49f57806c3ceb486205cba66ded33d708638",
                 "shasum": ""
             },
             "require": {
@@ -196,18 +196,21 @@
             },
             "require-dev": {
                 "ext-fileinfo": "*",
+                "ext-mbstring": "*",
+                "ext-openssl": "*",
                 "ext-zlib": "*",
-                "friendsofphp/php-cs-fixer": "^3.95.27",
-                "infection/infection": "^0.35",
+                "friendsofphp/php-cs-fixer": "^3.95.32",
+                "infection/infection": "^0.35.12",
                 "phpbench/phpbench": "^1.7.0",
-                "phpstan/phpstan": "^2.3.1",
-                "phpstan/phpstan-phpunit": "^2.1.1",
-                "phpstan/phpstan-strict-rules": "^2.1.0",
-                "phpunit/phpunit": "^13.4.3"
+                "phpstan/phpstan": "^2.3.6",
+                "phpstan/phpstan-phpunit": "^2.1.2",
+                "phpstan/phpstan-strict-rules": "^2.1.1",
+                "phpunit/phpunit": "^13.4.7"
             },
             "suggest": {
                 "ext-iconv": "To handle non UTF-8 CSV files (if \"php-mbstring\" is not already installed or is too limited)",
-                "ext-mbstring": "To handle non UTF-8 CSV files (if \"iconv\" is not already installed)"
+                "ext-mbstring": "To handle non UTF-8 CSV files (if \"iconv\" is not already installed)",
+                "ext-openssl": "To read and write password-protected XLSX files"
             },
             "type": "library",
             "extra": {
@@ -251,7 +254,7 @@
             ],
             "support": {
                 "issues": "https://github.com/openspout/openspout/issues",
-                "source": "https://github.com/openspout/openspout/tree/v5.13.0"
+                "source": "https://github.com/openspout/openspout/tree/v5.15.3"
             },
             "funding": [
                 {
@@ -263,7 +266,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-27T07:05:50+00:00"
+            "time": "2026-11-19T11:47:39+00:00"
         }
     ],
     "packages-dev": [],
