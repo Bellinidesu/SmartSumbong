@@ -7,8 +7,8 @@ with `set local role authenticated` + the JWT claims (the same read-only imperso
            default the archive's live_snapshot.sh: the ids are not kept in this public repo)
 
 Connects with the Supabase CLI's own temporary login (read from its `db dump --dry-run` script, never printed).
-Each query runs N times; prints the median client-observed time, the median `select 1` round trip, and the difference
-(an estimate of the database's own time at live size). Counts and timings only.
+Each query runs N times; prints the median client-observed time and an estimate of the database's own time: the fastest run
+minus the fastest `select 1` (robust to the ~200-250 ms network stalls seen from this PC, which hit random single queries).
 """
 import os, re, statistics, subprocess, sys, time
 from pathlib import Path
@@ -24,7 +24,7 @@ QUERIES = {   # label -> (who may run it, sql)   the slowest page reads of the s
     "smart_queue()": ("admin", "select count(*) from public.smart_queue()"),
     "smart_module()": ("admin", "select length(public.smart_module()::text)"),
     "cases.php list (reports visible)": ("all", "select count(*) from (select id, status, category, created_at from public.reports where deleted_at is null order by created_at desc limit 50) x"),
-    "cases.php committee tab counts": ("admin", "select count(*) from public.reports where deleted_at is null and case_committee = 'peace_order'"),
+    "cases.php committee tab counts": ("admin", "select count(*) from public.reports r where r.deleted_at is null and public.case_committee(r) = 'peace_order'"),
     "notifications (own, newest 30)": ("all", "select count(*) from (select id from public.notifications order by created_at desc limit 30) x"),
     "users visible": ("all", "select count(*) from public.users"),
     "dispatches visible": ("all", "select count(*) from public.dispatches"),
@@ -68,15 +68,17 @@ def main():
     for l in r.stdout.splitlines():
         if l.startswith("@@ "):
             cur = l[3:]
+        elif cur and re.fullmatch(r"[\d.]+", l):
         elif l.startswith("Time: ") and cur:
             res.setdefault(cur, []).append(float(re.match(r"Time: ([\d.]+) ms", l).group(1))); cur = None
-    rtt = statistics.median([v for k, vs in res.items() if k.endswith("|select 1 (round trip)") for v in vs])
+    rtts = [v for k, vs in res.items() if k.endswith("|select 1 (round trip)") for v in vs]
+    rtt, rtt_min = statistics.median(rtts), min(rtts)
     print(f"LIVE TIMING (read-only, {N}x each, median; host {env.get('PGHOST', '?').split('.')[0]}...; whole session {wall:.1f} s incl. connect)")
     print(f"  round trip select 1: median {rtt:.1f} ms (all roles: min {min(v for k, vs in res.items() if k.endswith('round trip)') for v in vs):.1f}, "
           f"max {max(v for k, vs in res.items() if k.endswith('round trip)') for v in vs):.1f})")
-    out = {"rtt_ms": rtt, "repeat": N, "rows": []}
+    out = {"rtt_median_ms": rtt, "rtt_min_ms": rtt_min, "repeat": N, "rows": []}
     labels = [l for l in QUERIES if l != "select 1 (round trip)"]
-    print("  query (ms: median client / est. DB = client - round trip)   " + "  ".join(f"{a.split(':')[0]:>9}" for a in ACTORS if a.split(':')[0] in ADMIN | {'resident', 'tanod'}))
+    print("  query (ms: median client / DB est. = fastest run - fastest round trip)" + "  ".join(f"{a.split(':')[0]:>9}" for a in ACTORS if a.split(':')[0] in ADMIN | {'resident', 'tanod'}))
     for label in labels:
         cells = []
         for a in ACTORS:
@@ -85,7 +87,8 @@ def main():
                 continue
             v = res.get(f"{who}|{label}")
             if v:
-                m = statistics.median(v); cells.append(f"{m:5.0f}/{max(m - rtt, 0):3.0f}"); out["rows"].append({"who": who, "q": label, "client_ms": m, "db_ms": max(m - rtt, 0)})
+                m, d = statistics.median(v), max(min(v) - rtt_min, 0); cells.append(f"{m:5.0f}/{d:5.1f}")
+                out["rows"].append({"who": who, "q": label, "client_median_ms": m, "client_min_ms": min(v), "db_est_ms": d})
             else:
                 cells.append(f"{'-':>9}")
         print(f"  {label:58}" + "  ".join(f"{c:>9}" for c in cells))

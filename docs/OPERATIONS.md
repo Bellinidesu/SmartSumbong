@@ -272,7 +272,22 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
        `supabase/config.toml` is the local-development one and would weaken
        the project;
      - the Edge Functions (`supabase functions deploy --project-ref <ref> --use-api`)
-       and their secrets.
+       and their secrets;
+     - **the two triggers on `auth.users`** (`on_auth_user_created` and
+       `auth_users_confirm_synthetic`): run `supabase/drafts/0193_auth_triggers_idempotent.sql`
+       (or `migrations/0193_…` once applied) in the SQL editor. A dump leaves out the
+       `auth` schema, so these never travel with it even though their functions do;
+       without them no new resident can register or sign in. This is what broke
+       sign-ups on 23-24 Nov 2026, after the 7 Nov move;
+     - **the realtime tables**: the schema dump comments out the
+       `supabase_realtime` publication, so add each `pub` line of
+       `supabase/drift_manifest.txt` (`alter publication supabase_realtime add table public.<t>;`).
+  7. **Prove it:** `python tools/sweep/drift_check.py` from a worktree linked to
+     the new project (`supabase link --project-ref <ref>`) must end `0 FAIL`.
+     It checks, read-only, everything above that a dump or a restore can lose.
+     A rehearsal on this PC: `python tools/sweep/restore_drill.py` (a fresh dump
+     of live restored into a throwaway PostgreSQL 17, then proved; see
+     `docs/sweep/ROUND3.md`).
   6. Point everything at the new project: Render's `SUPABASE_URL` and
      `SUPABASE_PUBLISHABLE_KEY` (then redeploy), the GitHub secrets
      `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_DB_PASSWORD`, the laptop
@@ -284,6 +299,29 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
   repeats of one system line from a bug fixed in October 2026. They are kept on
   purpose: the trail is hash-chained and append-only, and removing them would
   mean rebuilding the chain. Their case pages load only the newest 600 entries.
+
+## Drift check and the daily watch (round 3, 25 Nov 2026)
+
+Both are read-only (SQL inside `begin read only … rollback`, CLI listings
+only), print names and counts only, and need a worktree linked to the live
+project (`supabase/.temp` copied from a linked one).
+
+- `python tools/sweep/drift_check.py` (~10 s): live against the repository,
+  item by item, for what can drift silently outside `public` and inside it:
+  the `auth.users` triggers, pg_cron jobs, realtime tables, extensions, the
+  Dashboard webhook, storage buckets/policies, Vault and function secret
+  names, Edge Functions and `verify_jwt`, Auth settings (SMTP host and user
+  set, Dashboard-only values), and every public function, policy, trigger,
+  table and grant (against `supabase/drift_manifest.txt` and
+  `supabase/grants.txt`). Exit 1 on any FAIL. **Run it after any project
+  move, restore, Dashboard change, or `config push`.** After adding a
+  migration, rebuild the manifest: `bash tools/sweep/local_db.sh up` then
+  `python tools/sweep/drift_check.py --write` (commit the file).
+- `python tools/sweep/watch.py` (~4 s): every morning until the defense.
+  Sign-ups without a users row, unconfirmed phone addresses, both auth
+  triggers, `portal_errors` of the last 24 h grouped, mail errors, cases
+  pending review for more than 3 days, SMART notice/engine errors, each cron
+  job's last run, and the nightly backup. Lines marked `!!` need a look.
 
 ## Who may call what (`supabase/grants.txt`)
 
