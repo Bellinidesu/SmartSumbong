@@ -37,3 +37,4 @@ step "author-admitted markers"; python markers.py | head -1
 step "ledger"; python ledger.py
 [ -d fix ] && [ "${WITH_FIX:-0}" = 1 ] && { step "fix generators (DRAFTS in supabase/drafts, never applied; each proves failing-before/passing-after on a scratch database)"; for g in fix/gen_*.py; do python "$g" || true; done; }
 [ "$mode" != "quick" ] && [ "${WITH_EXP:-0}" = 1 ] && { step "options for the case rule at 1x/50x/250x"; python exp_case_rule.py | tail -22; }
+true   # the optional steps above end false when skipped; the run itself succeeded
