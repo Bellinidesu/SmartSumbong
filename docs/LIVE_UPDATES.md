@@ -59,9 +59,9 @@ a change in the database ──▶ Supabase Realtime ──▶ live.js (the page
 | Dashboard `dashboard.php` (this month only) | `dash-brain`, `dash-peek`, `dash-panel` (the engine's window) | reports | The charts redraw themselves from `dashboard_metrics` (since Sep); the page is heavy, so at most one refetch every 15 s. A past month does not change and does not listen. |
 | Every live page | `side-nav` (the sidebar's counts) | | The Inbox's chats bubble is left to chat-head.js. |
 
-Still to do (each keeps what it had; none is broken by this):
+Pages the shared layer does not manage, checked 25 Nov 2026 (each already updates itself without a reload, by its own mechanism; none needs a reload to see a change; the "later" column is only about making the update instant or one mechanism):
 
-| Page | What it has today | Next step |
+| Page | How it updates itself today | Later (optional) |
 | --- | --- | --- |
 | Inbox `inbox.php` | the chat head polls every 15 s, the sidebar pill every 60 s | mark the conversation list `data-live`, tables report_messages and dispatch_updates for the person's cases |
 | Residents, Personnel `residents.php`, `personnel.php` | their own Realtime (verification queue) and the press flow's quiet refresh (`ssPress.refresh('#people-list')`) | `users` is not published (0046, privacy): polling only; mark `people-list` and move its refresh to the layer |
