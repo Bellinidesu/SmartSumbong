@@ -864,10 +864,10 @@ function nav_counts_cold(): bool
     return !(is_array($cached) && ($cached['at'] ?? 0) > time() - nav_counts_ttl());
 }
 
-/** How long the sidebar's counts are kept: a minute, or 15 seconds for a page refetching itself (live updates), so a count follows the change it was refetched for. */
+/** How long the sidebar's counts are kept: a minute, or 5 seconds for a page refetching itself (live updates), so a count follows the change it was refetched for. */
 function nav_counts_ttl(): int
 {
-    return live_request() ? 15 : 60;
+    return live_request() ? 5 : 60;
 }
 
 /** The sidebar's counts, as one batch of counted entries (nav_counts(), and the request's boot batch, boot.php). */

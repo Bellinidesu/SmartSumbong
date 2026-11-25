@@ -46,7 +46,12 @@
   document.addEventListener('input', function (e) { if (e.target && e.target.nodeType === 1) { touched.add(e.target); } }, true);
   document.addEventListener('change', function (e) { if (e.target && e.target.nodeType === 1) { touched.add(e.target); } }, true);
   document.addEventListener('click', function (e) { var s = e.target.closest && e.target.closest('summary'); if (s && s.parentNode && s.parentNode.tagName === 'DETAILS') { userOpened.add(s.parentNode); } }, true);
-  function isField(el) { return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) && !/^(hidden|submit|button|reset|image)$/i.test(el.type || ''); }
+  // a field being typed in or chosen from (a tick box, a radio or a button with the focus is not: its state is checked as "changed" below)
+  function isField(el) {
+    if (!el) { return false; }
+    if (el.isContentEditable || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') { return true; }
+    return el.tagName === 'INPUT' && /^(text|search|email|tel|url|number|password|date|month|week|time|datetime-local|)$/i.test(el.getAttribute('type') || '');
+  }
   function selDirty(s) {
     var o = s.options, def = -1, i;
     if (s.multiple) { for (i = 0; i < o.length; i++) { if (o[i].selected !== o[i].defaultSelected) { return true; } } return false; }
@@ -216,6 +221,8 @@
     chip(oldest > 0 && Date.now() - oldest > CHIP_AFTER);
   }
   api.applyNow = function () { flush(true); };
+  // for a person looking into it (docs/LIVE_UPDATES.md): what holds each waiting part
+  api.waiting = function () { var o = {}; Object.keys(pending).forEach(function (n) { var el = regionEl(n); o[n] = el ? (busy(el) || 'free') : 'gone'; }); return o; };
   var retryT = null;
   function retry() { clearTimeout(retryT); retryT = setTimeout(function () { if (Object.keys(pending).length) { flush(false); } }, 80); }
   ['focusout', 'change', 'click', 'keyup', 'close', 'toggle', 'htmx:afterSettle', 'selectionchange'].forEach(function (n) { document.addEventListener(n, retry, true); });
@@ -316,5 +323,8 @@
     if (document.prerendering) { document.addEventListener('prerenderingchange', start, { once: true }); return; }
     connect();
   }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
+  // a deferred script runs before DOMContentLoaded but may come before supabase.js (deferred too, later in the page): wait for it
+  var started = false;
+  function go() { if (!started) { started = true; start(); } }
+  if (document.readyState === 'complete') { go(); } else { document.addEventListener('DOMContentLoaded', go); window.addEventListener('load', go); }
 })();

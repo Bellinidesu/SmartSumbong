@@ -561,6 +561,108 @@ def as_tier(rows, t, tier):
     return rows
 RPC['mail_draft_save'] = _draft_save; RPC['mail_draft_delete'] = _draft_delete; RPC['send_mail'] = _send_mail; RPC['mail_batch_people'] = _batch_people
 
+# 25 Nov 2026 (live updates): a small Realtime socket, so a test can push a database change to a page. Only a browser that carries
+# the cookie ss_rt=<token> is answered (each test its own token), so every other test sees no socket, as before. Phoenix's
+# serializer 2.0.0 (arrays) and 1.0.0 (objects) both; every join is answered with ids for its postgres_changes bindings.
+#   /__rt/push?token=T&table=reports&type=UPDATE   send a change of that table to the token's channels that listen to it
+#   /__rt/down?token=T  /__rt/up?token=T            close the token's sockets and refuse new ones / accept them again
+#   /__rt/fail?token=T&table=reports                answer a join that asks for that table with an error (a rung that may not listen)
+#   /__rt/state?token=T                             how many sockets and channels the token has
+#   /__patch  {"table": "reports", "id": "...", "set": {...}}   change a row (a test plays another administrator)
+import base64, hashlib, struct, threading
+RT = {'socks': [], 'down': set(), 'fail': {}, 'n': 0}
+RT_LOCK = threading.Lock()
+_WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+_SEED = {t: json.loads(json.dumps(TABLES[t])) for t in ('status_logs', 'dispatches', 'notifications')}
+
+def _ws_send(sock, obj):
+    data = json.dumps(obj).encode()
+    hdr = bytearray([0x81]); n = len(data)
+    if n < 126: hdr.append(n)
+    elif n < 65536: hdr.append(126); hdr += struct.pack('>H', n)
+    else: hdr.append(127); hdr += struct.pack('>Q', n)
+    with sock['lock']:
+        sock['h'].wfile.write(bytes(hdr) + data); sock['h'].wfile.flush()
+
+def _ws_recv(h):
+    b = h.rfile.read(2)
+    if len(b) < 2: return None, None
+    op = b[0] & 0x0f; masked = b[1] & 0x80; n = b[1] & 0x7f
+    if n == 126: n = struct.unpack('>H', h.rfile.read(2))[0]
+    elif n == 127: n = struct.unpack('>Q', h.rfile.read(8))[0]
+    mask = h.rfile.read(4) if masked else b'\0\0\0\0'
+    p = bytearray(h.rfile.read(n))
+    for i in range(n): p[i] ^= mask[i % 4]
+    return op, bytes(p)
+
+def _ws_out(sock, arr, jref, ref, topic, ev, pl):
+    _ws_send(sock, [jref, ref, topic, ev, pl] if arr else {'join_ref': jref, 'ref': ref, 'topic': topic, 'event': ev, 'payload': pl})
+
+def realtime(h, token):
+    key = h.headers.get('Sec-WebSocket-Key') or ''
+    acc = base64.b64encode(hashlib.sha1((key + _WS_GUID).encode()).digest()).decode()
+    h.wfile.write(('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n' % acc).encode()); h.wfile.flush()
+    h.close_connection = True
+    sock = {'token': token, 'h': h, 'lock': threading.Lock(), 'topics': {}, 'arr': True}
+    with RT_LOCK: RT['socks'].append(sock)
+    try:
+        while True:
+            op, data = _ws_recv(h)
+            if op is None or op == 8: break
+            if op == 9:
+                with sock['lock']: h.wfile.write(bytes([0x8A, 0])); h.wfile.flush()
+                continue
+            if op != 1: continue
+            try: msg = json.loads(data)
+            except ValueError: continue
+            if isinstance(msg, list): jref, ref, topic, ev, pl = (msg + [None] * 5)[:5]; sock['arr'] = True
+            else: jref, ref, topic, ev, pl = msg.get('join_ref'), msg.get('ref'), msg.get('topic'), msg.get('event'), msg.get('payload'); sock['arr'] = False
+            if ev == 'phx_leave': sock['topics'].pop(topic, None)
+            reply = {'status': 'ok', 'response': {}}
+            if ev == 'phx_join':
+                binds = []
+                for b in ((pl or {}).get('config') or {}).get('postgres_changes') or []:
+                    with RT_LOCK: RT['n'] += 1; i = RT['n']
+                    binds.append(dict(b, id=i))
+                bad = RT['fail'].get(token)
+                if bad and any(b.get('table') == bad for b in binds):
+                    reply = {'status': 'error', 'response': {'reason': 'Unable to subscribe to changes with given parameters (test)'}}
+                else:
+                    sock['topics'][topic] = {'jref': jref, 'binds': binds}
+                    reply['response'] = {'postgres_changes': binds}
+            if ref is not None: _ws_out(sock, sock['arr'], jref, ref, topic, 'phx_reply', reply)
+    except (OSError, ValueError):
+        pass
+    finally:
+        with RT_LOCK:
+            if sock in RT['socks']: RT['socks'].remove(sock)
+
+def rt_push(token, table, typ):
+    n = 0
+    with RT_LOCK: socks = [s for s in RT['socks'] if s['token'] == token]
+    for s in socks:
+        for topic, t in list(s['topics'].items()):
+            ids = [b['id'] for b in t['binds'] if b.get('table') == table and b.get('event') in ('*', typ)]
+            if not ids: continue
+            data = {'schema': 'public', 'table': table, 'commit_timestamp': _now(), 'type': typ, 'columns': [], 'record': {}, 'old_record': {}, 'errors': None}
+            try: _ws_out(s, s['arr'], t['jref'], None, topic, 'postgres_changes', {'ids': ids, 'data': data}); n += 1
+            except OSError: pass
+    return n
+
+def rt_close(token):
+    with RT_LOCK: socks = [s for s in RT['socks'] if s['token'] == token]
+    for s in socks:
+        try:
+            with s['lock']: s['h'].wfile.write(bytes([0x88, 0])); s['h'].wfile.flush()
+            s['h'].connection.shutdown(2)
+        except OSError: pass
+
+def _cookie(h, name):
+    for part in (h.headers.get('Cookie') or '').split(';'):
+        k, _, v = part.strip().partition('=')
+        if k == name: return v
+    return ''
+
 # FAKE_RTT_MS: a round trip to the database added to every answer (the probe uses it to stand in for a distant database;
 # parallel requests wait at the same time, as a real batch does). Off by default.
 RTT = float(os.environ.get('FAKE_RTT_MS') or 0) / 1000
@@ -592,11 +694,42 @@ class H(BaseHTTPRequestHandler):
 
     def route(self, m):
         u = urlparse(self.path); qs = parse_qs(u.query)
+        if u.path == '/realtime/v1/websocket' and (self.headers.get('Upgrade') or '').lower() == 'websocket':
+            tok = _cookie(self, 'ss_rt')
+            if tok and tok not in RT['down']: return realtime(self, tok)
+            return self.send(404, {'message': 'no realtime here'})   # as before: the tests without the cookie see no socket
+        if u.path.startswith('/__rt/'):
+            tok = qs.get('token', [''])[0]; what = u.path[6:]
+            if what == 'push': return self.send(200, {'sent': rt_push(tok, qs.get('table', ['reports'])[0], qs.get('type', ['UPDATE'])[0])})
+            if what == 'down': RT['down'].add(tok); rt_close(tok); return self.send(200, {})
+            if what == 'up': RT['down'].discard(tok); return self.send(200, {})
+            if what == 'fail': RT['fail'][tok] = qs.get('table', [''])[0] or None; return self.send(200, {})
+            if what == 'state':
+                with RT_LOCK: socks = [s for s in RT['socks'] if s['token'] == tok]
+                return self.send(200, {'sockets': len(socks), 'channels': sorted(t for s in socks for t in s['topics'])})
+            return self.send(404, {})
+        if u.path == '/__patch':   # live updates: a test plays another administrator changing a row
+            n0 = int(self.headers.get('Content-Length') or 0); b = json.loads(self.rfile.read(n0) or b'{}') if n0 else {}
+            rows = TABLES.get(b.get('table'), []); hit = 0
+            if b.get('append'): rows.insert(0, b['append']); hit = 1
+            if b.get('remove'): n1 = len(rows); rows[:] = [r for r in rows if r.get('id') != b['remove']]; hit = n1 - len(rows)
+            for r in rows:
+                if b.get('id') and r.get('id') == b['id']: r.update(b.get('set') or {}); hit += 1
+            return self.send(200, {'changed': hit})
+        if u.path == '/__live_reset':   # the rows the live-update tests change, back as they were
+            for r in REPORTS:
+                keep = json.loads(json.dumps(_HIER_KEEP[r['id']])); r.clear(); r.update(keep)
+            for t, rows in _SEED.items(): TABLES[t][:] = json.loads(json.dumps(rows))
+            FEAT.pop('live_updates', None)
+            return self.send(200, {})
         if RTT and not u.path.startswith('/__'): time.sleep(RTT)
         n = int(self.headers.get('Content-Length') or 0)
         body = self.rfile.read(n) if n else b''
         if u.path == '/__feat':   # ?ws=0&cc=0
             FEAT['workspace'] = qs.get('ws', ['1'])[0] == '1'; FEAT['command_center'] = qs.get('cc', ['1'])[0] == '1'; FEAT['live_preview'] = qs.get('lp', ['0'])[0] == '1'
+            if 'live' in qs:   # live updates' kill switch (a row the real database does not have unless Ace adds it): 0 off, 1 on, anything else no row
+                if qs['live'][0] in ('0', '1'): FEAT['live_updates'] = qs['live'][0] == '1'
+                else: FEAT.pop('live_updates', None)
             return self.send(200, {})
         if u.path == '/__cmd_reset':   # the command-center test starts with nothing on
             CMD['active'] = None; return self.send(200, {})
