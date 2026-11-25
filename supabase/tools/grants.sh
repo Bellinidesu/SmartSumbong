@@ -20,7 +20,7 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 file="$here/../grants.txt"
 mode=${1:?print, check, write or apply}; shift
-lines() { PGOPTIONS='-c search_path=public,extensions' psql "$@" -X -At -v ON_ERROR_STOP=1 -f "$here/grants.sql" | LC_ALL=C sort; }
+lines() { PGOPTIONS='-c search_path=public,extensions' psql "$@" -X -At -v ON_ERROR_STOP=1 -f "$here/grants.sql" | tr -d '\r' | LC_ALL=C sort; }   # tr: psql on Windows ends lines with CRLF
 case "$mode" in
   print) lines "$@" ;;
   write) lines "$@" > "$file"; echo "wrote $(wc -l < "$file") lines to supabase/grants.txt" ;;

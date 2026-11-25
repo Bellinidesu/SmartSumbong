@@ -19,6 +19,17 @@ the same visible cases (proved). The reopen/appeal flow, complaint printing and 
 
 Fix class (open rows): **A mechanical 33, B needs one decision 90, C look/front end 3**. Generators exist for 3 A-kinds (below); the other A rows name the generator they would use.
 
+**Refreshed 25 Nov 2026** (full `run_all.sh` on 0001-0192, loads at 1x/50x/250x; round 3 rows added; `docs/sweep/ROUND3.md`):
+
+| critical | high | medium | low | info | total |
+|---|---|---|---|---|---|
+| 0 | 4 | 38 | 28 | 29 | 99 open (+68 closed, kept as history) |
+
+Fix class (open rows): **A 1, B 95, C 3**. Re-measured after 0189-0192 (laptop DB time per load at 250x): cases.php Kagawad
+132,874 -> 737 ms, staff >30 s queries -> 409 ms, slowest Kagawad/staff query 220/224 ms; (page, role) pairs over 200 ms 76 -> 63
+(now led by super admin/captain cases.php, 3.2/2.75 s: K-23); smart_queue 424-614 ms; smart_watch 51 s (K-22). At live size the
+same reads take under 8 ms of database time each in Singapore (smart_queue up to 65 ms); a round trip from this PC is ~41 ms.
+
 ## Top violations (proof pointer -> fix)
 
 1. **Kagawad/staff reads are O(rows x case rule)**: committee `reports` list query 84 ms at 1x, **>30 s** at 250x; `count(*)` 15 s; staff 7 s; pending-residents count (users policy) 71 ms -> 8.9 s; resident public map

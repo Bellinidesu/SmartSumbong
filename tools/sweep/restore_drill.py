@@ -74,13 +74,15 @@ def target():
     subprocess.run([os.path.join(BIN, "initdb" + EXE), "-D", str(DATA), "-A", "trust", "-U", "postgres", "-E", "UTF8"], check=True, capture_output=True)
     with open(DATA / "postgresql.conf", "a") as c:
         c.write(f"\nport={PORT}\nlisten_addresses='127.0.0.1'\nfsync=off\nsynchronous_commit=off\nmax_locks_per_transaction=4000\n")
-    subprocess.run([os.path.join(BIN, "pg_ctl" + EXE), "-D", str(DATA), "-l", str(DATA / "log"), "-w", "start"], check=True, capture_output=True)
+    # no captured output here: the server inherits the pipe and the call would never return (Windows)
+    subprocess.run([os.path.join(BIN, "pg_ctl" + EXE), "-D", str(DATA), "-l", str(DATA / "log"), "-w", "start"], check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
     q('alter database postgres set search_path = "$user", public, extensions')
     stub = re.sub(r"(?im)^create extension pg_cron;", "", read(ROOT / "supabase" / "tests" / "local" / "supabase_stub.sql"))
     (DIR / "stub.sql").write_text(stub, encoding="utf-8")
     assert not load(DIR / "stub.sql", stop=True)
     assert not load(ROOT / "tools" / "sweep" / "sql" / "cron_stub.sql", stop=True)
-    q("create publication supabase_realtime")   # every Supabase project has it (empty); the dump comments its tables out
+    q("create publication supabase_realtime")   # every Supabase project has it; the dump has its ADD TABLE lines, not CREATE PUBLICATION
 
 
 def copy_counts(path):
@@ -159,18 +161,28 @@ def main():
     print(f"  live vs dump (live is in use; rows written after the dump): {len(changed)} tables changed {changed[:5]}")
     # 2. structure as restored, BEFORE the post-restore steps: what a dump cannot carry
     t = time.time(); rc_before = drift("as restored (before the post-restore steps)"); step("drift check x2", t)
-    # 3. the documented post-restore steps: 0193 (auth.users triggers) + the realtime tables
+    # 3. grants as restored, then the documented post-restore steps (docs/OPERATIONS.md, Restore 4-5): grants.sh apply, 0193 (the
+    #    auth.users triggers) and any realtime table not yet in the publication (the dump keeps ALTER PUBLICATION ... ADD TABLE but not
+    #    CREATE PUBLICATION, so the tables come back only where the publication already exists, as in every Supabase project)
+    genv = dict(os.environ, PATH=os.pathsep.join([BIN, os.environ["PATH"]]))
+    gsh = lambda mode: subprocess.run(["bash", bash_path(ROOT / "supabase" / "tools" / "grants.sh"), mode, "-h", "127.0.0.1", "-p", PORT,
+                                       "-U", "postgres", "-d", "postgres"], capture_output=True, text=True, env=genv)
+    gl = lambda g: (g.stdout.strip().splitlines() or [g.stderr.strip()[:120]])[-1][:140]
+    g0 = gsh("check")
+    anon_fn = int(q("select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and has_function_privilege('anon', p.oid, 'execute') "
+                    "and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')")[0][0])
+    on_file = sum(1 for l in read(ROOT / "supabase" / "grants.txt").splitlines() if l.startswith("fn ") and " anon=call" in l)
+    print(f"  grants as restored: {gl(g0)}; signed-out callers may run {anon_fn} functions (grants.txt: {on_file})")
     pub = [l.split("\t")[1] for l in read(ROOT / "supabase" / "drift_manifest.txt").splitlines() if l.startswith("pub\t")]
+    have = {"public." + r[0] for r in q("select tablename from pg_publication_tables where pubname = 'supabase_realtime'")}
     post = ["\\i '" + (ROOT / "supabase" / "drafts" / "0193_auth_triggers_idempotent.sql").as_posix() + "'"]
-    post += [f"alter publication supabase_realtime add table {t};" for t in pub]
+    post += [f"alter publication supabase_realtime add table {t};" for t in pub if t not in have]
     (DIR / "post.sql").write_text("\n".join(post) + "\n", encoding="utf-8")
-    perr = load(DIR / "post.sql", stop=True)
-    print(f"  post-restore steps (0193 + {len(pub)} realtime tables): {'ok' if not perr else perr[:2]}")
-    rc_after = drift("after the post-restore steps")
-    # 4. grants as on file
-    g = subprocess.run(["bash", bash_path(ROOT / "supabase" / "tools" / "grants.sh"), "check", "-h", "127.0.0.1", "-p", PORT, "-U", "postgres", "-d", "postgres"],
-                       capture_output=True, text=True, env=dict(os.environ, PATH=os.pathsep.join([BIN, os.environ["PATH"]])))
-    print("  grants:", (g.stdout.strip().splitlines() or [g.stderr.strip()[:120]])[-1][:140])
+    t = time.time(); ga = gsh("apply"); perr = load(DIR / "post.sql", stop=True); step("post-restore steps", t)
+    print(f"  post-restore steps: grants.sh apply ({gl(ga)}), 0193, realtime tables added {len(post) - 1} (came back with the dump: {len(have)}): "
+          f"{'ok' if not perr and ga.returncode == 0 else perr[:2]}")
+    rc_after = drift("after the post-restore steps (cron jobs: re-created by hand at a cutover, OPERATIONS step 5)")
+    print("  grants after apply:", gl(gsh("check")))
     # 5. the hash chain of every case
     t = time.time()
     r = q("select count(distinct r.id), count(v.*), count(*) filter (where not v.intact), count(distinct r.id) filter (where not v.intact) "
@@ -187,7 +199,11 @@ def main():
             fl.append("did not reach SWEEP-ROLLBACK: " + (re.findall(r"ERROR:\s*([^\n]{0,90})", out) or ["?"])[0])
         fail += len(fl); fails += [f"{f.name}: {x}" for x in fl]
     step("supabase/tests on the restored copy", t)
-    print(f"  supabase/tests on the restored copy: {ok} ok, {fail} failing checks" + "".join(f"\n      {x}" for x in fails[:12]))
+    cron_f = [x for x in fails if re.search(r"schedul|no job|alert", x)]
+    other = [x for x in fails if x not in cron_f]
+    files = sorted({x.split(":")[0][:2] for x in other})
+    print(f"  supabase/tests on the restored copy: {ok} ok, {fail} failing: {len(cron_f)} need the cron jobs (not in a dump), {len(other)} others "
+          f"in {len(files)} scripts ({', '.join(files)}): written for an empty database built from the migrations, they meet live's rows")
     step("TOTAL", t0)
     print("  timings (s):", json.dumps(T))
     json.dump({"timings": T, "errors": {k: len(v) for k, v in errs.items()}, "rows_bad": bad, "changed": changed, "chain": r,

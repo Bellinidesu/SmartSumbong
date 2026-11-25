@@ -279,8 +279,10 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
        `auth` schema, so these never travel with it even though their functions do;
        without them no new resident can register or sign in. This is what broke
        sign-ups on 23-24 Nov 2026, after the 7 Nov move;
-     - **the realtime tables**: the schema dump comments out the
-       `supabase_realtime` publication, so add each `pub` line of
+     - **the realtime tables**: the schema dump leaves out `CREATE PUBLICATION
+       supabase_realtime` but keeps its `ADD TABLE` lines, so the ten tables
+       come back only if the project already has the publication (every
+       Supabase project does). Check; add any missing `pub` line of
        `supabase/drift_manifest.txt` (`alter publication supabase_realtime add table public.<t>;`).
   7. **Prove it:** `python tools/sweep/drift_check.py` from a worktree linked to
      the new project (`supabase link --project-ref <ref>`) must end `0 FAIL`.
