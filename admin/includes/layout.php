@@ -7,6 +7,8 @@
  */
 declare(strict_types=1);
 
+require_once __DIR__ . '/live.php';   // live updates (25 Nov 2026): live_head(), live_request()
+
 function nav_items(): array
 {
     $items = [
@@ -613,6 +615,7 @@ window.ssSupabase = function (url, key, initial) {
       $sameRule = preg_match('~^/[A-Za-z0-9_./-]+\.php$~', $sameUrl) ? '{"not":{"href_matches":' . json_encode($sameUrl . '*', JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '}},' : ''; ?>
 <script nonce="<?= csp_nonce() ?>" type="speculationrules">{"prerender":[{"source":"document","eagerness":"moderate","where":{"and":[{"selector_matches":"#side-nav a[href]"},{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"]"}}]}}],"prefetch":[{"source":"document","eagerness":"moderate","where":{"and":[{"href_matches":"/admin/*"},{"not":{"href_matches":"/admin/logout.php*"}},<?= $sameRule ?>{"not":{"selector_matches":"[data-no-prefetch], [download], [target=\"_blank\"], [hx-boost=\"true\"] a, a[hx-boost=\"true\"], a[hx-get], a[href*=\"export=\"], a[href*=\"inbox.php?m=\"], a[href*=\"&m=\"], .dv-float a, a[href*=\"view-as.php\"]"}}]}}]}</script>
 <link href="assets/css/material.css?v=<?= e(asset_version('material.css')) ?>" rel="stylesheet">   <?php // the portal is Material: solid surfaces, scrims that dim, glows as coloured elevation (15 Nov 2026) ?>
+<?= live_head() /* live updates (25 Nov 2026): only on a page that opted in with live_page(), and only while the switch is on (includes/live.php) */ ?>
 </head>
 <?php // 12 Nov 2026 (Ace): motion (motion.css, motion.js) on every page but Control Room, Settings and Profile: mo-on for hover and press, mo-in for the first open, mo-hold while a prerendered page waits to be shown ?>
 <?php $mo = !in_array($active, ['control-room.php', 'settings.php', 'profile.php'], true); ?>
@@ -630,7 +633,7 @@ window.ssSupabase = function (url, key, initial) {
       <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><b><?= e($sideC['label']) ?></b></span></div>
     <?php endif; ?>
     <?php $ssFocus = !empty($GLOBALS['ss_side_override']); // the committee editor (committee-editor.php): the menu is a preview of the committee's own sidebar, nothing in it opens ?>
-    <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
+    <nav class="p-nav" id="side-nav" data-live="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php if ($ssFocus): foreach ([['i-home', t('Home', 'Tahanan'), false], ['i-doc', t('Report Summary', 'Buod ng mga Ulat'), false], ['i-map', t('Spatial Distribution', 'Mapa ng mga Sumbong'), false], ['i-chat', t('Case Reports', 'Mga Sumbong'), true],
                                    ['i-bell', t('Notifications', 'Mga Abiso'), false], ['i-send', t('Inbox', 'Mga Liham'), false], ['i-gear', t('Settings', 'Mga Setting'), false]] as [$fi, $fl, $fon]): ?>
         <a class="<?= $fon ? 'p-active' : '' ?>" aria-disabled="true" tabindex="-1"><?= p_icon($fi) ?><span><?= e($fl) ?></span></a>
@@ -641,7 +644,7 @@ window.ssSupabase = function (url, key, initial) {
           <?= p_icon($icon) ?><span><?= e($label) ?></span>
           <?php $smartN = $href === 'notifications.php' ? (int) ($counts['notifications_smart'] ?? 0) : 0; ?>
           <?php if ($href === 'inbox.php'): // 12 Nov 2026 (Ace): the chats' unread count (a bubble); it comes from chat-head.js (BarangayMail was removed on 15 Nov 2026, Rose). ?>
-            <span class="p-rt"><span class="p-pill p-ib p-ib-chat" data-n="0" hidden title="<?= e(t('Unread case chats', 'Mga hindi pa nababasang chat sa kaso')) ?>"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5A8.5 8.5 0 1 1 21 12z"/></svg><b>0</b></span></span>
+            <span class="p-rt" data-live-skip><span class="p-pill p-ib p-ib-chat" data-n="0" hidden title="<?= e(t('Unread case chats', 'Mga hindi pa nababasang chat sa kaso')) ?>"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5A8.5 8.5 0 1 1 21 12z"/></svg><b>0</b></span></span>
           <?php elseif ($n > 0 || $smartN > 0): ?>
             <span class="p-rt"><?php if ($smartN > 0): ?><span class="p-brain-pill" title="<?= e(t('Unread notes from the SMART engine', 'May hindi pa nababasang abiso mula sa SMART engine')) ?>"><?= smart_brain(13) ?></span><?php endif; ?><?php if ($n > 0): ?><span class="p-pill<?= $href === 'notifications.php' ? ' p-pill--hot' : '' ?>" title="<?= e((string) $n) ?>"><?= $n > 99 ? '99+' : $n ?></span><?php endif; ?></span>
           <?php endif; ?>
@@ -838,7 +841,7 @@ function nav_counts(): array
     static $memo = null;
     if ($memo !== null) return $memo;
     $cached = $_SESSION['nav_counts'] ?? null;
-    if (is_array($cached) && ($cached['at'] ?? 0) > time() - 60) {
+    if (is_array($cached) && ($cached['at'] ?? 0) > time() - nav_counts_ttl()) {
         return $memo = $cached['n'];
     }
     // All four in one batch (speed, 7 Oct 2026): they used to be four calls
@@ -858,7 +861,13 @@ function nav_counts_cold(): bool
 {
     session_start_once();
     $cached = $_SESSION['nav_counts'] ?? null;
-    return !(is_array($cached) && ($cached['at'] ?? 0) > time() - 60);
+    return !(is_array($cached) && ($cached['at'] ?? 0) > time() - nav_counts_ttl());
+}
+
+/** How long the sidebar's counts are kept: a minute, or 15 seconds for a page refetching itself (live updates), so a count follows the change it was refetched for. */
+function nav_counts_ttl(): int
+{
+    return live_request() ? 15 : 60;
 }
 
 /** The sidebar's counts, as one batch of counted entries (nav_counts(), and the request's boot batch, boot.php). */

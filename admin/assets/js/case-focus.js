@@ -44,5 +44,10 @@
     var cs = chips(); if (!cs.length) { return; }
     show(cur >= 0 && cur < cs.length && cs[cur].getAttribute('data-done') !== '1' ? cur : first(), true);
   });
+  // and after a live update (live.js, 25 Nov 2026) redrew the concerns or this bar in place
+  document.addEventListener('ss:live', function () {
+    var cs = chips(); if (!cs.length) { return; }
+    show(cur >= 0 && cur < cs.length && cs[cur].getAttribute('data-done') !== '1' ? cur : first(), true);
+  });
   show(first(), true);
 })();

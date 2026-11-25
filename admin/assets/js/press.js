@@ -21,6 +21,8 @@
   var inits = [];
   window.ssPress = {
     ready: function (fn) { inits.push(fn); try { fn(document); } catch (e) { if (window.console) console.error(e); } },
+    // the same set-up for a part that live updates (live.js) morphed in place
+    init: function (root) { runInits(root); },
     announce: announce,
     // a live update: the region is fetched again at the address on screen, quietly (no bar, no focus move, nothing read out)
     refresh: function (sel) {

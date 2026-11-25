@@ -375,6 +375,19 @@ if (!$error && isset($report['id']) && ($_GET['chat'] ?? '') === '1') {
     exit;
 }
 
+// Live updates (25 Nov 2026): this case's parts update themselves on a change to it (includes/live.php, assets/js/live.js); its
+// feedback, field photos, concerns and forwards are in no Realtime publication, so the slow safety check (every 2 minutes, and the
+// light poll below) brings those. Every table here is filtered to this case; row level security still decides what each rung reads.
+if ($report && !$error) {
+    live_page('case', [
+        'reports'             => 'id=eq.' . $id,
+        'status_logs'         => 'report_id=eq.' . $id,
+        'dispatches'          => 'report_id=eq.' . $id,
+        'escalation_requests' => 'report_id=eq.' . $id,
+        'case_handler_log'    => 'report_id=eq.' . $id,
+        'report_messages'     => 'report_id=eq.' . $id,
+    ] + (!empty($liveIds) ? ['dispatch_updates' => 'dispatch_id=in.(' . implode(',', $liveIds) . ')'] : []));
+}
 layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 ?>
 <link href="assets/css/case-controls.css?v=<?= e(asset_version('case-controls.css')) ?>" rel="stylesheet">   <?php // the case page on one screen (15 Nov 2026) ?>
@@ -391,8 +404,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <?php layout_foot(); exit; ?>
 <?php endif; ?>
 
-<!-- Live inputs on this page (a deny reason, a dispatch note, a target date)
-     mean realtime announces rather than rewrites; the admin chooses when to reload. -->
+<!-- Live inputs on this page (a deny reason, a dispatch note, a target date). Since 25 Nov 2026 the live layer (live.js) updates the
+     page's parts in place and never over what is being typed; this banner is only the fallback, for when live updates are switched off. -->
+<span data-live="case-ver" data-v="<?= e((string) ($report['version'] ?? '0')) ?>" hidden></span>
 <div class="p-upd" id="update-banner" role="status">
   <span><?= e(t('This case has new activity since you opened it.', 'May bagong aktibidad sa kasong ito mula nang buksan mo.')) ?></span>
   <a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($id) ?>"><?= e(t('Refresh to see it', 'I-refresh para makita')) ?></a>
@@ -473,17 +487,18 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php if ($hzBits): ?>
       <p class="p-filed p-hazard<?= max($hz['flood'], $hz['surge']) >= 3 ? ' p-high' : '' ?>" id="case-hazard"><?= e(implode(' · ', $hzBits)) ?> — Project NOAH</p>
     <?php endif; ?>
-    <p class="p-filed p-zone" id="case-zone" hidden></p>
+    <p class="p-filed p-zone" id="case-zone" hidden data-live-skip></p>
 
     <?php if (!empty($report['due_at'])
               && !in_array($status, ['resolved','closed','archived','rejected'], true)): ?>
       <!-- A date makes you do the arithmetic; a countdown does not. -->
-      <p class="p-clock sla-countdown" data-due="<?= e($report['due_at']) ?>">
-        <span class="sla-text"><?= e(t('calculating…', 'kinakalkula…')) ?></span>
+      <p class="p-clock sla-countdown" data-live="case-sla" data-due="<?= e($report['due_at']) ?>">
+        <span class="sla-text" data-live-skip><?= e(t('calculating…', 'kinakalkula…')) ?></span>
       </p>
+    <?php else: // live updates: where the countdown appears once the case has a deadline ?><template data-live="case-sla"></template>
     <?php endif; ?>
 
-    <div class="p-acc-flags">
+    <div class="p-acc-flags" data-live="case-flags">
       <?= sensitive_badge($report) ?>
       <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
       <?php if (!empty($report['referred_to'])): ?>
@@ -515,12 +530,12 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     </div>
 
     <?php // 15 Nov 2026 (Ace): the case on one screen: the cream card owns the header, the tabs and a body that scrolls inside it ?>
-    <div class="cc-tabs" role="tablist" aria-label="<?= e(t('The case', 'Ang kaso')) ?>">
+    <div class="cc-tabs" role="tablist" data-live="case-tabs" aria-label="<?= e(t('The case', 'Ang kaso')) ?>">
       <?php foreach ([['report', t('Report', 'Ulat')], ['evidence', t('Field report', 'Ulat mula sa lugar')], ['timeline', t('Timeline', 'Takbo')], ['feedback', t('Feedback', 'Puna')]] as [$ccK, $ccL]): ?>
         <button type="button" role="tab" id="cc-tab-<?= $ccK ?>" aria-controls="cc-body" aria-selected="<?= $ccK === 'report' ? 'true' : 'false' ?>" data-cc-go="<?= $ccK ?>" tabindex="<?= $ccK === 'report' ? '0' : '-1' ?>"><?= e($ccL) ?><?php if ($ccK === 'timeline' && !empty($timeline)): ?><span class="cc-n"><?= (int) count($timeline) ?></span><?php endif; ?></button>
       <?php endforeach; ?>
     </div>
-    <div class="cc-body" id="cc-body" role="tabpanel" tabindex="0">
+    <div class="cc-body" id="cc-body" role="tabpanel" tabindex="0" data-live="case-body" data-live-keep="aria-labelledby">
     <div class="p-sec" data-cc-tab="report">
       <p class="p-eyebrow"><?= e(t('Subject', 'Paksa')) ?></p>
       <p class="p-desc"><?= e($report['subject']) ?></p>
@@ -573,7 +588,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
          mechanism spatial.php's own expand button already uses, not
          panning or zooming this small a widget. -->
     <div class="p-minimap" id="case-map-preview">
-      <div id="case-map"></div>
+      <div id="case-map" data-live-skip></div>
       <button class="p-dock-btn p-mini-expand" id="case-map-expand" type="button"
               title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -598,7 +613,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           </div>
         </header>
         <?php if ($msMly !== ''): ?>
-        <button type="button" class="ss-ms-snap" id="case-street-snap" data-lat="<?= e((string) $report['latitude']) ?>" data-lng="<?= e((string) $report['longitude']) ?>" aria-label="<?= e(t('Open street view', 'Buksan ang street view')) ?>">
+        <button type="button" class="ss-ms-snap" id="case-street-snap" data-live-skip data-lat="<?= e((string) $report['latitude']) ?>" data-lng="<?= e((string) $report['longitude']) ?>" aria-label="<?= e(t('Open street view', 'Buksan ang street view')) ?>">
           <img alt="" id="case-street-img" hidden>
           <span class="ss-ms-load" id="case-street-load"><?= e(t('Finding the street…', 'Hinahanap ang kalye…')) ?></span>
           <span class="ss-ms-over"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><b><?= e(t('Open street view', 'Buksan ang street view')) ?></b><small id="case-street-when"></small></span>
@@ -613,7 +628,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <?php if (!empty($report['due_at'])): ?><div><dt><?= e(t('Due', 'Takdang oras')) ?></dt><dd><?= e(long_datetime($report['due_at'])) ?></dd></div><?php endif; ?>
           <?php if ($concerns): ?><div><dt><?= e(t('Concerns', 'Mga alalahanin')) ?></dt><dd><?= count($concerns) ?></dd></div><?php endif; ?>
         </dl>
-        <p class="ss-ms-credit" id="case-street-credit" hidden><?= e(t('Street imagery © Mapillary contributors, CC BY-SA 4.0', 'Larawan ng kalye © mga contributor ng Mapillary, CC BY-SA 4.0')) ?></p>
+        <p class="ss-ms-credit" id="case-street-credit" hidden data-live-skip><?= e(t('Street imagery © Mapillary contributors, CC BY-SA 4.0', 'Larawan ng kalye © mga contributor ng Mapillary, CC BY-SA 4.0')) ?></p>
       </aside>
       <span class="p-tag"><?php if (!empty($report['location_label'])): ?><span class="p-tag-place"><?= e($report['location_label']) ?></span><?php endif; ?><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></span>
     </div>
@@ -918,7 +933,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     ?>
     <ul class="p-timeline">
       <?php foreach ($timeline as $l): ?>
-        <li>
+        <li data-live-key="<?= e('t' . (string) (($l['id'] ?? '') !== '' ? $l['id'] : md5((string) $l['created_at'] . (string) ($l['remark'] ?? '')))) ?>">
           <span class="p-tl-dot" aria-hidden="true"><svg width="13" height="13"><use href="#i-flag"/></svg></span>
           <b class="p-tl-title"><?= e(!empty($l['msg'])
                 ? ($l['from_barangay'] ? t('Barangay replied to the resident', 'Sumagot ang barangay sa residente') : t('Resident asked the barangay', 'Nagtanong ang residente sa barangay'))
@@ -938,7 +953,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php endforeach; ?>
 
       <?php if ($tlPage === $tlPages): ?>
-      <li class="p-now">
+      <li class="p-now" data-live-quiet>
         <span class="p-tl-dot p-orange" aria-hidden="true"><svg width="13" height="13"><use href="#i-clock"/></svg></span>
         <small class="p-tl-when"><?= e(t('Today', 'Ngayon')) ?> &middot; <?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('g:i A')) ?></small>
       </li>
@@ -992,7 +1007,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     $ccWho   = $hid !== '' ? '<b class="cc-who" data-r="' . e(rank_of((string) ($report['handler']['official_role'] ?? ''))) . '">' . e($hName) . '</b>' : '';
     $GLOBALS['ss_case'] = ['id' => $id, 'tracking' => $report['tracking_id']];
   ?>
-  <aside aria-label="<?= e(t('Admin Controls', 'Kontrol ng Admin')) ?>" class="p-card p-controls<?= $theirs ? ' ss-readonly' : '' ?><?= is_captain() ? ' ss-viewonly' : '' ?>">
+  <aside data-live="case-controls" aria-label="<?= e(t('Admin Controls', 'Kontrol ng Admin')) ?>" class="p-card p-controls<?= $theirs ? ' ss-readonly' : '' ?><?= is_captain() ? ' ss-viewonly' : '' ?>">
     <p class="p-eyebrow"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
     <?php // 15 Nov 2026 (Ace): where the case is in its work, at a glance (read only; the actions below are unchanged)
       $trkAt = null;
@@ -1171,7 +1186,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php if ($tanodOn !== ''): // a tanod shows when one is dispatched ?><li data-r="tanod" class="tan" title="<?= e($tanodOn) ?>"><?= e(rung_label('tanod')) ?></li><?php endif; ?>
     </ol>
     <p class="p-hint ss-ladder-who"><?= e($holder['text']) ?><?= $tanodOn !== '' ? ' · ' . e(sprintf(t('Tanod %s is on it', 'Si Tanod %s ang nasa kaso'), $tanodOn)) : '' ?></p>
-    <div id="ss-also" hidden></div>
+    <div id="ss-also" hidden data-live-skip></div>
     <?php if ($handlerLog): ?>
       <?php ob_start(); ?><details class="p-fix" data-keep-details data-ic="hist">
         <summary><span class="cc-st"><?= e(sprintf(t('Ownership history (%d)', 'Kasaysayan ng may-hawak (%d)'), count($handlerLog))) ?><small><?= e(t('Who held it, and when', 'Sino ang humawak, at kailan')) ?></small></span></summary>
@@ -1200,7 +1215,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <button type="button" class="cf-chip<?= $cdone ? ' is-done' : '' ?>" data-i="<?= (int) $ci ?>" data-done="<?= $cdone ? '1' : '0' ?>" aria-pressed="false"><i aria-hidden="true"></i><?= e($cfName) ?></button>
           <?php endforeach; ?>
         </div>
-        <div class="cf-now" aria-live="polite"></div>
+        <div class="cf-now" aria-live="polite" data-live-skip></div>
         <div class="cf-act">
           <button type="button" class="p-btn p-btn-ghost p-btn-sm" data-cf="next"><?= e(t('Next request', 'Susunod na hiling')) ?> &rarr;</button>
           <button type="button" class="p-btn p-btn-primary p-btn-sm" data-cf="done" hidden><?= e(t('Mark this request resolved', 'Markahang nalutas ang hiling na ito')) ?></button>
@@ -1229,11 +1244,11 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <?= e(t('Reject Report', 'Tanggihan ang Ulat')) ?>
         </button>
 
-        <div class="p-reveal" id="deny-panel" hidden>
+        <div class="p-reveal" id="deny-panel" hidden data-live-keep="hidden">
           <label class="p-flabel" for="reason">
             <?= e(t('Reason for denial — the resident sees this', 'Dahilan ng pagtanggi — makikita ito ng residente')) ?>
           </label>
-          <textarea class="p-note" id="reason" name="reason" rows="3" maxlength="200"
+          <textarea class="p-note" id="reason" name="reason" rows="3" maxlength="200" data-live-keep="required"
                     placeholder="<?= e(t('e.g. Outside barangay jurisdiction — refer to the city ENRO.', 'hal. Labas sa sakop ng barangay — i-refer sa ENRO ng lungsod.')) ?>"></textarea>
 
           <label class="p-check">
@@ -1789,10 +1804,24 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 </div>
 
 <script nonce="<?= csp_nonce() ?>">
-// 0087 (D): every form on this page says which version of the case it saw.
-document.querySelectorAll('form[method="post"]').forEach(function (f) {
-  var v = document.createElement('input'); v.type = 'hidden'; v.name = 'v'; v.value = <?= json_encode((string) ($report['version'] ?? '0')) ?>; f.appendChild(v);
-});
+// 0087 (D): every form on this page says which version of the case it saw. Live updates (25 Nov 2026): a part brought up to date
+// in place says the version it now shows (case-ver); a part that waited (someone was typing in it) keeps the version it was drawn
+// with, so a save from it still meets the stale-case guard.
+(function () {
+  function stamp(root, ver) {
+    [].forEach.call(root.querySelectorAll('form[method="post"]'), function (f) {
+      var v = f.querySelector('input[data-case-v]');
+      if (!v) { v = document.createElement('input'); v.type = 'hidden'; v.name = 'v'; v.setAttribute('data-case-v', ''); v.setAttribute('data-live-own', ''); f.appendChild(v); }
+      v.value = ver;
+    });
+  }
+  stamp(document, <?= json_encode((string) ($report['version'] ?? '0')) ?>);
+  document.addEventListener('ss:live', function (e) {
+    var mark = document.querySelector('[data-live="case-ver"]'), ver = mark && mark.getAttribute('data-v');
+    if (!ver) { return; }
+    (e.detail && e.detail.els || []).forEach(function (el) { if (el.getAttribute('data-live') !== 'side-nav') { stamp(el, ver); } });
+  });
+})();
 </script>
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css?v=<?= e(vendor_version('maplibre-gl')) ?>">
 <?php // speed sweep, 17 Nov 2026: MapLibre (1.1 MB) and the map theme no longer stop the page from being read; the map below is drawn once they have run ?>
@@ -1804,23 +1833,22 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 <?php if (count($concerns) > 1): ?><script nonce="<?= csp_nonce() ?>" src="assets/js/case-focus.js?v=<?= e(asset_version('../js/case-focus.js')) ?>" defer></script><?php endif; ?>
 <script nonce="<?= csp_nonce() ?>">
 (function () {
+  // Live updates (25 Nov 2026): the parts below can be morphed in place (live.js), so every press here is handled from the
+  // document, not bound to a button that an update could replace.
   // ---- copy the tracking id ----
-  document.querySelectorAll('[data-copy]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      navigator.clipboard.writeText(btn.dataset.copy).then(function () {
-        btn.classList.add('p-done');
-        setTimeout(function () { btn.classList.remove('p-done'); }, 1400);
-      });
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest && ev.target.closest('[data-copy]'); if (!btn) return;
+    navigator.clipboard.writeText(btn.dataset.copy).then(function () {
+      btn.classList.add('p-done');
+      setTimeout(function () { btn.classList.remove('p-done'); }, 1400);
     });
   });
 
-  // ---- live SLA countdown ----
-  var sla = document.querySelector('.sla-countdown');
-  if (sla) {
-    var due = new Date(sla.dataset.due);
-    var out = sla.querySelector('.sla-text');
-    (function tick() {
-      var ms = due - new Date(), late = ms < 0, a = Math.abs(ms);
+  // ---- live SLA countdown ---- (the deadline is read again on every tick: an extension shows without a reload)
+  (function tick() {
+    var sla = document.querySelector('.sla-countdown'), out = sla && sla.querySelector('.sla-text');
+    if (sla && out && sla.dataset.due) {
+      var ms = new Date(sla.dataset.due) - new Date(), late = ms < 0, a = Math.abs(ms);
       var d = Math.floor(a / 86400000),
           h = Math.floor(a % 86400000 / 3600000),
           m = Math.floor(a % 3600000 / 60000);
@@ -1828,9 +1856,11 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
       out.textContent = late ? T('Overdue by ', 'Lampas na nang ') + span : span + T(' left to resolve', ' na lang para malutas');
       sla.classList.toggle('p-late', late);
       sla.classList.toggle('p-close', !late && a < 21600000);   // under six hours
-      setTimeout(tick, 30000);
-    })();
-  }
+    }
+    clearTimeout(tick.t); tick.t = setTimeout(tick, 30000);
+    window.ssSlaTick = tick;
+  })();
+  document.addEventListener('ss:live', function () { if (window.ssSlaTick) window.ssSlaTick(); });
 
   // ---- keyboard: A accepts, D opens the denial, Esc closes it ----
   // An admin clearing twenty complaints should not have to find the
@@ -1851,30 +1881,27 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
   });
 
   // Escalation: "Another office…" asks for the office's name.
-  document.querySelectorAll('select[data-office]').forEach(function (sel) {
+  document.addEventListener('change', function (ev) {
+    var sel = ev.target.closest && ev.target.closest('select[data-office]'); if (!sel) return;
     var wrap = sel.closest('.p-cfield').nextElementSibling;
-    sel.addEventListener('change', function () {
-      var other = sel.value === 'other';
-      wrap.hidden = !other;
-      wrap.querySelector('input').required = other;
-    });
+    var other = sel.value === 'other';
+    wrap.hidden = !other;
+    wrap.querySelector('input').required = other;
   });
 
   // Deny is destructive and irreversible, so it asks for a reason before
   // it will submit. The button only reveals the field; the second one commits.
-  var toggle = document.getElementById('deny-toggle');
-  if (toggle) {
+  document.addEventListener('click', function (ev) {
+    var toggle = ev.target.closest && ev.target.closest('#deny-toggle'); if (!toggle) return;
     var panel = document.getElementById('deny-panel');
-    toggle.addEventListener('click', function () {
-      var open = panel.hasAttribute('hidden');
-      if (open) { panel.removeAttribute('hidden'); } else { panel.setAttribute('hidden', ''); }
-      // Required only while the denial is open: a hidden required field
-      // silently blocked the Accept button in the same form.
-      document.getElementById('reason').required = open;
-      toggle.setAttribute('aria-expanded', String(open));
-      if (open) { document.getElementById('reason').focus(); }
-    });
-  }
+    var open = panel.hasAttribute('hidden');
+    if (open) { panel.removeAttribute('hidden'); } else { panel.setAttribute('hidden', ''); }
+    // Required only while the denial is open: a hidden required field
+    // silently blocked the Accept button in the same form.
+    document.getElementById('reason').required = open;
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open) { document.getElementById('reason').focus(); }
+  });
 
   // A preview, not a tool: no dragging, no zoom, no scroll hijack while
   // small. The full interactive map is Spatial Distribution; expanding
@@ -2022,24 +2049,36 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 // Realtime, added 6 Sep 2026 — explicit ask: "the entire system needs to
 // work realtime." This is the one page in the portal with live form
 // inputs on screen at the same time as the data that could change under
-// it (a deny reason mid-type, a dispatch note, a target date), so unlike
-// cases.php/dashboard.php it never rewrites the DOM itself — it only
-// raises the .update-banner above and leaves reloading to the admin.
+// it (a deny reason mid-type, a dispatch note, a target date). Until
+// 25 Nov 2026 it never rewrote the DOM itself: it raised the .update-banner
+// above and left reloading to the admin. Now the live layer (live.js) owns
+// the channel and updates the case's parts in place, never over what is
+// being typed; what follows is the old behaviour, kept for when live updates
+// are switched off (the server's switch, or ss-live=off in this browser).
 document.addEventListener('DOMContentLoaded', function () {   // supabase.js is deferred (speed sweep, 17 Nov 2026): this runs once it has
-  if (!window.supabase) { return; }
-  const { createClient } = supabase;
-
-  const TOKEN = <?= json_encode(access_token()) ?>;
+  const LIVE = !!(window.ssLiveLayer && window.ssLiveLayer.active);
   const REPORT_ID = <?= json_encode($id) ?>;
-  const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
-
-  // A message changes only the chat head, in place; the banner is for the rest of the page.
-  function chatPing() { if (window.ssChat) { window.ssChat.refresh(); } else { showBanner(); } }
 
   function showBanner() {
     document.getElementById('update-banner').classList.add('p-on');
   }
+  // A message changes only the chat head, in place; the banner (or, with live updates, the timeline) is for the rest of the page.
+  function chatPing() { if (window.ssChat) { window.ssChat.refresh(); } else if (!LIVE) { showBanner(); } }
+  // something changed that no table pushes: the live layer asks for the page again; without it, the banner
+  function changed() { if (LIVE) { window.ssLiveLayer.kick(); } else { showBanner(); } }
 
+  if (LIVE) {
+    document.addEventListener('ss:live-event', function (e) {
+      var t = e.detail && e.detail.table;
+      if (t === 'report_messages' || t === 'dispatch_updates') { chatPing(); }
+    });
+  }
+  if (!window.supabase) { return; }
+  const TOKEN = <?= json_encode(access_token()) ?>;
+  const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
+  if (!sb) { return; }
+
+  if (!LIVE) {
   sb.channel('case-' + REPORT_ID)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reports',
                                filter: 'id=eq.' + REPORT_ID }, showBanner)
@@ -2064,30 +2103,32 @@ document.addEventListener('DOMContentLoaded', function () {   // supabase.js is 
         badge.classList.add('p-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
       }
     });
+  }
 
   // feedback and dispatch_media are not in the supabase_realtime
   // publication (only reports/dispatches/status_logs/notifications are —
   // see migrations 0004/0046), so a change to either has no push signal.
   // A light poll is the honest way to still surface them as "current"
   // without asking the team to publish two more tables just for this.
-  const INITIAL_FEEDBACK_AT = <?= json_encode($feedback['submitted_at'] ?? null) ?>;
-  const LIVE_DISPATCH_IDS   = <?= json_encode(array_values($liveIds ?? [])) ?>;
-  const INITIAL_PROOF_COUNT = <?= json_encode($proofCount) ?>;
+  // (Never while the tab is hidden; what it found is remembered, so it asks the live layer once per change.)
+  let feedbackAt = <?= json_encode($feedback['submitted_at'] ?? null) ?>;
+  const LIVE_DISPATCH_IDS = <?= json_encode(array_values($liveIds ?? [])) ?>;
+  let proofCount = <?= json_encode($proofCount) ?>;
 
   async function pollUnpublished() {
-    if (INITIAL_FEEDBACK_AT === null) {
+    if (feedbackAt === null) {
       const { data } = await sb.from('feedback').select('submitted_at')
         .eq('report_id', REPORT_ID).limit(1);
-      if (data && data.length) { showBanner(); return; }
+      if (data && data.length) { feedbackAt = data[0].submitted_at || 'seen'; changed(); return; }
     }
     if (LIVE_DISPATCH_IDS.length) {
       const { count } = await sb.from('dispatch_media')
         .select('id', { count: 'exact', head: true })
         .in('dispatch_id', LIVE_DISPATCH_IDS);
-      if (typeof count === 'number' && count > INITIAL_PROOF_COUNT) { showBanner(); return; }
+      if (typeof count === 'number' && count > proofCount) { proofCount = count; changed(); return; }
     }
   }
-  setInterval(pollUnpublished, 25000);
+  setInterval(function () { if (!document.hidden) { pollUnpublished(); } }, 25000);
 });
 </script>
 

@@ -462,6 +462,14 @@ try {
     $error = safe_error($ex);
 }
 
+// Live updates (25 Nov 2026, includes/live.php): Case Reports follows every case it may show (row level security decides which
+// reach this person), Notifications this person's own notifications; both follow the sidebar's counts. The view on screen (filters,
+// page, search) is the address, so a refetch shows the same view; ticked rows and an open dialog hold the list until they are done.
+if (!$workspace) {
+    $liveMe = (string) ($admin['id'] ?? '');
+    live_page($notices ? 'notifications' : 'cases', $notices ? ['notifications' => 'user_id=eq.' . $liveMe]
+                                                            : ['reports' => '', 'notifications' => 'user_id=eq.' . $liveMe], ['gap' => $notices ? 4 : 3]);
+}
 layout_head($workspace ? t('Workspace', 'Tablero ng Gawain') : ($notices ? t('Notifications', 'Mga Abiso') : t('Case Reports', 'Mga Sumbong')),
             $workspace ? 'workspace.php' : ($notices ? 'notifications.php' : 'cases.php'));
 ?>
@@ -513,7 +521,7 @@ $noteBadge = $notesUnread + $escCount;
   $nowHtml = '';
   if ($notices && !$workspace) { ob_start(); render_briefing($db, $admin, 'strip'); $nowHtml = (string) ob_get_clean(); }
   $railOn = $pins || ($nowHtml !== '' && !str_contains($nowHtml, 'ss-calm')); ?>
-<div class="nf-grid<?= $railOn ? '' : ' nf-grid--solo' ?>"><?php // the press flow (step 3): the header, the chooser, the list and the pager swap in place ?><div class="nf-main press-region" id="nf-list" hx-target="#nf-list" hx-select="#nf-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#nf-list:replace" data-announce="<?= e(sprintf(t('Showing %d notifications', 'Ipinapakita ang %d abiso'), (int) $notesTotal)) ?>">
+<div class="nf-grid<?= $railOn ? '' : ' nf-grid--solo' ?>" data-live="notes"><?php // the press flow (step 3): the header, the chooser, the list and the pager swap in place ?><div class="nf-main press-region" id="nf-list" hx-target="#nf-list" hx-select="#nf-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#nf-list:replace" data-announce="<?= e(sprintf(t('Showing %d notifications', 'Ipinapakita ang %d abiso'), (int) $notesTotal)) ?>">
 <!-- ---------- notifications ---------- -->
 <?php $nHref = fn(string $v) => '?' . http_build_query(array_filter(['nview' => $v === 'all' ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : ''])); ?>
 <div class="p-band p-band--calm">
@@ -613,7 +621,7 @@ $noteBadge = $notesUnread + $escCount;
     <div class="ss-day"><?= e($dl) ?></div>
   <?php endif; ?>
     <?php if (isset($n['group'])): $gUnread = array_filter($n['group'], fn ($g) => empty($g['is_read'])); ?>
-    <details class="nf-group">
+    <details class="nf-group" data-live-key="g<?= e((string) ($n['group'][0]['id'] ?? '')) ?>">
       <summary class="fr p-notif<?= $gUnread ? ' p-unread' : '' ?>" data-sev="warn">
         <span class="p-n-ico is-smart"><?= smart_brain(20) ?></span>
         <div class="p-n-body"><div class="p-n-line"><?= $gUnread ? '<span class="p-unread-dot"></span>' : '' ?><span class="ss-smart-tag">SMART</span><b><?= e(sprintf(t('%d cases waited without a tanod', '%d kaso ang naghintay nang walang tanod'), count($n['group']))) ?></b></div>
@@ -636,7 +644,7 @@ $noteBadge = $notesUnread + $escCount;
         foreach ($cg as $g) { if (preg_match($caseRe, (string) $g['message'], $cm)) { $cgId = $cm[0]; break; } }
         $rank = ['info' => 0, 'act' => 1, 'warn' => 2, 'high' => 3]; $cgSev = 'info'; $cgIcon = 'i-bell'; $best = -1;
         foreach ($cg as $g) { $lk = notif_look((string) ($g['kind'] ?? ''), (string) $g['message']); if ($rank[$lk[0]] > $best) { $best = $rank[$lk[0]]; $cgSev = $lk[0]; $cgIcon = $lk[1]; } } ?>
-    <details class="nf-group nf-case">
+    <details class="nf-group nf-case" data-live-key="c<?= e((string) $n['report_id']) ?>">
       <summary class="fr p-notif<?= $cgUn ? ' p-unread' : '' ?>" data-sev="<?= e($cgSev) ?>">
         <span class="p-n-ico"><?= p_icon($cgIcon, 18) ?></span>
         <div class="p-n-body"><div class="p-n-line"><b><?= $cgId !== '' ? e($cgId) . ' &middot; ' : '' ?><?= e(sprintf(t('%d updates on this case', '%d update sa kasong ito'), count($cg))) ?></b></div>
@@ -657,7 +665,7 @@ $noteBadge = $notesUnread + $escCount;
     </details>
     <?php continue; endif; ?>
     <?php $unread = empty($n['is_read']); $look = notif_look((string) ($n['kind'] ?? ''), (string) $n['message']); ?>
-    <div class="fr p-notif<?= $unread ? ' p-unread' : '' ?>" data-sev="<?= e($look[0]) ?>">
+    <div class="fr p-notif<?= $unread ? ' p-unread' : '' ?>" data-sev="<?= e($look[0]) ?>" data-live-key="n<?= e((string) $n['id']) ?>">
       <span class="p-n-ico<?= str_starts_with((string) $n['message'], 'SMART') ? ' is-smart' : '' ?>"><?= str_starts_with((string) $n['message'], 'SMART') ? smart_brain(20) : p_icon($look[1], 18) ?></span>
       <div class="p-n-body"><div class="p-n-line"><?= $unread ? '<span class="p-unread-dot"></span>' : '' ?><?= notification_dot($n) ?><?= str_starts_with((string) $n['message'], 'SMART') ? '<span class="ss-smart-tag">SMART</span>' : '' ?><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
       <div class="p-n-act">
@@ -717,7 +725,7 @@ $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '
 <?php // The press flow (step 3, 7 Nov 2026): the figures, the filters, the chooser, the list and the pager are one region. A press on a
       // figure, a filter, a committee, a column or a page fetches this same page and swaps only this region; the address follows, so
       // Back, Forward and a refresh land on the same view. Row links still open the case. ?>
-<div id="cr-list" class="press-region" hx-target="#cr-list" hx-select="#cr-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#cr-list:replace"
+<div id="cr-list" data-live="cases-list" class="press-region" hx-target="#cr-list" hx-select="#cr-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#cr-list:replace"
      data-announce="<?= e(sprintf(t('Showing %d reports', 'Ipinapakita ang %d ulat'), (int) $regTotal)) ?>">
 <div class="cr-fig" hx-boost="true" aria-label="<?= e(t('What needs attention', 'Ang kailangan ng pansin')) ?>">
   <a class="p-card ss-tile<?= $atc > 0 ? ' hot' : '' ?>" href="<?= e($crHref(['view' => 'attention'])) ?>"><span><?= e(t('Needs attention', 'Kailangan ng pansin')) ?></span><b class="p-num"><?= (int) $atc ?></b>
@@ -849,7 +857,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
         </td></tr>
       <?php endif; ?>
       <?php foreach ($reports as $r): ?>
-        <tr class="p-click<?= !empty($r['is_sensitive']) ? ' ss-sens' : '' ?><?= report_is_overdue($r) ? ' cr-od' : (!empty($r['referred_to']) ? ' cr-ref' : '') ?>" data-href="case.php?id=<?= e($r['id']) ?>"<?= !empty($r['is_sensitive']) ? ' title="' . e(t('Sensitive case', 'Sensitibong kaso')) . '"' : '' ?>>
+        <tr data-live-key="<?= e($r['id']) ?>" class="p-click<?= !empty($r['is_sensitive']) ? ' ss-sens' : '' ?><?= report_is_overdue($r) ? ' cr-od' : (!empty($r['referred_to']) ? ' cr-ref' : '') ?>" data-href="case.php?id=<?= e($r['id']) ?>"<?= !empty($r['is_sensitive']) ? ' title="' . e(t('Sensitive case', 'Sensitibong kaso')) . '"' : '' ?>>
           <?php if (is_super()): ?><td class="ss-c fw-selc"><input type="checkbox" class="fw-sel" value="<?= e($r['id']) ?>" data-track="<?= e($r['tracking_id']) ?>" aria-label="<?= e(sprintf(t('Select %s', 'Piliin ang %s'), $r['tracking_id'])) ?>"></td><?php endif; ?>
           <td><div class="ss-case"><span class="p-mono-id"><?= e($r['tracking_id']) ?></span>
             <?php if (!empty($r['is_anonymous'])): ?>
@@ -877,7 +885,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
           </div></td>
           <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
           <td class="ss-smart"><?= smart_badge($r['triage'] ?? null) ?></td>
-          <td><?= handler_cell($r, $admin['id']) ?><span class="ss-open" data-report="<?= e($r['id']) ?>"></span></td>
+          <td><?= handler_cell($r, $admin['id']) ?><span class="ss-open" data-report="<?= e($r['id']) ?>" data-live-skip></span></td>
           <td class="ss-c"><div class="fw-acts"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($r['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
             <?php if (can_forward() || is_moderator()): ?><button type="button" class="p-btn p-btn-ghost p-btn-sm fw-btn" data-fw-open="<?= e($r['id']) ?>" data-track="<?= e($r['tracking_id']) ?>"><?= e(is_moderator() ? t('Flag', 'I-flag') : t('Forward', 'Ipasa')) ?></button><?php endif; ?></div></td>
         </tr>
@@ -919,6 +927,8 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   });
   // the live refresh waits while cases are ticked or the dialog is open, so it never takes a selection away
   window.ssCasesBusy = function () { return picked().length > 0 || dlg.open; };
+  // and so does the live layer (live.js, 25 Nov 2026) for the list
+  window.ssLiveBusy = function (el) { return el.getAttribute('data-live') === 'cases-list' && window.ssCasesBusy(); };
   // a forward sent in place closes the dialog when its answer has come
   dlg.addEventListener('htmx:afterRequest', function (e) { if (e.detail && e.detail.successful) dlg.close(); });
 })();
@@ -1384,6 +1394,9 @@ document.addEventListener('DOMContentLoaded', function () {   // supabase.js is 
   window.ssLive = window.ssLive || {}; window.ssLive.notes = liveNotes;
   const kickNotifs  = debounced(TAB === 'notes' ? liveNotes : () => {}, { id: null });
 
+  // Live updates on (live.js, 25 Nov 2026): the layer owns the channel, the badge and the redraw; this page's own channel is the
+  // old behaviour, for when they are switched off.
+  if (window.ssLiveLayer && window.ssLiveLayer.active) { return; }
   let wasDown = false;
   sb.channel('cases-list')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, kickReports)

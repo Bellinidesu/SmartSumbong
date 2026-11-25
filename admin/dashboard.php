@@ -158,8 +158,12 @@ $leadBy  = [];
 foreach (is_array($sm['leads']) ? $sm['leads'] : [] as $u) { if (!empty($u['committee'])) { $leadBy[(string) $u['committee']][] = formal_name((string) $u['full_name']); } }
 $panelOn = $coms !== null || $smSum !== null || !empty($sm['spikes']) || !empty($sm['score']) || !empty($sm['times']);
 
-layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
 $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->format('Y-m');
+// Live updates (25 Nov 2026, includes/live.php): this month's engine window and the sidebar follow the reports (the charts redraw
+// themselves from dashboard_metrics, below); a past month does not change, so it does not listen. The page is heavy: at most one
+// refetch every 15 seconds.
+if ($isCurrent) { live_page('dashboard', ['reports' => ''], ['gap' => 15, 'safety' => 180]); }
+layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
 ?>
 
 <?php if ($error): ?>
@@ -177,7 +181,7 @@ $flair = greeting_flair($now, $first);
     <p><?= e($now->format('l, F j')) ?><?php if ($flair['event'] !== null): ?> &middot; <span class="dh-event"><?= e($flair['event']) ?></span><?php endif; ?> &middot; <?= e(t('here is what needs you today.', 'narito ang kailangan mo ngayon.')) ?></p></header>
   <span class="p-spacer"></span>
   <?php if ($panelOn): $brainN = (int) (($smSum['urgent_waiting'] ?? 0) + ($smSum['high_waiting'] ?? 0)) + (int) $smRisk; ?>
-    <button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($brainN > 0): ?><b class="ss-brain-n"><?= $brainN > 99 ? '99+' : $brainN ?></b><?php endif; ?></button>
+    <button type="button" class="ss-brain-btn" id="ss-win-open" data-live="dash-brain" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($brainN > 0): ?><b class="ss-brain-n"><?= $brainN > 99 ? '99+' : $brainN ?></b><?php endif; ?></button>
   <?php endif; ?>
   <form method="get">
     <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Reporting month', 'Buwan ng ulat')) ?></span>
@@ -209,10 +213,10 @@ $flair = greeting_flair($now, $first);
   <header class="ss-win-head">
     <?= smart_logo(40) ?>
     <div class="ss-win-ttl"><b id="ss-win-title"><?= e(t('What the engine sees', 'Ang nakikita ng engine')) ?></b>
-      <small><?= e(implode(' · ', $peek)) ?></small></div>
+      <small data-live="dash-peek"><?= e(implode(' · ', $peek)) ?></small></div>
     <button type="button" class="ss-win-x" id="ss-win-close" aria-label="<?= e(t('Close', 'Isara')) ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </header>
-  <div class="ss-win-body"><div class="ss-panel-in">
+  <div class="ss-win-body"><div class="ss-panel-in" data-live="dash-panel">
 <?php endif; ?>
 <!-- Rose, 2 Nov 2026: what waits on a super admin, the committees and the live feed, here in the engine's window -->
 <?php if ($coms !== null) { $nm = $coms['needs_me']; $decide = (int) $nm['escalations'] + (int) $nm['to_place'] + (int) $nm['tanods']; } ?>
@@ -300,8 +304,8 @@ $flair = greeting_flair($now, $first);
 <?php endif; ?>
 <?php if ($panelOn): ?>
 <section class="ss-win-about" aria-labelledby="ss-about-t"><h3 id="ss-about-t"><?= e(t('About the charts', 'Tungkol sa mga tsart')) ?></h3>
-  <p class="p-eyebrow"><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></p><div class="dq-notes" id="notes-received"><p class="p-hint"><?= e(t('Reading the month…', 'Binabasa ang buwan…')) ?></p></div>
-  <p class="p-eyebrow"><?= e(t('Resolution efficiency', 'Bilis ng paglutas')) ?></p><div class="dq-notes" id="notes-efficiency"><p class="p-hint"><?= e(t('Reading the month…', 'Binabasa ang buwan…')) ?></p></div>
+  <p class="p-eyebrow"><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></p><div class="dq-notes" id="notes-received" data-live-skip><p class="p-hint"><?= e(t('Reading the month…', 'Binabasa ang buwan…')) ?></p></div>
+  <p class="p-eyebrow"><?= e(t('Resolution efficiency', 'Bilis ng paglutas')) ?></p><div class="dq-notes" id="notes-efficiency" data-live-skip><p class="p-hint"><?= e(t('Reading the month…', 'Binabasa ang buwan…')) ?></p></div>
 </section>
   </div></div>
 </div>
@@ -629,6 +633,12 @@ document.addEventListener('DOMContentLoaded', function () {   // supabase.js is 
         $('as-of-time').textContent = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date());
       });
     }, 400);
+  }
+  // Live updates on (live.js, 25 Nov 2026): the layer's one channel says when a report changed, and owns the badge
+  if (window.ssLiveLayer && window.ssLiveLayer.active) {
+    document.addEventListener('ss:live-event', function (e) { if (e.detail && e.detail.table === 'reports') { refresh(); } });
+    document.addEventListener('ss:live', refresh);   // and when the page's own check (Realtime down) found something changed
+    return;
   }
   sb.channel('dashboard-metrics')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, refresh)
