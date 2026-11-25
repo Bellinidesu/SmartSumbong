@@ -53,7 +53,10 @@ def live_ro(sql, setup=""):
     m = re.search(r"\{.*\}", r.stdout, re.S)
     if not m:
         raise RuntimeError((r.stderr or r.stdout)[:300])
-    return json.loads(m.group(0)).get("rows", [])
+    d = json.loads(m.group(0))
+    if d.get("_tag") == "Error" or "rows" not in d:
+        raise RuntimeError(str(d.get("error", d))[:300])
+    return d["rows"]
 
 
 def cli_json(*args):
