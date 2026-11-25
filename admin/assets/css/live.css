@@ -1,0 +1,28 @@
+/* Live updates (25 Nov 2026): what live.js adds to a page that opts in. No layout change: a short tint on what changed, the badge's
+   Polling look, a small chip when an update waits on what someone is doing, and a calm notice when the page is no longer theirs. */
+:root { --ss-live-tint: rgba(255, 152, 0, .55); --ss-live-chip-bg: #1F2430; --ss-live-chip-ink: #FFFFFF; --ss-live-poll-bg: #FFF1D6; --ss-live-poll-ink: #7A4A00; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ss-live-tint: rgba(255, 183, 77, .6); --ss-live-chip-bg: #F2F4F8; --ss-live-chip-ink: #12151C; --ss-live-poll-bg: rgba(255, 170, 0, .18); --ss-live-poll-ink: #FFC56B; } }
+:root[data-theme="dark"] { --ss-live-tint: rgba(255, 183, 77, .6); --ss-live-chip-bg: #F2F4F8; --ss-live-chip-ink: #12151C; --ss-live-poll-bg: rgba(255, 170, 0, .18); --ss-live-poll-ink: #FFC56B; }
+
+/* what changed: an outline that comes in (200 ms), stays a moment, and goes (200 ms); it never moves the layout or covers a colour */
+@keyframes ssLiveTint { 0% { outline-color: transparent; } 20%, 80% { outline-color: var(--ss-live-tint); } 100% { outline-color: transparent; } }
+.ss-live-tint { outline: 2px solid transparent; outline-offset: 2px; animation: ssLiveTint 1s ease-out 1; }
+.ss-live-still { outline: 2px solid var(--ss-live-tint); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .ss-live-tint { animation: none; outline-color: var(--ss-live-tint); } }
+
+/* the badge while Realtime is down and the page checks by itself (written over identity.css's green, same shape) */
+:root:root:root .p-live.p-poll { background: var(--ss-live-poll-bg); color: var(--ss-live-poll-ink); text-shadow: none; box-shadow: none; }
+:root:root:root .p-live.p-poll i { background: currentColor; filter: none; animation: none; }
+:root:root:root .p-live.p-poll i::after { display: none; }
+
+/* an update waiting on what someone is doing: small, at the bottom, never over the chat head or a field */
+.ss-live-chip { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 1500; display: flex; align-items: center; gap: 12px;
+  max-width: calc(100vw - 32px); padding: 6px 6px 6px 16px; border-radius: 999px; background: var(--ss-live-chip-bg); color: var(--ss-live-chip-ink);
+  font-size: 14px; font-weight: 600; line-height: 1.3; box-shadow: 0 10px 28px -8px rgba(0, 0, 0, .45); }
+.ss-live-chip[hidden] { display: none; }
+.ss-live-chip .p-btn { min-height: 44px; min-width: 44px; padding-inline: 16px; border-radius: 999px; white-space: nowrap; }
+@media (max-width: 560px) { .ss-live-chip { left: 16px; right: 16px; transform: none; border-radius: 18px; } }
+
+/* the page is no longer this person's: a calm line at the top, with the way back */
+.ss-live-gone { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.ss-live-gone a { font-weight: 700; text-decoration: underline; min-height: 24px; }

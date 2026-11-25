@@ -198,6 +198,7 @@ Render:
 | `RESIDENT_APP_URL` | the Workspace's Report QR widget (an https link) | the widget asks for the link |
 | `VAPID_PUBLIC_KEY` | browser alerts (Profile → Alerts); the same public key as the function's | the card says browser alerts are not set up |
 | `FEATURE_CACHE_TTL` (optional) | how long the small shared caches last, in seconds (300; 0 turns them off, as the browser tests do) | 300 |
+| `LIVE_UPDATES` (optional) | live updates' kill switch: `off` turns them off for everyone, every page as before (docs/LIVE_UPDATES.md; a feature switch row `live_updates` does the same from Settings without a restart) | on |
 | `PORTAL_MOVED_TO` | only on an old host: forwards every page to the new address | no forwarding |
 | `NOMINATIM_URL` | only to point the street-label lookup (geocode.php) somewhere else; the browser tests use their fake server | OpenStreetMap's Nominatim, as always |
 

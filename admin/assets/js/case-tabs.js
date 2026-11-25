@@ -8,8 +8,10 @@
   var tabs = [].slice.call(bar.querySelectorAll('[data-cc-go]'));
   var key = 'cc-tab:' + location.search.replace(/[^a-z0-9=-]/gi, '');
   var NAMES = tabs.map(function (b) { return b.getAttribute('data-cc-go'); });
-  function show(name, focus) {
+  var current = 'report';
+  function show(name, focus, keep) {   // keep: a live update redraws the blocks; the tab and the scroll stay as they are
     if (NAMES.indexOf(name) < 0) { name = 'report'; }
+    current = name;
     tabs.forEach(function (b) {
       var on = b.getAttribute('data-cc-go') === name;
       b.setAttribute('aria-selected', on ? 'true' : 'false'); b.setAttribute('tabindex', on ? '0' : '-1');
@@ -17,7 +19,8 @@
     });
     [].forEach.call(document.querySelectorAll('[data-cc-tab]'), function (el) { el.hidden = el.getAttribute('data-cc-tab') !== name; });
     document.getElementById('cc-body').setAttribute('aria-labelledby', 'cc-tab-' + name);
-    var body = document.getElementById('cc-body'); if (body && !focus) { body.scrollTop = 0; }
+    var body = document.getElementById('cc-body'); if (body && !focus && !keep) { body.scrollTop = 0; }
+    if (keep) { return; }
     try { sessionStorage.setItem(key, name); } catch (e) { /* private mode: the tab just is not remembered */ }
     if (name === 'report') { try { window.dispatchEvent(new Event('resize')); } catch (e) { /* the map keeps its size */ } }   // the map (Where) was hidden while another tab showed
   }
@@ -33,5 +36,7 @@
   var h = (location.hash || '').replace('#', ''), saved = null;
   try { saved = sessionStorage.getItem(key); } catch (e) { saved = null; }
   show(NAMES.indexOf(h) > -1 ? h : (saved || 'report'), false);
+  // live updates (25 Nov 2026): a block that came or changed in place is shown or hidden for the tab that is open
+  document.addEventListener('ss:live', function () { show(current, false, true); });
   window.addEventListener('hashchange', function () { var n = (location.hash || '').replace('#', ''); if (NAMES.indexOf(n) > -1) { show(n, false); } });
 })();

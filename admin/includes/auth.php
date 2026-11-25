@@ -15,6 +15,7 @@ require_once __DIR__ . '/features.php';
 require_once __DIR__ . '/barangay.php';
 require_once __DIR__ . '/access.php';
 require_once __DIR__ . '/boot.php';
+require_once __DIR__ . '/live.php';   // live updates (25 Nov 2026): the switch, and which requests are the page refetching itself
 
 /**
  * The session is opened once per request. A page view (GET or HEAD) reads it and lets go of it at once (speed work, 7 Nov 2026).
@@ -82,6 +83,11 @@ function session_take_back(bool $atEnd): void
         if (!array_key_exists($k, $snap) || $snap[$k] !== $v) $set[$k] = $v;
     }
     $gone = array_keys(array_diff_key($snap, $now));
+    // a page refetching itself in the background (live updates, 25 Nov 2026) never takes away a one-time message (a save's green or
+    // red line) that the next page the person opens should show
+    if (function_exists('live_background') && live_background()) {
+        $gone = array_values(array_filter($gone, static fn ($k) => !preg_match('/(flash|note)$/', (string) $k)));
+    }
     $snap = null;
     if ($atEnd && !$set && !$gone) return;
     $id = session_id();
@@ -250,7 +256,8 @@ function require_admin(): array
         header('Location: login.php?expired=1');
         exit;
     }
-    if ($admin) {
+    // a page refetching itself (live updates) is not use: a portal left open still signs out after IDLE_LIMIT
+    if ($admin && !live_background()) {
         $admin['seen'] = time();
         $_SESSION[SESSION_KEY] = $admin;
     }
