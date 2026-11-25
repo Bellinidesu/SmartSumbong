@@ -29,7 +29,7 @@ def live(sql):
     """READ-ONLY query on the live project through the linked CLI (SELECT / EXPLAIN only)."""
     if not re.match(r"\s*(select|with|explain|show)\b", sql, re.I) or re.search(r"\banalyze\b|;\s*\S", sql, re.I):
         raise RuntimeError("live() is read-only: one SELECT / EXPLAIN (never ANALYZE) per call")
-    r = subprocess.run(["supabase", "db", "query", "--linked", sql], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
+    r = subprocess.run(["supabase", "db", "query", "--linked", "-o", "json", sql], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
     m = re.search(r"\{.*\}", r.stdout, re.S)
     if not m:
         raise RuntimeError((r.stderr or r.stdout)[:300])
@@ -47,7 +47,7 @@ def live_ro(sql, setup=""):
     with tempfile.NamedTemporaryFile("w", suffix=".sql", delete=False, encoding="utf-8") as f:
         f.write("begin read only;\n" + setup + "\n" + sql.rstrip().rstrip(";") + ";\nrollback;\n")
     try:
-        r = subprocess.run(["supabase", "db", "query", "--linked", "-f", f.name], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
+        r = subprocess.run(["supabase", "db", "query", "--linked", "-o", "json", "-f", f.name], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
     finally:
         os.unlink(f.name)
     m = re.search(r"\{.*\}", r.stdout, re.S)
