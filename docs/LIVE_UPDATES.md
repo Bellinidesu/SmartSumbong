@@ -132,8 +132,9 @@ values ('live_updates', 'Live updates', 'Live na update', true, 'Pages update th
 on conflict (key) do nothing;
 ```
 
-From then on it is a toggle in Settings > Parts of the system (`feature_set()`, which keeps the change in SMART's events). With the
-feature cache (`FEATURE_CACHE_TTL`, 300 s on Render) a flip reaches every page within five minutes, at once for the person who flipped it.
+From then on it is a toggle in Settings > Parts of the system (`feature_set()`, which keeps the change in SMART's events). Settings empties the shared
+feature cache when a switch is saved, so the next page anyone opens has it; a row changed in the SQL editor waits for the cache
+(`FEATURE_CACHE_TTL`, 300 s).
 
 ## Realtime on the free plan
 
