@@ -25,15 +25,27 @@ def psqlj(sql, **kw):
     return json.loads(re.sub(r"\A(?:SET\n)+", "", out))   # a `setup` such as `set search_path` prints SET first
 
 
+def _cli_rows(r):
+    """Rows from `supabase db query -o json`: an agent session wraps them as {"rows": [...]}, a plain terminal or a
+    scheduled task prints the list itself."""
+    out = r.stdout
+    i = min((x for x in (out.find("["), out.find("{")) if x >= 0), default=-1)
+    if i < 0:
+        raise RuntimeError((r.stderr or out)[:300])
+    d, _ = json.JSONDecoder().raw_decode(out[i:])
+    if isinstance(d, list):
+        return d
+    if d.get("_tag") == "Error" or "rows" not in d:
+        raise RuntimeError(str(d.get("error", d))[:300])
+    return d["rows"]
+
+
 def live(sql):
     """READ-ONLY query on the live project through the linked CLI (SELECT / EXPLAIN only)."""
     if not re.match(r"\s*(select|with|explain|show)\b", sql, re.I) or re.search(r"\banalyze\b|;\s*\S", sql, re.I):
         raise RuntimeError("live() is read-only: one SELECT / EXPLAIN (never ANALYZE) per call")
     r = subprocess.run(["supabase", "db", "query", "--linked", "-o", "json", sql], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
-    m = re.search(r"\{.*\}", r.stdout, re.S)
-    if not m:
-        raise RuntimeError((r.stderr or r.stdout)[:300])
-    return json.loads(m.group(0)).get("rows", [])
+    return _cli_rows(r)
 
 
 def live_ro(sql, setup=""):
@@ -50,13 +62,7 @@ def live_ro(sql, setup=""):
         r = subprocess.run(["supabase", "db", "query", "--linked", "-o", "json", "-f", f.name], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
     finally:
         os.unlink(f.name)
-    m = re.search(r"\{.*\}", r.stdout, re.S)
-    if not m:
-        raise RuntimeError((r.stderr or r.stdout)[:300])
-    d = json.loads(m.group(0))
-    if d.get("_tag") == "Error" or "rows" not in d:
-        raise RuntimeError(str(d.get("error", d))[:300])
-    return d["rows"]
+    return _cli_rows(r)
 
 
 def cli_json(*args):
