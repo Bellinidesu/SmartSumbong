@@ -21,7 +21,16 @@ KNOWN = [
     ("K-01", "request_reopen (0037) + reopen_report", "Reopen flow is broken end to end (the notice part was fixed live by 0185; the rest stays open): request_reopen (and request_appeal) notify EVERY active admin with no report_id (probe: 6 admins told, 4 of whom cannot see the case, no Review button), reopen_report() works for a Kagawad or super on a resolved or closed case but nothing calls it, admin_set_status refuses closed/archived, and the resident gets no answer or decline.", "high", "open", "reopen-flow"),
     ("K-02", "F07 docs/BACKEND_SWEEP_2026-11.md", "password-otp code fix (F07) deployed 20 Nov.", "info", "done", None),
     ("K-03", "F08 docs/BACKEND_SWEEP_2026-11.md", "Cloudinary secrets were missing from the Edge Function secrets, so sign-upload/media-cleanup could not talk to Cloudinary. Set by Ace on 20 Nov.", "high", "fixed 20 Nov (Cloudinary set)", None),
-    ("K-04", "F09 docs/BACKEND_SWEEP_2026-11.md", "Kagawad/staff count(*) over reports takes 7-14 s at 20,000 cases: the case rule (_user_sees_case) runs per row inside the policy. Core rule; options file proposed.", "high", "open", "perf"),
+    ("K-04", "F09 docs/BACKEND_SWEEP_2026-11.md", "Kagawad/staff count(*) over reports takes 7-14 s at 20,000 cases: the case rule (_user_sees_case) runs per row inside the policy. Fixed by 0189 (the policies read the caller's facts once per query); re-measured 25 Nov on 0001-0192: cases.php/committee 132,874 -> 737 ms of database time per load at 250x, the slowest committee query 220 ms, staff 224 ms.", "high", "fixed live 20 Nov (0189)", "perf"),
+    ("K-18", "loadcost.py re-run 25 Nov (0001-0192)", "The 20 Nov L-03..L-07 (Kagawad/staff reads of reports and dispatches at 250x, 22.6-30 s, at the replay cap) are gone: re-measured after 0189-0192 no committee or staff query passes 225 ms at 250x. The ids L-03..L-07 now name the new five slowest queries (super admin/captain committee-tab counts).", "high", "fixed live 20-21 Nov (0189, 0190)", None),
+    ("Q-01", "loadcost.py replay (complaint-print.php)", "complaint-print.php ordered report_media by created_at, which does not exist, so printed complaints silently lost their photos. Fixed by #440 (orders by uploaded_at); the 25 Nov replay has no failing page query.", "high", "fixed 20 Nov (#440, portal)", None),
+    ("K-20", "live users (round 3, storage)", "11 of 14 ID photos and 8 of 11 selfies are still public Cloudinary 'upload' assets (accounts made 13 Aug-7 Oct, before 0117; the 3 made since are private). 0117: 'Older uploads stay public until scripts/privatize-identity-photos.mjs moves them'; it has not been run, so anyone holding one of those addresses can open a government ID without signing in.", "high", "open (Ace: node scripts/privatize-identity-photos.mjs, then --apply)", None),
+    ("K-21", "backup.yml + tools/restore_drill.sh (round 3, restore drill)", "The nightly restore drill checks only public row counts (and live grants), so it passed every night through 23-24 Nov. A dump-based restore loses the auth.users triggers and all 21 cron jobs and brings grants back open (415 functions callable signed-out instead of 19). Option: after its restore, apply 0193 + grants.sh apply and run drift_check.py --local, so the night fails on what a restore loses.", "medium", "open", None),
+    ("K-22", "smart.py + supabase inspect db (round 3)", "smart_watch() (cron every 5 min) takes 0.4 s / 9.6 s / 51 s at 1x/50x/250x on the laptop (live: 94 ms average); _smart_snapshot_refresh (every minute) is 42% of all live database time (94 ms average), the cron jobs together 74%.", "medium", "open", "perf"),
+    ("K-23", "loadcost.py L-03..L-07 (round 3)", "The super admin's and captain's cases.php committee-tab counts filter reports through the case_committee() computed column (a function per row, no index): five full passes, 500-625 ms each at 250x, 3.2 s of database time per load (live today ~4 ms).", "medium", "open", "perf"),
+    ("K-24", "round 3 tooling", "supabase/tools/grants.sh reported every line as different on Windows (psql writes CRLF); probe_db.sh exited 1 whenever its dump had no errors, so run_all.sh silently skipped the dynamic probers.", "low", "fixed in the round 3 PR", None),
+    ("K-25", "realtime.apply_rls on live (round 3)", "Realtime DELETE events skip row level security and reach every subscriber of the table with the primary key only (Supabase design; old_record is cut to the key when RLS is on). Ids only, no content.", "info", "accepted: Supabase design", None),
+    ("K-19", "live auth.users (found 24 Nov, round 3 drift check)", "SIGN-UP DRIFT: live auth.users had lost both triggers (on_auth_user_created -> handle_new_auth_user, auth_users_confirm_synthetic -> confirm_synthetic_auth_email), most likely in the 7 Nov Mumbai -> Singapore move: no public.users row and no confirmed derived address, so new residents could not register or sign in on 23-24 Nov. Ace re-created both by hand 24-25 Nov (checked 25 Nov: identical to 0004/0022). LESSON: a dump (supabase db dump, the nightly backup) leaves out the auth, storage and vault schemas and the cron jobs (and grants revoked by default privileges come back open), and every public-schema check (grants, baseline, restore drill row counts) stayed green; what lives outside public must be checked on its own after any move or restore.", "critical", "fixed live 24-25 Nov (Ace, by hand); guard: drift_check.py + test 77; draft 0193 for restores", None),
     ("K-07", "migration 0185 (applied live 20 Nov)", "request_reopen and request_appeal notices now carry report_id: only admins who can open the case are told, with a Review link (probe: 6 told, 4 could not open it).", "high", "fixed live 20 Nov (0185)", None),
     ("K-08", "migration 0186 (applied live 20 Nov)", "34 trigger functions were executable by signed-out/signed-in callers; now 0 of 50 are (none disabled; filing still works).", "medium", "fixed live 20 Nov (0186)", None),
     ("K-09", "migration 0187 (applied live 20 Nov)", "_smart_triage_after_write records engine_error in smart_events; _smart_event is best-effort so a failing log line no longer aborts admin_dispatch.", "medium", "fixed live 20 Nov (0187)", None),
@@ -135,19 +144,63 @@ def fixed(r):
     if r[0] == "C-02": return "0186"
     if r[0].startswith("PI-") and re.search(r"SMART event log raises|SMART scoring unavailable|smart_triage\(\) raises", t): return "0187"
     if r[0].startswith("PI-") and "notification trigger raises" in t: return "0188"
+    if r[0] == "C-03": return "0192; the 11 still listed stay callable on purpose: invoker chains, test 76"
+    if r[0].startswith("D2-") and "_command_auto() swallows" in t: return "0192: records command_auto_skipped"
+    if r[0].startswith("D2-") and "_smart_triage_after_write() swallows" in t: return "0187: records engine_error in smart_events"
+    if r[0].startswith("D2-") and "_notifications_scope() swallows" in t: return "0188: records notice_error"
     return None
+
+
+CLOSED = ("done", "fixed", "accepted", "closed")
+GONE_WHY = [   # an OPEN row of the previous ledger that the re-run no longer finds: why (first match)
+    (r"has a page rule in access\.php but is not mentioned", "closed 21 Nov (#445: page access table in ROLES_AND_PAGES)"),
+    (r"baseline covers", "closed (baseline rebuilt with each migration)"),
+    (r"never named in (any|a) test", "closed 21 Nov (#445: tests 72-75)"),
+    (r"is_identity_media_url", "closed 21 Nov (0192: no longer callable by the API)"),
+    (r"^comment says", "closed (marker judged again 25 Nov)"),
+]
+
+
+def carry_over(old_text, new_rows):
+    """Rows of the previous ledger the re-run no longer produces: closed ones are kept as history (detector ids are positional,
+    so a reused id gets a ~prev suffix); open ones are closed with the reason the re-run no longer finds them. Measurement rows
+    (L-xx) and summary rows whose id still exists are superseded by the new numbers."""
+    norm = lambda s: re.sub(r"\d+", "#", s)[:90]
+    new_ids, new_txt = {r[0] for r in new_rows}, {norm(r[2]) for r in new_rows}
+    m = re.search(re.escape(B) + r"(.*?)" + re.escape(E), old_text, re.S)
+    out = []
+    for l in (m.group(1).splitlines() if m else []):
+        c = [x.strip() for x in l.strip().strip("|").split(" | ")]
+        if len(c) != 7 or c[0] in ("id", "---") or c[0].startswith("-"):
+            continue
+        if norm(c[2]) in new_txt or c[0].startswith("L-"):
+            continue
+        closed = c[4].lower().startswith(CLOSED)
+        if c[0].startswith("K-") and c[0] in new_ids:   # the team's own rows (KNOWN): the current text wins
+            continue
+        if c[0] in new_ids:
+            if not closed:
+                continue
+            c[0] = c[0] if c[0].endswith("~prev") else c[0] + "~prev"
+            if c[0] in new_ids:
+                continue
+        if not closed:
+            c[4] = next((why for pat, why in GONE_WHY if re.search(pat, c[2])), "closed: no longer found by the 25 Nov re-run (0001-0192)")
+        out.append(tuple(c))
+    return out
 
 
 def main():
     rs = rows()
     rs = [(a, b, c, d, (fixed((a, b, c, d)).lower() if fixed((a, b, c, d)).startswith("ACCEPTED") else f"fixed live 20-21 Nov ({fixed((a, b, c, d))})") if fixed((a, b, c, d)) else e, f, g) for (a, b, c, d, e, f, g) in rs]
+    rs += carry_over(read(LEDGER) if LEDGER.exists() else "", rs)
     order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
     rs = sorted(rs, key=lambda r: (order.get(r[3], 9), r[0]))
-    op = [r for r in rs if not r[4].startswith(("done", "fixed", "accepted"))]
+    op = [r for r in rs if not r[4].lower().startswith(CLOSED)]
     cnt = Counter(r[3] for r in op); cls = Counter(r[5] for r in op)
     table = ["| id | source | gap | severity | status | class | fix / options |", "|---|---|---|---|---|---|---|"]
     for r in rs: table.append("| " + " | ".join(str(x).replace("|", "/").replace("\n", " ") for x in r) + " |")
-    auto = f"{B}\n\n{len(rs)} rows. Severity: " + ", ".join(f"{k} {cnt.get(k, 0)}" for k in order) + ". Class: " + ", ".join(f"{k} {cls.get(k, 0)}" for k in "ABC") + ".\n\n" + "\n".join(table) + f"\n\n{E}"
+    auto = f"{B}\n\n{len(rs)} rows ({len(rs) - len(op)} closed, {len(op)} open; 0185-0192 applied live 20-21 Nov, re-run 25 Nov). Severity of open rows: " + ", ".join(f"{k} {cnt.get(k, 0)}" for k in order) + ". Class: " + ", ".join(f"{k} {cls.get(k, 0)}" for k in "ABC") + ".\n\n" + "\n".join(table) + f"\n\n{E}"
     head = """# Gap ledger
 
 One row per gap. **Class**: A = a script can generate the fix (see `tools/sweep/fix/`, output is a DRAFT migration + test, never applied);

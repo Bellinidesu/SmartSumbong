@@ -36,6 +36,38 @@ def live(sql):
     return json.loads(m.group(0)).get("rows", [])
 
 
+def live_ro(sql, setup=""):
+    """READ-ONLY query on live inside `begin read only ... rollback` (the database itself refuses any write).
+    `setup` may hold `set local ...` / `select set_config(...)` lines (read-only impersonation); `sql` is one SELECT/WITH."""
+    if not re.match(r"\s*(select|with)\b", sql, re.I) or ";" in sql.rstrip().rstrip(";"):
+        raise RuntimeError("live_ro() takes one SELECT / WITH")
+    if re.search(r"\b(insert|update|delete|truncate|alter|drop|create|grant|revoke|copy|call|do)\b", setup, re.I):
+        raise RuntimeError("live_ro() setup may only set settings")
+    import tempfile
+    with tempfile.NamedTemporaryFile("w", suffix=".sql", delete=False, encoding="utf-8") as f:
+        f.write("begin read only;\n" + setup + "\n" + sql.rstrip().rstrip(";") + ";\nrollback;\n")
+    try:
+        r = subprocess.run(["supabase", "db", "query", "--linked", "-f", f.name], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
+    finally:
+        os.unlink(f.name)
+    m = re.search(r"\{.*\}", r.stdout, re.S)
+    if not m:
+        raise RuntimeError((r.stderr or r.stdout)[:300])
+    d = json.loads(m.group(0))
+    if d.get("_tag") == "Error" or "rows" not in d:
+        raise RuntimeError(str(d.get("error", d))[:300])
+    return d["rows"]
+
+
+def cli_json(*args):
+    """A read-only Supabase CLI listing as JSON (functions list, secrets list, config diff)."""
+    r = subprocess.run(["supabase", *args], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
+    m = re.search(r"[\[{].*[\]}]", r.stdout, re.S)
+    if not m:
+        raise RuntimeError(f"supabase {' '.join(args)}: " + (r.stderr or r.stdout)[:200])
+    return json.loads(m.group(0))
+
+
 def save(name, obj):
     (OUT / name).write_text(json.dumps(obj, indent=1, ensure_ascii=False, default=str), encoding="utf-8")
 
