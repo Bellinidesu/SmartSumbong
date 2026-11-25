@@ -695,6 +695,8 @@ function render_account_screen(string $role): void
         return o + '<span class="of">' + ((page - 1) * PER + 1) + '&ndash;' + Math.min(total, page * PER) + ' ' + T('of', 'sa') + ' ' + total + '</span></nav>';
       }
       function renderAccounts(accounts) {
+        // A press may be swapping #people-list right now (its counters are gone for a moment): skip, the next 20 s refresh redraws.
+        if (!['accounts-count', 'pending-wrap', 'pending-count', 'overdue-banner', 'overdue-text'].every(function (id) { return document.getElementById(id); })) return;
         var filtered = accounts;
         if (SEARCH) {
           var needle = SEARCH.toLowerCase();
