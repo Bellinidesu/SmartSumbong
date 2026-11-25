@@ -56,21 +56,28 @@ def main():
     sim_sql = """
 create temp table rt_sim (pass int, who text, tbl text, h text, n int);
 create or replace function pg_temp.rt_check(p_pass int, p_actors text[][], p_tables text[]) returns void language plpgsql as $f$
-declare t text; a int; ids uuid[]; pk uuid; ok boolean; seen text[]; h text;
+declare t text; a int; ids uuid[]; sample uuid[]; pk uuid; ok boolean; seen text[]; full_set text[]; h text; miss int;
 begin
   foreach t in array p_tables loop
-    execute format('select array_agg(id) from public.%I', t) into ids;           -- every row, as the database owner
+    execute format('select array_agg(id order by id) from public.%I', t) into ids;   -- every row, as the database owner
+    -- per-row checks (one statement per row, as apply_rls): every row; above 2,000 rows a fixed sample of 2,000
+    if coalesce(array_length(ids, 1), 0) > 2000 then
+      select array_agg(x) into sample from unnest(ids) with ordinality u(x, i) where i % (array_length(ids, 1) / 2000) = 0;
+    else sample := ids; end if;
     for a in 1 .. array_length(p_actors, 1) loop
       seen := '{}';
       perform set_config('role', 'authenticated', true);
       perform set_config('request.jwt.claims', json_build_object('sub', p_actors[a][2], 'role', 'authenticated')::text, true);
-      foreach pk in array coalesce(ids, '{}') loop
+      foreach pk in array coalesce(sample, '{}') loop
         execute format('select exists (select 1 from public.%I where id = $1)', t) into ok using pk;
         if ok then seen := seen || pk::text; end if;
       end loop;
+      -- every row in one statement, same role and claims: the full visible set
+      execute format('select array_agg(x::text) from unnest($1) x where exists (select 1 from public.%I where id = x)', t) into full_set using ids;
       perform set_config('role', 'postgres', true);
-      select md5(coalesce(string_agg(x, ',' order by x), '')) into h from unnest(seen) x;
-      insert into rt_sim values (p_pass, p_actors[a][1], t, h, coalesce(array_length(seen, 1), 0));
+      select count(*) into miss from unnest(sample) x where (x::text = any(seen)) <> (x::text = any(coalesce(full_set, '{}')));
+      select md5(coalesce(string_agg(x, ',' order by x), '')) into h from unnest(coalesce(full_set, '{}')) x;
+      insert into rt_sim values (p_pass, p_actors[a][1], t, h || ':' || miss || ':' || coalesce(array_length(sample, 1), 0), coalesce(array_length(full_set, 1), 0));
     end loop;
   end loop;
 end $f$;
@@ -84,14 +91,20 @@ end $f$;
     if r.returncode:
         sys.exit(r.stderr[:300])
     diffs, pairs, rows = [], 0, 0
+    checks = 0
     for l in r.stdout.splitlines():
-        p, who, t, h, n = l.split(" ")
-        pairs += 1
+        if len(l.split(" ")) != 5:
+            continue   # the void rt_check() calls print empty lines
+        p, who, t, hms, n = l.split(" ")
+        h, miss, ns = hms.split(":")
+        pairs += 1; checks += int(ns)
         if fresh.get((who, t)) != (h, int(n)):
             diffs.append(f"pass {p} {who} {t}: realtime check {n} rows vs fresh read {fresh.get((who, t), ('-', '-'))[1]}")
+        if int(miss):
+            diffs.append(f"pass {p} {who} {t}: {miss} rows where the one-statement-per-row check and the set disagree")
     total = {t: int(psql(f"select count(*) from public.{t}")) for t in TABLES}
     print(f"REALTIME per role on the restored copy: {len(TABLES)} published tables ({sum(total.values())} rows), {len(ACTORS)} test roles, "
-          f"{pairs} (pass, role, table) sets = {2 * len(ACTORS) * sum(total.values())} per-row checks")
+          f"{pairs} (pass, role, table) sets; {checks} one-statement-per-row checks (status_logs: 2,000-row sample per role and pass, every row in the set check)")
     print(f"  per-row realtime check (one session, roles switched) vs fresh read per role: {len(diffs)} differences" + "".join(f"\n    {d}" for d in diffs[:10]))
     vis = {}
     for (who, t), (h, n) in fresh.items():

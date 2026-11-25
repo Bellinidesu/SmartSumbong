@@ -144,7 +144,24 @@ a prepared `select … where pk = $1` under RLS; **DELETE events skip RLS and ca
 is cut to the key, so `reports`' full replica identity does not leak old values. The 0189-0191 helpers are STABLE, keyed on
 `auth.uid()`, keep no session state (the `set_config` calls in 0191 are transaction-local flags inside write functions).
 
-REALTIME_RESULT
+**Result (restored copy of live, 25 Nov; 10 tables, 25,121 rows, 9 test roles, 2 passes with the roles in opposite orders):
+0 differences.** For every (pass, role, table), what the realtime check lets through (one session, role + claims switched per
+subscriber as apply_rls does; 55,800 one-statement-per-row checks: every row of every table, status_logs a 2,000-row sample per
+role and pass, plus every status_logs row in one statement) equals what that role reads in a fresh session. Rows each role would
+receive changes for (= may read):
+
+| role | reports | status_logs | notifications | dispatches | dispatch_updates | case_handler_log | detail_req. | escalation_req. | messages | retirement_req. |
+|---|---|---|---|---|---|---|---|---|---|---|
+| super admin (x2), captain | 75 | 24,022 | 53 / 53 / 52 | 50 | 25 | 65 | 6 | 3 | 27 | 2 |
+| Kagawad 1 / 2 | 8 / 12 | 26 / 97 | 10 / 10 | 4 / 8 | 0 / 6 | 8 / 14 | 0 / 2 | 0 / 1 | 4 / 0 | 0 / 0 |
+| staff 1 / 2 | 1 / 1 | 1 / 1 | 5 / 5 | 0 / 0 | 0 / 0 | 2 / 2 | 0 | 0 | 0 / 2 | 0 |
+| resident | 0 | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| tanod | 28 | 13,734 | 34 | 27 | 18 | 0 | 4 | 2 | 0 | 1 |
+
+(Reports: 75 of 84 for the top rungs: deleted cases are hidden from everyone. The tanod's 13,734 trail entries belong to the 28
+cases it was dispatched to, including the old demo repeats, S-02.) **Verdict: no role/table leak**: no subscriber receives an
+INSERT/UPDATE for a row it may not read, and nothing carries from one subscriber's check to the next. The only exposure is K-25
+(DELETE events carry the primary key only, by Supabase design).
 
 Needs a live write to prove end to end (a change pushed to real subscribers): not done.
 
