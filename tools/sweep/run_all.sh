@@ -23,7 +23,7 @@ fi
 step "pages and presses (static)"; python pagemap.py
 if [ "$mode" != "quick" ]; then
   step "capture what each page asks the backend"; python capture_pages.py
-  step "load cost and SMART at 1x and 250x"; python loadcost.py --scales 1,250
+  step "load cost and SMART at 1x and 250x"; python loadcost.py --scales "${SCALES:-1,250}"
 fi
 step "SMART engine"; python smart.py
 step "callers (strict cross-check)"; python callgraph.py | head -4
