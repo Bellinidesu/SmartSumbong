@@ -148,7 +148,7 @@ test('the barangay\'s places: listed in a panel on Spatial Distribution (moved f
 
 test('alerts: each person sets up what reaches them (profile)', async ({ page }) => {
   const r = await open(page, 'profile.php#alerts');
-  await expect(page.locator('#ss-al [data-kind]')).toHaveCount(8);   // 0157 adds forwards, flags and reroute questions; the Inbox messages switch went with BarangayMail (15 Nov)
+  await expect(page.locator('#ss-al [data-kind]')).toHaveCount(9);   // 0157 adds forwards, flags and reroute questions; the Inbox messages switch went with BarangayMail (15 Nov); 0175 adds Assignments (19 Nov)
   await page.locator('#ss-al [data-kind="escalation"]').uncheck();
   await expect(page.locator('#ss-al-saved')).toContainText('Saved');
   await page.locator('#ss-al-scope [data-scope="mine"]').click();
