@@ -119,6 +119,7 @@ function case_page_reads(string $id): array
         'ops'        => ['operational_settings', ['select' => 'max_deadline_extensions', 'limit' => '1'], true],
         'roster'     => ['rpc/tanod_roster', ['p_report' => $id], true],
         'rank'       => ['rpc/smart_tanod_ranking', ['p_report' => $id], true],
+        'assignees'  => ['rpc/case_assignees', ['p_report' => $id], true],   // read with the first batch even when the Assign picker is not shown: one wait less (the 2-wait budget)
     ];
 }
 
@@ -295,7 +296,7 @@ if ($report && !$error) {
     $hid0 = (string) ($report['handler_id'] ?? '');
     if (may_assign() && ($hid0 === '' || $hid0 === (string) $admin['id'])
         && !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true) && empty($report['referred_to'])) {
-        $second['assignees'] = ['rpc/case_assignees', ['p_report' => $id], true];
+        $second['assignees'] = $pre['assignees'];
     }
 
     // Only when nobody is on the case already. One round trip saved on
