@@ -1,6 +1,7 @@
 // SmartSumbong — Sign Up as Resident.
 //
-// Figma node 2849:192, with the ID dropdown expanded state from 2018:4.
+// Figma node 2849:192. The ID-type dropdown (2018:4) is gone: the only ID
+// accepted is the Barangay ID (Nov 2026), so the photo row says so directly.
 //
 // ORDER OF OPERATIONS, and why it is what it is.
 //
@@ -70,7 +71,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirm = TextEditingController();
 
   IdDocumentType? _idType;
-  bool _dropdownOpen = false;
   bool _agreed = false;
   bool _busy = false;
   // Covers the whole of _submit, including the OCR wait and both dialogs
@@ -105,12 +105,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    // Figma's tanod signup has no ID-type picker — one upload, implicitly
-    // the Barangay ID. Presetting this is what lets the dropdown stay
-    // hidden for that role without leaving _idType null (see _validate).
-    if (widget.role == AccountRole.tanod) {
-      _idType = IdDocumentType.barangayId;
-    }
+    // Barangay ID only, for residents and tanods alike (Nov 2026:
+    // replace the ID check with the Barangay ID). There is no picker any
+    // more; presetting it here keeps _idType non-null (see _validate).
+    _idType = IdDocumentType.barangayId;
   }
 
   @override
@@ -155,12 +153,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_confirm.text != _password.text) {
       _errors['confirm'] = s.registerPasswordMismatch;
     }
-    // Figma's tanod signup (2613:921) has no ID-type dropdown — one
-    // upload, implicitly the Barangay ID (see the header comment on why
-    // the Barangay-Appointment option was dropped from the UI rather
-    // than kept behind a picker). _idType is set to that once, below,
-    // and never cleared for a tanod, so this only ever fires for a
-    // resident who has not picked one yet.
+    // _idType is preset to the Barangay ID in initState and never cleared,
+    // so this is only a guard.
     if (_idType == null) {
       _errors['id_type'] = s.registerIdTypeRequired;
     }
@@ -684,31 +678,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ]),
             const SizedBox(height: 12),
             card([
-              // The tanod form presets the Barangay ID, so no dropdown.
-              if (!tanod) ...[
-                _IdTypeDropdown(
-                  role: widget.role,
-                  value: _idType,
-                  open: _dropdownOpen,
-                  error: _errors['id_type'],
-                  enabled: !_busy,
-                  onToggle: () => setState(() => _dropdownOpen = !_dropdownOpen),
-                  onSelect: (v) => setState(() {
-                    _idType = v;
-                    _dropdownOpen = false;
-                    _errors.remove('id_type');
-                  }),
-                ),
-                const SizedBox(height: 20),
-              ],
               _PhotoRow(
-                showLabel: tanod,
-                label: tanod ? s.registerAttachBarangayId : s.registerPhotoOfYourId,
-                caption: tanod ? s.registerMakeSureReadable : (_idType == null ? s.registerChooseIdTypeFirst : s.registerMakeSureReadable),
+                showLabel: true,
+                label: s.registerAttachBarangayId,
+                caption: s.registerMakeSureReadable,
                 file: _idFile,
                 uploaded: _idUrl != null,
                 error: _errors['id_image'],
-                enabled: !_busy && _idType != null,
+                enabled: !_busy,
                 onTap: () => _capture(selfie: false),
               ),
               if (_idRead != null) _IdReadLine(state: _idRead!),
@@ -849,129 +826,6 @@ class _Field extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-class _IdTypeDropdown extends StatelessWidget {
-  const _IdTypeDropdown({
-    required this.value,
-    required this.open,
-    required this.onToggle,
-    required this.onSelect,
-    this.role = AccountRole.resident,
-    this.error,
-    this.enabled = true,
-  });
-
-  /// Decides which documents are offered. A tanod proves an appointment,
-  /// not residence, so the two lists have nothing to do with each other.
-  final AccountRole role;
-
-  final IdDocumentType? value;
-  final bool open;
-  final VoidCallback onToggle;
-  final ValueChanged<IdDocumentType> onSelect;
-  final String? error;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final s = context.s;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 2),
-          child: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.end,
-            spacing: 8,
-            children: [
-              Text(
-                role == AccountRole.tanod
-                    ? s.registerAttachBarangayId
-                    : s.registerAttachValidId,
-                style: t.labelLarge?.copyWith(height: 23 / 16),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 3),
-                child: Text(s.registerInfoReadableNote, style: t.bodySmall?.copyWith(fontSize: 12, height: 1.3)),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: context.colors.field,
-            border: Border.all(color: error == null ? context.colors.navy : context.colors.hint),
-            borderRadius: BorderRadius.circular(Tokens.dropdownRadius),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              InkWell(
-                onTap: enabled ? onToggle : null,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        // The frame's box text: Inter 14/400.
-                        child: Text(
-                          value?.label ??
-                              (role == AccountRole.tanod
-                                  ? s.registerSelectYourDocument
-                                  : s.registerSelectAValidId),
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,
-                            fontSize: 14,
-                            height: 17 / 14,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        open ? Icons.expand_less : Icons.expand_more,
-                        size: 20,
-                        color: context.colors.navy,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (open) ...[
-                Divider(height: 1, color: context.colors.divider),
-                for (final o in role == AccountRole.tanod
-                    ? IdDocumentType.tanodOptions
-                    : IdDocumentType.residentOptions)
-                  InkWell(
-                    onTap: () => onSelect(o),
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: context.colors.divider, width: 0.5),
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      child: Text(o.label, style: t.bodyMedium),
-                    ),
-                  ),
-              ],
-            ],
-          ),
-        ),
-        if (error != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 8, top: 4),
-            child: Text(error!,
-                style: TextStyle(color: context.colors.hint, fontSize: 11)),
-          ),
-      ],
     );
   }
 }
