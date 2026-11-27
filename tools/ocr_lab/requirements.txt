@@ -19,7 +19,7 @@ requests==2.34.2                 # Apache-2.0
 urllib3==2.8.0                   # MIT
 idna==3.20                       # BSD-3-Clause
 charset-normalizer==3.5.2        # MIT
-certifi==2026.10.19              # MPL-2.0; drops compromised emSign roots
+certifi==2026.10.23              # MPL-2.0; drops compromised emSign roots
 flatbuffers==25.12.19            # Apache-2.0
 packaging==26.3                  # Apache-2.0 OR BSD-2-Clause
 protobuf==7.36.2                 # BSD-3-Clause
