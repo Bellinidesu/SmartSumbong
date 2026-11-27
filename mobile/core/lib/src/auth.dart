@@ -33,14 +33,11 @@ enum IdDocumentType {
   /// What the applicant sees in the dropdown.
   final String label;
 
-  /// The five documents a resident can choose from, in the order the
-  /// design lists them.
+  /// What a resident submits: the Barangay ID only (Nov 2026).
+  /// The other kinds stay in the enum because older accounts on file
+  /// were registered with them.
   static const residentOptions = [
-    postalId,
-    philsys,
-    passport,
     barangayId,
-    driversLicense,
   ];
 
   /// What a tanod submits. Barangay 183 has a handful of tanods and most

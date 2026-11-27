@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Barangay ID only for sign-up and ID changes (Nov 2026, app; waits for Rose's go)**
+
+- Sign up as Resident no longer asks which ID: the only ID accepted is the Barangay ID, the same as a tanod already had. The ID-type dropdown is gone; the photo row reads "Attach your Barangay ID" (English and Tagalog strings already existed). `register_screen.dart`.
+- Edit profile > Send a new ID: a resident sends a Barangay ID without a "Which ID is it?" sheet; a tanod still chooses between the Barangay ID and an appointment order. `edit_profile_screen.dart`.
+- `IdDocumentType.residentOptions` is the Barangay ID alone. No migration: `barangay_id` was already an accepted `id_document_type`, and accounts on file with other ID kinds keep them.
+
 **Live updates: pages update themselves, never over what you are typing (25 Nov, Ace; looks: Rose)**
 
 - One shared layer, `admin/assets/js/live.js` (strict CSP, no inline handlers). A page opts in with `live_page()` (`admin/includes/live.php`) and marks its live parts `data-live="name"`. On a Realtime change to the page's tables (the page's one shared connection), or every 25 s while Realtime is down, it fetches the same address with `X-Live: 1` and morphs only the parts whose HTML changed: the elements stay (their listeners, focus, scroll, an open `<details>`), only what differs moves. Bursts become one refetch (500 ms, at most one per 3 s); nothing while the tab is hidden; the channel goes with the page.

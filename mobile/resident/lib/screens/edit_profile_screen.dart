@@ -297,16 +297,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   /// Martin (6 Oct 2026, 0086): a fresh photo of a valid ID, for the
   /// barangay to approve on the portal before it replaces the one on file.
   Future<void> _sendNewId() async {
+    // Barangay ID only (Nov 2026). A tanod may still send an
+    // appointment order instead, so only a tanod is asked which one.
     final tanod = AppRoleController.instance.value == AppRole.tanod;
     final types = <(String, String)>[
-      if (tanod) ('barangay_appointment', context.tr('Barangay appointment', 'Barangay appointment')),
-      ('philsys', 'PhilSys (National ID)'),
       ('barangay_id', 'Barangay ID'),
-      ('drivers_license', context.tr("Driver's license", 'Lisensya sa pagmamaneho')),
-      ('passport', context.tr('Passport', 'Pasaporte')),
-      ('postal_id', 'Postal ID'),
+      if (tanod) ('barangay_appointment', context.tr('Barangay appointment', 'Barangay appointment')),
     ];
-    final type = await showModalBottomSheet<String>(
+    final type = types.length == 1 ? types.first.$1 : await showModalBottomSheet<String>(
       context: context,
       backgroundColor: context.d.card,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
